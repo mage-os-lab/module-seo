@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+<!--
+    JSON-LD and meta tag blocks are injected into head.additional.
+    Both blocks must NOT carry cacheable="false" — they are fully FPC-safe.
+    Providers that return nothing (disabled, no data) produce no output.
+    See architecture section 16 (Cache Safety) for full rationale.
+-->
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <body>
+        <referenceBlock name="head.additional">
+            <block class="MageOS\Seo\Block\Canonical"
+                   name="rs_seo.canonical"
+                   template="MageOS_Seo::seo/canonical.phtml"/>
+
+            <block class="MageOS\Seo\Block\JsonLd"
+                   name="rs_seo.json_ld"
+                   template="MageOS_Seo::seo/json-ld.phtml"/>
+
+            <block class="MageOS\Seo\Block\MetaTags"
+                   name="rs_seo.meta_tags"
+                   template="MageOS_Seo::seo/meta-tags.phtml"/>
+        </referenceBlock>
+    </body>
+</page>

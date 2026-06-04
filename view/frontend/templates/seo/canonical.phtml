@@ -1,0 +1,19 @@
+<?php
+/**
+ * Canonical URL output template.
+ *
+ * Only renders when no canonical has already been set by the product
+ * or category providers. Covers home page, CMS pages, and any other
+ * page type not handled by a more specific provider.
+ *
+ * Cache safety: fully cacheable — URL is derived from the request path
+ * which is part of the FPC cache key.
+ *
+ * @var \MageOS\Seo\Block\Canonical $block
+ */
+$canonical = $block->getCanonicalUrl();
+if (!$canonical) {
+    return;
+}
+?>
+<link rel="canonical" href="<?= $block->escapeUrl($canonical) ?>"/>

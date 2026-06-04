@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Backend:etc/menu.xsd">
+    <menu>
+        <add id="MageOS_Seo::seo"
+             title="SEO"
+             module="MageOS_Seo"
+             sortOrder="85"
+             parent="Magento_Backend::marketing"
+             resource="MageOS_Seo::seo"/>
+
+        <add id="MageOS_Seo::organisation"
+             title="Organisation"
+             module="MageOS_Seo"
+             sortOrder="10"
+             parent="MageOS_Seo::seo"
+             action="rs_seo/organisation/edit"
+             resource="MageOS_Seo::organisation"/>
+
+        <add id="MageOS_Seo::config_link"
+             title="Configuration"
+             module="MageOS_Seo"
+             sortOrder="20"
+             parent="MageOS_Seo::seo"
+             action="adminhtml/system_config/edit/section/mageos_seo_general"
+             resource="MageOS_Seo::config"/>
+    </menu>
+</config>

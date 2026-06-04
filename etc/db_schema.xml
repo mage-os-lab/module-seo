@@ -1,0 +1,69 @@
+<?xml version="1.0"?>
+<schema xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:framework:Setup/Declaration/Schema/etc/schema.xsd">
+
+    <!-- Organisation / site identity settings (single-row, entity_id = 1) -->
+    <table name="mage-os_seo_organisation" resource="default" engine="innodb"
+           comment="MageOS SEO — Organisation schema settings">
+        <column xsi:type="int" name="entity_id" unsigned="true" nullable="false" identity="true" comment="Entity ID"/>
+        <column xsi:type="varchar" name="name" nullable="false" length="255" default="" comment="Organisation name"/>
+        <column xsi:type="varchar" name="url" nullable="false" length="255" default="" comment="Canonical organisation URL"/>
+        <column xsi:type="varchar" name="logo_path" nullable="true" length="255" comment="Logo image path (media-relative)"/>
+        <column xsi:type="smallint" name="logo_width" nullable="true" unsigned="true" comment="Logo width in pixels"/>
+        <column xsi:type="smallint" name="logo_height" nullable="true" unsigned="true" comment="Logo height in pixels"/>
+        <column xsi:type="text" name="description" nullable="true" comment="Organisation description / tagline"/>
+        <column xsi:type="text" name="social_profiles" nullable="true" comment="JSON array of social profile URLs"/>
+        <column xsi:type="text" name="contact_point" nullable="true" comment="JSON object: contactType, email, availableLanguage"/>
+        <column xsi:type="varchar" name="org_type" nullable="false" length="64" default="Organization" comment="Schema.org @type"/>
+        <column xsi:type="timestamp" name="updated_at" nullable="false" default="CURRENT_TIMESTAMP"
+                on_update="true" comment="Last updated"/>
+        <constraint xsi:type="primary" referenceId="PRIMARY">
+            <column name="entity_id"/>
+        </constraint>
+    </table>
+
+    <!-- Per-category SEO configuration -->
+    <table name="mage-os_seo_category_config" resource="default" engine="innodb"
+           comment="MageOS SEO — per-category schema configuration">
+        <column xsi:type="int" name="entity_id" unsigned="true" nullable="false" identity="true" comment="Entity ID"/>
+        <column xsi:type="int" name="category_id" unsigned="true" nullable="false" comment="Catalog category entity_id"/>
+        <column xsi:type="varchar" name="schema_template" nullable="true" length="64" comment="Product schema template code"/>
+        <column xsi:type="text" name="enabled_fields" nullable="true" comment="JSON array of enabled optional field codes"/>
+        <column xsi:type="text" name="override_fields" nullable="true" comment="JSON object of hard-coded field value overrides"/>
+        <column xsi:type="smallint" name="item_list_enabled" nullable="true" unsigned="true"
+                comment="Override ItemList output: NULL=global default, 0=disabled, 1=enabled"/>
+        <column xsi:type="varchar" name="robots_meta" nullable="true" length="64"
+                comment="Robots meta override for this category (INDEX,FOLLOW etc.)"/>
+        <column xsi:type="timestamp" name="updated_at" nullable="false" default="CURRENT_TIMESTAMP"
+                on_update="true" comment="Last updated"/>
+        <constraint xsi:type="primary" referenceId="PRIMARY">
+            <column name="entity_id"/>
+        </constraint>
+        <constraint xsi:type="unique" referenceId="RS_SEO_CATEGORY_CONFIG_CATEGORY_ID_UNQ">
+            <column name="category_id"/>
+        </constraint>
+    </table>
+
+    <!-- Per-product SEO field overrides -->
+    <table name="mage-os_seo_product_override" resource="default" engine="innodb"
+           comment="MageOS SEO — per-product schema field overrides">
+        <column xsi:type="int" name="entity_id" unsigned="true" nullable="false" identity="true" comment="Entity ID"/>
+        <column xsi:type="int" name="product_id" unsigned="true" nullable="false" comment="Catalog product entity_id"/>
+        <column xsi:type="smallint" name="store_id" unsigned="true" nullable="false" default="0" comment="Store view ID (0 = all stores)"/>
+        <column xsi:type="text" name="override_fields" nullable="true" comment="JSON object of hard-coded field value overrides"/>
+        <column xsi:type="varchar" name="robots_meta" nullable="true" length="64" comment="Robots meta override for this product"/>
+        <column xsi:type="timestamp" name="updated_at" nullable="false" default="CURRENT_TIMESTAMP"
+                on_update="true" comment="Last updated"/>
+        <constraint xsi:type="primary" referenceId="PRIMARY">
+            <column name="entity_id"/>
+        </constraint>
+        <constraint xsi:type="unique" referenceId="RS_SEO_PRODUCT_OVERRIDE_PRODUCT_STORE">
+            <column name="product_id"/>
+            <column name="store_id"/>
+        </constraint>
+        <index referenceId="RS_SEO_PRODUCT_OVERRIDE_PRODUCT_ID_IDX" indexType="btree">
+            <column name="product_id"/>
+        </index>
+    </table>
+
+</schema>

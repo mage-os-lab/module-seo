@@ -1,0 +1,21 @@
+<?php
+/**
+ * Open Graph and supplemental meta tags output template.
+ *
+ * Cache safety: fully cacheable. No cacheable="false".
+ *
+ * @var \MageOS\Seo\Block\MetaTags $block
+ */
+
+$tags = $block->getMetaTags();
+if (empty($tags)) {
+    return;
+}
+?>
+<?php foreach ($tags as $tag): ?>
+<?php if (isset($tag['property'])): ?>
+<meta property="<?= $block->escapeHtml($tag['property']) ?>" content="<?= $block->escapeMetaContent((string) $tag['content']) ?>"/>
+<?php elseif (isset($tag['name'])): ?>
+<meta name="<?= $block->escapeHtml($tag['name']) ?>" content="<?= $block->escapeMetaContent((string) $tag['content']) ?>"/>
+<?php endif; ?>
+<?php endforeach; ?>

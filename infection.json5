@@ -1,0 +1,58 @@
+{
+    "$schema": "vendor/infection/infection/resources/schema.json",
+    // Scope mutation testing to files that have corresponding unit tests.
+    // Classes exercised only by Test/Integration (repositories, URL rewrite
+    // plugins, sitemap providers, cron, RSS, resolvers, Resource models,
+    // Link managers) are excluded here because Infection can't boot the
+    // Magento framework to run those suites locally.
+    "source": {
+        "directories": ["Model", "ViewModel"],
+        "excludes": [
+            "Author.php",
+            "AuthorRepository.php",
+            "AuthorSearchResults.php",
+            "Category.php",
+            "CategoryRepository.php",
+            "CategorySearchResults.php",
+            "ImageUploader.php",
+            "Post.php",
+            "PostRepository.php",
+            "PostSearchResults.php",
+            "Tag.php",
+            "TagRepository.php",
+            "TagSearchResults.php",
+            "Config/Source",
+            "Link",
+            "Post/Link",
+            "Tag/Link",
+            "Category/Link",
+            "RelatedPostsProvider",
+            "Resolver",
+            "ResourceModel",
+            "Rss",
+            "Sitemap",
+            "Url",
+            "UrlKeyGenerator",
+            "Author",
+            "Category",
+            "Tag",
+            "Search",
+            "Author/Detail.php",
+            "Category/Detail.php",
+            "Tag/Detail.php",
+            "Post/Listing.php"
+        ]
+    },
+    "mutators": { "@default": true },
+    "phpUnit": { "configDir": "." },
+    // Baseline thresholds for v1.0. Raising to ≥75% MSI / ≥80% covered MSI is
+    // tracked for v1.1; it depends on expanding unit-test coverage into
+    // ViewModel/Post/Detail (JSON-LD shape) and Model/HyvaThemeDetection
+    // (inheritance-chain edge cases).
+    "minMsi": 54,
+    "minCoveredMsi": 70,
+    "logs": {
+        "text": "infection.log",
+        "github": true
+    }
+}

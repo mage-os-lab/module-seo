@@ -1,0 +1,55 @@
+{
+    "name": "mage-os/module-seo",
+    "description": "SEO module: JSON-LD structured data, meta tags, canonical management, and AI discoverability",
+    "type": "magento2-module",
+    "version": "1.0.0",
+    "minimum-stability": "stable",
+    "require": {
+        "php": "^8.0",
+        "magento/framework": "*",
+        "magento/module-catalog": "*",
+        "magento/module-store": "*",
+        "magento/module-cms": "*"
+    },
+    "require-dev": {
+        "bitexpert/phpstan-magento": "^0.42",
+        "friendsofphp/php-cs-fixer": "^3.50",
+        "infection/infection": "^0.29",
+        "magento/magento-coding-standard": "^40",
+        "magento/module-cache-invalidate": "*",
+        "phpstan/phpstan": "^2.0",
+        "phpstan/phpstan-phpunit": "^2.0",
+        "phpunit/phpunit": "^10.5"
+    },
+    "autoload": {
+        "files": [
+            "registration.php"
+        ],
+        "psr-4": {
+            "MageOS\\Seo\\": ""
+        }
+    },
+    "config": {
+        "sort-packages": true,
+        "allow-plugins": {
+            "dealerdirect/phpcodesniffer-composer-installer": true,
+            "magento/composer-dependency-version-audit-plugin": true,
+            "infection/extension-installer": true
+        }
+    },
+    "prefer-stable": true,
+    "repositories": [
+        {
+            "type": "composer",
+            "url": "https://mirror.mage-os.org/"
+        }
+    ],
+    "scripts": {
+        "test:unit":      "phpunit -c phpunit.xml.dist --testsuite unit",
+        "test:phpstan":   "phpstan analyse --memory-limit=1G",
+        "test:cs-fixer":  "php-cs-fixer fix --dry-run --diff --allow-risky=yes",
+        "test:phpcs":     "phpcs --standard=phpcs.xml.dist",
+        "test:infection": "infection --min-msi=75 --threads=4",
+        "test":           ["@test:unit", "@test:phpstan", "@test:cs-fixer", "@test:phpcs"]
+    }
+}

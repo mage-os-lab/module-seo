@@ -1,0 +1,30 @@
+<?php
+/**
+ * JSON-LD Structured Data output template.
+ *
+ * Cache safety: this block is fully cacheable. All schema data is sourced from
+ * URL-keyed resources (product, category, config) so Magento FPC caches a unique
+ * version per URL. No cacheable="false" on this block — ever.
+ *
+ * @var \MageOS\Seo\Block\JsonLd $block
+ */
+
+$json = $block->getJsonLd();
+if ($json === '') {
+    return;
+}
+
+// CSP nonce registration (Hyva pattern)
+$cspNonce = '';
+try {
+    $cspBlock = $block->getLayout()->getBlock('hyva.csp');
+    if ($cspBlock) {
+        $cspNonce = $cspBlock->registerInlineScript();
+    }
+} catch (\Exception $e) {
+    // CSP block not available in this layout context — proceed without nonce
+}
+?>
+<script type="application/ld+json"<?= $cspNonce ? ' nonce="' . /* @noEscape */ $cspNonce . '"' : '' ?>>
+<?= /* @noEscape */ $json ?>
+</script>

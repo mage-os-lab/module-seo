@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Store:etc/config.xsd">
+    <default>
+        <mageos_seo_general>
+            <og_tags>
+                <enabled>1</enabled>
+            </og_tags>
+            <structured_data>
+                <enabled>1</enabled>
+                <default_product_template>GenericProduct</default_product_template>
+                <category_item_list_enabled>1</category_item_list_enabled>
+                <category_item_list_max>36</category_item_list_max>
+                <has_variant_max>50</has_variant_max>
+                <price_valid_until_months>12</price_valid_until_months>
+            </structured_data>
+            <llms_txt>
+                <enabled>1</enabled>
+                <full_enabled>1</full_enabled>
+            </llms_txt>
+            <robots_meta>
+                <product_default>INDEX,FOLLOW</product_default>
+                <category_default>INDEX,FOLLOW</category_default>
+            </robots_meta>
+        </mageos_seo_general>
+    </default>
+</config>

@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:framework:Event/etc/events.xsd">
+    <!--
+        Invalidate llms.txt FPC cache tags whenever organisation, category,
+        or vendor data changes so the documents are regenerated promptly.
+        Bridge modules (SellersSeo) invalidate on vendor save via their own
+        events.xml and add the RS_LLMS / RS_LLMS_FULL tags to the purge call.
+    -->
+    <event name="catalog_category_save_after">
+        <observer name="rs_seo_invalidate_llms_on_category_save"
+                  instance="MageOS\Seo\Observer\InvalidateLlmsTxtCache"/>
+    </event>
+</config>

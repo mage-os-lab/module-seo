@@ -1,0 +1,251 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         INTERFACES → IMPLEMENTATIONS
+         ═══════════════════════════════════════════════════════════════════ -->
+
+    <preference for="MageOS\Seo\Api\OrganisationRepositoryInterface"
+                type="MageOS\Seo\Model\OrganisationRepository"/>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         STRUCTURED DATA COMPOSITOR — built-in providers
+         ═══════════════════════════════════════════════════════════════════ -->
+
+    <type name="MageOS\Seo\Model\StructuredData\Compositor">
+        <arguments>
+            <argument name="providers" xsi:type="array">
+                <!-- Organisation + WebSite — runs on every page -->
+                <item name="organization"
+                      xsi:type="object">MageOS\Seo\Model\StructuredData\Provider\OrganizationProvider</item>
+
+                <!-- BreadcrumbList — runs on every page, reads layout breadcrumbs -->
+                <item name="breadcrumbList"
+                      xsi:type="object">MageOS\Seo\Model\StructuredData\Provider\BreadcrumbListProvider</item>
+
+                <!-- Category: CollectionPage + ItemList -->
+                <item name="category"
+                      xsi:type="object">MageOS\Seo\Model\StructuredData\Provider\CategorySchemaProvider</item>
+
+                <!-- Product: dispatches to SchemaBuilderPool by template code -->
+                <item name="product"
+                      xsi:type="object">MageOS\Seo\Model\StructuredData\Provider\ProductSchemaProvider</item>
+                
+                <item name="cmsPage"
+                      xsi:type="object">MageOS\Seo\Model\StructuredData\Provider\CmsPageSchemaProvider</item>
+
+                <!--
+                    Bridge module providers are registered here by their own di.xml files.
+                    DO NOT add MageOS_SellersSeo or MageOS_ProductVariantUrlSeo
+                    providers here — they self-register via their own module di.xml.
+
+                    Example (from MageOS_SellersSeo/etc/di.xml):
+                    <item name="vendorProfile"
+                          xsi:type="object">MageOS\SellersSeo\Model\Provider\VendorProfile</item>
+                -->
+            </argument>
+        </arguments>
+    </type>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         META TAG COMPOSITOR — built-in providers
+         ═══════════════════════════════════════════════════════════════════ -->
+
+    <type name="MageOS\Seo\Model\MetaTag\Compositor">
+        <arguments>
+            <argument name="providers" xsi:type="array">
+                <item name="productMeta"
+                      xsi:type="object">MageOS\Seo\Model\MetaTag\Provider\ProductMetaProvider</item>
+
+                <item name="categoryMeta"
+                      xsi:type="object">MageOS\Seo\Model\MetaTag\Provider\CategoryMetaProvider</item>
+
+                <item name="cmsPageMeta"
+                      xsi:type="object">MageOS\Seo\Model\MetaTag\Provider\CmsPageMetaProvider</item>
+
+                <!--
+                    Bridge module meta providers self-register here via their own di.xml.
+                -->
+            </argument>
+        </arguments>
+    </type>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         PAGE TITLE COMPOSITOR — built-in providers
+         ═══════════════════════════════════════════════════════════════════ -->
+
+    <type name="MageOS\Seo\Model\PageTitle\Compositor">
+        <arguments>
+            <argument name="providers" xsi:type="array">
+                <item name="productTitle"
+                      xsi:type="object">MageOS\Seo\Model\PageTitle\Provider\ProductTitleProvider</item>
+
+                <item name="categoryTitle"
+                      xsi:type="object">MageOS\Seo\Model\PageTitle\Provider\CategoryTitleProvider</item>
+
+                <item name="cmsPageTitle"
+                      xsi:type="object">MageOS\Seo\Model\PageTitle\Provider\CmsPageTitleProvider</item>
+
+                <!--
+                    Bridge module title providers self-register here via their own di.xml.
+                    Built-in providers use sortOrder 100. Bridge providers should use 200+
+                    only if they need to override built-in titles.
+                -->
+            </argument>
+        </arguments>
+    </type>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         PRODUCT SCHEMA BUILDER POOL — all 16 built-in templates
+         ═══════════════════════════════════════════════════════════════════ -->
+
+    <type name="MageOS\Seo\Model\Product\SchemaBuilderPool">
+        <arguments>
+            <argument name="builders" xsi:type="array">
+                <item name="GenericProduct"
+                      xsi:type="object">MageOS\Seo\Model\Product\Builder\GenericProductBuilder</item>
+
+                <item name="Food"
+                      xsi:type="object">MageOS\Seo\Model\Product\Builder\FoodBuilder</item>
+
+                <item name="Apparel"
+                      xsi:type="object">MageOS\Seo\Model\Product\Builder\ApparelBuilder</item>
+
+                <item name="Jewelry"
+                      xsi:type="object">MageOS\Seo\Model\Product\Builder\JewelryBuilder</item>
+
+                <item name="HomeDecor"
+                      xsi:type="object">MageOS\Seo\Model\Product\Builder\HomeDecorBuilder</item>
+
+                <item name="Book"
+                      xsi:type="object">MageOS\Seo\Model\Product\Builder\BookBuilder</item>
+
+                <item name="Software"
+                      xsi:type="object">MageOS\Seo\Model\Product\Builder\SoftwareBuilder</item>
+
+                <item name="Toy"
+                      xsi:type="object">MageOS\Seo\Model\Product\Builder\ToyBuilder</item>
+
+                <item name="HealthProduct"
+                      xsi:type="object">MageOS\Seo\Model\Product\Builder\HealthProductBuilder</item>
+
+                <item name="Cosmetics"
+                      xsi:type="object">MageOS\Seo\Model\Product\Builder\CosmeticsBuilder</item>
+
+                <item name="Pet"
+                      xsi:type="object">MageOS\Seo\Model\Product\Builder\PetBuilder</item>
+
+                <item name="ArtAndCraft"
+                      xsi:type="object">MageOS\Seo\Model\Product\Builder\ArtAndCraftBuilder</item>
+
+                <item name="ElectronicsSimple"
+                      xsi:type="object">MageOS\Seo\Model\Product\Builder\ElectronicsSimpleBuilder</item>
+
+                <item name="Tool"
+                      xsi:type="object">MageOS\Seo\Model\Product\Builder\ToolBuilder</item>
+
+                <item name="Stationery"
+                      xsi:type="object">MageOS\Seo\Model\Product\Builder\StationeryBuilder</item>
+
+                <item name="LocalExperience"
+                      xsi:type="object">MageOS\Seo\Model\Product\Builder\LocalExperienceBuilder</item>
+
+                <!--
+                    Custom templates from other modules are registered here via their own di.xml.
+                    Any class implementing MageOS\Seo\Api\ProductSchemaBuilderInterface
+                    can be added without modifying this file.
+                -->
+            </argument>
+        </arguments>
+    </type>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         LLMS.TXT SECTION PROVIDERS
+         SellersSeo registers VendorSectionProvider here via its own di.xml.
+         ═══════════════════════════════════════════════════════════════════ -->
+
+    <type name="MageOS\Seo\Model\LlmsTxt\LlmsTxtBuilder">
+        <arguments>
+            <argument name="sectionProviders" xsi:type="array">
+                <!--
+                    Bridge modules register their section providers here.
+                    Example (from MageOS_SellersSeo/etc/di.xml):
+                    <item name="vendors"
+                          xsi:type="object">MageOS\SellersSeo\Model\LlmsTxt\VendorSectionProvider</item>
+                -->
+            </argument>
+        </arguments>
+    </type>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         PLUGINS
+         ═══════════════════════════════════════════════════════════════════ -->
+
+    <!-- Robots meta: product view controller -->
+    <type name="Magento\Catalog\Controller\Product\View">
+        <plugin name="rs_seo_product_robots_meta"
+                type="MageOS\Seo\Plugin\Controller\ProductRobotsMetaPlugin"
+                sortOrder="10"/>
+    </type>
+
+    <!-- Robots meta: category view controller -->
+    <type name="Magento\Catalog\Controller\Category\View">
+        <plugin name="rs_seo_category_robots_meta"
+                type="MageOS\Seo\Plugin\Controller\CategoryRobotsMetaPlugin"
+                sortOrder="10"/>
+    </type>
+
+    <!-- Category SEO tab persistence -->
+    <type name="Magento\Catalog\Api\CategoryRepositoryInterface">
+        <plugin name="rs_seo_category_save_seo_config"
+                type="MageOS\Seo\Plugin\Catalog\Category\SaveSeoConfigPlugin"
+                sortOrder="10"/>
+    </type>
+
+    <!-- Product SEO tab persistence -->
+    <type name="Magento\Catalog\Api\ProductRepositoryInterface">
+        <plugin name="rs_seo_product_save_seo_overrides"
+                type="MageOS\Seo\Plugin\Catalog\Product\SaveSeoOverridesPlugin"
+                sortOrder="10"/>
+    </type>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         ADMIN UI: CATEGORY + PRODUCT FORM MODIFIERS
+         ═══════════════════════════════════════════════════════════════════ -->
+
+    <!-- Register the category SEO tab modifier -->
+    <type name="Magento\Catalog\Ui\DataProvider\Category\Form\Modifier\Pool">
+        <arguments>
+            <argument name="modifiers" xsi:type="array">
+                <item name="rs_seo_category_modifier" xsi:type="array">
+                    <item name="class"     xsi:type="string">MageOS\Seo\Ui\DataProvider\Category\Form\Modifier\SeoModifier</item>
+                    <item name="sortOrder" xsi:type="number">200</item>
+                </item>
+            </argument>
+        </arguments>
+    </type>
+
+    <!-- Register the product SEO tab modifier -->
+    <type name="Magento\Catalog\Ui\DataProvider\Product\Form\Modifier\Pool">
+        <arguments>
+            <argument name="modifiers" xsi:type="array">
+                <item name="rs_seo_product_modifier" xsi:type="array">
+                    <item name="class"     xsi:type="string">MageOS\Seo\Ui\DataProvider\Product\Form\Modifier\SeoModifier</item>
+                    <item name="sortOrder" xsi:type="number">200</item>
+                </item>
+            </argument>
+        </arguments>
+    </type>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         SHARED SINGLETONS
+         SchemaRegistry is request-scoped by default (Magento DI creates one
+         instance per request). Declared explicitly to document intent.
+         ═══════════════════════════════════════════════════════════════════ -->
+
+    <!--<type name="MageOS\Seo\Model\Product\SchemaRegistry">
+        <arguments/>
+    </type>-->
+
+</config>

@@ -1,0 +1,77 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  unit:
+    name: Unit tests
+    runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        php: ['8.2', '8.3', '8.4', '8.5']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          coverage: pcov
+      - run: composer install --no-interaction --prefer-dist
+      - run: vendor/bin/phpunit --testsuite unit
+
+  static:
+    name: PHPStan
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with: { php-version: '8.5' }
+      - run: composer install --no-interaction --prefer-dist
+      - run: vendor/bin/phpstan analyse --memory-limit=1G --no-progress
+
+  cs:
+    name: Code style
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with: { php-version: '8.5' }
+      - run: composer install --no-interaction --prefer-dist
+      - run: vendor/bin/php-cs-fixer fix --dry-run --diff --allow-risky=yes
+      - run: vendor/bin/phpcs --standard=phpcs.xml.dist
+
+  integration-matrix:
+    name: Compute integration matrix
+    runs-on: ubuntu-22.04
+    outputs:
+      matrix: ${{ steps.supported.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: supported
+        uses: graycoreio/github-actions-magento2/supported-version@main
+        with:
+          kind: currently-supported
+          project: magento-open-source
+          include_services: 'true'
+
+  integration:
+    name: Integration tests
+    needs: integration-matrix
+    uses: graycoreio/github-actions-magento2/.github/workflows/integration.yaml@main
+    with:
+      package_name: mage-os/module-seo
+      matrix: ${{ needs.integration-matrix.outputs.matrix }}
+    secrets:
+      composer_auth: ${{ secrets.COMPOSER_AUTH }}
+
+  infection:
+    name: Mutation testing
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with: { php-version: '8.5', coverage: pcov }
+      - run: composer install --no-interaction --prefer-dist
+      - run: vendor/bin/infection --threads=4 --no-progress

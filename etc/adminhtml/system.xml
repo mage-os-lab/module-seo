@@ -1,0 +1,82 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Config:etc/system_file.xsd">
+    <system>
+        <tab id="mageos_seo" translate="label" sortOrder="500">
+            <label>MageOS SEO</label>
+        </tab>
+
+        <section id="mageos_seo_general" translate="label" type="text" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1">
+            <label>SEO</label>
+            <tab>mageos_seo</tab>
+            <resource>MageOS_Seo::config</resource>
+
+            <group id="og_tags" translate="label" type="text" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1">
+                <label>Open Graph Tags</label>
+                <field id="enabled" translate="label comment" type="select" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Enable OG Tags</label>
+                    <comment>Output og:title, og:description, og:image, og:type on product and category pages.</comment>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                </field>
+            </group>
+
+            <group id="structured_data" translate="label" type="text" sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="1">
+                <label>Structured Data (JSON-LD)</label>
+                <field id="enabled" translate="label" type="select" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Enable JSON-LD Output</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                </field>
+                <field id="default_product_template" translate="label comment" type="text" sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Default Product Schema Template</label>
+                    <comment>Used for products in categories with no template configured. Default: GenericProduct.</comment>
+                </field>
+                <field id="category_item_list_enabled" translate="label comment" type="select" sortOrder="30" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Enable Category ItemList Schema</label>
+                    <comment>Output an ItemList schema on category pages. Can be overridden per category.</comment>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                </field>
+                <field id="category_item_list_max" translate="label comment" type="text" sortOrder="40" showInDefault="1" showInWebsite="1" showInStore="0">
+                    <label>Category ItemList Max Items</label>
+                    <comment>Maximum products to include in ItemList schema per page. Recommended: 36 (matches default toolbar page size).</comment>
+                    <validate>validate-digits validate-greater-than-zero</validate>
+                </field>
+                <field id="has_variant_max" translate="label comment" type="text" sortOrder="50" showInDefault="1" showInWebsite="0" showInStore="0">
+                    <label>hasVariant Max Entries</label>
+                    <comment>Maximum variant nodes to include in a product's hasVariant array. Recommended: 50.</comment>
+                    <validate>validate-digits validate-greater-than-zero</validate>
+                </field>
+                <field id="price_valid_until_months" translate="label comment" type="text" sortOrder="60" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Price Valid Until (months)</label>
+                    <comment>Number of months from today to set as priceValidUntil on offers. Default: 12.</comment>
+                    <validate>validate-digits validate-greater-than-zero</validate>
+                </field>
+            </group>
+
+            <group id="llms_txt" translate="label" type="text" sortOrder="30" showInDefault="1" showInWebsite="1" showInStore="1">
+                <label>AI Discoverability (llms.txt)</label>
+                <field id="enabled" translate="label comment" type="select" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Enable /llms.txt</label>
+                    <comment>Serve a machine-readable site summary at /llms.txt for LLM crawlers.</comment>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                </field>
+                <field id="full_enabled" translate="label comment" type="select" sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Enable /llms-full.txt</label>
+                    <comment>Serve the extended document with full vendor and category listings at /llms-full.txt.</comment>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                </field>
+            </group>
+
+            <group id="robots_meta" translate="label" type="text" sortOrder="40" showInDefault="1" showInWebsite="1" showInStore="1">
+                <label>Robots Meta Defaults</label>
+                <field id="product_default" translate="label" type="select" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Product Pages Default</label>
+                    <source_model>MageOS\Seo\Model\Config\Source\RobotsMeta</source_model>
+                </field>
+                <field id="category_default" translate="label" type="select" sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Category Pages Default</label>
+                    <source_model>MageOS\Seo\Model\Config\Source\RobotsMeta</source_model>
+                </field>
+            </group>
+        </section>
+    </system>
+</config>
