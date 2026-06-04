@@ -2,8 +2,6 @@
 
 A Magento 2 SEO module providing JSON-LD structured data, Open Graph meta tags, canonical URL management, per-category/product configuration, robots meta control, and AI-crawler discoverability via `/llms.txt`.
 
-Requires [`reessolutions/module-base`](https://github.com/reessolutions/module-base).
-
 ---
 
 ## Features
@@ -21,16 +19,15 @@ Requires [`reessolutions/module-base`](https://github.com/reessolutions/module-b
 
 ## Requirements
 
-- PHP 8.0+
+- PHP 8.2+
 - Magento 2.4.x
-- `reessolutions/module-base`
 
 ---
 
 ## Installation
 
 ```bash
-composer require reessolutions/module-seo
+composer require mage-os/module-seo
 bin/magento module:enable MageOS_Seo
 bin/magento setup:upgrade
 bin/magento cache:flush
