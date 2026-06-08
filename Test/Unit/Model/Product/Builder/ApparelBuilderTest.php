@@ -16,7 +16,7 @@ use Magento\Store\Model\Store;
 use Magento\Store\Model\StoreManagerInterface;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
-use MageOS\Base\Service\CurrencyService;
+use MageOS\Seo\Service\CurrencyService;
 use MageOS\Seo\Model\Product\Builder\ApparelBuilder;
 
 class ApparelBuilderTest extends TestCase
