@@ -1,54 +1,49 @@
 {
     "$schema": "vendor/infection/infection/resources/schema.json",
     // Scope mutation testing to files that have corresponding unit tests.
-    // Classes exercised only by Test/Integration (repositories, URL rewrite
-    // plugins, sitemap providers, cron, RSS, resolvers, Resource models,
-    // Link managers) are excluded here because Infection can't boot the
+    // Classes exercised only by Test/Integration (repositories, resolvers,
+    // resource models, meta/title/structured-data providers, product builders
+    // without dedicated tests) are excluded because Infection cannot boot the
     // Magento framework to run those suites locally.
     "source": {
-        "directories": ["Model", "ViewModel"],
+        "directories": ["Model", "Observer", "Service"],
         "excludes": [
-            "Author.php",
-            "AuthorRepository.php",
-            "AuthorSearchResults.php",
-            "Category.php",
-            "CategoryRepository.php",
-            "CategorySearchResults.php",
-            "ImageUploader.php",
-            "Post.php",
-            "PostRepository.php",
-            "PostSearchResults.php",
-            "Tag.php",
-            "TagRepository.php",
-            "TagSearchResults.php",
-            "Config/Source",
-            "Link",
-            "Post/Link",
-            "Tag/Link",
-            "Category/Link",
-            "RelatedPostsProvider",
-            "Resolver",
             "ResourceModel",
-            "Rss",
-            "Sitemap",
-            "Url",
-            "UrlKeyGenerator",
-            "Author",
             "Category",
-            "Tag",
-            "Search",
-            "Author/Detail.php",
-            "Category/Detail.php",
-            "Tag/Detail.php",
-            "Post/Listing.php"
+            "Cms",
+            "Config/Source/LogoSource.php",
+            "Config/Source/OrgType.php",
+            "LlmsTxt",
+            "MetaTag/Provider",
+            "Organisation.php",
+            "OrganisationRepository.php",
+            "PageTitle/Provider",
+            "Product/Builder/AbstractBuilder.php",
+            "Product/Builder/ArtAndCraftBuilder.php",
+            "Product/Builder/BookBuilder.php",
+            "Product/Builder/CosmeticsBuilder.php",
+            "Product/Builder/ElectronicsSimpleBuilder.php",
+            "Product/Builder/FoodBuilder.php",
+            "Product/Builder/HealthProductBuilder.php",
+            "Product/Builder/HomeDecorBuilder.php",
+            "Product/Builder/JewelryBuilder.php",
+            "Product/Builder/LocalExperienceBuilder.php",
+            "Product/Builder/PetBuilder.php",
+            "Product/Builder/SoftwareBuilder.php",
+            "Product/Builder/StationeryBuilder.php",
+            "Product/Builder/ToolBuilder.php",
+            "Product/Builder/ToyBuilder.php",
+            "Router",
+            "StructuredData/Provider/BreadcrumbListProvider.php",
+            "StructuredData/Provider/CategorySchemaProvider.php",
+            "StructuredData/Provider/CmsPageSchemaProvider.php",
+            "StructuredData/Provider/ProductSchemaProvider.php"
         ]
     },
     "mutators": { "@default": true },
     "phpUnit": { "configDir": "." },
-    // Baseline thresholds for v1.0. Raising to ≥75% MSI / ≥80% covered MSI is
-    // tracked for v1.1; it depends on expanding unit-test coverage into
-    // ViewModel/Post/Detail (JSON-LD shape) and Model/HyvaThemeDetection
-    // (inheritance-chain edge cases).
+    // Baseline thresholds. Raising MSI requires expanding unit-test coverage
+    // into the product builders and structured-data providers listed above.
     "minMsi": 54,
     "minCoveredMsi": 70,
     "logs": {
