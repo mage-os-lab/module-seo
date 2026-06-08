@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace MageOS\Seo\Test\Unit\Model\Product;
 
 use Magento\Catalog\Api\Data\ProductInterface;
-use PHPUnit\Framework\MockObject\MockObject;
-use PHPUnit\Framework\TestCase;
 use MageOS\Seo\Api\ProductSchemaBuilderInterface;
 use MageOS\Seo\Model\Product\SchemaBuilderPool;
+use PHPUnit\Framework\MockObject\MockObject;
+use PHPUnit\Framework\TestCase;
 
 class SchemaBuilderPoolTest extends TestCase
 {

@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace MageOS\Seo\Test\Integration\Model;
 
 use Magento\TestFramework\Helper\Bootstrap;
-use PHPUnit\Framework\TestCase;
 use MageOS\Seo\Api\Data\OrganisationInterface;
 use MageOS\Seo\Api\OrganisationRepositoryInterface;
+use PHPUnit\Framework\TestCase;
 
 /**
  * @magentoDbIsolation enabled

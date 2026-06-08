@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace MageOS\Seo\Test\Integration\Model\Product;
 
 use Magento\TestFramework\Helper\Bootstrap;
-use PHPUnit\Framework\TestCase;
 use MageOS\Seo\Model\Product\SchemaBuilderPool;
+use PHPUnit\Framework\TestCase;
 
 /**
  * @magentoAppArea frontend

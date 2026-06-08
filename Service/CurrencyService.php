@@ -10,11 +10,10 @@ use Magento\Store\Model\Store;
 use Magento\Store\Model\StoreManagerInterface;
 
 /**
- * Shared currency service for Reessolutions modules.
+ * Currency service.
  *
  * Provides consistent access to currency codes, symbols and formatted
- * price strings across all store views. Inject this in place of
- * hardcoded currency fallbacks throughout the Reessolutions module suite.
+ * price strings across all store views.
  */
 class CurrencyService
 {

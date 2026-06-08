@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace MageOS\Seo\Test\Unit\Model\Product;
 
-use PHPUnit\Framework\TestCase;
 use MageOS\Seo\Model\Product\SchemaRegistry;
+use PHPUnit\Framework\TestCase;
 
 class SchemaRegistryTest extends TestCase
 {

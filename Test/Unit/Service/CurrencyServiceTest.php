@@ -7,9 +7,9 @@ namespace MageOS\Seo\Test\Unit\Service;
 use Magento\Directory\Model\Currency;
 use Magento\Store\Model\Store;
 use Magento\Store\Model\StoreManagerInterface;
+use MageOS\Seo\Service\CurrencyService;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
-use Reessolutions\Base\Service\CurrencyService;
 
 class CurrencyServiceTest extends TestCase
 {

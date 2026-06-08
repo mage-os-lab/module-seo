@@ -11,8 +11,8 @@ use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\Stdlib\DateTime\DateTime;
 use Magento\Store\Model\ScopeInterface;
 use Magento\Store\Model\StoreManagerInterface;
-use MageOS\Base\Service\CurrencyService;
 use MageOS\Seo\Api\ProductSchemaBuilderInterface;
+use MageOS\Seo\Service\CurrencyService;
 
 abstract class AbstractBuilder implements ProductSchemaBuilderInterface
 {

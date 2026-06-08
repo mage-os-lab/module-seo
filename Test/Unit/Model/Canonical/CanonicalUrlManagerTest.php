@@ -6,9 +6,9 @@ namespace MageOS\Seo\Test\Unit\Model\Canonical;
 
 use Magento\Framework\View\Asset\GroupedCollection;
 use Magento\Framework\View\Page\Config as PageConfig;
+use MageOS\Seo\Model\Canonical\CanonicalUrlManager;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
-use MageOS\Seo\Model\Canonical\CanonicalUrlManager;
 
 class CanonicalUrlManagerTest extends TestCase
 {

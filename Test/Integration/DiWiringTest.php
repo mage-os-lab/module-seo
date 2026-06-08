@@ -5,13 +5,13 @@ declare(strict_types=1);
 namespace MageOS\Seo\Test\Integration;
 
 use Magento\TestFramework\Helper\Bootstrap;
-use PHPUnit\Framework\TestCase;
 use MageOS\Seo\Api\OrganisationRepositoryInterface;
 use MageOS\Seo\Model\LlmsTxt\LlmsTxtBuilder;
 use MageOS\Seo\Model\MetaTag\Compositor as MetaTagCompositor;
 use MageOS\Seo\Model\PageTitle\Compositor as PageTitleCompositor;
 use MageOS\Seo\Model\Product\SchemaBuilderPool;
 use MageOS\Seo\Model\StructuredData\Compositor as StructuredDataCompositor;
+use PHPUnit\Framework\TestCase;
 
 /**
  * Smoke-test that key services are correctly wired in the DI container.

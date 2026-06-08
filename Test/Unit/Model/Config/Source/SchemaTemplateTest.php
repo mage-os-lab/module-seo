@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace MageOS\Seo\Test\Unit\Model\Config\Source;
 
-use PHPUnit\Framework\MockObject\MockObject;
-use PHPUnit\Framework\TestCase;
 use MageOS\Seo\Model\Config\Source\SchemaTemplate;
 use MageOS\Seo\Model\Product\SchemaBuilderPool;
+use PHPUnit\Framework\MockObject\MockObject;
+use PHPUnit\Framework\TestCase;
 
 class SchemaTemplateTest extends TestCase
 {

@@ -7,9 +7,9 @@ namespace MageOS\Seo\Test\Unit\Observer;
 use Magento\CacheInvalidate\Model\PurgeCache;
 use Magento\Framework\Event\Observer;
 use Magento\PageCache\Model\Config;
+use MageOS\Seo\Observer\InvalidateLlmsTxtCache;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
-use MageOS\Seo\Observer\InvalidateLlmsTxtCache;
 
 class InvalidateLlmsTxtCacheTest extends TestCase
 {

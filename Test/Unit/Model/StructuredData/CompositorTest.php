@@ -6,11 +6,11 @@ namespace MageOS\Seo\Test\Unit\Model\StructuredData;
 
 use Magento\Framework\View\Layout;
 use Magento\Framework\View\Layout\ProcessorInterface;
-use PHPUnit\Framework\MockObject\MockObject;
-use PHPUnit\Framework\TestCase;
 use MageOS\Seo\Api\StructuredDataProviderInterface;
 use MageOS\Seo\Model\Product\SchemaRegistry;
 use MageOS\Seo\Model\StructuredData\Compositor;
+use PHPUnit\Framework\MockObject\MockObject;
+use PHPUnit\Framework\TestCase;
 
 class CompositorTest extends TestCase
 {

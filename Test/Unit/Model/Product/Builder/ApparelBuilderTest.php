@@ -14,10 +14,10 @@ use Magento\Framework\Pricing\PriceInfoInterface;
 use Magento\Framework\Stdlib\DateTime\DateTime;
 use Magento\Store\Model\Store;
 use Magento\Store\Model\StoreManagerInterface;
+use MageOS\Seo\Model\Product\Builder\ApparelBuilder;
+use MageOS\Seo\Service\CurrencyService;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
-use MageOS\Seo\Service\CurrencyService;
-use MageOS\Seo\Model\Product\Builder\ApparelBuilder;
 
 class ApparelBuilderTest extends TestCase
 {

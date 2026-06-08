@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace MageOS\Seo\Test\Unit\Model\Config\Source;
 
-use PHPUnit\Framework\TestCase;
 use MageOS\Seo\Model\Config\Source\RobotsMeta;
+use PHPUnit\Framework\TestCase;
 
 class RobotsMetaTest extends TestCase
 {

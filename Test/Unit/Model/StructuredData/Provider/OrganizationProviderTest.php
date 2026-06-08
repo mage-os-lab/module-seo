@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace MageOS\Seo\Test\Unit\Model\StructuredData\Provider;
 
-use PHPUnit\Framework\MockObject\MockObject;
-use PHPUnit\Framework\TestCase;
 use MageOS\Seo\Api\Data\OrganisationInterface;
 use MageOS\Seo\Api\OrganisationRepositoryInterface;
 use MageOS\Seo\Model\StructuredData\Provider\OrganizationProvider;
+use PHPUnit\Framework\MockObject\MockObject;
+use PHPUnit\Framework\TestCase;
 
 class OrganizationProviderTest extends TestCase
 {

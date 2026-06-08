@@ -6,10 +6,10 @@ namespace MageOS\Seo\Test\Unit\Model\MetaTag;
 
 use Magento\Framework\View\Layout;
 use Magento\Framework\View\Layout\ProcessorInterface;
-use PHPUnit\Framework\MockObject\MockObject;
-use PHPUnit\Framework\TestCase;
 use MageOS\Seo\Api\MetaTagProviderInterface;
 use MageOS\Seo\Model\MetaTag\Compositor;
+use PHPUnit\Framework\MockObject\MockObject;
+use PHPUnit\Framework\TestCase;
 
 class CompositorTest extends TestCase
 {

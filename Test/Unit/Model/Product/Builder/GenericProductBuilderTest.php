@@ -14,10 +14,10 @@ use Magento\Framework\Pricing\PriceInfoInterface;
 use Magento\Framework\Stdlib\DateTime\DateTime;
 use Magento\Store\Model\Store;
 use Magento\Store\Model\StoreManagerInterface;
+use MageOS\Seo\Model\Product\Builder\GenericProductBuilder;
+use MageOS\Seo\Service\CurrencyService;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
-use MageOS\Base\Service\CurrencyService;
-use MageOS\Seo\Model\Product\Builder\GenericProductBuilder;
 
 class GenericProductBuilderTest extends TestCase
 {

@@ -9,8 +9,8 @@ use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\App\RequestInterface;
 use Magento\Framework\Registry;
 use Magento\Store\Model\ScopeInterface;
-use MageOS\Base\Service\CurrencyService;
 use MageOS\Seo\Api\MetaTagProviderInterface;
+use MageOS\Seo\Service\CurrencyService;
 
 class ProductMetaProvider implements MetaTagProviderInterface
 {
