@@ -1,0 +1,57 @@
+{
+    "mage-os_seo_category_config": {
+        "column": {
+            "entity_id": true,
+            "category_id": true,
+            "store_id": true,
+            "schema_template": true,
+            "enabled_fields": true,
+            "override_fields": true,
+            "item_list_enabled": true,
+            "robots_meta": true,
+            "updated_at": true
+        },
+        "constraint": {
+            "PRIMARY": true,
+            "RS_SEO_CATEGORY_CONFIG_CATEGORY_STORE": true
+        }
+    },
+    "mage-os_seo_organisation": {
+        "column": {
+            "entity_id": true,
+            "scope": true,
+            "scope_id": true,
+            "name": true,
+            "url": true,
+            "logo_path": true,
+            "logo_width": true,
+            "logo_height": true,
+            "description": true,
+            "social_profiles": true,
+            "contact_point": true,
+            "org_type": true,
+            "updated_at": true
+        },
+        "constraint": {
+            "PRIMARY": true,
+            "RS_SEO_ORG_SCOPE_SCOPE_ID": true
+        }
+    },
+    "mage-os_seo_product_override": {
+        "column": {
+            "entity_id": true,
+            "product_id": true,
+            "store_id": true,
+            "override_fields": true,
+            "robots_meta": true,
+            "updated_at": true
+        },
+        "constraint": {
+            "PRIMARY": true,
+            "RS_SEO_PRODUCT_OVERRIDE_PRODUCT_STORE": true
+        },
+        "index": {
+            "RS_SEO_PRODUCT_OVERRIDE_PRODUCT_ID_IDX": true
+        }
+    }
+}

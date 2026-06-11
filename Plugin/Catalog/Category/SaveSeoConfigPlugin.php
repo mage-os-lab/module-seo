@@ -7,6 +7,7 @@ namespace MageOS\Seo\Plugin\Catalog\Category;
 use Magento\Catalog\Api\CategoryRepositoryInterface;
 use Magento\Catalog\Api\Data\CategoryInterface;
 use Magento\Framework\App\RequestInterface;
+use Magento\Store\Model\StoreManagerInterface;
 use MageOS\Seo\Model\Category\ConfigRepository;
 
 /**
@@ -20,10 +21,12 @@ class SaveSeoConfigPlugin
     /**
      * @param RequestInterface $request
      * @param ConfigRepository $configRepository
+     * @param StoreManagerInterface $storeManager
      */
     public function __construct(
-        private readonly RequestInterface $request,
-        private readonly ConfigRepository $configRepository
+        private readonly RequestInterface  $request,
+        private readonly ConfigRepository  $configRepository,
+        private readonly StoreManagerInterface $storeManager
     ) {
     }
 
@@ -87,7 +90,8 @@ class SaveSeoConfigPlugin
         }
 
         if (!empty($data)) {
-            $this->configRepository->save($categoryId, $data);
+            $storeId = (int) $this->storeManager->getStore()->getId();
+            $this->configRepository->save($categoryId, $data, $storeId);
         }
 
         return $result;

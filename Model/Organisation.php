@@ -31,6 +31,38 @@ class Organisation extends AbstractModel implements OrganisationInterface
     /**
      * @inheritdoc
      */
+    public function getScope(): string
+    {
+        return (string) ($this->getData(self::SCOPE) ?: 'default');
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function setScope(string $scope): OrganisationInterface
+    {
+        return $this->setData(self::SCOPE, $scope);
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function getScopeId(): int
+    {
+        return (int) $this->getData(self::SCOPE_ID);
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function setScopeId(int $scopeId): OrganisationInterface
+    {
+        return $this->setData(self::SCOPE_ID, $scopeId);
+    }
+
+    /**
+     * @inheritdoc
+     */
     public function getName(): string
     {
         return (string) $this->getData(self::NAME);

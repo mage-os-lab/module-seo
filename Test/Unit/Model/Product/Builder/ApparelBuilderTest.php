@@ -8,12 +8,12 @@ use Magento\Catalog\Helper\Image as ImageHelper;
 use Magento\Catalog\Model\Product;
 use Magento\CatalogInventory\Api\Data\StockItemInterface;
 use Magento\CatalogInventory\Api\StockRegistryInterface;
-use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\Pricing\Price\PriceInterface;
 use Magento\Framework\Pricing\PriceInfoInterface;
 use Magento\Framework\Stdlib\DateTime\DateTime;
 use Magento\Store\Model\Store;
 use Magento\Store\Model\StoreManagerInterface;
+use MageOS\Seo\Model\Config;
 use MageOS\Seo\Model\Product\Builder\ApparelBuilder;
 use MageOS\Seo\Service\CurrencyService;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -47,9 +47,9 @@ class ApparelBuilderTest extends TestCase
     private ImageHelper&MockObject $imageHelper;
 
     /**
-     * @var ScopeConfigInterface&MockObject
+     * @var Config&MockObject
      */
-    private ScopeConfigInterface&MockObject $scopeConfig;
+    private Config&MockObject $seoConfig;
 
     /**
      * @var DateTime&MockObject
@@ -83,7 +83,7 @@ class ApparelBuilderTest extends TestCase
         $this->currencyService = $this->createMock(CurrencyService::class);
         $this->stockRegistry   = $this->createMock(StockRegistryInterface::class);
         $this->imageHelper     = $this->createMock(ImageHelper::class);
-        $this->scopeConfig     = $this->createMock(ScopeConfigInterface::class);
+        $this->seoConfig       = $this->createMock(Config::class);
         $this->dateTime        = $this->createMock(DateTime::class);
         $this->product         = $this->createMock(Product::class);
         $this->priceInfo       = $this->createMock(PriceInfoInterface::class);
@@ -100,7 +100,7 @@ class ApparelBuilderTest extends TestCase
         $this->product->method('getId')->willReturn(10);
         $this->product->method('getProductUrl')->willReturn('https://example.com/blue-tshirt');
         $this->product->method('getMediaGalleryImages')->willReturn(null);
-        $this->scopeConfig->method('getValue')->willReturn(3);
+        $this->seoConfig->method('getPriceValidUntilMonths')->willReturn(3);
         $this->imageHelper->method('init')->willReturnSelf();
         $this->imageHelper->method('getUrl')->willReturn('');
 
@@ -109,7 +109,7 @@ class ApparelBuilderTest extends TestCase
             $this->currencyService,
             $this->stockRegistry,
             $this->imageHelper,
-            $this->scopeConfig,
+            $this->seoConfig,
             $this->dateTime
         );
     }

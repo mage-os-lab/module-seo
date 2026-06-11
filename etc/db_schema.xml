@@ -2,10 +2,14 @@
 <schema xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xsi:noNamespaceSchemaLocation="urn:magento:framework:Setup/Declaration/Schema/etc/schema.xsd">
 
-    <!-- Organisation / site identity settings (single-row, entity_id = 1) -->
+    <!-- Organisation / site identity settings (scoped: default / websites / stores) -->
     <table name="mage-os_seo_organisation" resource="default" engine="innodb"
-           comment="MageOS SEO — Organisation schema settings">
+           comment="MageOS SEO — Organisation schema settings (per scope)">
         <column xsi:type="int" name="entity_id" unsigned="true" nullable="false" identity="true" comment="Entity ID"/>
+        <column xsi:type="varchar" name="scope" nullable="false" length="8" default="default"
+                comment="Config scope: default, websites, stores"/>
+        <column xsi:type="int" name="scope_id" unsigned="true" nullable="false" default="0"
+                comment="Scope entity ID (0 for default scope)"/>
         <column xsi:type="varchar" name="name" nullable="false" length="255" default="" comment="Organisation name"/>
         <column xsi:type="varchar" name="url" nullable="false" length="255" default="" comment="Canonical organisation URL"/>
         <column xsi:type="varchar" name="logo_path" nullable="true" length="255" comment="Logo image path (media-relative)"/>
@@ -20,13 +24,19 @@
         <constraint xsi:type="primary" referenceId="PRIMARY">
             <column name="entity_id"/>
         </constraint>
+        <constraint xsi:type="unique" referenceId="RS_SEO_ORG_SCOPE_SCOPE_ID">
+            <column name="scope"/>
+            <column name="scope_id"/>
+        </constraint>
     </table>
 
-    <!-- Per-category SEO configuration -->
+    <!-- Per-category SEO configuration (scoped: store_id=0 is global default) -->
     <table name="mage-os_seo_category_config" resource="default" engine="innodb"
            comment="MageOS SEO — per-category schema configuration">
         <column xsi:type="int" name="entity_id" unsigned="true" nullable="false" identity="true" comment="Entity ID"/>
         <column xsi:type="int" name="category_id" unsigned="true" nullable="false" comment="Catalog category entity_id"/>
+        <column xsi:type="smallint" name="store_id" unsigned="true" nullable="false" default="0"
+                comment="Store view ID (0 = all stores / global default)"/>
         <column xsi:type="varchar" name="schema_template" nullable="true" length="64" comment="Product schema template code"/>
         <column xsi:type="text" name="enabled_fields" nullable="true" comment="JSON array of enabled optional field codes"/>
         <column xsi:type="text" name="override_fields" nullable="true" comment="JSON object of hard-coded field value overrides"/>
@@ -39,8 +49,9 @@
         <constraint xsi:type="primary" referenceId="PRIMARY">
             <column name="entity_id"/>
         </constraint>
-        <constraint xsi:type="unique" referenceId="RS_SEO_CATEGORY_CONFIG_CATEGORY_ID_UNQ">
+        <constraint xsi:type="unique" referenceId="RS_SEO_CATEGORY_CONFIG_CATEGORY_STORE">
             <column name="category_id"/>
+            <column name="store_id"/>
         </constraint>
     </table>
 

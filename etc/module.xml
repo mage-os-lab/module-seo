@@ -3,7 +3,6 @@
         xsi:noNamespaceSchemaLocation="urn:magento:framework:Module/etc/module.xsd">
     <module name="MageOS_Seo">
         <sequence>
-            <module name="MageOS_Base"/>
             <module name="Magento_Catalog"/>
             <module name="Magento_Store"/>
             <module name="Magento_Cms"/>

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace MageOS\Seo\Ui\DataProvider;
 
 use Magento\Framework\App\Config\ScopeConfigInterface;
+use Magento\Framework\App\RequestInterface;
 use Magento\Framework\Filesystem\Io\File as IoFile;
 use Magento\Store\Model\ScopeInterface;
 use Magento\Store\Model\StoreManagerInterface;
@@ -18,7 +19,6 @@ class OrganisationDataProvider extends AbstractDataProvider
      * Config path for the design logo set in Stores > Design > Logo.
      */
     private const DESIGN_LOGO_CONFIG_PATH = 'design/header/logo_src';
-    private const SINGLETON_ID = 1;
 
     /** @var array<int, mixed> */
     private array $loadedData = [];
@@ -32,6 +32,7 @@ class OrganisationDataProvider extends AbstractDataProvider
      * @param ScopeConfigInterface $scopeConfig
      * @param StoreManagerInterface $storeManager
      * @param IoFile $ioFile
+     * @param RequestInterface $request
      * @param mixed[] $meta
      * @param mixed[] $data
      */
@@ -44,6 +45,7 @@ class OrganisationDataProvider extends AbstractDataProvider
         private readonly ScopeConfigInterface            $scopeConfig,
         private readonly StoreManagerInterface           $storeManager,
         private readonly IoFile                          $ioFile,
+        private readonly RequestInterface                $request,
         array                                            $meta = [],
         array                                            $data = []
     ) {
@@ -52,11 +54,10 @@ class OrganisationDataProvider extends AbstractDataProvider
     }
 
     /**
-     * Return form data hydrated from the Organisation singleton record.
+     * Return form data hydrated from the Organisation record for the current scope.
      *
-     * Keyed by SINGLETON_ID (1) — the UI component form provider maps this
-     * to the form's dataScope="data" automatically via the primaryFieldName
-     * entity_id binding. This matches the pattern used by EnrollContent\DataProvider.
+     * Keyed by entity_id — the UI component form provider maps this to the form's
+     * dataScope="data" automatically via the primaryFieldName entity_id binding.
      *
      * @return mixed[]
      */
@@ -66,8 +67,9 @@ class OrganisationDataProvider extends AbstractDataProvider
             return $this->loadedData;
         }
 
-        $org          = $this->organisationRepository->get();
-        $contactPoint = $org->getContactPoint();
+        [$scope, $scopeId] = $this->resolveScopeFromRequest();
+        $org               = $this->organisationRepository->get($scope, $scopeId);
+        $contactPoint      = $org->getContactPoint();
 
         // Convert flat URL array to dynamicRows row objects
         $socialProfileRows = array_map(
@@ -95,8 +97,10 @@ class OrganisationDataProvider extends AbstractDataProvider
             ];
         }
 
-        $this->loadedData[self::SINGLETON_ID] = [
-            'entity_id'                => self::SINGLETON_ID,
+        $entityId = (int) ($org->getId() ?? 0);
+
+        $this->loadedData[$entityId] = [
+            'entity_id'                => $entityId,
             'name'                     => $org->getName(),
             'url'                      => $org->getUrl(),
             'org_type'                 => $org->getOrgType(),
@@ -112,6 +116,26 @@ class OrganisationDataProvider extends AbstractDataProvider
         ];
 
         return $this->loadedData;
+    }
+
+    /**
+     * Resolve scope + scopeId from the current request.
+     *
+     * Priority: store param → website param → global default.
+     *
+     * @return array{string, int}
+     */
+    private function resolveScopeFromRequest(): array
+    {
+        $store = $this->request->getParam('store');
+        if ($store !== null) {
+            return ['stores', (int) $store];
+        }
+        $website = $this->request->getParam('website');
+        if ($website !== null) {
+            return ['websites', (int) $website];
+        }
+        return ['default', 0];
     }
 
     /**

@@ -4,11 +4,10 @@ declare(strict_types=1);
 
 namespace MageOS\Seo\Block;
 
-use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\Escaper;
 use Magento\Framework\View\Element\Template;
 use Magento\Framework\View\Element\Template\Context;
-use Magento\Store\Model\ScopeInterface;
+use MageOS\Seo\Model\Config;
 use MageOS\Seo\Model\MetaTag\Compositor;
 
 class MetaTags extends Template
@@ -16,16 +15,16 @@ class MetaTags extends Template
     /**
      * @param Context $context
      * @param Compositor $metaCompositor
-     * @param ScopeConfigInterface $scopeConfig
+     * @param Config $seoConfig
      * @param Escaper $escaper
      * @param mixed[] $data
      */
     public function __construct(
-        Context                               $context,
-        private readonly Compositor           $metaCompositor,
-        private readonly ScopeConfigInterface $scopeConfig,
-        private readonly Escaper              $escaper,
-        array                                 $data = []
+        Context                     $context,
+        private readonly Compositor $metaCompositor,
+        private readonly Config     $seoConfig,
+        private readonly Escaper    $escaper,
+        array                       $data = []
     ) {
         parent::__construct($context, $data);
     }
@@ -37,10 +36,7 @@ class MetaTags extends Template
      */
     public function getMetaTags(): array
     {
-        if (!(bool) $this->scopeConfig->getValue(
-            'mageos_seo_general/og_tags/enabled',
-            ScopeInterface::SCOPE_STORE
-        )) {
+        if (!$this->seoConfig->isOgTagsEnabled()) {
             return [];
         }
 

@@ -48,11 +48,13 @@ class LlmsTxtBuilder
      */
     public function buildConcise(): string
     {
-        $org = $this->organisationRepository->get();
         /** @var \Magento\Store\Model\Store $store */
-        $store   = $this->storeManager->getStore();
-        $baseUrl = rtrim((string) $store->getBaseUrl(), '/');
-        $name    = $org->getName() ?: (string) $store->getName();
+        $store     = $this->storeManager->getStore();
+        $storeId   = (int) $store->getId();
+        $websiteId = (int) $this->storeManager->getWebsite()->getId();
+        $org       = $this->organisationRepository->getForScope($storeId, $websiteId);
+        $baseUrl   = rtrim((string) $store->getBaseUrl(), '/');
+        $name      = $org->getName() ?: (string) $store->getName();
 
         $lines = [];
 
@@ -112,11 +114,13 @@ class LlmsTxtBuilder
      */
     public function buildFull(): string
     {
-        $org = $this->organisationRepository->get();
         /** @var \Magento\Store\Model\Store $store */
-        $store   = $this->storeManager->getStore();
-        $baseUrl = rtrim((string) $store->getBaseUrl(), '/');
-        $name    = $org->getName() ?: (string) $store->getName();
+        $store     = $this->storeManager->getStore();
+        $storeId   = (int) $store->getId();
+        $websiteId = (int) $this->storeManager->getWebsite()->getId();
+        $org       = $this->organisationRepository->getForScope($storeId, $websiteId);
+        $baseUrl   = rtrim((string) $store->getBaseUrl(), '/');
+        $name      = $org->getName() ?: (string) $store->getName();
 
         $lines = [];
 

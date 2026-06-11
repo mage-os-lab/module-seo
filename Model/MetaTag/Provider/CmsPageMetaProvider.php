@@ -4,23 +4,22 @@ declare(strict_types=1);
 
 namespace MageOS\Seo\Model\MetaTag\Provider;
 
-use Magento\Framework\App\Config\ScopeConfigInterface;
-use Magento\Store\Model\ScopeInterface;
 use Magento\Store\Model\StoreManagerInterface;
 use MageOS\Seo\Api\MetaTagProviderInterface;
 use MageOS\Seo\Model\Cms\CmsPageResolver;
+use MageOS\Seo\Model\Config;
 
 class CmsPageMetaProvider implements MetaTagProviderInterface
 {
     /**
      * @param CmsPageResolver $cmsPageResolver
-     * @param ScopeConfigInterface $scopeConfig
+     * @param Config $seoConfig
      * @param StoreManagerInterface $storeManager
      */
     public function __construct(
-        private readonly CmsPageResolver $cmsPageResolver,
-        private readonly ScopeConfigInterface    $scopeConfig,
-        private readonly StoreManagerInterface   $storeManager,
+        private readonly CmsPageResolver       $cmsPageResolver,
+        private readonly Config                $seoConfig,
+        private readonly StoreManagerInterface $storeManager,
     ) {
     }
 
@@ -37,10 +36,7 @@ class CmsPageMetaProvider implements MetaTagProviderInterface
      */
     public function getMetaTags(): array
     {
-        if (!(bool) $this->scopeConfig->getValue(
-            'mageos_seo_general/og_tags/enabled',
-            ScopeInterface::SCOPE_STORE
-        )) {
+        if (!$this->seoConfig->isOgTagsEnabled()) {
             return [];
         }
 

@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace MageOS\Seo\Test\Unit\Model\StructuredData\Provider;
 
+use Magento\Store\Api\Data\WebsiteInterface;
+use Magento\Store\Model\Store;
+use Magento\Store\Model\StoreManagerInterface;
 use MageOS\Seo\Api\Data\OrganisationInterface;
 use MageOS\Seo\Api\OrganisationRepositoryInterface;
 use MageOS\Seo\Model\StructuredData\Provider\OrganizationProvider;
@@ -18,14 +21,28 @@ class OrganizationProviderTest extends TestCase
     private OrganisationRepositoryInterface&MockObject $repository;
 
     /**
+     * @var StoreManagerInterface&MockObject
+     */
+    private StoreManagerInterface&MockObject $storeManager;
+
+    /**
      * @var OrganizationProvider
      */
     private OrganizationProvider $provider;
 
     protected function setUp(): void
     {
-        $this->repository = $this->createMock(OrganisationRepositoryInterface::class);
-        $this->provider   = new OrganizationProvider($this->repository);
+        $this->repository   = $this->createMock(OrganisationRepositoryInterface::class);
+        $this->storeManager = $this->createMock(StoreManagerInterface::class);
+
+        $store   = $this->createMock(Store::class);
+        $website = $this->createMock(WebsiteInterface::class);
+        $store->method('getId')->willReturn(1);
+        $website->method('getId')->willReturn(1);
+        $this->storeManager->method('getStore')->willReturn($store);
+        $this->storeManager->method('getWebsite')->willReturn($website);
+
+        $this->provider = new OrganizationProvider($this->repository, $this->storeManager);
     }
 
     /**
@@ -63,40 +80,40 @@ class OrganizationProviderTest extends TestCase
 
     public function testGetSchemasReturnsEmptyWhenOrganisationNameIsEmpty(): void
     {
-        $this->repository->method('get')->willReturn($this->makeOrg());
+        $this->repository->method('getForScope')->willReturn($this->makeOrg());
         $this->assertSame([], $this->provider->getSchemas());
     }
 
     public function testGetSchemasReturnsTwoSchemasWhenNameIsSet(): void
     {
-        $this->repository->method('get')->willReturn($this->acmeOrg());
+        $this->repository->method('getForScope')->willReturn($this->acmeOrg());
         $this->assertCount(2, $this->provider->getSchemas());
     }
 
     public function testOrganizationSchemaHasCorrectType(): void
     {
-        $this->repository->method('get')->willReturn($this->acmeOrg(['org_type' => 'Corporation']));
+        $this->repository->method('getForScope')->willReturn($this->acmeOrg(['org_type' => 'Corporation']));
         $schemas = $this->provider->getSchemas();
         $this->assertSame('Corporation', $schemas[0]['@type']);
     }
 
     public function testOrganizationSchemaIdEndsWithHashOrganization(): void
     {
-        $this->repository->method('get')->willReturn($this->acmeOrg());
+        $this->repository->method('getForScope')->willReturn($this->acmeOrg());
         $schemas = $this->provider->getSchemas();
         $this->assertStringEndsWith('/#organization', $schemas[0]['@id']);
     }
 
     public function testTrailingSlashIsStrippedFromUrl(): void
     {
-        $this->repository->method('get')->willReturn($this->acmeOrg(['url' => 'https://acme.com/']));
+        $this->repository->method('getForScope')->willReturn($this->acmeOrg(['url' => 'https://acme.com/']));
         $schemas = $this->provider->getSchemas();
         $this->assertSame('https://acme.com', $schemas[0]['url']);
     }
 
     public function testLogoIncludedWhenPathIsSet(): void
     {
-        $this->repository->method('get')->willReturn($this->acmeOrg([
+        $this->repository->method('getForScope')->willReturn($this->acmeOrg([
             'logo_path' => 'https://acme.com/logo.png',
         ]));
         $schemas = $this->provider->getSchemas();
@@ -107,7 +124,7 @@ class OrganizationProviderTest extends TestCase
 
     public function testLogoWidthAndHeightIncludedWhenPositive(): void
     {
-        $this->repository->method('get')->willReturn($this->acmeOrg([
+        $this->repository->method('getForScope')->willReturn($this->acmeOrg([
             'logo_path'   => 'https://acme.com/logo.png',
             'logo_width'  => 200,
             'logo_height' => 60,
@@ -119,7 +136,7 @@ class OrganizationProviderTest extends TestCase
 
     public function testLogoWidthAndHeightOmittedWhenZero(): void
     {
-        $this->repository->method('get')->willReturn($this->acmeOrg([
+        $this->repository->method('getForScope')->willReturn($this->acmeOrg([
             'logo_path'   => 'https://acme.com/logo.png',
             'logo_width'  => 0,
             'logo_height' => 0,
@@ -131,28 +148,28 @@ class OrganizationProviderTest extends TestCase
 
     public function testLogoNotIncludedWhenPathIsEmpty(): void
     {
-        $this->repository->method('get')->willReturn($this->acmeOrg());
+        $this->repository->method('getForScope')->willReturn($this->acmeOrg());
         $schemas = $this->provider->getSchemas();
         $this->assertArrayNotHasKey('logo', $schemas[0]);
     }
 
     public function testDescriptionIncludedWhenNotEmpty(): void
     {
-        $this->repository->method('get')->willReturn($this->acmeOrg(['description' => 'Quality widgets']));
+        $this->repository->method('getForScope')->willReturn($this->acmeOrg(['description' => 'Quality widgets']));
         $schemas = $this->provider->getSchemas();
         $this->assertSame('Quality widgets', $schemas[0]['description']);
     }
 
     public function testDescriptionOmittedWhenEmpty(): void
     {
-        $this->repository->method('get')->willReturn($this->acmeOrg());
+        $this->repository->method('getForScope')->willReturn($this->acmeOrg());
         $schemas = $this->provider->getSchemas();
         $this->assertArrayNotHasKey('description', $schemas[0]);
     }
 
     public function testSocialProfilesAddedAsSameAs(): void
     {
-        $this->repository->method('get')->willReturn($this->acmeOrg([
+        $this->repository->method('getForScope')->willReturn($this->acmeOrg([
             'social_profiles' => [
                 'twitter'  => 'https://twitter.com/acme',
                 'linkedin' => 'https://linkedin.com/company/acme',
@@ -166,14 +183,14 @@ class OrganizationProviderTest extends TestCase
 
     public function testSameAsOmittedWhenNoSocialProfiles(): void
     {
-        $this->repository->method('get')->willReturn($this->acmeOrg());
+        $this->repository->method('getForScope')->willReturn($this->acmeOrg());
         $schemas = $this->provider->getSchemas();
         $this->assertArrayNotHasKey('sameAs', $schemas[0]);
     }
 
     public function testContactPointIncludedWhenSet(): void
     {
-        $this->repository->method('get')->willReturn($this->acmeOrg([
+        $this->repository->method('getForScope')->willReturn($this->acmeOrg([
             'contact_point' => [
                 'contactType' => 'customer support',
                 'email'       => 'support@acme.com',
@@ -187,21 +204,21 @@ class OrganizationProviderTest extends TestCase
 
     public function testContactPointOmittedWhenEmpty(): void
     {
-        $this->repository->method('get')->willReturn($this->acmeOrg());
+        $this->repository->method('getForScope')->willReturn($this->acmeOrg());
         $schemas = $this->provider->getSchemas();
         $this->assertArrayNotHasKey('contactPoint', $schemas[0]);
     }
 
     public function testWebSiteSchemaIsSecondElement(): void
     {
-        $this->repository->method('get')->willReturn($this->acmeOrg());
+        $this->repository->method('getForScope')->willReturn($this->acmeOrg());
         $schemas = $this->provider->getSchemas();
         $this->assertSame('WebSite', $schemas[1]['@type']);
     }
 
     public function testWebSiteSchemaContainsSearchAction(): void
     {
-        $this->repository->method('get')->willReturn($this->acmeOrg());
+        $this->repository->method('getForScope')->willReturn($this->acmeOrg());
         $schemas = $this->provider->getSchemas();
         $this->assertArrayHasKey('potentialAction', $schemas[1]);
         $this->assertSame('SearchAction', $schemas[1]['potentialAction']['@type']);
@@ -209,7 +226,7 @@ class OrganizationProviderTest extends TestCase
 
     public function testWebSiteSchemaUrlTemplateContainsSearchParam(): void
     {
-        $this->repository->method('get')->willReturn($this->acmeOrg());
+        $this->repository->method('getForScope')->willReturn($this->acmeOrg());
         $schemas     = $this->provider->getSchemas();
         $urlTemplate = $schemas[1]['potentialAction']['target']['urlTemplate'];
         $this->assertStringContainsString('{search_term_string}', $urlTemplate);
@@ -218,7 +235,7 @@ class OrganizationProviderTest extends TestCase
 
     public function testWebSiteSchemaPublisherLinksToOrganization(): void
     {
-        $this->repository->method('get')->willReturn($this->acmeOrg());
+        $this->repository->method('getForScope')->willReturn($this->acmeOrg());
         $schemas     = $this->provider->getSchemas();
         $orgId       = $schemas[0]['@id'];
         $publisherId = $schemas[1]['publisher']['@id'];
@@ -227,21 +244,21 @@ class OrganizationProviderTest extends TestCase
 
     public function testOrganizationSchemaContextIsSchemaOrg(): void
     {
-        $this->repository->method('get')->willReturn($this->acmeOrg());
+        $this->repository->method('getForScope')->willReturn($this->acmeOrg());
         $schemas = $this->provider->getSchemas();
         $this->assertSame('https://schema.org', $schemas[0]['@context']);
     }
 
     public function testOrganizationNameIsPresentInSchema(): void
     {
-        $this->repository->method('get')->willReturn($this->acmeOrg(['name' => 'Widget Corp']));
+        $this->repository->method('getForScope')->willReturn($this->acmeOrg(['name' => 'Widget Corp']));
         $schemas = $this->provider->getSchemas();
         $this->assertSame('Widget Corp', $schemas[0]['name']);
     }
 
     public function testSocialProfilesAreIndexedAsArrayValues(): void
     {
-        $this->repository->method('get')->willReturn($this->acmeOrg([
+        $this->repository->method('getForScope')->willReturn($this->acmeOrg([
             'social_profiles' => ['fb' => 'https://facebook.com/acme'],
         ]));
         $schemas = $this->provider->getSchemas();

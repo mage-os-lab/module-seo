@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace MageOS\Seo\Ui\DataProvider\Category\Form\Modifier;
 
 use Magento\Framework\App\RequestInterface;
+use Magento\Store\Model\StoreManagerInterface;
 use Magento\Ui\Component\Form\Element\DataType\Text;
 use Magento\Ui\Component\Form\Element\Select;
 use Magento\Ui\Component\Form\Element\Textarea;
@@ -22,12 +23,14 @@ class SeoModifier implements ModifierInterface
      * @param ConfigRepository $categoryConfigRepository
      * @param SchemaTemplate $schemaTemplateSource
      * @param RobotsMeta $robotsMetaSource
+     * @param StoreManagerInterface $storeManager
      */
     public function __construct(
-        private readonly RequestInterface $request,
-        private readonly ConfigRepository $categoryConfigRepository,
-        private readonly SchemaTemplate   $schemaTemplateSource,
-        private readonly RobotsMeta       $robotsMetaSource,
+        private readonly RequestInterface    $request,
+        private readonly ConfigRepository    $categoryConfigRepository,
+        private readonly SchemaTemplate      $schemaTemplateSource,
+        private readonly RobotsMeta          $robotsMetaSource,
+        private readonly StoreManagerInterface $storeManager,
     ) {
     }
 
@@ -133,8 +136,9 @@ class SeoModifier implements ModifierInterface
             return $data;
         }
 
-        $config = $this->categoryConfigRepository->getForCategory($categoryId);
-        $config = $this->categoryConfigRepository->decode($config);
+        $storeId = (int) $this->storeManager->getStore()->getId();
+        $config  = $this->categoryConfigRepository->getForCategory($categoryId, [], $storeId);
+        $config  = $this->categoryConfigRepository->decode($config);
 
         if (empty($config)) {
             return $data;

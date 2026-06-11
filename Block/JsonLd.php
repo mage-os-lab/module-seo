@@ -4,10 +4,9 @@ declare(strict_types=1);
 
 namespace MageOS\Seo\Block;
 
-use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\View\Element\Template;
 use Magento\Framework\View\Element\Template\Context;
-use Magento\Store\Model\ScopeInterface;
+use MageOS\Seo\Model\Config;
 use MageOS\Seo\Model\StructuredData\Compositor;
 
 class JsonLd extends Template
@@ -15,14 +14,14 @@ class JsonLd extends Template
     /**
      * @param Context $context
      * @param Compositor $compositor
-     * @param ScopeConfigInterface $scopeConfig
+     * @param Config $seoConfig
      * @param mixed[] $data
      */
     public function __construct(
-        Context                           $context,
-        private readonly Compositor       $compositor,
-        private readonly ScopeConfigInterface $scopeConfig,
-        array                             $data = []
+        Context                     $context,
+        private readonly Compositor $compositor,
+        private readonly Config     $seoConfig,
+        array                       $data = []
     ) {
         parent::__construct($context, $data);
     }
@@ -34,10 +33,7 @@ class JsonLd extends Template
      */
     public function getJsonLd(): string
     {
-        if (!(bool) $this->scopeConfig->getValue(
-            'mageos_seo_general/structured_data/enabled',
-            ScopeInterface::SCOPE_STORE
-        )) {
+        if (!$this->seoConfig->isStructuredDataEnabled()) {
             return '';
         }
 

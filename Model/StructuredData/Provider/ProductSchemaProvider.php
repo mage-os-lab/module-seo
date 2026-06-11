@@ -4,14 +4,13 @@ declare(strict_types=1);
 
 namespace MageOS\Seo\Model\StructuredData\Provider;
 
-use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\App\RequestInterface;
 use Magento\Framework\Registry;
-use Magento\Store\Model\ScopeInterface;
 use Magento\Store\Model\StoreManagerInterface;
 use MageOS\Seo\Api\StructuredDataProviderInterface;
 use MageOS\Seo\Model\Category\ConfigRepository as CategoryConfigRepository;
 use MageOS\Seo\Model\Category\ProductOverrideRepository;
+use MageOS\Seo\Model\Config;
 use MageOS\Seo\Model\Product\SchemaBuilderPool;
 use MageOS\Seo\Model\Product\SchemaRegistry;
 
@@ -27,7 +26,7 @@ class ProductSchemaProvider implements StructuredDataProviderInterface
      * @param CategoryConfigRepository $categoryConfigRepository
      * @param ProductOverrideRepository $productOverrideRepository
      * @param StoreManagerInterface $storeManager
-     * @param ScopeConfigInterface $scopeConfig
+     * @param Config $seoConfig
      * @param RequestInterface $request
      */
     public function __construct(
@@ -37,7 +36,7 @@ class ProductSchemaProvider implements StructuredDataProviderInterface
         private readonly CategoryConfigRepository  $categoryConfigRepository,
         private readonly ProductOverrideRepository $productOverrideRepository,
         private readonly StoreManagerInterface     $storeManager,
-        private readonly ScopeConfigInterface      $scopeConfig,
+        private readonly Config                    $seoConfig,
         private readonly RequestInterface          $request
     ) {
     }
@@ -66,15 +65,12 @@ class ProductSchemaProvider implements StructuredDataProviderInterface
         // Resolve category config (template + fields) — use first assigned category
         $categoryIds  = $product->getCategoryIds();
         $categoryId   = !empty($categoryIds) ? (int) reset($categoryIds) : 0;
-        $categoryRow  = $this->categoryConfigRepository->getForCategory($categoryId);
+        $categoryRow  = $this->categoryConfigRepository->getForCategory($categoryId, [], $storeId);
         $categoryRow  = $this->categoryConfigRepository->decode($categoryRow);
 
         $templateCode  = $categoryRow['schema_template'] ?? '';
         if ($templateCode === '') {
-            $templateCode = (string) $this->scopeConfig->getValue(
-                'mageos_seo_general/structured_data/default_product_template',
-                ScopeInterface::SCOPE_STORE
-            );
+            $templateCode = $this->seoConfig->getDefaultProductTemplate($storeId);
         }
         if ($templateCode === '') {
             $templateCode = 'GenericProduct';
