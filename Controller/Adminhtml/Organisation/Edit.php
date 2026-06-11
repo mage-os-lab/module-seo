@@ -43,7 +43,7 @@ class Edit extends Action
         [$scope, $scopeId] = $this->resolveScopeFromRequest();
 
         $org      = $this->organisationRepository->get($scope, $scopeId);
-        $entityId = (int) ($org->getId() ?? 0);
+        $entityId = (int) ($org->getEntityId());
 
         // Redirect when entity_id is absent or stale so the UI component binds correctly.
         $urlEntityId = $this->getRequest()->getParam('entity_id');

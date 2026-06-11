@@ -97,7 +97,7 @@ class OrganisationDataProvider extends AbstractDataProvider
             ];
         }
 
-        $entityId = (int) ($org->getId() ?? 0);
+        $entityId = (int) ($org->getEntityId());
 
         $this->loadedData[$entityId] = [
             'entity_id'                => $entityId,

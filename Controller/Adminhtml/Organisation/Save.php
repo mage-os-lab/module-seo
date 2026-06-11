@@ -121,7 +121,7 @@ class Save extends Action
             $org->setContactPoint($contact);
 
             $this->organisationRepository->save($org);
-            $savedEntityId = (int) ($org->getId() ?? 0);
+            $savedEntityId = (int) ($org->getEntityId());
             $this->cacheTypeList->invalidate(['full_page', 'config']);
             $this->messageManager->addSuccessMessage(__('Organisation settings have been saved.'));
         } catch (\Exception $e) {

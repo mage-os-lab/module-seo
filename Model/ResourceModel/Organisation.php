@@ -31,6 +31,7 @@ class Organisation extends AbstractDb
      */
     public function loadByScope(OrganisationModel $model, string $scope, int $scopeId): void
     {
+        /** @var \Magento\Framework\DB\Adapter\AdapterInterface $connection */
         $connection = $this->getConnection();
         $select     = $connection->select()
             ->from($this->getMainTable())
