@@ -10,6 +10,7 @@ use MageOS\Seo\Api\OrganisationRepositoryInterface;
 use PHPUnit\Framework\TestCase;
 
 /**
+ * @magentoAppArea frontend
  * @magentoDbIsolation enabled
  */
 class OrganisationRepositoryTest extends TestCase
