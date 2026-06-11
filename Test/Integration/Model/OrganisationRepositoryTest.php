@@ -7,6 +7,7 @@ namespace MageOS\Seo\Test\Integration\Model;
 use Magento\TestFramework\Helper\Bootstrap;
 use MageOS\Seo\Api\Data\OrganisationInterface;
 use MageOS\Seo\Api\OrganisationRepositoryInterface;
+use MageOS\Seo\Api\OrganisationRepository;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -23,7 +24,7 @@ class OrganisationRepositoryTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->repository = Bootstrap::getObjectManager()->get(OrganisationRepositoryInterface::class);
+        $this->repository = Bootstrap::getObjectManager()->get(OrganisationRepository::class);
     }
 
     public function testGetReturnsOrganisationInstanceWhenTableIsEmpty(): void
