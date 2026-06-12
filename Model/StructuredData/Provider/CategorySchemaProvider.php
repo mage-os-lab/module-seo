@@ -11,6 +11,7 @@ use Magento\Store\Model\ScopeInterface;
 use Magento\Store\Model\StoreManagerInterface;
 use MageOS\Seo\Api\StructuredDataProviderInterface;
 use MageOS\Seo\Model\Category\ConfigRepository;
+use MageOS\Seo\Model\Config;
 
 class CategorySchemaProvider implements StructuredDataProviderInterface
 {
@@ -20,6 +21,7 @@ class CategorySchemaProvider implements StructuredDataProviderInterface
      * @param ScopeConfigInterface $scopeConfig
      * @param RequestInterface $request
      * @param ConfigRepository $categoryConfigRepository
+     * @param Config $seoConfig
      */
     public function __construct(
         private readonly LayerResolver         $layerResolver,
@@ -27,6 +29,7 @@ class CategorySchemaProvider implements StructuredDataProviderInterface
         private readonly ScopeConfigInterface  $scopeConfig,
         private readonly RequestInterface      $request,
         private readonly ConfigRepository      $categoryConfigRepository,
+        private readonly Config                $seoConfig,
     ) {
     }
 
@@ -52,6 +55,7 @@ class CategorySchemaProvider implements StructuredDataProviderInterface
             }
 
             $store   = $this->storeManager->getStore();
+            $storeId = (int) $store->getId();
             $baseUrl = rtrim((string) $store->getBaseUrl(), '/');
             $catUrl  = (string) $category->getUrl();
 
@@ -74,8 +78,8 @@ class CategorySchemaProvider implements StructuredDataProviderInterface
             $schemas[] = $collectionPage;
 
             // ItemList — check if enabled for this category
-            if ($this->isItemListEnabled((int) $category->getId())) {
-                $itemList = $this->buildItemList($category, $baseUrl);
+            if ($this->isItemListEnabled((int) $category->getId(), $storeId)) {
+                $itemList = $this->buildItemList($category, $baseUrl, $storeId);
                 if (!empty($itemList)) {
                     $schemas[] = $itemList;
                 }
@@ -91,20 +95,18 @@ class CategorySchemaProvider implements StructuredDataProviderInterface
      * Check if ItemList is enabled for this category (category config > global config).
      *
      * @param int $categoryId
+     * @param int $storeId
      * @return bool
      */
-    private function isItemListEnabled(int $categoryId): bool
+    private function isItemListEnabled(int $categoryId, int $storeId = 0): bool
     {
-        $config = $this->categoryConfigRepository->getForCategory($categoryId);
+        $config = $this->categoryConfigRepository->getForCategory($categoryId, [], $storeId);
 
         if (isset($config['item_list_enabled'])) {
             return (bool) $config['item_list_enabled'];
         }
 
-        return (bool) $this->scopeConfig->getValue(
-            'mageos_seo_general/structured_data/category_item_list_enabled',
-            ScopeInterface::SCOPE_STORE
-        );
+        return $this->seoConfig->isCategoryItemListEnabled($storeId);
     }
 
     /**
@@ -112,19 +114,18 @@ class CategorySchemaProvider implements StructuredDataProviderInterface
      *
      * @param \Magento\Catalog\Api\Data\CategoryInterface $category
      * @param string $baseUrl
+     * @param int $storeId
      * @return mixed[]
      */
-    private function buildItemList($category, string $baseUrl): array
+    private function buildItemList($category, string $baseUrl, int $storeId = 0): array
     {
         $currentPage = max(1, (int) $this->request->getParam('p', 1));
 
-        $configMax    = max(1, (int) ($this->scopeConfig->getValue(
-            'mageos_seo_general/structured_data/category_item_list_max',
-            ScopeInterface::SCOPE_STORE
-        ) ?: 36));
+        $configMax    = $this->seoConfig->getCategoryItemListMax($storeId);
         $storeDefault = (int) $this->scopeConfig->getValue(
             'catalog/frontend/grid_per_page',
-            ScopeInterface::SCOPE_STORE
+            ScopeInterface::SCOPE_STORE,
+            $storeId
         );
         $requestLimit = (int) $this->request->getParam('product_list_limit', 0);
 

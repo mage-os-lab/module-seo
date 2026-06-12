@@ -6,24 +6,26 @@ namespace MageOS\Seo\Plugin\Controller;
 
 use Magento\Catalog\Controller\Category\View as CategoryView;
 use Magento\Catalog\Model\Layer\Resolver as LayerResolver;
-use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\View\Page\Config as PageConfig;
-use Magento\Store\Model\ScopeInterface;
+use Magento\Store\Model\StoreManagerInterface;
 use MageOS\Seo\Model\Category\ConfigRepository as CategoryConfigRepository;
+use MageOS\Seo\Model\Config;
 
 class CategoryRobotsMetaPlugin
 {
     /**
      * @param LayerResolver $layerResolver
      * @param PageConfig $pageConfig
-     * @param ScopeConfigInterface $scopeConfig
+     * @param Config $seoConfig
      * @param CategoryConfigRepository $categoryConfigRepository
+     * @param StoreManagerInterface $storeManager
      */
     public function __construct(
         private readonly LayerResolver            $layerResolver,
         private readonly PageConfig               $pageConfig,
-        private readonly ScopeConfigInterface     $scopeConfig,
-        private readonly CategoryConfigRepository $categoryConfigRepository
+        private readonly Config                   $seoConfig,
+        private readonly CategoryConfigRepository $categoryConfigRepository,
+        private readonly StoreManagerInterface    $storeManager
     ) {
     }
 
@@ -43,14 +45,12 @@ class CategoryRobotsMetaPlugin
             }
 
             $categoryId = (int) $category->getId();
-            $config     = $this->categoryConfigRepository->getForCategory($categoryId);
+            $storeId    = (int) $this->storeManager->getStore()->getId();
+            $config     = $this->categoryConfigRepository->getForCategory($categoryId, [], $storeId);
             $robotsMeta = $config['robots_meta'] ?? null;
 
             if (empty($robotsMeta)) {
-                $robotsMeta = (string) $this->scopeConfig->getValue(
-                    'mageos_seo_general/robots_meta/category_default',
-                    ScopeInterface::SCOPE_STORE
-                );
+                $robotsMeta = $this->seoConfig->getRobotsCategoryDefault($storeId);
             }
 
             if (!empty($robotsMeta)) {

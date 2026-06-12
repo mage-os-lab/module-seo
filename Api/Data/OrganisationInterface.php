@@ -7,6 +7,8 @@ namespace MageOS\Seo\Api\Data;
 interface OrganisationInterface
 {
     public const ENTITY_ID       = 'entity_id';
+    public const SCOPE           = 'scope';
+    public const SCOPE_ID        = 'scope_id';
     public const NAME            = 'name';
     public const URL             = 'url';
     public const LOGO_PATH       = 'logo_path';
@@ -24,6 +26,36 @@ interface OrganisationInterface
      * @return int
      */
     public function getEntityId(): int;
+
+    /**
+     * Get config scope (default / websites / stores).
+     *
+     * @return string
+     */
+    public function getScope(): string;
+
+    /**
+     * Set config scope.
+     *
+     * @param string $scope
+     * @return \MageOS\Seo\Api\Data\OrganisationInterface
+     */
+    public function setScope(string $scope): OrganisationInterface;
+
+    /**
+     * Get scope entity ID (0 for default scope).
+     *
+     * @return int
+     */
+    public function getScopeId(): int;
+
+    /**
+     * Set scope entity ID.
+     *
+     * @param int $scopeId
+     * @return \MageOS\Seo\Api\Data\OrganisationInterface
+     */
+    public function setScopeId(int $scopeId): OrganisationInterface;
 
     /**
      * Get organisation name.

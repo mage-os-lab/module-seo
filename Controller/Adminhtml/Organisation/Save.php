@@ -52,8 +52,11 @@ class Save extends Action
             return $resultRedirect->setPath('*/*/edit');
         }
 
+        $savedEntityId = 0;
+
         try {
-            $org = $this->organisationRepository->get();
+            [$scope, $scopeId] = $this->resolveScopeFromRequest();
+            $org = $this->organisationRepository->get($scope, $scopeId);
 
             if (isset($data['name'])) {
                 $org->setName((string) $data['name']);
@@ -118,13 +121,44 @@ class Save extends Action
             $org->setContactPoint($contact);
 
             $this->organisationRepository->save($org);
+            $savedEntityId = (int) ($org->getEntityId());
             $this->cacheTypeList->invalidate(['full_page', 'config']);
             $this->messageManager->addSuccessMessage(__('Organisation settings have been saved.'));
         } catch (\Exception $e) {
             $this->messageManager->addErrorMessage(__('Could not save: %1', $e->getMessage()));
         }
 
-        return $resultRedirect->setPath('*/*/edit');
+        [$scope, $scopeId] = $this->resolveScopeFromRequest();
+        $params = ['entity_id' => $savedEntityId];
+        if ($scope === 'websites') {
+            $params['website'] = $scopeId;
+        } elseif ($scope === 'stores') {
+            $params['store'] = $scopeId;
+        }
+
+        return $resultRedirect->setPath('*/*/edit', $params);
+    }
+
+    /**
+     * Resolve scope + scopeId from the current request.
+     *
+     * Priority: store param → website param → global default.
+     *
+     * @return array{string, int}
+     */
+    private function resolveScopeFromRequest(): array
+    {
+        $storeParam = $this->getRequest()->getParam('store');
+        if ($storeParam !== null) {
+            return ['stores', (int) $storeParam];
+        }
+
+        $websiteParam = $this->getRequest()->getParam('website');
+        if ($websiteParam !== null) {
+            return ['websites', (int) $websiteParam];
+        }
+
+        return ['default', 0];
     }
 
     /**

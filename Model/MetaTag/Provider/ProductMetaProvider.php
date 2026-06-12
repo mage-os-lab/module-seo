@@ -5,11 +5,10 @@ declare(strict_types=1);
 namespace MageOS\Seo\Model\MetaTag\Provider;
 
 use Magento\Catalog\Helper\Image as ImageHelper;
-use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\App\RequestInterface;
 use Magento\Framework\Registry;
-use Magento\Store\Model\ScopeInterface;
 use MageOS\Seo\Api\MetaTagProviderInterface;
+use MageOS\Seo\Model\Config;
 use MageOS\Seo\Service\CurrencyService;
 
 class ProductMetaProvider implements MetaTagProviderInterface
@@ -20,15 +19,15 @@ class ProductMetaProvider implements MetaTagProviderInterface
      * @param Registry $registry
      * @param CurrencyService $currencyService
      * @param ImageHelper $imageHelper
-     * @param ScopeConfigInterface $scopeConfig
+     * @param Config $seoConfig
      * @param RequestInterface $request
      */
     public function __construct(
-        private readonly Registry             $registry,
-        private readonly CurrencyService      $currencyService,
-        private readonly ImageHelper          $imageHelper,
-        private readonly ScopeConfigInterface $scopeConfig,
-        private readonly RequestInterface     $request,
+        private readonly Registry         $registry,
+        private readonly CurrencyService  $currencyService,
+        private readonly ImageHelper      $imageHelper,
+        private readonly Config           $seoConfig,
+        private readonly RequestInterface $request,
     ) {
     }
 
@@ -45,10 +44,7 @@ class ProductMetaProvider implements MetaTagProviderInterface
      */
     public function getMetaTags(): array
     {
-        if (!(bool) $this->scopeConfig->getValue(
-            'mageos_seo_general/og_tags/enabled',
-            ScopeInterface::SCOPE_STORE
-        )) {
+        if (!$this->seoConfig->isOgTagsEnabled()) {
             return [];
         }
 

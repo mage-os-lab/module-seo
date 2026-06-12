@@ -12,7 +12,7 @@ class ConfigRepository
     /** @var \Magento\Framework\DB\Adapter\AdapterInterface */
     private AdapterInterface $connection;
 
-    /** @var array<int, mixed[]> */
+    /** @var array<string, mixed[]> */
     private array $cache = [];
 
     /**
@@ -25,23 +25,29 @@ class ConfigRepository
     }
 
     /**
-     * Load SEO config for a category.
+     * Load SEO config for a category, with store-view fallback.
      *
-     * Walks up the path to find the nearest ancestor with a configured template
-     * if the category itself has none.
+     * When $storeId > 0, loads both the store-specific row and the global row
+     * (store_id = 0) and merges them: store-specific values win. Falls back
+     * gracefully to the global row when no store-specific row exists.
+     *
+     * Walks up the category path to find the nearest ancestor with a configured
+     * template if the category itself has none. Ancestor lookup also respects
+     * $storeId.
      *
      * @param int $categoryId
      * @param string[] $categoryPath Array of ancestor IDs from root to leaf (e.g. ['1','2','3','14'])
+     * @param int $storeId Store view ID (0 = global default)
      * @return mixed[]
      */
-    public function getForCategory(int $categoryId, array $categoryPath = []): array
+    public function getForCategory(int $categoryId, array $categoryPath = [], int $storeId = 0): array
     {
-        if (isset($this->cache[$categoryId])) {
-            return $this->cache[$categoryId];
+        $cacheKey = "{$categoryId}_{$storeId}";
+        if (isset($this->cache[$cacheKey])) {
+            return $this->cache[$cacheKey];
         }
 
-        // Try the category itself first
-        $row = $this->loadRow($categoryId);
+        $row = $this->loadRow($categoryId, $storeId);
 
         // If no template configured, walk up the path to inherit from nearest ancestor
         if (empty($row['schema_template']) && !empty($categoryPath)) {
@@ -52,46 +58,78 @@ class ConfigRepository
                     // Skip self and root categories (1 = root, 2 = default category)
                     continue;
                 }
-                $ancestorRow = $this->loadRow($ancestorIdInt);
+                $ancestorRow = $this->loadRow($ancestorIdInt, $storeId);
                 if (!empty($ancestorRow['schema_template'])) {
-                    // Inherit template and enabled fields from ancestor,
-                    // but use the actual category's own overrides if present.
-                    $ownValues = array_filter($row);
-                    $row = $ownValues + $ancestorRow;
+                    // Inherit template from ancestor, but keep non-null/non-empty own values.
+                    // Use explicit check rather than array_filter to preserve legitimate 0 values
+                    // (e.g. item_list_enabled = 0 must not be silently discarded).
+                    $ownValues = array_filter($row, fn ($v) => $v !== null && $v !== '');
+                    $row       = $ownValues + $ancestorRow;
                     break;
                 }
             }
         }
 
-        $this->cache[$categoryId] = $row;
+        $this->cache[$cacheKey] = $row;
         return $row;
     }
 
     /**
-     * Load a raw DB row for a category ID.
+     * Load a raw DB row for a category ID, with store-view fallback.
+     *
+     * When $storeId > 0, fetches both the store-specific row and the global row
+     * (store_id = 0) ordered store_id ASC, then merges them so that store-specific
+     * non-null/non-empty values take precedence over global values.
      *
      * @param int $categoryId
+     * @param int $storeId
      * @return mixed[]
      */
-    private function loadRow(int $categoryId): array
+    private function loadRow(int $categoryId, int $storeId = 0): array
     {
-        $table = $this->connection->getTableName('mage-os_seo_category_config');
-        $row   = $this->connection->fetchRow(
-            $this->connection->select()
-                ->from($table)
-                ->where('category_id = ?', $categoryId)
-        );
+        $table  = $this->connection->getTableName('mage-os_seo_category_config');
+        $select = $this->connection->select()
+            ->from($table)
+            ->where('category_id = ?', $categoryId);
+
+        if ($storeId > 0) {
+            $select->where('store_id IN (?)', [0, $storeId])
+                   ->order('store_id ASC'); // global row first, store-specific row second
+
+            $rows = $this->connection->fetchAll($select);
+            if (empty($rows)) {
+                return [];
+            }
+
+            // Merge: iterate rows in order (global then store-specific).
+            // Later values win for non-null/non-empty, preserving global as base.
+            $merged = [];
+            foreach ($rows as $row) {
+                foreach ($row as $key => $value) {
+                    if ($value !== null && $value !== '') {
+                        $merged[$key] = $value;
+                    } elseif (!isset($merged[$key])) {
+                        $merged[$key] = $value;
+                    }
+                }
+            }
+            return $merged;
+        }
+
+        $select->where('store_id = ?', 0);
+        $row = $this->connection->fetchRow($select);
         return \is_array($row) ? $row : [];
     }
 
     /**
-     * Save or update SEO config for a category.
+     * Save or update SEO config for a category and store view.
      *
      * @param int $categoryId
      * @param mixed[] $data
+     * @param int $storeId Store view ID (0 = global default)
      * @return void
      */
-    public function save(int $categoryId, array $data): void
+    public function save(int $categoryId, array $data, int $storeId = 0): void
     {
         $table = $this->connection->getTableName('mage-os_seo_category_config');
 
@@ -104,9 +142,10 @@ class ConfigRepository
         }
 
         $data['category_id'] = $categoryId;
+        $data['store_id']    = $storeId;
 
         $this->connection->insertOnDuplicate($table, $data, array_keys($data));
-        unset($this->cache[$categoryId]);
+        unset($this->cache["{$categoryId}_{$storeId}"]);
     }
 
     /**

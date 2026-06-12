@@ -22,28 +22,39 @@ use PHPUnit\Framework\TestCase;
  */
 class DiWiringTest extends TestCase
 {
-    /**
-     * @param class-string $class
-     * @dataProvider serviceClassProvider
-     */
-    public function testServiceIsInstantiableViaDi(string $class): void
+    public function testOrganisationRepositoryIsInstantiableViaDi(): void
     {
-        $instance = Bootstrap::getObjectManager()->get($class);
-        $this->assertInstanceOf($class, $instance);
+        $instance = Bootstrap::getObjectManager()->get(OrganisationRepositoryInterface::class);
+        $this->assertInstanceOf(OrganisationRepositoryInterface::class, $instance);
     }
 
-    /**
-     * @return array<string, array<string>>
-     */
-    public function serviceClassProvider(): array
+    public function testStructuredDataCompositorIsInstantiableViaDi(): void
     {
-        return [
-            'OrganisationRepository'    => [OrganisationRepositoryInterface::class],
-            'StructuredDataCompositor'  => [StructuredDataCompositor::class],
-            'MetaTagCompositor'         => [MetaTagCompositor::class],
-            'PageTitleCompositor'       => [PageTitleCompositor::class],
-            'SchemaBuilderPool'         => [SchemaBuilderPool::class],
-            'LlmsTxtBuilder'            => [LlmsTxtBuilder::class],
-        ];
+        $instance = Bootstrap::getObjectManager()->get(StructuredDataCompositor::class);
+        $this->assertInstanceOf(StructuredDataCompositor::class, $instance);
+    }
+
+    public function testMetaTagCompositorIsInstantiableViaDi(): void
+    {
+        $instance = Bootstrap::getObjectManager()->get(MetaTagCompositor::class);
+        $this->assertInstanceOf(MetaTagCompositor::class, $instance);
+    }
+
+    public function testPageTitleCompositorIsInstantiableViaDi(): void
+    {
+        $instance = Bootstrap::getObjectManager()->get(PageTitleCompositor::class);
+        $this->assertInstanceOf(PageTitleCompositor::class, $instance);
+    }
+
+    public function testSchemaBuilderPoolIsInstantiableViaDi(): void
+    {
+        $instance = Bootstrap::getObjectManager()->get(SchemaBuilderPool::class);
+        $this->assertInstanceOf(SchemaBuilderPool::class, $instance);
+    }
+
+    public function testLlmsTxtBuilderIsInstantiableViaDi(): void
+    {
+        $instance = Bootstrap::getObjectManager()->get(LlmsTxtBuilder::class);
+        $this->assertInstanceOf(LlmsTxtBuilder::class, $instance);
     }
 }

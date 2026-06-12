@@ -10,8 +10,6 @@ use MageOS\Seo\Model\ResourceModel\Organisation as OrganisationResource;
 
 class OrganisationRepository implements OrganisationRepositoryInterface
 {
-    private const SINGLETON_ID = 1;
-
     /**
      * @param OrganisationFactory $factory
      * @param OrganisationResource $resource
@@ -25,15 +23,44 @@ class OrganisationRepository implements OrganisationRepositoryInterface
     /**
      * @inheritdoc
      */
-    public function get(): OrganisationInterface
+    public function get(string $scope = 'default', int $scopeId = 0): OrganisationInterface
     {
         $model = $this->factory->create();
-        $this->resource->load($model, self::SINGLETON_ID);
+        $this->resource->loadByScope($model, $scope, $scopeId);
 
-        // If no row exists yet, mark as new. Do NOT set entity_id — if we set it,
-        // AbstractDb treats the model as existing and issues UPDATE (0 rows affected).
-        // The auto-increment column will assign entity_id=1 on INSERT since the table
-        // is empty. The singleton contract is enforced by the UNIQUE PK constraint.
+        if (!$model->getId()) {
+            $model->isObjectNew(true);
+            $model->setScope($scope);
+            $model->setScopeId($scopeId);
+        }
+
+        return $model;
+    }
+
+    /**
+     * @inheritdoc
+     *
+     * Fallback chain: store-view → website → global default.
+     */
+    public function getForScope(int $storeId, int $websiteId): OrganisationInterface
+    {
+        // 1. Store-view specific
+        $model = $this->factory->create();
+        $this->resource->loadByScope($model, 'stores', $storeId);
+        if ($model->getId()) {
+            return $model;
+        }
+
+        // 2. Website specific
+        $model = $this->factory->create();
+        $this->resource->loadByScope($model, 'websites', $websiteId);
+        if ($model->getId()) {
+            return $model;
+        }
+
+        // 3. Global default
+        $model = $this->factory->create();
+        $this->resource->loadByScope($model, 'default', 0);
         if (!$model->getId()) {
             $model->isObjectNew(true);
         }

@@ -7,11 +7,10 @@ namespace MageOS\Seo\Model\Product\Builder;
 use Magento\Catalog\Api\Data\ProductInterface;
 use Magento\Catalog\Helper\Image as ImageHelper;
 use Magento\CatalogInventory\Api\StockRegistryInterface;
-use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\Stdlib\DateTime\DateTime;
-use Magento\Store\Model\ScopeInterface;
 use Magento\Store\Model\StoreManagerInterface;
 use MageOS\Seo\Api\ProductSchemaBuilderInterface;
+use MageOS\Seo\Model\Config;
 use MageOS\Seo\Service\CurrencyService;
 
 abstract class AbstractBuilder implements ProductSchemaBuilderInterface
@@ -27,7 +26,7 @@ abstract class AbstractBuilder implements ProductSchemaBuilderInterface
      * @param CurrencyService $currencyService
      * @param StockRegistryInterface $stockRegistry
      * @param ImageHelper $imageHelper
-     * @param ScopeConfigInterface $scopeConfig
+     * @param Config $seoConfig
      * @param DateTime $dateTime
      */
     public function __construct(
@@ -35,7 +34,7 @@ abstract class AbstractBuilder implements ProductSchemaBuilderInterface
         protected readonly CurrencyService        $currencyService,
         protected readonly StockRegistryInterface $stockRegistry,
         protected readonly ImageHelper            $imageHelper,
-        protected readonly ScopeConfigInterface   $scopeConfig,
+        protected readonly Config                 $seoConfig,
         protected readonly DateTime               $dateTime
     ) {
     }
@@ -200,11 +199,8 @@ abstract class AbstractBuilder implements ProductSchemaBuilderInterface
      */
     protected function getPriceValidUntil(): string
     {
-        $months = (int) $this->scopeConfig->getValue(
-            'mageos_seo_general/structured_data/price_valid_until_months',
-            ScopeInterface::SCOPE_STORE
-        );
-        $months = max(1, $months);
+        $storeId = (int) $this->storeManager->getStore()->getId();
+        $months  = $this->seoConfig->getPriceValidUntilMonths($storeId);
         return date('Y-m-d', (int) strtotime("+{$months} months"));
     }
 

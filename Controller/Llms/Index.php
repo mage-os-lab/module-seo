@@ -5,10 +5,9 @@ declare(strict_types=1);
 namespace MageOS\Seo\Controller\Llms;
 
 use Magento\Framework\App\Action\HttpGetActionInterface;
-use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\Controller\Result\Raw;
 use Magento\Framework\Controller\Result\RawFactory;
-use Magento\Store\Model\ScopeInterface;
+use MageOS\Seo\Model\Config;
 use MageOS\Seo\Model\LlmsTxt\LlmsTxtBuilder;
 
 class Index implements HttpGetActionInterface
@@ -16,12 +15,12 @@ class Index implements HttpGetActionInterface
     /**
      * @param LlmsTxtBuilder $builder
      * @param RawFactory $rawFactory
-     * @param ScopeConfigInterface $scopeConfig
+     * @param Config $seoConfig
      */
     public function __construct(
-        private readonly LlmsTxtBuilder       $builder,
-        private readonly RawFactory           $rawFactory,
-        private readonly ScopeConfigInterface $scopeConfig,
+        private readonly LlmsTxtBuilder $builder,
+        private readonly RawFactory     $rawFactory,
+        private readonly Config         $seoConfig,
     ) {
     }
 
@@ -34,10 +33,7 @@ class Index implements HttpGetActionInterface
     {
         $result = $this->rawFactory->create();
 
-        if (!(bool) $this->scopeConfig->getValue(
-            'mageos_seo_general/llms_txt/enabled',
-            ScopeInterface::SCOPE_STORE
-        )) {
+        if (!$this->seoConfig->isLlmsTxtEnabled()) {
             $result->setHttpResponseCode(404);
             $result->setContents('');
             return $result;

@@ -5,21 +5,20 @@ declare(strict_types=1);
 namespace MageOS\Seo\Model\MetaTag\Provider;
 
 use Magento\Catalog\Model\Layer\Resolver as LayerResolver;
-use Magento\Framework\App\Config\ScopeConfigInterface;
-use Magento\Store\Model\ScopeInterface;
 use Magento\Store\Model\StoreManagerInterface;
 use MageOS\Seo\Api\MetaTagProviderInterface;
+use MageOS\Seo\Model\Config;
 
 class CategoryMetaProvider implements MetaTagProviderInterface
 {
     /**
      * @param LayerResolver $layerResolver
-     * @param ScopeConfigInterface $scopeConfig
+     * @param Config $seoConfig
      * @param StoreManagerInterface $storeManager
      */
     public function __construct(
-        private readonly LayerResolver        $layerResolver,
-        private readonly ScopeConfigInterface $scopeConfig,
+        private readonly LayerResolver         $layerResolver,
+        private readonly Config                $seoConfig,
         private readonly StoreManagerInterface $storeManager
     ) {
     }
@@ -37,10 +36,7 @@ class CategoryMetaProvider implements MetaTagProviderInterface
      */
     public function getMetaTags(): array
     {
-        if (!(bool) $this->scopeConfig->getValue(
-            'mageos_seo_general/og_tags/enabled',
-            ScopeInterface::SCOPE_STORE
-        )) {
+        if (!$this->seoConfig->isOgTagsEnabled()) {
             return [];
         }
 

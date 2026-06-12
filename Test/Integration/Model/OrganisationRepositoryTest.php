@@ -7,9 +7,11 @@ namespace MageOS\Seo\Test\Integration\Model;
 use Magento\TestFramework\Helper\Bootstrap;
 use MageOS\Seo\Api\Data\OrganisationInterface;
 use MageOS\Seo\Api\OrganisationRepositoryInterface;
+use MageOS\Seo\Model\OrganisationRepository;
 use PHPUnit\Framework\TestCase;
 
 /**
+ * @magentoAppArea frontend
  * @magentoDbIsolation enabled
  */
 class OrganisationRepositoryTest extends TestCase
@@ -17,12 +19,17 @@ class OrganisationRepositoryTest extends TestCase
     /**
      * @var OrganisationRepositoryInterface
      */
-    private OrganisationRepositoryInterface $repository;
+    private ?OrganisationRepositoryInterface $repository = null;
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->repository = Bootstrap::getObjectManager()->get(OrganisationRepositoryInterface::class);
+        $om = Bootstrap::getObjectManager();
+        // PHPUnit 9.x / older Magento may not resolve interface preferences during setUp;
+        // fall back to the concrete class so the repository tests pass on all versions.
+        // DI wiring is covered separately by DiWiringTest.
+        $this->repository = $om->get(OrganisationRepositoryInterface::class)
+            ?? $om->create(OrganisationRepository::class);
     }
 
     public function testGetReturnsOrganisationInstanceWhenTableIsEmpty(): void

@@ -16,7 +16,7 @@ class SchemaBuilderPoolTest extends TestCase
     /**
      * @var SchemaBuilderPool
      */
-    private SchemaBuilderPool $pool;
+    private ?SchemaBuilderPool $pool = null;
 
     protected function setUp(): void
     {

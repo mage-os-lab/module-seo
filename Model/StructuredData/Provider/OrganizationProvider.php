@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace MageOS\Seo\Model\StructuredData\Provider;
 
+use Magento\Store\Model\StoreManagerInterface;
 use MageOS\Seo\Api\OrganisationRepositoryInterface;
 use MageOS\Seo\Api\StructuredDataProviderInterface;
 
@@ -11,9 +12,11 @@ class OrganizationProvider implements StructuredDataProviderInterface
 {
     /**
      * @param OrganisationRepositoryInterface $organisationRepository
+     * @param StoreManagerInterface $storeManager
      */
     public function __construct(
-        private readonly OrganisationRepositoryInterface $organisationRepository
+        private readonly OrganisationRepositoryInterface $organisationRepository,
+        private readonly StoreManagerInterface           $storeManager
     ) {
     }
 
@@ -30,7 +33,9 @@ class OrganizationProvider implements StructuredDataProviderInterface
      */
     public function getSchemas(): array
     {
-        $org = $this->organisationRepository->get();
+        $storeId   = (int) $this->storeManager->getStore()->getId();
+        $websiteId = (int) $this->storeManager->getWebsite()->getId();
+        $org       = $this->organisationRepository->getForScope($storeId, $websiteId);
 
         if ($org->getName() === '') {
             return [];

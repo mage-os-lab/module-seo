@@ -5,26 +5,25 @@ declare(strict_types=1);
 namespace MageOS\Seo\Plugin\Controller;
 
 use Magento\Catalog\Controller\Product\View as ProductView;
-use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\Registry;
 use Magento\Framework\View\Page\Config as PageConfig;
-use Magento\Store\Model\ScopeInterface;
 use Magento\Store\Model\StoreManagerInterface;
 use MageOS\Seo\Model\Category\ProductOverrideRepository;
+use MageOS\Seo\Model\Config;
 
 class ProductRobotsMetaPlugin
 {
     /**
      * @param Registry $registry
      * @param PageConfig $pageConfig
-     * @param ScopeConfigInterface $scopeConfig
+     * @param Config $seoConfig
      * @param ProductOverrideRepository $productOverrideRepository
      * @param StoreManagerInterface $storeManager
      */
     public function __construct(
         private readonly Registry                  $registry,
         private readonly PageConfig                $pageConfig,
-        private readonly ScopeConfigInterface      $scopeConfig,
+        private readonly Config                    $seoConfig,
         private readonly ProductOverrideRepository $productOverrideRepository,
         private readonly StoreManagerInterface     $storeManager
     ) {
@@ -51,10 +50,7 @@ class ProductRobotsMetaPlugin
         $robotsMeta      = $productOverride['robots_meta'] ?? null;
 
         if (empty($robotsMeta)) {
-            $robotsMeta = (string) $this->scopeConfig->getValue(
-                'mageos_seo_general/robots_meta/product_default',
-                ScopeInterface::SCOPE_STORE
-            );
+            $robotsMeta = $this->seoConfig->getRobotsProductDefault($storeId);
         }
 
         if (!empty($robotsMeta)) {
