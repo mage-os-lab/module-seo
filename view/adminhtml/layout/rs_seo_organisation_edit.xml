@@ -3,6 +3,18 @@
       xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
     <update handle="styles"/>
     <body>
+        <referenceContainer name="page.main.actions">
+            <block class="Magento\Backend\Block\Store\Switcher"
+                   name="rs_seo_organisation_store_switcher"
+                   template="Magento_Backend::store/switcher.phtml">
+                <arguments>
+                    <argument name="switch_websites" xsi:type="string">1</argument>
+                    <argument name="switch_store_groups" xsi:type="string">0</argument>
+                    <argument name="switch_store_views" xsi:type="string">1</argument>
+                    <argument name="default_selection_name" xsi:type="string" translate="true">Default Config</argument>
+                </arguments>
+            </block>
+        </referenceContainer>
         <referenceContainer name="content">
             <uiComponent name="rs_seo_organisation_form"/>
         </referenceContainer>

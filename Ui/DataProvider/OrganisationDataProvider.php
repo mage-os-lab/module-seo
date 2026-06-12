@@ -7,6 +7,7 @@ namespace MageOS\Seo\Ui\DataProvider;
 use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\App\RequestInterface;
 use Magento\Framework\Filesystem\Io\File as IoFile;
+use Magento\Framework\UrlInterface;
 use Magento\Store\Model\ScopeInterface;
 use Magento\Store\Model\StoreManagerInterface;
 use Magento\Ui\DataProvider\AbstractDataProvider;
@@ -33,6 +34,7 @@ class OrganisationDataProvider extends AbstractDataProvider
      * @param StoreManagerInterface $storeManager
      * @param IoFile $ioFile
      * @param RequestInterface $request
+     * @param UrlInterface $urlBuilder
      * @param mixed[] $meta
      * @param mixed[] $data
      */
@@ -46,6 +48,7 @@ class OrganisationDataProvider extends AbstractDataProvider
         private readonly StoreManagerInterface           $storeManager,
         private readonly IoFile                          $ioFile,
         private readonly RequestInterface                $request,
+        private readonly UrlInterface                    $urlBuilder,
         array                                            $meta = [],
         array                                            $data = []
     ) {
@@ -116,6 +119,26 @@ class OrganisationDataProvider extends AbstractDataProvider
         ];
 
         return $this->loadedData;
+    }
+
+    /**
+     * Return data source config with a scope-aware submit URL.
+     *
+     * @return mixed[]
+     */
+    public function getConfigData(): array
+    {
+        [$scope, $scopeId] = $this->resolveScopeFromRequest();
+        $params = match ($scope) {
+            'stores'   => ['store'   => $scopeId],
+            'websites' => ['website' => $scopeId],
+            default    => [],
+        };
+
+        return array_merge(
+            parent::getConfigData(),
+            ['submit_url' => $this->urlBuilder->getUrl('rs_seo/organisation/save', $params)]
+        );
     }
 
     /**
