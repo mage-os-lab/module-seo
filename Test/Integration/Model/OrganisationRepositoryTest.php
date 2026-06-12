@@ -16,10 +16,7 @@ use PHPUnit\Framework\TestCase;
  */
 class OrganisationRepositoryTest extends TestCase
 {
-    /**
-     * @var OrganisationRepositoryInterface
-     */
-    private OrganisationRepositoryInterface $repository;
+    private ?OrganisationRepositoryInterface $repository = null;
 
     protected function setUp(): void
     {
