@@ -23,8 +23,29 @@
                 sortOrder="10"/>
     </type>
 
-    <!-- Register the category SEO tab modifier -->
-    <type name="Magento\Catalog\Ui\DataProvider\Category\Form\Modifier\Pool">
+    <!--
+        Both form modifier pools are virtual types, so they are extended with <virtualType>.
+        A <type> node with a virtual-type name is merged as a separate node and replaces the
+        virtual type's definition: the pool stops resolving (ReflectionException, the edit
+        page returns 500) and every other module's modifiers are dropped with it.
+    -->
+
+    <!--
+        Register the category SEO tab modifier.
+
+        Magento core wires no modifier pool into the category form data provider, so the
+        pool is declared here in full (with its type) and set as the provider's "pool"
+        argument. The name matches the one Mage-OS's AutomaticTranslation module declares
+        with identical type and argument values, so when both modules are installed the
+        declarations merge into a single pool that carries both modules' modifiers.
+    -->
+    <type name="Magento\Catalog\Model\Category\DataProvider">
+        <arguments>
+            <argument name="pool" xsi:type="object">Magento\Catalog\Ui\DataProvider\Category\Form\Modifier\Pool</argument>
+        </arguments>
+    </type>
+    <virtualType name="Magento\Catalog\Ui\DataProvider\Category\Form\Modifier\Pool"
+                 type="Magento\Ui\DataProvider\Modifier\Pool">
         <arguments>
             <argument name="modifiers" xsi:type="array">
                 <item name="mageos_seo_category_modifier" xsi:type="array">
@@ -33,10 +54,16 @@
                 </item>
             </argument>
         </arguments>
-    </type>
+    </virtualType>
 
-    <!-- Register the product SEO tab modifier -->
-    <type name="Magento\Catalog\Ui\DataProvider\Product\Form\Modifier\Pool">
+    <!--
+        Register the product SEO tab modifier.
+
+        Magento_Catalog declares this pool (type and core modifiers), so only the modifier is
+        added here, without a type attribute, the same way Magento_InventoryCatalogAdminUi
+        and Magento_CatalogUrlRewrite extend it.
+    -->
+    <virtualType name="Magento\Catalog\Ui\DataProvider\Product\Form\Modifier\Pool">
         <arguments>
             <argument name="modifiers" xsi:type="array">
                 <item name="mageos_seo_product_modifier" xsi:type="array">
@@ -45,5 +72,5 @@
                 </item>
             </argument>
         </arguments>
-    </type>
+    </virtualType>
 </config>

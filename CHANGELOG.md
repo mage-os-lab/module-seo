@@ -14,6 +14,14 @@ become public contract.
 
 ### Fixed
 
+- Admin product and category edit pages no longer fail with `ReflectionException:
+  Class "…\Form\Modifier\Pool" does not exist`. The SEO form modifiers were
+  registered with `<type>` on the virtual-type pool names, which replaced the pool
+  definitions in the merged DI config (and dropped every other module's product
+  form modifiers). The product modifier now extends Magento_Catalog's
+  `<virtualType>`; the category pool is declared in full and wired into the
+  category form data provider, so the SEO fieldset also appears on installations
+  without Mage-OS's AutomaticTranslation module (which declares the same pool).
 - Table names are now resolved through `ResourceConnection::getTableName()` so
   installations with a DB table prefix work (adapter `getTableName()` never
   applied the prefix).
