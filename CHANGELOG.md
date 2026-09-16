@@ -22,6 +22,30 @@ become public contract.
   `<virtualType>`; the category pool is declared in full and wired into the
   category form data provider, so the SEO fieldset also appears on installations
   without Mage-OS's AutomaticTranslation module (which declares the same pool).
+- The category "SEO (Structured Data)" and product "Advanced SEO" fieldsets are
+  now saved from the admin forms. They were persisted by `afterSave` plugins on
+  the catalog repositories, but core's admin save controllers call the models'
+  `save()` directly, so the plugins never ran. Persistence now runs from
+  admin-area observers: `controller_action_catalog_product_save_entity_after`
+  for products (dispatched once, for the form's product only, so configurable
+  variations, "Save & Duplicate" copies and "copy to store views" saves in the
+  same request are left alone) and `catalog_category_save_commit_after` for
+  categories (acting only on the category carrying the posted fieldset). The
+  `SaveSeoConfigPlugin` and `SaveSeoOverridesPlugin` classes were removed.
+- The product "Advanced SEO" fieldset binds to the form's `data` branch.
+  `product_form.xml` declares no form-level `dataScope`, so the fieldset's empty
+  scope bound its fields outside the loaded and submitted data: stored values
+  never showed, edits were never posted, and a save posted the untouched loaded
+  values instead.
+- The category form now loads the stored SEO config. Core's category form data
+  provider does not apply modifier pools to its data, so the fieldset always
+  rendered empty, and once saving worked every category save would have posted
+  those empty values over the stored config. A plugin on the provider's
+  `getData()` now adds the values.
+- SEO-only save problems (invalid override JSON, an SEO-table failure) are
+  reported as warnings rather than errors: core's category save controller
+  treats any error message as a failed save and sent a newly created category
+  back to the "add" page although it had been saved.
 - Table names are now resolved through `ResourceConnection::getTableName()` so
   installations with a DB table prefix work (adapter `getTableName()` never
   applied the prefix).
@@ -53,10 +77,10 @@ become public contract.
   the `store`/`store_id` request parameter; previously the adminhtml current
   store (always 0) was used, making per-store overrides unreachable from the UI.
   The category form now also shows values inherited from ancestor categories.
-- Catalog save plugins moved to `etc/adminhtml/di.xml`, wrap SEO persistence in
-  try/catch (an SEO-table failure no longer aborts an already-committed product/
-  category save), and surface invalid override-JSON as an admin error instead of
-  silently wiping stored overrides.
+- Catalog SEO fieldset persistence is registered for the admin area only, wraps
+  SEO persistence in try/catch (an SEO-table failure no longer aborts an
+  already-committed product/category save), and reports invalid override-JSON as
+  an admin warning instead of silently wiping stored overrides.
 - BreadcrumbList schema now renders on Luma and other themes without a public
   `getCrumbs()` on the breadcrumbs block, via the catalog breadcrumb path.
 - FAQ widget no longer sets a block-cache `ttl`, which could FPC-cache pages

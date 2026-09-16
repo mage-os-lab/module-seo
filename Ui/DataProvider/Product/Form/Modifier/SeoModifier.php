@@ -17,6 +17,17 @@ use MageOS\Seo\Model\Config\Source\RobotsMeta;
 class SeoModifier implements ModifierInterface
 {
     /**
+     * Data scope of the Advanced SEO fieldset.
+     *
+     * product_form.xml declares no form-level dataScope, and an empty fieldset scope inherits
+     * the parent's, so an empty value would bind the fields outside the provider's "data"
+     * branch: modifyData() values would never show, and the form would post the untouched
+     * loaded values instead of the edited ones. With "data" the fields bind to
+     * data.mageos_seo_* and are submitted as top-level POST fields.
+     */
+    public const DATA_SCOPE = 'data';
+
+    /**
      * @param RequestInterface $request
      * @param ProductOverrideRepository $productOverrideRepository
      * @param RobotsMeta $robotsMetaSource
@@ -44,7 +55,7 @@ class SeoModifier implements ModifierInterface
                         'collapsible'   => true,
                         'opened'        => false,
                         'componentType' => Fieldset::NAME,
-                        'dataScope'     => '',
+                        'dataScope'     => self::DATA_SCOPE,
                         'sortOrder'     => 500,
                     ],
                 ],

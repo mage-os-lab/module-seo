@@ -1,27 +1,13 @@
 <?xml version="1.0"?>
 <!--
-    Admin-area-only wiring.
+    Admin-area-only wiring: the catalog edit form SEO fieldsets.
 
-    The catalog save plugins live here (not in the global di.xml) because they read
-    admin form POST data: registered globally they would execute — and be steerable
-    by request payloads — on REST, GraphQL, import and cron saves.
+    The fieldsets are saved by observers in etc/adminhtml/events.xml. Core's admin save
+    controllers call the models' save() directly, so plugins on the catalog repositories
+    never run for these forms.
 -->
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
-
-    <!-- Category SEO tab persistence -->
-    <type name="Magento\Catalog\Api\CategoryRepositoryInterface">
-        <plugin name="mageos_seo_category_save_seo_config"
-                type="MageOS\Seo\Plugin\Catalog\Category\SaveSeoConfigPlugin"
-                sortOrder="10"/>
-    </type>
-
-    <!-- Product SEO tab persistence -->
-    <type name="Magento\Catalog\Api\ProductRepositoryInterface">
-        <plugin name="mageos_seo_product_save_seo_overrides"
-                type="MageOS\Seo\Plugin\Catalog\Product\SaveSeoOverridesPlugin"
-                sortOrder="10"/>
-    </type>
 
     <!--
         Both form modifier pools are virtual types, so they are extended with <virtualType>.
@@ -38,11 +24,16 @@
         argument. The name matches the one Mage-OS's AutomaticTranslation module declares
         with identical type and argument values, so when both modules are installed the
         declarations merge into a single pool that carries both modules' modifiers.
+
+        The provider's getData() does not apply the pool, so the modifier's stored values are
+        loaded into the form by a plugin instead (its modifyMeta() runs through the pool).
     -->
     <type name="Magento\Catalog\Model\Category\DataProvider">
         <arguments>
             <argument name="pool" xsi:type="object">Magento\Catalog\Ui\DataProvider\Category\Form\Modifier\Pool</argument>
         </arguments>
+        <plugin name="mageos_seo_add_seo_config_to_form_data"
+                type="MageOS\Seo\Plugin\Catalog\Category\AddSeoConfigToFormDataPlugin"/>
     </type>
     <virtualType name="Magento\Catalog\Ui\DataProvider\Category\Form\Modifier\Pool"
                  type="Magento\Ui\DataProvider\Modifier\Pool">

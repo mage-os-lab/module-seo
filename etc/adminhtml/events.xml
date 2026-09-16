@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<!--
+    Admin-area-only observers.
+
+    The catalog SEO fieldsets are persisted from here (not the global events.xml) because the
+    observers act on admin form POST data: registered globally they would execute, and be
+    steerable by request payloads, on REST, GraphQL, import and cron saves.
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:framework:Event/etc/events.xsd">
+
+    <!-- Product "Advanced SEO" fieldset: dispatched once by the admin product save controller -->
+    <event name="controller_action_catalog_product_save_entity_after">
+        <observer name="mageos_seo_save_product_seo_overrides"
+                  instance="MageOS\Seo\Observer\Adminhtml\SaveProductSeoOverrides"/>
+    </event>
+
+    <!-- Category "SEO (Structured Data)" fieldset: after the category save has committed -->
+    <event name="catalog_category_save_commit_after">
+        <observer name="mageos_seo_save_category_seo_config"
+                  instance="MageOS\Seo\Observer\Adminhtml\SaveCategorySeoConfig"/>
+    </event>
+</config>
