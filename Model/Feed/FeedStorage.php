@@ -10,7 +10,6 @@ use Magento\Framework\Filesystem\Directory\ReadFactory;
 use Magento\Framework\Filesystem\Directory\ReadInterface;
 use Magento\Framework\Filesystem\Directory\WriteFactory;
 use Magento\Framework\Filesystem\Directory\WriteInterface;
-use Magento\Framework\Filesystem\Glob;
 use MageOS\Seo\Model\Config;
 
 /**
@@ -291,28 +290,34 @@ class FeedStorage
     }
 
     /**
-     * Search the storage root for a pattern, ignoring the framework's glob cache.
+     * List the storage entries matching a pattern, reading the directory each time.
      *
-     * Magento\Framework\Filesystem\Glob memoises every glob result for the life of the process,
-     * so a listing taken after this process has written or deleted files would otherwise be the
-     * listing from before it did. Both the queue consumer and the cron can rebuild more than
-     * once per process, and a rebuild lists its own output (surplus sitemap chunks, store
-     * directories) to decide what to remove.
+     * Deliberately not WriteInterface::search(): that goes through
+     * Magento\Framework\Filesystem\Glob, which memoises every result for the life of the
+     * process, so a listing taken after this process has written or deleted files is the
+     * listing from before it did. Both the queue consumer and the cron rebuild more than once
+     * per process, and a rebuild lists its own output — surplus sitemap chunks, store
+     * directories — to decide what to remove. (Glob::clearCache() would do, but it does not
+     * exist on every version this module supports, and reading the directory is no more work.)
      *
-     * @param string $pattern Storage-relative glob pattern
+     * @param string $pattern Storage-relative path whose last segment is a glob pattern
      * @throws \Magento\Framework\Exception\FileSystemException
      * @return string[] Storage-relative paths
      */
     private function search(string $pattern): array
     {
-        // clearCache() arrived after this module's minimum version. Without it the listing can
-        // be the one from before this process wrote, which costs a surplus chunk file left on
-        // disk until the next rebuild — not worth a hard version requirement.
-        if (method_exists(Glob::class, 'clearCache')) {
-            Glob::clearCache();
+        $directory = \dirname($pattern);
+        $mask      = basename($pattern);
+
+        $paths = [];
+        foreach ($this->getWrite()->read($directory) as $entry) {
+            $entry = (string) $entry;
+            if (fnmatch($mask, basename($entry))) {
+                $paths[] = $entry;
+            }
         }
 
-        return $this->getWrite()->search($pattern);
+        return $paths;
     }
 
     /**
