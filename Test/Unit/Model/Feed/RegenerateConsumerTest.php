@@ -50,8 +50,9 @@ class RegenerateConsumerTest extends TestCase
             }
         );
         $this->regenerator->method('regenerate')->willReturnCallback(
-            function () use (&$calls): void {
+            function () use (&$calls): array {
                 $calls[] = 'regenerate';
+                return [];
             }
         );
 

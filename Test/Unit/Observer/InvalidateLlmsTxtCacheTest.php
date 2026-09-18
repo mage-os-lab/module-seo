@@ -4,30 +4,61 @@ declare(strict_types=1);
 
 namespace MageOS\Seo\Test\Unit\Observer;
 
+use Magento\Framework\Event;
 use Magento\Framework\Event\Observer;
+use Magento\Framework\Event\ObserverInterface;
 use MageOS\Seo\Model\Feed\FeedInvalidator;
+use MageOS\Seo\Model\Feed\FeedRegenerator;
+use MageOS\Seo\Model\Feed\InvalidationPolicy;
+use MageOS\Seo\Observer\InvalidateHreflangSitemapCache;
+use MageOS\Seo\Observer\InvalidateLlmsJsonlCache;
 use MageOS\Seo\Observer\InvalidateLlmsTxtCache;
-use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * The three feed invalidation observers: each asks the policy about its own feed group.
+ */
 class InvalidateLlmsTxtCacheTest extends TestCase
 {
-    /**
-     * @var FeedInvalidator&MockObject
-     */
-    private FeedInvalidator&MockObject $feedInvalidator;
-
-    private InvalidateLlmsTxtCache $observer;
-
-    protected function setUp(): void
+    public function testLlmsObserverInvalidatesOnlyRelevantChanges(): void
     {
-        $this->feedInvalidator = $this->createMock(FeedInvalidator::class);
-        $this->observer        = new InvalidateLlmsTxtCache($this->feedInvalidator);
+        $this->assertObserver(InvalidateLlmsTxtCache::class, FeedRegenerator::GROUP_LLMS, 'invalidateLlms');
     }
 
-    public function testExecuteInvalidatesLlmsFeeds(): void
+    public function testJsonlObserverInvalidatesOnlyRelevantChanges(): void
     {
-        $this->feedInvalidator->expects($this->once())->method('invalidateLlms');
-        $this->observer->execute($this->createMock(Observer::class));
+        $this->assertObserver(InvalidateLlmsJsonlCache::class, FeedRegenerator::GROUP_JSONL, 'invalidateJsonl');
+    }
+
+    public function testHreflangObserverInvalidatesOnlyRelevantChanges(): void
+    {
+        $this->assertObserver(
+            InvalidateHreflangSitemapCache::class,
+            FeedRegenerator::GROUP_HREFLANG,
+            'invalidateHreflangSitemap'
+        );
+    }
+
+    /**
+     * Run an observer once with a relevant and once with an irrelevant change.
+     *
+     * @param class-string<ObserverInterface> $observerClass
+     * @param string $group
+     * @param non-empty-string $invalidateMethod
+     * @return void
+     */
+    private function assertObserver(string $observerClass, string $group, string $invalidateMethod): void
+    {
+        $event = new Event(['name' => 'some_event']);
+        foreach ([[true, 1], [false, 0]] as [$relevant, $expectedCalls]) {
+            $policy = $this->createMock(InvalidationPolicy::class);
+            $policy->expects($this->once())->method('isRelevantChange')
+                ->with($group, $event)
+                ->willReturn($relevant);
+            $invalidator = $this->createMock(FeedInvalidator::class);
+            $invalidator->expects($this->exactly($expectedCalls))->method($invalidateMethod);
+
+            (new $observerClass($invalidator, $policy))->execute(new Observer(['event' => $event]));
+        }
     }
 }

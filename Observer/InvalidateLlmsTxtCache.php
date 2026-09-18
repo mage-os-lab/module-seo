@@ -7,27 +7,37 @@ namespace MageOS\Seo\Observer;
 use Magento\Framework\Event\Observer;
 use Magento\Framework\Event\ObserverInterface;
 use MageOS\Seo\Model\Feed\FeedInvalidator;
+use MageOS\Seo\Model\Feed\FeedRegenerator;
+use MageOS\Seo\Model\Feed\InvalidationPolicy;
 
+/**
+ * Queues a rebuild of /llms.txt and /llms-full.txt when their source data changes.
+ *
+ * Registered for category saves, and for product saves that change category product counts
+ * (see InvalidationPolicy).
+ */
 class InvalidateLlmsTxtCache implements ObserverInterface
 {
     /**
      * @param FeedInvalidator $feedInvalidator
+     * @param InvalidationPolicy $invalidationPolicy
      */
     public function __construct(
-        private readonly FeedInvalidator $feedInvalidator
+        private readonly FeedInvalidator    $feedInvalidator,
+        private readonly InvalidationPolicy $invalidationPolicy
     ) {
     }
 
     /**
-     * Invalidate the llms.txt / llms-full.txt feeds when their source data changes:
-     * the pre-generated files are deleted and the cached documents are purged from
-     * built-in FPC or Varnish so they are regenerated promptly.
+     * Queue the rebuild when the change can affect the llms documents.
      *
      * @param \Magento\Framework\Event\Observer $observer
      * @return void
      */
     public function execute(Observer $observer): void
     {
-        $this->feedInvalidator->invalidateLlms();
+        if ($this->invalidationPolicy->isRelevantChange(FeedRegenerator::GROUP_LLMS, $observer->getEvent())) {
+            $this->feedInvalidator->invalidateLlms();
+        }
     }
 }

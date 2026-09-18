@@ -9,30 +9,30 @@ use MageOS\Seo\Model\Hreflang\LinkBuilder;
 use MageOS\Seo\Model\Hreflang\SitemapGenerator;
 use MageOS\Seo\Model\Hreflang\StoreLocaleMap;
 use MageOS\Seo\Model\Hreflang\UrlRewriteFetcher;
-use PHPUnit\Framework\MockObject\MockObject;
+use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
 
 class SitemapGeneratorTest extends TestCase
 {
     /**
-     * @var StoreLocaleMap&MockObject
+     * @var StoreLocaleMap&Stub
      */
-    private StoreLocaleMap&MockObject $storeLocaleMap;
+    private StoreLocaleMap&Stub $storeLocaleMap;
 
     /**
-     * @var UrlRewriteFetcher&MockObject
+     * @var UrlRewriteFetcher&Stub
      */
-    private UrlRewriteFetcher&MockObject $urlRewriteFetcher;
+    private UrlRewriteFetcher&Stub $urlRewriteFetcher;
 
     /**
-     * @var LinkBuilder&MockObject
+     * @var LinkBuilder&Stub
      */
-    private LinkBuilder&MockObject $linkBuilder;
+    private LinkBuilder&Stub $linkBuilder;
 
     /**
-     * @var AlternateBuilder&MockObject
+     * @var AlternateBuilder&Stub
      */
-    private AlternateBuilder&MockObject $alternateBuilder;
+    private AlternateBuilder&Stub $alternateBuilder;
 
     /**
      * @var SitemapGenerator
@@ -41,10 +41,10 @@ class SitemapGeneratorTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->storeLocaleMap    = $this->createMock(StoreLocaleMap::class);
-        $this->urlRewriteFetcher = $this->createMock(UrlRewriteFetcher::class);
-        $this->linkBuilder       = $this->createMock(LinkBuilder::class);
-        $this->alternateBuilder  = $this->createMock(AlternateBuilder::class);
+        $this->storeLocaleMap    = $this->createStub(StoreLocaleMap::class);
+        $this->urlRewriteFetcher = $this->createStub(UrlRewriteFetcher::class);
+        $this->linkBuilder       = $this->createStub(LinkBuilder::class);
+        $this->alternateBuilder  = $this->createStub(AlternateBuilder::class);
         $this->generator         = new SitemapGenerator(
             $this->storeLocaleMap,
             $this->urlRewriteFetcher,
@@ -71,24 +71,22 @@ class SitemapGeneratorTest extends TestCase
         );
     }
 
-    private function noEntities(): void
+    public function testDocumentFramingIsAValidUrlset(): void
     {
-        $this->urlRewriteFetcher->method('fetchAllForType')->willReturn([]);
-    }
-
-    public function testProducesValidUrlsetDocument(): void
-    {
-        $this->noEntities();
-        $xml = $this->generator->generate();
-        $this->assertStringContainsString('<?xml version="1.0" encoding="UTF-8"?>', $xml);
-        $this->assertStringContainsString('xmlns:xhtml="http://www.w3.org/1999/xhtml"', $xml);
-        $this->assertStringContainsString('</urlset>', $xml);
+        $this->assertStringContainsString('<?xml version="1.0" encoding="UTF-8"?>', $this->generator->documentHeader());
+        $this->assertStringContainsString(
+            'xmlns:xhtml="http://www.w3.org/1999/xhtml"',
+            $this->generator->documentHeader()
+        );
+        $this->assertSame("</urlset>\n", $this->generator->documentFooter());
     }
 
     public function testHomePagesEmittedPerStore(): void
     {
         $this->noEntities();
-        $xml = $this->generator->generate();
+
+        $xml = $this->blocks();
+
         $this->assertStringContainsString('<loc>https://uk/</loc>', $xml);
         $this->assertStringContainsString('<loc>https://de/</loc>', $xml);
         // Each url block carries both alternates.
@@ -98,46 +96,96 @@ class SitemapGeneratorTest extends TestCase
 
     public function testEntityEmitsOneUrlBlockPerStoreWithAlternates(): void
     {
-        $this->urlRewriteFetcher->method('fetchAllForType')->willReturnCallback(
-            static fn (string $type) => $type === 'product' ? [5 => [1 => 'p.html', 2 => 'p-de.html']] : []
-        );
-        $this->linkBuilder->method('buildFromPaths')->willReturn([
+        $this->givenProduct([1 => 'p.html', 2 => 'p-de.html'], [
             ['hreflang' => 'en-GB', 'url' => 'https://uk/p.html', 'store_id' => 1],
             ['hreflang' => 'de-DE', 'url' => 'https://de/p-de.html', 'store_id' => 2],
         ]);
 
-        $xml = $this->generator->generate();
+        $xml = $this->blocks();
 
-        $ukBlocks = substr_count($xml, '<loc>https://uk/p.html</loc>');
-        $deBlocks = substr_count($xml, '<loc>https://de/p-de.html</loc>');
-        $this->assertSame(1, $ukBlocks);
-        $this->assertSame(1, $deBlocks);
+        $this->assertSame(1, substr_count($xml, '<loc>https://uk/p.html</loc>'));
+        $this->assertSame(1, substr_count($xml, '<loc>https://de/p-de.html</loc>'));
     }
 
     public function testSingleStoreEntityProducesNoBlocks(): void
     {
-        $this->urlRewriteFetcher->method('fetchAllForType')->willReturnCallback(
-            static fn (string $type) => $type === 'product' ? [5 => [1 => 'p.html']] : []
-        );
-        $this->linkBuilder->method('buildFromPaths')->willReturn([
+        $this->givenProduct([1 => 'p.html'], [
             ['hreflang' => 'en-GB', 'url' => 'https://uk/p.html', 'store_id' => 1],
         ]);
 
-        $this->assertStringNotContainsString('p.html', $this->generator->generate());
+        $this->assertStringNotContainsString('p.html', $this->blocks());
     }
 
     public function testXmlSpecialCharactersAreEscaped(): void
     {
-        $this->urlRewriteFetcher->method('fetchAllForType')->willReturnCallback(
-            static fn (string $type) => $type === 'product' ? [5 => [1 => 'a', 2 => 'b']] : []
-        );
-        $this->linkBuilder->method('buildFromPaths')->willReturn([
+        $this->givenProduct([1 => 'a', 2 => 'b'], [
             ['hreflang' => 'en-GB', 'url' => 'https://uk/p?a=1&b=2', 'store_id' => 1],
             ['hreflang' => 'de-DE', 'url' => 'https://de/p', 'store_id' => 2],
         ]);
 
-        $xml = $this->generator->generate();
+        $xml = $this->blocks();
+
         $this->assertStringContainsString('a=1&amp;b=2', $xml);
         $this->assertStringNotContainsString('a=1&b=2', $xml);
+    }
+
+    public function testBlocksAreStreamedNotCollected(): void
+    {
+        // The whole catalogue must never be held as one document: streamBlocks() yields.
+        $this->noEntities();
+
+        $this->assertInstanceOf(\Generator::class, $this->generator->streamBlocks());
+    }
+
+    public function testIndexDocumentListsTheChunksUnderTheStoreBaseUrl(): void
+    {
+        $xml = $this->generator->indexDocument('https://uk/', ['hreflang-sitemap-1.xml', 'hreflang-sitemap-2.xml']);
+
+        $this->assertStringContainsString('<sitemapindex', $xml);
+        $this->assertStringContainsString('<loc>https://uk/hreflang-sitemap-1.xml</loc>', $xml);
+        $this->assertStringContainsString('<loc>https://uk/hreflang-sitemap-2.xml</loc>', $xml);
+    }
+
+    /**
+     * No entity of any type has rewrites.
+     *
+     * @return void
+     */
+    private function noEntities(): void
+    {
+        $this->urlRewriteFetcher->method('streamAllForType')->willReturnCallback(
+            static function (): \Generator {
+                yield from [];
+            }
+        );
+    }
+
+    /**
+     * One product with the given store paths, resolving to the given region links.
+     *
+     * @param array<int, string> $paths
+     * @param array<int, array{hreflang:string,url:string,store_id:int}> $regionLinks
+     * @return void
+     */
+    private function givenProduct(array $paths, array $regionLinks): void
+    {
+        $this->urlRewriteFetcher->method('streamAllForType')->willReturnCallback(
+            static function (string $entityType) use ($paths): \Generator {
+                if ($entityType === 'product') {
+                    yield $paths;
+                }
+            }
+        );
+        $this->linkBuilder->method('buildFromPaths')->willReturn($regionLinks);
+    }
+
+    /**
+     * The streamed blocks as one string.
+     *
+     * @return string
+     */
+    private function blocks(): string
+    {
+        return implode("\n", iterator_to_array($this->generator->streamBlocks(), false));
     }
 }

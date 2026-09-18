@@ -1,0 +1,267 @@
+<?php
+
+declare(strict_types=1);
+
+namespace MageOS\Seo\Model\Feed;
+
+use Magento\Catalog\Model\Category;
+use Magento\Catalog\Model\Product;
+use Magento\Cms\Model\Page;
+use Magento\Framework\Event;
+use Magento\Framework\Model\AbstractModel;
+use Magento\Store\Model\StoreManagerInterface;
+use MageOS\Seo\Model\Config;
+
+/**
+ * Decides whether a change can affect a feed group, so saves that cannot change a feed
+ * queue no rebuild.
+ *
+ * - A group that no store view can build (disabled everywhere, or a hreflang sitemap with
+ *   fewer than two active store views) is never queued.
+ * - Saves are checked for the fields the group's content depends on. Anything the policy
+ *   does not recognise — store saves, deletions, category moves, unknown events — counts
+ *   as relevant: a spare rebuild is cheap, a missed one leaves a feed stale until the
+ *   nightly cron.
+ */
+class InvalidationPolicy
+{
+    public const EVENT_PRODUCT_SAVE  = 'catalog_product_save_after';
+    public const EVENT_CATEGORY_SAVE = 'catalog_category_save_after';
+    public const EVENT_CMS_PAGE_SAVE = 'cms_page_save_after';
+
+    /**
+     * Product fields that change the product's URLs in the hreflang sitemap.
+     */
+    private const HREFLANG_PRODUCT_FIELDS = ['url_key', 'status', 'visibility'];
+
+    /**
+     * Category fields that change the category's URLs in the hreflang sitemap.
+     */
+    private const HREFLANG_CATEGORY_FIELDS = ['url_key', 'is_active'];
+
+    /**
+     * CMS page fields that change the page's URLs in the hreflang sitemap.
+     */
+    private const HREFLANG_CMS_PAGE_FIELDS = ['identifier', 'is_active', 'store_id'];
+
+    /**
+     * @param StoreManagerInterface $storeManager
+     * @param Config $seoConfig
+     */
+    public function __construct(
+        private readonly StoreManagerInterface $storeManager,
+        private readonly Config                $seoConfig
+    ) {
+    }
+
+    /**
+     * Whether at least one active store view can build the feed group.
+     *
+     * @param string $group One of FeedRegenerator::GROUPS
+     * @return bool
+     */
+    public function isGroupEnabled(string $group): bool
+    {
+        $storeIds = $this->activeStoreIds();
+
+        switch ($group) {
+            case FeedRegenerator::GROUP_LLMS:
+                foreach ($storeIds as $storeId) {
+                    if ($this->seoConfig->isLlmsTxtEnabled($storeId)
+                        || $this->seoConfig->isLlmsFullTxtEnabled($storeId)
+                    ) {
+                        return true;
+                    }
+                }
+                return false;
+
+            case FeedRegenerator::GROUP_JSONL:
+                foreach ($storeIds as $storeId) {
+                    if ($this->seoConfig->isLlmsJsonlEnabled($storeId)) {
+                        return true;
+                    }
+                }
+                return false;
+
+            case FeedRegenerator::GROUP_HREFLANG:
+                // Hreflang alternates need at least two store views.
+                if (\count($storeIds) < 2 || !$this->seoConfig->isHreflangSitemapEnabled()) {
+                    return false;
+                }
+                foreach ($storeIds as $storeId) {
+                    if ($this->seoConfig->isHreflangEnabled($storeId)) {
+                        return true;
+                    }
+                }
+                return false;
+
+            default:
+                return false;
+        }
+    }
+
+    /**
+     * Whether the change behind an event can alter the feed group's content.
+     *
+     * @param string $group One of FeedRegenerator::GROUPS
+     * @param Event $event
+     * @return bool
+     */
+    public function isRelevantChange(string $group, Event $event): bool
+    {
+        $eventName = (string) $event->getName();
+        $entity    = $event->getData('data_object');
+
+        return match ($group) {
+            FeedRegenerator::GROUP_HREFLANG => $this->affectsHreflang($eventName, $entity),
+            FeedRegenerator::GROUP_LLMS     => $this->affectsLlms($eventName, $entity),
+            default                         => true,
+        };
+    }
+
+    /**
+     * Whether a mass attribute update can alter the feed group's content.
+     *
+     * Mass updates (admin "Update attributes", mass enable/disable, the REST equivalents) write
+     * attribute values straight to the EAV tables without saving the products, so they carry no
+     * entity to inspect — only the attribute codes that were written.
+     *
+     * @param string $group One of FeedRegenerator::GROUPS
+     * @param string[] $attributeCodes
+     * @return bool
+     */
+    public function isRelevantAttributeUpdate(string $group, array $attributeCodes): bool
+    {
+        return match ($group) {
+            // Every attribute the update can carry appears in a product's jsonl line.
+            FeedRegenerator::GROUP_JSONL    => true,
+            FeedRegenerator::GROUP_HREFLANG => array_intersect(
+                $attributeCodes,
+                self::HREFLANG_PRODUCT_FIELDS
+            ) !== [],
+            // The llms documents list categories and product counts, never attribute values.
+            default                         => false,
+        };
+    }
+
+    /**
+     * Decide whether a change affects the hreflang sitemap.
+     *
+     * Known saves count only when they touch URL-relevant data; everything else is relevant.
+     *
+     * @param string $eventName
+     * @param mixed $entity
+     * @return bool
+     */
+    private function affectsHreflang(string $eventName, mixed $entity): bool
+    {
+        if ($eventName === self::EVENT_PRODUCT_SAVE && $entity instanceof Product) {
+            return $this->isNew($entity)
+                || $this->anyChanged($entity, self::HREFLANG_PRODUCT_FIELDS)
+                || $this->websitesChanged($entity);
+        }
+        if ($eventName === self::EVENT_CATEGORY_SAVE && $entity instanceof Category) {
+            return $this->isNew($entity) || $this->anyChanged($entity, self::HREFLANG_CATEGORY_FIELDS);
+        }
+        if ($eventName === self::EVENT_CMS_PAGE_SAVE && $entity instanceof Page) {
+            return $this->isNew($entity) || $this->anyChanged($entity, self::HREFLANG_CMS_PAGE_FIELDS);
+        }
+
+        return true;
+    }
+
+    /**
+     * Decide whether a change affects llms.txt / llms-full.txt.
+     *
+     * The documents show product counts per category. Core counts the category's product links
+     * joined to catalog_product_website for the store's website, so a product save matters for a
+     * new product, changed category assignments and changed website assignments — but not for
+     * attribute values, which the documents never show.
+     *
+     * @param string $eventName
+     * @param mixed $entity
+     * @return bool
+     */
+    private function affectsLlms(string $eventName, mixed $entity): bool
+    {
+        if ($eventName === self::EVENT_PRODUCT_SAVE && $entity instanceof Product) {
+            // is_changed_categories is set by core's category link save handler during the save.
+            return $this->isNew($entity)
+                || (bool) $entity->getData('is_changed_categories')
+                || $this->websitesChanged($entity);
+        }
+
+        return true;
+    }
+
+    /**
+     * Whether the saved entity was created by this save.
+     *
+     * EAV resources flag new entities with isObjectNew(); other models are treated as new
+     * when they were never loaded (no original data).
+     *
+     * @param AbstractModel $entity
+     * @return bool
+     */
+    private function isNew(AbstractModel $entity): bool
+    {
+        return $entity->isObjectNew() || $entity->getOrigData() === null;
+    }
+
+    /**
+     * Whether any of the fields differs from its loaded value.
+     *
+     * @param AbstractModel $entity
+     * @param string[] $fields
+     * @return bool
+     */
+    private function anyChanged(AbstractModel $entity, array $fields): bool
+    {
+        foreach ($fields as $field) {
+            if ($entity->dataHasChangedFor($field)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Whether the product's website assignments changed (same comparison as core's URL rewrite observer).
+     *
+     * @param Product $product
+     * @return bool
+     */
+    private function websitesChanged(Product $product): bool
+    {
+        // Set by the product resource when it saves website links.
+        if ($product->getData('is_changed_websites')) {
+            return true;
+        }
+
+        $old = $product->getOrigData('website_ids');
+        $new = $product->getWebsiteIds();
+        if (!\is_array($old) || !\is_array($new)) {
+            return false;
+        }
+
+        return array_diff($old, $new) !== [] || array_diff($new, $old) !== [];
+    }
+
+    /**
+     * IDs of the active store views.
+     *
+     * @return int[]
+     */
+    private function activeStoreIds(): array
+    {
+        $ids = [];
+        foreach ($this->storeManager->getStores() as $store) {
+            if ($store->getIsActive()) {
+                $ids[] = (int) $store->getId();
+            }
+        }
+
+        return $ids;
+    }
+}

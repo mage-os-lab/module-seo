@@ -4,103 +4,70 @@ declare(strict_types=1);
 
 namespace MageOS\Seo\Model\Feed;
 
-use Magento\CacheInvalidate\Model\PurgeCache;
-use Magento\PageCache\Model\Cache\Type as FullPageCache;
-use Magento\PageCache\Model\Config as PageCacheConfig;
-use MageOS\Seo\Model\Cache\CleaningMode;
-
 /**
- * Invalidates a pre-generated feed everywhere it is cached: the var/ feed files,
- * the built-in full page cache (by tag) and Varnish (by tag purge).
+ * Marks pre-generated feeds as outdated by queueing their rebuild.
  *
- * Used by the save observers and the FAQ/Organisation admin controllers so feeds
- * are regenerated promptly after content changes on every caching setup — the old
- * observers only purged Varnish, leaving built-in FPC stale until s-maxage expiry.
+ * Used by the save observers and the FAQ/Organisation admin controllers. Invalidation
+ * deliberately touches neither the feed files nor the page cache: the served files stay in
+ * place until the queue consumer has written their replacements, and the consumer purges
+ * the cached responses afterwards. Deleting on every save made a single catalog save take
+ * a feed offline (503) until the rebuild ran, and repeated the file sweep and the cache
+ * purge for every save in a burst.
+ *
+ * A group that no store view can build is not queued at all (see InvalidationPolicy).
  */
 class FeedInvalidator
 {
-    public const FILES_LLMS     = ['llms.txt', 'llms-full.txt'];
-    public const FILES_JSONL    = ['llms.jsonl'];
-    public const FILES_HREFLANG = ['hreflang-sitemap*.xml'];
-
     /**
-     * @param FeedStorage $feedStorage
-     * @param PageCacheConfig $pageCacheConfig
-     * @param FullPageCache $fullPageCache
-     * @param PurgeCache $purgeCache
      * @param RegenerationRequester $regenerationRequester
-     * @param CleaningMode $cleaningMode
+     * @param InvalidationPolicy $invalidationPolicy
      */
     public function __construct(
-        private readonly FeedStorage           $feedStorage,
-        private readonly PageCacheConfig       $pageCacheConfig,
-        private readonly FullPageCache         $fullPageCache,
-        private readonly PurgeCache            $purgeCache,
         private readonly RegenerationRequester $regenerationRequester,
-        private readonly CleaningMode          $cleaningMode
+        private readonly InvalidationPolicy    $invalidationPolicy
     ) {
     }
 
     /**
-     * Invalidate the llms.txt / llms-full.txt feeds and queue their rebuild.
+     * Queue a rebuild of the llms.txt / llms-full.txt feeds.
      *
      * @return void
      */
     public function invalidateLlms(): void
     {
-        $this->invalidate(self::FILES_LLMS, ['MAGEOS_SEO_LLMS', 'MAGEOS_SEO_LLMS_FULL']);
-        $this->regenerationRequester->request(FeedRegenerator::GROUP_LLMS);
+        $this->invalidate(FeedRegenerator::GROUP_LLMS);
     }
 
     /**
-     * Invalidate the llms.jsonl feed and queue its rebuild.
+     * Queue a rebuild of the llms.jsonl feed.
      *
      * @return void
      */
     public function invalidateJsonl(): void
     {
-        $this->invalidate(self::FILES_JSONL, ['MAGEOS_SEO_LLMS_JSONL']);
-        $this->regenerationRequester->request(FeedRegenerator::GROUP_JSONL);
+        $this->invalidate(FeedRegenerator::GROUP_JSONL);
     }
 
     /**
-     * Invalidate the hreflang sitemap files and queue their rebuild.
+     * Queue a rebuild of the hreflang sitemap files.
      *
      * @return void
      */
     public function invalidateHreflangSitemap(): void
     {
-        $this->invalidate(self::FILES_HREFLANG, ['MAGEOS_SEO_HREFLANG_SITEMAP']);
-        $this->regenerationRequester->request(FeedRegenerator::GROUP_HREFLANG);
+        $this->invalidate(FeedRegenerator::GROUP_HREFLANG);
     }
 
     /**
-     * Delete the feed files and purge the FPC entries carrying the given tags.
+     * Queue a rebuild of the group when at least one store view can build it.
      *
-     * @param string[] $filePatterns
-     * @param string[] $tags
+     * @param string $group
      * @return void
      */
-    private function invalidate(array $filePatterns, array $tags): void
+    private function invalidate(string $group): void
     {
-        foreach ($filePatterns as $pattern) {
-            $this->feedStorage->deleteForAllStores($pattern);
+        if ($this->invalidationPolicy->isGroupEnabled($group)) {
+            $this->regenerationRequester->request($group);
         }
-
-        if (!$this->pageCacheConfig->isEnabled()) {
-            return;
-        }
-
-        if ((int) $this->pageCacheConfig->getType() === PageCacheConfig::VARNISH) {
-            $purgeTags = [];
-            foreach ($tags as $tag) {
-                $purgeTags[] = \sprintf('((^|,)%s(,|$))', $tag);
-            }
-            $this->purgeCache->sendPurgeRequest(array_unique($purgeTags));
-            return;
-        }
-
-        // Built-in FPC: clean cached documents by tag (mirrors core FlushCacheByTags).
-        $this->fullPageCache->clean($this->cleaningMode->matchingAnyTag(), $tags);
     }
 }

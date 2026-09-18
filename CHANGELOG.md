@@ -12,6 +12,15 @@ Pre-release review hardening pass (July 2026). Breaking renames are included
 deliberately: nothing has shipped yet, so names are settled now, before they
 become public contract.
 
+### Added
+
+- `bin/magento mageos:seo:feeds:regenerate [-g llms|jsonl|hreflang]` rebuilds the
+  pre-generated feeds in the running process, for deployment scripts and manual
+  rebuilds. It reports per-store-view failures and exits non-zero on any.
+- Every `setup:install` / `setup:upgrade` queues a rebuild of the feeds the store
+  views can build, so a fresh install (or a deployment that cleared `var/`) no
+  longer serves `503` on `/llms.txt` until the nightly cron runs.
+
 ### Fixed
 
 - Admin product and category edit pages no longer fail with `ReflectionException:
@@ -42,6 +51,13 @@ become public contract.
   rendered empty, and once saving worked every category save would have posted
   those empty values over the stored config. A plugin on the provider's
   `getData()` now adds the values.
+- A catalog, CMS page or store save no longer takes the SEO feeds offline. Every
+  save used to delete the served feed files across all store views and purge the
+  page cache before the rebuild was even queued, so `/llms.txt`, `/llms-full.txt`,
+  `/llms.jsonl` and `/hreflang-sitemap.xml` answered `503` until the consumer ran,
+  and a burst of saves repeated the file sweep and the purge for every save.
+  Rebuilds also wrote files in place, so a request could read a partially written
+  document.
 - SEO-only save problems (invalid override JSON, an SEO-table failure) are
   reported as warnings rather than errors: core's category save controller
   treats any error message as a failed save and sent a newly created category
@@ -138,9 +154,67 @@ become public contract.
 - Feed generation is queue-based: invalidations (and requests hitting a missing
   file) queue a rebuild on the `mageosSeoFeedRegenerate` consumer with duplicate
   requests collapsed via a pending flag; web requests never build feeds and answer
-  503 Retry-After until the file exists. The nightly cron remains as a full-rebuild
-  safety net. The feed storage directory is configurable
+  503 Retry-After only while a feed has never been generated. The nightly cron
+  remains as a full-rebuild safety net. The feed storage directory is configurable
   (`mageos_seo_general/feeds/storage_dir`) for multi-server deployments.
+- Feed invalidation no longer deletes the served files or purges the page cache.
+  Invalidation only queues a rebuild; the consumer and the nightly cron replace each
+  file atomically (temporary file + rename) and purge the rebuilt group's cache tags
+  once, after all store views are written. The hreflang sitemap writes its chunk
+  files before the index and removes surplus chunks afterwards. Files of a feed
+  disabled for a store view are removed on the next rebuild. A queued rebuild not
+  picked up within an hour is queued again with a logged warning, so a lost message
+  or a stopped consumer no longer disables event-driven rebuilds permanently.
+  `FeedStorage::deleteForAllStores()` and the `FeedInvalidator::FILES_*` constants
+  were removed; cache tags and the cache policy now live in `Model\Feed\FeedCache`.
+  Feed files are written with mode `0640` and feed directories with `0750`
+  regardless of the process umask (previously `0666`/`0777` minus the umask, i.e.
+  world-writable under a `000` umask); cron/consumer and the web PHP user must share
+  an owner or group.
+- Feed rebuilds are only queued for changes that can affect a feed
+  (`Model\Feed\InvalidationPolicy`): a feed that no store view can build is never
+  queued (`/llms.jsonl` is disabled by default; the hreflang sitemap needs two
+  active store views), and the hreflang sitemap is only rebuilt for URL-relevant
+  product, category and CMS page changes. Product saves now also rebuild
+  `/llms.txt` and `/llms-full.txt` when they change category product counts (new
+  product, changed category assignments or changed website assignments), which
+  were previously left stale.
+- Deletions now invalidate the feeds they remove content from: a deleted product
+  rebuilds all three feeds, a deleted category `/llms.txt`, `/llms-full.txt` and
+  the sitemap, a deleted CMS page the sitemap. Previously a deleted entity stayed
+  in the served feeds until the nightly rebuild.
+- Mass catalogue actions invalidate the feeds too. They write straight to the
+  catalogue tables without saving the products, so no save event reports them: a
+  mass attribute update (admin "Update attributes", mass enable/disable, and the
+  same service elsewhere) rebuilds `/llms.jsonl`, plus the hreflang sitemap when
+  `url_key`, `status` or `visibility` is among the updated attributes
+  (`Plugin\Catalog\Product\Action\InvalidateFeedsOnMassAttributeUpdate`); a mass
+  website assignment change rebuilds all three
+  (`catalog_product_to_website_change`).
+- Moving a category rebuilds `/llms.txt`, `/llms-full.txt` and the hreflang sitemap.
+  A move re-parents the category (core regenerates its URL rewrites) and changes the
+  shape of the category tree, but dispatches no save event, so nothing invalidated
+  the feeds. `/llms.jsonl` carries product URLs without category paths and is
+  unaffected.
+- Deleting a store view rebuilds the hreflang sitemap — its alternates change —
+  and removes that store view's feed directory, which nothing would otherwise
+  clean up (`Observer\RemoveFeedFilesOnStoreDelete`,
+  `FeedStorage::deleteStoreDirectory()`).
+- Feed builds stream to their file instead of assembling the whole document in memory:
+  `/llms.jsonl` is written one line at a time from a paged collection, and the hreflang
+  sitemap streams its URL rewrites row by row (`UrlRewriteFetcher::fetchAllForType()`
+  became `streamAllForType()`, `SitemapGenerator::generate()` became `streamBlocks()`
+  plus the document framing, and the new `Model\Hreflang\SitemapFileWriter` writes the
+  file set). Peak memory is one page of products rather than the whole feed.
+- The hreflang sitemap is built once per alternate set. The document lists every store
+  view of the set, so store views sharing one produce byte-identical chunk files: the
+  first store view of a set builds them, the rest copy them and write only their own
+  index (which carries their base URL). A rebuild costs one catalogue pass per alternate
+  set instead of one per store view.
+- All feed responses (`/llms.txt`, `/llms-full.txt`, `/llms.jsonl`,
+  `/hreflang-sitemap*.xml`) are cacheable for 24 hours
+  (`Cache-Control: public, max-age=86400, s-maxage=86400`); the llms feeds
+  previously sent `max-age=3600`, and the documentation said one hour.
 - Organisation model and the JSON-LD block implement `IdentityInterface`, so saving
   Organisation settings purges the affected FPC/Varnish pages by tag automatically
   (replaces the manual full_page cache-type invalidation).
