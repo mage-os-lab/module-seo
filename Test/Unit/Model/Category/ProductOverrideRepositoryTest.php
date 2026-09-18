@@ -4,47 +4,52 @@ declare(strict_types=1);
 
 namespace MageOS\Seo\Test\Unit\Model\Category;
 
-use Magento\Framework\App\ResourceConnection;
-use Magento\Framework\DB\Adapter\AdapterInterface;
-use Magento\Framework\DB\Select;
+use Magento\Framework\Model\AbstractModel;
 use MageOS\Seo\Model\Category\ProductOverrideRepository;
-use PHPUnit\Framework\MockObject\MockObject;
+use MageOS\Seo\Model\ProductOverride;
+use MageOS\Seo\Model\ResourceModel\ProductOverride as ProductOverrideResource;
+use MageOS\Seo\Model\ResourceModel\ProductOverride\Collection;
+use MageOS\Seo\Model\ResourceModel\ProductOverride\CollectionFactory;
 use PHPUnit\Framework\TestCase;
 
 class ProductOverrideRepositoryTest extends TestCase
 {
     /**
-     * @var AdapterInterface&MockObject
+     * Rows the next collection yields, as raw table rows.
+     *
+     * @var array<int, mixed[]>
      */
-    private AdapterInterface&MockObject $connection;
+    private array $rows = [];
 
     /**
-     * @var ResourceConnection&MockObject
+     * Filters applied per created collection, as field => condition.
+     *
+     * @var array<int, array<string, mixed>>
      */
-    private ResourceConnection&MockObject $resource;
+    private array $filterSets = [];
+
+    /**
+     * Models handed to the resource model's save().
+     *
+     * @var AbstractModel[]
+     */
+    private array $saved = [];
 
     protected function setUp(): void
     {
-        $this->connection = $this->createMock(AdapterInterface::class);
-        $select           = $this->createMock(Select::class);
-        $select->method('from')->willReturnSelf();
-        $select->method('where')->willReturnSelf();
-        $select->method('order')->willReturnSelf();
-        $this->connection->method('select')->willReturn($select);
-
-        $this->resource = $this->createMock(ResourceConnection::class);
-        $this->resource->method('getTableName')->willReturn('mageos_seo_product_override');
+        $this->rows       = [];
+        $this->filterSets = [];
+        $this->saved      = [];
     }
 
     public function testGetForProductMergesStoreRowOverGlobalAndMemoises(): void
     {
-        $this->resource->method('getConnection')->willReturn($this->connection);
-        $this->connection->expects($this->once())->method('fetchAll')->willReturn([
+        $this->rows = [
             ['store_id' => 0, 'override_fields' => '{"brand":"Acme","color":"Blue"}', 'robots_meta' => null],
             ['store_id' => 2, 'override_fields' => '{"color":"Red"}', 'robots_meta' => 'NOINDEX,FOLLOW'],
-        ]);
+        ];
 
-        $repository = new ProductOverrideRepository($this->resource);
+        $repository = $this->repository();
         $first      = $repository->getForProduct(10, 2);
         $second     = $repository->getForProduct(10, 2);
 
@@ -52,41 +57,153 @@ class ProductOverrideRepositoryTest extends TestCase
         $this->assertSame('Acme', $first['override_fields']['brand']);
         $this->assertSame('Red', $first['override_fields']['color']);
         $this->assertSame('NOINDEX,FOLLOW', $first['robots_meta']);
+        $this->assertCount(1, $this->filterSets, 'The second read came from the memo.');
+        $this->assertSame(['in' => [0, 2]], $this->filterSets[0]['store_id']);
+    }
+
+    public function testAProductWithNoOverridesStillReturnsTheMergedShape(): void
+    {
+        $result = $this->repository()->getForProduct(10, 2);
+
+        $this->assertSame(['override_fields' => [], 'robots_meta' => null], $result);
     }
 
     public function testResetStateClearsTheMemoisedRows(): void
     {
-        $this->resource->method('getConnection')->willReturn($this->connection);
-        $this->connection->expects($this->exactly(2))->method('fetchAll')->willReturn([]);
-
-        $repository = new ProductOverrideRepository($this->resource);
+        $repository = $this->repository();
         $repository->getForProduct(10, 2);
         $repository->_resetState();
         $repository->getForProduct(10, 2);
+
+        $this->assertCount(2, $this->filterSets);
     }
 
-    public function testConnectionIsFetchedPerOperationAndNeverAtConstruction(): void
+    public function testNothingIsHeldBetweenOperations(): void
     {
-        // ResourceConnection::_resetState() closes connections between worker-mode
-        // requests, so the adapter must be fetched per operation, never at
-        // construction — a constructor fetch would make this count three.
-        $this->resource->expects($this->exactly(2))->method('getConnection')
-            ->willReturn($this->connection);
-        $this->connection->method('fetchAll')->willReturn([]);
-
-        $repository = new ProductOverrideRepository($this->resource);
+        // The collection and the resource model resolve their own connection per call.
+        // ResourceConnection::_resetState() closes connections between worker-mode requests,
+        // so a handle kept at construction would go stale.
+        $repository = $this->repository();
         $repository->getForProduct(10, 2);
         $repository->getForProduct(11, 2);
+
+        $this->assertCount(2, $this->filterSets);
     }
 
     public function testSaveInvalidatesTheMemoisedRow(): void
     {
-        $this->resource->method('getConnection')->willReturn($this->connection);
-        $this->connection->expects($this->exactly(2))->method('fetchAll')->willReturn([]);
-
-        $repository = new ProductOverrideRepository($this->resource);
+        $repository = $this->repository();
         $repository->getForProduct(10, 2);
         $repository->save(10, 2, ['override_fields' => ['brand' => 'Acme']]);
         $repository->getForProduct(10, 2);
+
+        // Read, save, read again: the memo did not answer the second read.
+        $this->assertCount(3, $this->filterSets);
+    }
+
+    public function testSaveWritesTheScopeAndLeavesUpdatedAtToTheDatabase(): void
+    {
+        $this->rows = [[
+            'entity_id'  => 7,
+            'product_id' => 10,
+            'store_id'   => 2,
+            'updated_at' => '2026-01-01 00:00:00',
+        ]];
+
+        $this->repository()->save(10, 2, ['override_fields' => ['brand' => 'Acme'], 'robots_meta' => 'NOINDEX']);
+
+        $this->assertCount(1, $this->saved);
+        $saved = $this->saved[0];
+        $this->assertSame(7, $saved->getData('entity_id'), 'The existing row is updated, not duplicated.');
+        $this->assertSame(10, $saved->getData('product_id'));
+        $this->assertSame(2, $saved->getData('store_id'));
+        $this->assertSame('{"brand":"Acme"}', $saved->getData('override_fields'));
+        $this->assertSame('NOINDEX', $saved->getData('robots_meta'));
+        // An explicit value would win over the column's ON UPDATE CURRENT_TIMESTAMP.
+        $this->assertNull($saved->getData('updated_at'));
+    }
+
+    public function testSavingAProductThatHasNoRowYetInsertsOne(): void
+    {
+        $this->repository()->save(10, 0, ['robots_meta' => 'NOINDEX']);
+
+        $this->assertCount(1, $this->saved);
+        $this->assertNull($this->saved[0]->getData('entity_id'));
+        $this->assertSame(10, $this->saved[0]->getData('product_id'));
+        $this->assertSame(0, $this->saved[0]->getData('store_id'));
+    }
+
+    /**
+     * The repository over a collection factory that records filters and yields the set rows.
+     *
+     * @return ProductOverrideRepository
+     */
+    private function repository(): ProductOverrideRepository
+    {
+        $collectionFactory = $this->createStub(CollectionFactory::class);
+        $collectionFactory->method('create')->willReturnCallback(fn (): Collection => $this->collection());
+
+        $resource = $this->createStub(ProductOverrideResource::class);
+        $resource->method('save')->willReturnCallback(
+            function (AbstractModel $model) use ($resource): ProductOverrideResource {
+                $this->saved[] = $model;
+                return $resource;
+            }
+        );
+
+        return new ProductOverrideRepository($collectionFactory, $resource);
+    }
+
+    /**
+     * A collection that records its filters and yields the models of the set rows.
+     *
+     * @return Collection
+     */
+    private function collection(): Collection
+    {
+        $index                    = \count($this->filterSets);
+        $this->filterSets[$index] = [];
+
+        $collection = $this->createStub(Collection::class);
+        $collection->method('addFieldToFilter')->willReturnCallback(
+            function (string $field, mixed $condition) use ($collection, $index): Collection {
+                $this->filterSets[$index][$field] = $condition;
+                return $collection;
+            }
+        );
+        $collection->method('setOrder')->willReturn($collection);
+        $collection->method('getIterator')->willReturnCallback(
+            fn (): \ArrayIterator => new \ArrayIterator($this->models())
+        );
+        $collection->method('getFirstItem')->willReturnCallback(
+            fn (): ProductOverride => $this->models()[0] ?? $this->model([])
+        );
+
+        return $collection;
+    }
+
+    /**
+     * The set rows as models, the way a loaded collection hands them over.
+     *
+     * @return ProductOverride[]
+     */
+    private function models(): array
+    {
+        return array_map(fn (array $row): ProductOverride => $this->model($row), $this->rows);
+    }
+
+    /**
+     * A model without its constructor dependencies.
+     *
+     * @param mixed[] $row
+     * @return ProductOverride
+     */
+    private function model(array $row): ProductOverride
+    {
+        /** @var ProductOverride $model */
+        $model = (new \ReflectionClass(ProductOverride::class))->newInstanceWithoutConstructor();
+        $model->setData($row);
+
+        return $model;
     }
 }

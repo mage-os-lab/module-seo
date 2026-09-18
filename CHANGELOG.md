@@ -191,6 +191,15 @@ become public contract.
   (`Plugin\Catalog\Product\Action\InvalidateFeedsOnMassAttributeUpdate`); a mass
   website assignment change rebuilds all three
   (`catalog_product_to_website_change`).
+- The per-category and per-product SEO repositories are built on Magento's model
+  layer instead of hand-written SQL. `Model\Category\ConfigRepository` and
+  `Model\Category\ProductOverrideRepository` assembled `Select`s and called
+  `insertOnDuplicate()` straight on a `ResourceConnection` adapter; they now read
+  through collections and write through models and resource models
+  (`Model\CategoryConfig`, `Model\ProductOverride` and their resource models and
+  collections are new). Public method signatures are unchanged, so nothing that
+  uses them changes. Reading a category's configuration is also one query rather
+  than one per ancestor level: the whole category path is fetched at once.
 - The SEO tables now have foreign keys. `mageos_seo_category_config`,
   `mageos_seo_product_override` and `mageos_seo_faq` reference
   `catalog_category_entity`, `catalog_product_entity` and `store` with
