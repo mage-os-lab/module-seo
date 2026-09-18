@@ -44,7 +44,7 @@ class SeoFieldsetPersistenceTest extends AbstractBackendController
     /**
      * @var int[]
      */
-    private array $productIds = [];
+    private static array $productIds = [];
 
     /**
      * @var int[]
