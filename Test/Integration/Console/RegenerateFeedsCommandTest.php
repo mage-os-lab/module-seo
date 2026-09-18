@@ -26,11 +26,6 @@ use Symfony\Component\Console\Tester\CommandTester;
 class RegenerateFeedsCommandTest extends TestCase
 {
     /**
-     * @var FeedStorage
-     */
-    private FeedStorage $storage;
-
-    /**
      * @var int
      */
     private int $storeId;
@@ -43,9 +38,8 @@ class RegenerateFeedsCommandTest extends TestCase
     protected function setUp(): void
     {
         $objectManager = Bootstrap::getObjectManager();
-        $this->storage = $objectManager->get(FeedStorage::class);
         $this->storeId = (int) $objectManager->get(StoreManagerInterface::class)->getStore('default')->getId();
-        $this->storage->deleteForStore('llms*.txt', $this->storeId);
+        $this->storage()->deleteForStore('llms*.txt', $this->storeId);
     }
 
     /**
@@ -56,7 +50,7 @@ class RegenerateFeedsCommandTest extends TestCase
     protected function tearDown(): void
     {
         $objectManager = Bootstrap::getObjectManager();
-        $this->storage->deleteForStore('llms*.txt', $this->storeId);
+        $this->storage()->deleteForStore('llms*.txt', $this->storeId);
         $objectManager->removeSharedInstance(FeedStorage::class);
     }
 
@@ -98,14 +92,14 @@ class RegenerateFeedsCommandTest extends TestCase
      */
     public function testTheCommandBuildsTheRequestedGroup(): void
     {
-        $this->storage->deleteForStore('llms*.txt', $this->storeId);
+        $this->storage()->deleteForStore('llms*.txt', $this->storeId);
         $tester = new CommandTester(
             Bootstrap::getObjectManager()->create(RegenerateFeedsCommand::class)
         );
 
         $this->assertSame(Command::SUCCESS, $tester->execute(['--group' => ['llms']]), $tester->getDisplay());
-        $this->assertStringStartsWith('# ', (string) $this->storage->read('llms.txt', $this->storeId));
-        $this->assertNotNull($this->storage->read('llms-full.txt', $this->storeId));
+        $this->assertStringStartsWith('# ', (string) $this->storage()->read('llms.txt', $this->storeId));
+        $this->assertNotNull($this->storage()->read('llms-full.txt', $this->storeId));
     }
 
     /**
@@ -130,5 +124,10 @@ class RegenerateFeedsCommandTest extends TestCase
         $this->assertIsNumeric($flags->getFlagData('mageos_seo_feed_pending_llms'));
         $this->assertNull($flags->getFlagData('mageos_seo_feed_pending_jsonl'));
         $this->assertNull($flags->getFlagData('mageos_seo_feed_pending_hreflang'));
+    }
+
+    private function storage()
+    {
+        return Bootstrap::getObjectManager()->create(FeedStorage::class);
     }
 }
