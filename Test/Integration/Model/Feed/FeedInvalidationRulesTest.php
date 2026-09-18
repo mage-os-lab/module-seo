@@ -126,13 +126,13 @@ class FeedInvalidationRulesTest extends TestCase
 
     /**
      * CMS page saves queue hreflang only for URL-relevant changes.
+     * 
+     * @magentoDataFixture Magento/Cms/_files/pages.php
      *
      * @return void
-     *
-     * @magentoDataFixture Magento/Cms/_files/pages.php
      */
     #[DataFixture(StoreFixture::class, as: 'second_store')]
-    #[DataFixture(PageFixture::class, as: 'page')]
+    #[DataFixture(\Magento\Cms\Test\Fixture\Page::class, as: 'page')]
     public function testCmsPageSavesQueueHreflangOnlyForUrlChanges(): void
     {
         $pageId = (int) $this->fixture('page')->getId();
