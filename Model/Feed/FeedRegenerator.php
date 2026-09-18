@@ -103,9 +103,43 @@ class FeedRegenerator
             }
         }
 
+        if ($group === null) {
+            $this->removeOrphanedStoreDirectories();
+        }
+
         $this->purgeCachedResponses($group === null ? self::GROUPS : [$group]);
 
         return $failures;
+    }
+
+    /**
+     * Remove feed directories of store views that no longer exist.
+     *
+     * Deleting a store view directly removes its directory straight away (see
+     * Observer\RemoveFeedFilesOnStoreDelete), but deleting a store group or a website takes its
+     * store views with it through a database-level cascade that dispatches no store_delete
+     * event. Nothing serves the leftover files — a request resolves feeds for the current store
+     * view — so they are swept here on the full rebuild rather than chased through events.
+     *
+     * Inactive store views keep their files: they are still store views, and re-activating one
+     * should not have to wait for a rebuild.
+     *
+     * @return void
+     */
+    private function removeOrphanedStoreDirectories(): void
+    {
+        $existing = [];
+        // With the default store view (admin, ID 0): nothing writes its feeds, but a directory
+        // of that name is not an orphan either.
+        foreach ($this->storeManager->getStores(true) as $store) {
+            $existing[(int) $store->getId()] = true;
+        }
+
+        foreach ($this->feedStorage->listStoreDirectories() as $storeId) {
+            if (!isset($existing[$storeId])) {
+                $this->feedStorage->deleteStoreDirectory($storeId);
+            }
+        }
     }
 
     /**

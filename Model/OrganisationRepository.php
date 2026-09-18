@@ -7,16 +7,19 @@ namespace MageOS\Seo\Model;
 use MageOS\Seo\Api\Data\OrganisationInterface;
 use MageOS\Seo\Api\OrganisationRepositoryInterface;
 use MageOS\Seo\Model\ResourceModel\Organisation as OrganisationResource;
+use MageOS\Seo\Model\ResourceModel\Organisation\CollectionFactory;
 
 class OrganisationRepository implements OrganisationRepositoryInterface
 {
     /**
      * @param OrganisationFactory $factory
      * @param OrganisationResource $resource
+     * @param CollectionFactory $collectionFactory
      */
     public function __construct(
         private readonly OrganisationFactory  $factory,
-        private readonly OrganisationResource $resource
+        private readonly OrganisationResource $resource,
+        private readonly CollectionFactory    $collectionFactory
     ) {
     }
 
@@ -78,5 +81,28 @@ class OrganisationRepository implements OrganisationRepositoryInterface
         }
         $this->resource->save($organisation);
         return $organisation;
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function deleteForScope(string $scope, array $scopeIds): int
+    {
+        $scopeIds = array_values(array_unique(array_map('intval', $scopeIds)));
+        if ($scopeIds === []) {
+            return 0;
+        }
+
+        $collection = $this->collectionFactory->create();
+        $collection->addFieldToFilter('scope', $scope);
+        $collection->addFieldToFilter('scope_id', ['in' => $scopeIds]);
+
+        $deleted = 0;
+        foreach ($collection as $organisation) {
+            $this->resource->delete($organisation);
+            $deleted++;
+        }
+
+        return $deleted;
     }
 }

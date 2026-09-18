@@ -298,6 +298,36 @@ class FeedStorageTest extends TestCase
         $this->assertSame([], $this->storage()->listForStore('hreflang-sitemap-*.xml', 2));
     }
 
+    public function testListStoreDirectoriesReturnsTheStoreIdsThatHaveOne(): void
+    {
+        $this->config->method('getFeedStorageDir')->willReturn('');
+        $writeDir = $this->createStub(WriteInterface::class);
+        $this->filesystem->method('getDirectoryWrite')->willReturn($writeDir);
+        $writeDir->method('search')->willReturnMap([[
+            'mageos_seo/store_*',
+            null,
+            [
+                'mageos_seo/store_1',
+                'mageos_seo/store_12',
+                // Anything that is not a store directory is ignored.
+                'mageos_seo/store_notanumber',
+                'mageos_seo/README.md',
+            ],
+        ]]);
+
+        $this->assertSame([1, 12], $this->storage()->listStoreDirectories());
+    }
+
+    public function testListStoreDirectoriesIsEmptyOnFilesystemException(): void
+    {
+        $this->config->method('getFeedStorageDir')->willReturn('');
+        $writeDir = $this->createStub(WriteInterface::class);
+        $this->filesystem->method('getDirectoryWrite')->willReturn($writeDir);
+        $writeDir->method('search')->willThrowException(new \RuntimeException('io'));
+
+        $this->assertSame([], $this->storage()->listStoreDirectories());
+    }
+
     public function testDeleteStoreDirectoryRemovesOnlyThatStoresDirectory(): void
     {
         $this->config->method('getFeedStorageDir')->willReturn('');

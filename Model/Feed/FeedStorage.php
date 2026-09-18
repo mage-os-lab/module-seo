@@ -10,6 +10,7 @@ use Magento\Framework\Filesystem\Directory\ReadFactory;
 use Magento\Framework\Filesystem\Directory\ReadInterface;
 use Magento\Framework\Filesystem\Directory\WriteFactory;
 use Magento\Framework\Filesystem\Directory\WriteInterface;
+use Magento\Framework\Filesystem\Glob;
 use MageOS\Seo\Model\Config;
 
 /**
@@ -226,6 +227,32 @@ class FeedStorage
     }
 
     /**
+     * List the store view IDs that have a feed directory.
+     *
+     * Used to find directories left behind by store views that no longer exist: deleting a
+     * store group or a website removes its store views through a database-level cascade, with
+     * no event to act on.
+     *
+     * @return int[]
+     */
+    public function listStoreDirectories(): array
+    {
+        try {
+            $storeIds = [];
+            foreach ($this->search($this->prefix() . 'store_*') as $path) {
+                $name = substr((string) $path, (int) strrpos((string) $path, '/') + 1);
+                if (preg_match('/^store_(\d+)$/', $name, $matches) === 1) {
+                    $storeIds[] = (int) $matches[1];
+                }
+            }
+
+            return $storeIds;
+        } catch (\Exception) {
+            return [];
+        }
+    }
+
+    /**
      * List the names of one store's feed files matching a pattern.
      *
      * @param string $fileNamePattern Glob pattern, e.g. "hreflang-sitemap-*.xml"
@@ -236,7 +263,7 @@ class FeedStorage
     {
         try {
             $names = [];
-            foreach ($this->getWrite()->search($this->path($fileNamePattern, $storeId)) as $path) {
+            foreach ($this->search($this->path($fileNamePattern, $storeId)) as $path) {
                 $names[] = substr((string) $path, (int) strrpos((string) $path, '/') + 1);
             }
 
@@ -256,11 +283,31 @@ class FeedStorage
     {
         try {
             $dir = $this->getWrite();
-            foreach ($dir->search($this->prefix() . $relativePattern) as $path) {
+            foreach ($this->search($this->prefix() . $relativePattern) as $path) {
                 $dir->delete($path);
             }
         } catch (\Exception) { // phpcs:ignore Magento2.CodeAnalysis.EmptyBlock.DetectedCatch -- best-effort cleanup
         }
+    }
+
+    /**
+     * Search the storage root for a pattern, ignoring the framework's glob cache.
+     *
+     * Magento\Framework\Filesystem\Glob memoises every glob result for the life of the process,
+     * so a listing taken after this process has written or deleted files would otherwise be the
+     * listing from before it did. Both the queue consumer and the cron can rebuild more than
+     * once per process, and a rebuild lists its own output (surplus sitemap chunks, store
+     * directories) to decide what to remove.
+     *
+     * @param string $pattern Storage-relative glob pattern
+     * @throws \Magento\Framework\Exception\FileSystemException
+     * @return string[] Storage-relative paths
+     */
+    private function search(string $pattern): array
+    {
+        Glob::clearCache();
+
+        return $this->getWrite()->search($pattern);
     }
 
     /**

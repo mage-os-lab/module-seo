@@ -13,7 +13,13 @@
         },
         "constraint": {
             "PRIMARY": true,
-            "MAGEOS_SEO_CATEGORY_CONFIG_CATEGORY_STORE": true
+            "MAGEOS_SEO_CATEGORY_CONFIG_CATEGORY_STORE": true,
+            "MAGEOS_SEO_CATEGORY_CONFIG_CATEGORY_ID_STORE_ID": true,
+            "MAGEOS_SEO_CTGR_CONFIG_CTGR_ID_CAT_CTGR_ENTT_ENTT_ID": true,
+            "MAGEOS_SEO_CATEGORY_CONFIG_STORE_ID_STORE_STORE_ID": true
+        },
+        "index": {
+            "MAGEOS_SEO_CATEGORY_CONFIG_STORE_ID": true
         }
     },
     "mageos_seo_organisation": {
@@ -44,7 +50,8 @@
         },
         "constraint": {
             "PRIMARY": true,
-            "MAGEOS_SEO_ORG_SCOPE_SCOPE_ID": true
+            "MAGEOS_SEO_ORG_SCOPE_SCOPE_ID": true,
+            "MAGEOS_SEO_ORGANISATION_SCOPE_SCOPE_ID": true
         }
     },
     "mageos_seo_product_override": {
@@ -58,10 +65,15 @@
         },
         "constraint": {
             "PRIMARY": true,
-            "MAGEOS_SEO_PRODUCT_OVERRIDE_PRODUCT_STORE": true
+            "MAGEOS_SEO_PRODUCT_OVERRIDE_PRODUCT_STORE": true,
+            "MAGEOS_SEO_PRODUCT_OVERRIDE_PRODUCT_ID_STORE_ID": true,
+            "MAGEOS_SEO_PRD_OVERRIDE_PRD_ID_CAT_PRD_ENTT_ENTT_ID": true,
+            "MAGEOS_SEO_PRODUCT_OVERRIDE_STORE_ID_STORE_STORE_ID": true
         },
         "index": {
-            "MAGEOS_SEO_PRODUCT_OVERRIDE_PRODUCT_ID_IDX": true
+            "MAGEOS_SEO_PRODUCT_OVERRIDE_PRODUCT_ID_IDX": true,
+            "MAGEOS_SEO_PRODUCT_OVERRIDE_PRODUCT_ID": true,
+            "MAGEOS_SEO_PRODUCT_OVERRIDE_STORE_ID": true
         }
     },
     "mageos_seo_faq": {
@@ -76,10 +88,13 @@
             "updated_at": true
         },
         "constraint": {
-            "PRIMARY": true
+            "PRIMARY": true,
+            "MAGEOS_SEO_FAQ_STORE_ID_STORE_STORE_ID": true
         },
         "index": {
-            "MAGEOS_SEO_FAQ_IDENTIFIER_STORE_IDX": true
+            "MAGEOS_SEO_FAQ_IDENTIFIER_STORE_IDX": true,
+            "MAGEOS_SEO_FAQ_IDENTIFIER_STORE_ID": true,
+            "MAGEOS_SEO_FAQ_STORE_ID": true
         }
     }
 }

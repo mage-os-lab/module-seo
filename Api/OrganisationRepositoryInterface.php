@@ -39,4 +39,18 @@ interface OrganisationRepositoryInterface
      * @return \MageOS\Seo\Api\Data\OrganisationInterface
      */
     public function save(OrganisationInterface $organisation): OrganisationInterface;
+
+    /**
+     * Delete the Organisation records of one scope.
+     *
+     * Used when the scopes themselves go away. scope_id points at a website or a store view
+     * depending on the scope, so the table carries no foreign key to clean up after them —
+     * the same reason core_config_data has none, and core clears it the same way from
+     * Website::beforeDelete() and Group::beforeDelete().
+     *
+     * @param string $scope 'default' | 'websites' | 'stores'
+     * @param int[] $scopeIds Website or store IDs; an empty list deletes nothing.
+     * @return int Number of records deleted.
+     */
+    public function deleteForScope(string $scope, array $scopeIds): int;
 }

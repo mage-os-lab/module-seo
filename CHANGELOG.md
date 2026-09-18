@@ -191,6 +191,29 @@ become public contract.
   (`Plugin\Catalog\Product\Action\InvalidateFeedsOnMassAttributeUpdate`); a mass
   website assignment change rebuilds all three
   (`catalog_product_to_website_change`).
+- The SEO tables now have foreign keys. `mageos_seo_category_config`,
+  `mageos_seo_product_override` and `mageos_seo_faq` reference
+  `catalog_category_entity`, `catalog_product_entity` and `store` with
+  `ON DELETE CASCADE`, so a deleted category, product or store view takes its SEO
+  records with it instead of leaving rows that a later entity with the same ID —
+  after a restore or an import that writes explicit IDs — would silently inherit.
+  `mageos_seo_organisation` cannot have one: its `scope_id` is a website ID or a
+  store view ID depending on the `scope` column, the same shape as
+  `core_config_data`. `Observer\RemoveOrganisationOnScopeDelete` clears it as the
+  scope is deleted, mirroring core's own `clearScopeData()` calls in
+  `Website::beforeDelete()` / `Group::beforeDelete()`, and
+  `OrganisationRepositoryInterface` gains `deleteForScope()`.
+- Deleting a store group or a website now invalidates the hreflang sitemap, and its
+  store views' feed files are cleaned up. Core removes those store views with a
+  database-level cascade that dispatches no `store_delete` event, so nothing had
+  noticed them going: the sitemap kept listing them, and their feed directories
+  stayed on disk for good. A full rebuild now also sweeps feed directories whose
+  store view no longer exists.
+- Feed file listings no longer come back stale. `Magento\Framework\Filesystem\Glob`
+  memoises every glob result for the life of the process, so a rebuild that listed
+  its own output — surplus sitemap chunks, store directories — could act on the
+  listing from before it wrote anything. It matters wherever one process rebuilds
+  more than once: the queue consumer with `--max-messages`, or the CLI command.
 - Moving a category rebuilds `/llms.txt`, `/llms-full.txt` and the hreflang sitemap.
   A move re-parents the category (core regenerates its URL rewrites) and changes the
   shape of the category tree, but dispatches no save event, so nothing invalidated

@@ -15,10 +15,14 @@ use Magento\Cms\Api\PageRepositoryInterface;
 use Magento\Cms\Model\PageFactory;
 use Magento\Framework\FlagManager;
 use Magento\Store\Model\ResourceModel\Store as StoreResource;
+use Magento\Store\Model\ResourceModel\Website as WebsiteResource;
 use Magento\Store\Model\ScopeInterface;
 use Magento\Store\Model\StoreFactory;
 use Magento\Store\Model\StoreManagerInterface;
+use Magento\Store\Model\WebsiteFactory;
+use Magento\Store\Test\Fixture\Group as GroupFixture;
 use Magento\Store\Test\Fixture\Store as StoreFixture;
+use Magento\Store\Test\Fixture\Website as WebsiteFixture;
 use Magento\TestFramework\Fixture\Config;
 use Magento\TestFramework\Fixture\DataFixture;
 use Magento\TestFramework\Fixture\DataFixtureStorageManager;
@@ -254,6 +258,22 @@ class FeedInvalidationRulesTest extends TestCase
     }
 
     /**
+     * A deleted website takes its store views with it, through a database-level cascade that
+     * dispatches no store_delete event — so the website's own deletion has to queue the rebuild.
+     *
+     * @return void
+     */
+    #[DataFixture(WebsiteFixture::class, as: 'website')]
+    #[DataFixture(GroupFixture::class, ['website_id' => '$website.id$'], 'group')]
+    #[DataFixture(StoreFixture::class, ['store_group_id' => '$group.id$'], 'store')]
+    public function testDeletingAWebsiteQueuesTheHreflangSitemap(): void
+    {
+        $websiteId = (int) $this->fixture('website')->getId();
+
+        $this->assertQueuedBy([FeedRegenerator::GROUP_HREFLANG], fn () => $this->deleteWebsite($websiteId));
+    }
+
+    /**
      * Deleting a product takes it out of every feed.
      *
      * The entity is created here rather than by a class-level fixture: a fixture would try to
@@ -414,6 +434,23 @@ class FeedInvalidationRulesTest extends TestCase
     {
         Bootstrap::getObjectManager()->create(ProductAction::class)
             ->updateAttributes($productIds, $attributes, 0);
+    }
+
+    /**
+     * Delete a website through its resource; core cascades its groups and store views.
+     *
+     * @param int $websiteId
+     * @return void
+     */
+    private function deleteWebsite(int $websiteId): void
+    {
+        $objectManager = Bootstrap::getObjectManager();
+        $resource      = $objectManager->get(WebsiteResource::class);
+
+        $website = $objectManager->get(WebsiteFactory::class)->create();
+        $resource->load($website, $websiteId);
+        $resource->delete($website);
+        $objectManager->get(StoreManagerInterface::class)->reinitStores();
     }
 
     /**

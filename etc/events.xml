@@ -83,6 +83,42 @@
     </event>
 
     <!--
+        Deleting a store group or a website takes its store views with it through core's own
+        store.group_id / store.website_id CASCADE — a database-level delete that dispatches no
+        store_delete event at all. Both therefore need handling of their own:
+
+        - the sitemap's alternate set changes, so a rebuild is queued. These are the
+          *_delete_before events, which run inside the resource's transaction: the pending flag
+          and the queue message are written on the same connection, so a delete that fails rolls
+          the queued rebuild back with it. The store views also still exist at this point, which
+          is what lets the policy see the sitemap as buildable;
+        - the Organisation records of those scopes are removed (they are the one table that
+          cannot carry a foreign key);
+        - the feed files of the removed store views are cleaned up by the next full rebuild
+          (FeedRegenerator sweeps directories whose store view no longer exists). Until then
+          they are unreachable: no store view, no route that resolves to them.
+
+        llms.txt, llms-full.txt and llms.jsonl are per store view, so the surviving store views'
+        documents do not change.
+    -->
+    <event name="website_delete_before">
+        <observer name="mageos_seo_invalidate_hreflang_sitemap_on_website_delete"
+                  instance="MageOS\Seo\Observer\InvalidateHreflangSitemapCache"/>
+        <observer name="mageos_seo_remove_organisation_on_website_delete"
+                  instance="MageOS\Seo\Observer\RemoveOrganisationOnScopeDelete"/>
+    </event>
+    <event name="store_group_delete_before">
+        <observer name="mageos_seo_invalidate_hreflang_sitemap_on_store_group_delete"
+                  instance="MageOS\Seo\Observer\InvalidateHreflangSitemapCache"/>
+        <observer name="mageos_seo_remove_organisation_on_store_group_delete"
+                  instance="MageOS\Seo\Observer\RemoveOrganisationOnScopeDelete"/>
+    </event>
+    <event name="store_delete_before">
+        <observer name="mageos_seo_remove_organisation_on_store_delete"
+                  instance="MageOS\Seo\Observer\RemoveOrganisationOnScopeDelete"/>
+    </event>
+
+    <!--
         Deletions. A deleted entity leaves every feed that listed it, so unlike saves there is
         nothing to check: the policy treats a delete as relevant to any group. Products also
         change category product counts in llms.txt / llms-full.txt.

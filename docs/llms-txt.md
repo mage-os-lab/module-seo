@@ -119,6 +119,7 @@ A rebuild is queued automatically when:
 | Category deleted | always | — | always |
 | CMS page deleted | — | — | always |
 | Store view deleted | — | — | always |
+| Store group or website deleted | — | — | always |
 | Mass attribute update | — | always | `url_key`, `status` or `visibility` among the updated attributes |
 | Mass website assignment change | always | always | always |
 | Organisation settings saved | always | — | — |
@@ -133,6 +134,13 @@ event for websites).
 Deleting a store view also removes that store's feed directory. If it leaves fewer than two
 active store views, the hreflang sitemap can no longer be built at all, so no rebuild is
 queued; the nightly rebuild then removes the files it would otherwise still serve.
+
+Deleting a **store group or a website** takes its store views with it in the database, without
+dispatching a `store_delete` event for any of them, so the rebuild is queued from the website's
+or group's own deletion instead. Their feed directories are removed by the next full rebuild
+(the nightly cron, or `mageos:seo:feeds:regenerate` with no `-g`), which sweeps directories
+whose store view no longer exists. Until then nothing serves them: a request resolves feeds for
+the current store view, and theirs is gone.
 
 A feed that no store view can build is never queued: `/llms.jsonl` while it is disabled in
 every store view (the default), `/llms.txt` + `/llms-full.txt` when both are disabled
