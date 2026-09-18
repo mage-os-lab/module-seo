@@ -7,6 +7,8 @@ namespace MageOS\Seo\Observer;
 use Magento\Framework\Event\Observer;
 use Magento\Framework\Event\ObserverInterface;
 use MageOS\Seo\Model\Feed\FeedInvalidator;
+use MageOS\Seo\Model\Feed\FeedRegenerator;
+use MageOS\Seo\Model\Feed\InvalidationPolicy;
 
 /**
  * Invalidates only the /llms.jsonl feed when a product changes.
@@ -18,20 +20,24 @@ class InvalidateLlmsJsonlCache implements ObserverInterface
 {
     /**
      * @param FeedInvalidator $feedInvalidator
+     * @param InvalidationPolicy $invalidationPolicy
      */
     public function __construct(
-        private readonly FeedInvalidator $feedInvalidator
+        private readonly FeedInvalidator    $feedInvalidator,
+        private readonly InvalidationPolicy $invalidationPolicy
     ) {
     }
 
     /**
-     * Invalidate the llms.jsonl feed file and cached responses on product save.
+     * Queue a rebuild of the llms.jsonl feed on product changes.
      *
      * @param Observer $observer
      * @return void
      */
     public function execute(Observer $observer): void
     {
-        $this->feedInvalidator->invalidateJsonl();
+        if ($this->invalidationPolicy->isRelevantChange(FeedRegenerator::GROUP_JSONL, $observer->getEvent())) {
+            $this->feedInvalidator->invalidateJsonl();
+        }
     }
 }

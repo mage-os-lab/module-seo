@@ -6,82 +6,130 @@ namespace MageOS\Seo\Test\Unit\Model\Feed;
 
 use Magento\Framework\FlagManager;
 use Magento\Framework\MessageQueue\PublisherInterface;
+use Magento\Framework\Stdlib\DateTime\DateTime;
 use MageOS\Seo\Model\Feed\FeedRegenerator;
 use MageOS\Seo\Model\Feed\RegenerationRequester;
-use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
 
 class RegenerationRequesterTest extends TestCase
 {
-    /**
-     * @var FlagManager&MockObject
-     */
-    private FlagManager&MockObject $flagManager;
+    private const NOW = 1_800_000_000;
 
-    /**
-     * @var PublisherInterface&MockObject
-     */
-    private PublisherInterface&MockObject $publisher;
-
-    /**
-     * @var LoggerInterface&MockObject
-     */
-    private LoggerInterface&MockObject $logger;
-
-    private RegenerationRequester $requester;
-
-    protected function setUp(): void
+    public function testRequestPublishesAndRecordsWhenItWasQueued(): void
     {
-        $this->flagManager = $this->createMock(FlagManager::class);
-        $this->publisher   = $this->createMock(PublisherInterface::class);
-        $this->logger      = $this->createMock(LoggerInterface::class);
-
-        $this->requester = new RegenerationRequester($this->flagManager, $this->publisher, $this->logger);
-    }
-
-    public function testRequestPublishesAndSetsPendingFlag(): void
-    {
-        $this->flagManager->method('getFlagData')->willReturn(null);
-        $this->flagManager
-            ->expects($this->once())
-            ->method('saveFlag')
-            ->with('mageos_seo_feed_pending_llms', $this->greaterThan(0));
-        $this->publisher
-            ->expects($this->once())
-            ->method('publish')
+        $flagManager = $this->createMock(FlagManager::class);
+        $flagManager->method('getFlagData')->willReturn(null);
+        $flagManager->expects($this->once())->method('saveFlag')
+            ->with('mageos_seo_feed_pending_llms', self::NOW);
+        $publisher = $this->createMock(PublisherInterface::class);
+        $publisher->expects($this->once())->method('publish')
             ->with(RegenerationRequester::TOPIC, FeedRegenerator::GROUP_LLMS);
 
-        $this->requester->request(FeedRegenerator::GROUP_LLMS);
+        $this->requester($flagManager, $publisher)->request(FeedRegenerator::GROUP_LLMS);
     }
 
     public function testDuplicateRequestsAreCollapsedWhilePending(): void
     {
         // A burst of invalidations must queue at most one build per feed group.
-        $this->flagManager->method('getFlagData')->willReturn(time());
-        $this->flagManager->expects($this->never())->method('saveFlag');
-        $this->publisher->expects($this->never())->method('publish');
+        $flagManager = $this->createMock(FlagManager::class);
+        $flagManager->method('getFlagData')
+            ->willReturn(self::NOW - RegenerationRequester::STALE_AFTER_SECONDS + 1);
+        $flagManager->expects($this->never())->method('saveFlag');
+        $publisher = $this->createMock(PublisherInterface::class);
+        $publisher->expects($this->never())->method('publish');
 
-        $this->requester->request(FeedRegenerator::GROUP_JSONL);
+        $this->requester($flagManager, $publisher)->request(FeedRegenerator::GROUP_JSONL);
     }
 
-    public function testPublishFailureIsLoggedNotThrown(): void
+    public function testAStaleRequestIsQueuedAgainWithAWarning(): void
     {
-        // Feed freshness must never break a save or a frontend request.
-        $this->flagManager->method('getFlagData')->willReturn(null);
-        $this->publisher->method('publish')->willThrowException(new \RuntimeException('queue down'));
-        $this->logger->expects($this->once())->method('error');
+        // A request nobody picked up within the cutoff (consumer not running, message
+        // lost) must not block event-driven rebuilds forever.
+        $flagManager = $this->createMock(FlagManager::class);
+        $flagManager->method('getFlagData')
+            ->willReturn(self::NOW - RegenerationRequester::STALE_AFTER_SECONDS);
+        $flagManager->expects($this->once())->method('saveFlag')
+            ->with('mageos_seo_feed_pending_hreflang', self::NOW);
+        $publisher = $this->createMock(PublisherInterface::class);
+        $publisher->expects($this->once())->method('publish')
+            ->with(RegenerationRequester::TOPIC, FeedRegenerator::GROUP_HREFLANG);
+        $logger = $this->createMock(LoggerInterface::class);
+        $logger->expects($this->once())->method('warning')
+            ->with($this->stringContains('mageosSeoFeedRegenerate consumer'));
 
-        $this->requester->request(FeedRegenerator::GROUP_HREFLANG);
+        $this->requester($flagManager, $publisher, $logger)->request(FeedRegenerator::GROUP_HREFLANG);
+    }
+
+    public function testAnUnreadablePendingFlagIsTreatedAsStale(): void
+    {
+        $flagManager = $this->createStub(FlagManager::class);
+        $flagManager->method('getFlagData')->willReturn('not-a-timestamp');
+        $publisher = $this->createMock(PublisherInterface::class);
+        $publisher->expects($this->once())->method('publish');
+        $logger = $this->createMock(LoggerInterface::class);
+        $logger->expects($this->once())->method('warning')
+            ->with($this->stringContains('an unknown time'));
+
+        $this->requester($flagManager, $publisher, $logger)->request(FeedRegenerator::GROUP_LLMS);
+    }
+
+    public function testPublishFailureReleasesTheFlagAndIsLoggedNotThrown(): void
+    {
+        // Feed freshness must never break a save or a frontend request, and a request that
+        // was never queued must not block the next one.
+        $flagManager = $this->createMock(FlagManager::class);
+        $flagManager->method('getFlagData')->willReturn(null);
+        $flagManager->expects($this->once())->method('saveFlag');
+        $flagManager->expects($this->once())->method('deleteFlag')->with('mageos_seo_feed_pending_hreflang');
+        $publisher = $this->createStub(PublisherInterface::class);
+        $publisher->method('publish')->willThrowException(new \RuntimeException('queue down'));
+        $logger = $this->createMock(LoggerInterface::class);
+        $logger->expects($this->once())->method('error');
+
+        $this->requester($flagManager, $publisher, $logger)->request(FeedRegenerator::GROUP_HREFLANG);
     }
 
     public function testAcknowledgeClearsThePendingFlag(): void
     {
-        $this->flagManager
-            ->expects($this->once())
-            ->method('deleteFlag')
+        $flagManager = $this->createMock(FlagManager::class);
+        $flagManager->expects($this->once())->method('deleteFlag')
             ->with('mageos_seo_feed_pending_llms');
 
-        $this->requester->acknowledge(FeedRegenerator::GROUP_LLMS);
+        $this->requester($flagManager)->acknowledge(FeedRegenerator::GROUP_LLMS);
+    }
+
+    public function testAcknowledgeFailureIsLoggedNotThrown(): void
+    {
+        $flagManager = $this->createStub(FlagManager::class);
+        $flagManager->method('deleteFlag')->willThrowException(new \RuntimeException('db down'));
+        $logger = $this->createMock(LoggerInterface::class);
+        $logger->expects($this->once())->method('error');
+
+        $this->requester($flagManager, null, $logger)->acknowledge(FeedRegenerator::GROUP_LLMS);
+    }
+
+    /**
+     * Build the requester at a fixed point in time; collaborators a test does not pass are stubs.
+     *
+     * @param FlagManager $flagManager
+     * @param PublisherInterface|null $publisher
+     * @param LoggerInterface|null $logger
+     * @return RegenerationRequester
+     */
+    private function requester(
+        FlagManager $flagManager,
+        ?PublisherInterface $publisher = null,
+        ?LoggerInterface $logger = null
+    ): RegenerationRequester {
+        $dateTime = $this->createStub(DateTime::class);
+        $dateTime->method('gmtTimestamp')->willReturn(self::NOW);
+
+        return new RegenerationRequester(
+            $flagManager,
+            $publisher ?? $this->createStub(PublisherInterface::class),
+            $dateTime,
+            $logger ?? $this->createStub(LoggerInterface::class)
+        );
     }
 }

@@ -33,6 +33,14 @@
         "phpstan/phpstan-phpunit": "^2.0",
         "phpunit/phpunit": "^10.5"
     },
+    "authors": [
+        {
+            "name": "Mark Rees",
+            "email": "mark@rees.solutions",
+            "homepage": "http://rees.solutions",
+            "role": "Developer"
+        }
+    ],
     "autoload": {
         "files": [
             "registration.php"

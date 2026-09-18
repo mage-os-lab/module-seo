@@ -15,3 +15,5 @@ parameters:
         - Ui
         - Test
     treatPhpDocTypesAsCertain: false
+    parallel:
+        maximumNumberOfProcesses: 1

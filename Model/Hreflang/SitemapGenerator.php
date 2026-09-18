@@ -5,12 +5,15 @@ declare(strict_types=1);
 namespace MageOS\Seo\Model\Hreflang;
 
 /**
- * Builds the /hreflang-sitemap.xml document.
+ * Builds the contents of the hreflang sitemap.
  *
  * Three bulk queries (product, category, cms-page) plus the home pages cover the whole catalogue.
  * Every entity emits one <url> block per store view it exists on, each carrying the full
  * <xhtml:link> alternate set (region links + language-only + x-default) — the layout Google
  * requires for a hreflang sitemap.
+ *
+ * Blocks are streamed one entity at a time; SitemapFileWriter turns them into files, so a
+ * 100k-product catalogue is never held in memory as one document.
  */
 class SitemapGenerator
 {
@@ -19,7 +22,7 @@ class SitemapGenerator
     /**
      * Sitemap protocol caps a file at 50,000 URLs; chunk below the cap for headroom.
      */
-    private const MAX_URLS_PER_FILE = 45000;
+    public const MAX_URLS_PER_FILE = 45000;
 
     public const INDEX_FILE   = 'hreflang-sitemap.xml';
     public const CHUNK_FORMAT = 'hreflang-sitemap-%d.xml';
@@ -39,68 +42,66 @@ class SitemapGenerator
     }
 
     /**
-     * Generate the full hreflang sitemap as a single urlset document.
+     * Stream every <url> block of the sitemap (home pages first, then each entity type).
      *
-     * Only suitable for small catalogues; generateFiles() applies the 50k-URL
-     * protocol limit and should be preferred.
-     *
-     * @return string
+     * @return \Generator<string>
      */
-    public function generate(): string
-    {
-        return $this->wrap($this->collectBlocks());
-    }
-
-    /**
-     * Generate the sitemap as one or more files honouring the 50k-URL protocol cap.
-     *
-     * Small catalogues produce a single urlset under the index file name; larger ones
-     * produce numbered chunk files plus a sitemap index referencing them.
-     *
-     * @param string $baseUrl Store base URL used for chunk locations in the index
-     * @return array<string, string> file name => XML content
-     */
-    public function generateFiles(string $baseUrl): array
-    {
-        $blocks = $this->collectBlocks();
-
-        if (\count($blocks) <= self::MAX_URLS_PER_FILE) {
-            return [self::INDEX_FILE => $this->wrap($blocks)];
-        }
-
-        $files        = [];
-        $indexEntries = [];
-        foreach (array_chunk($blocks, self::MAX_URLS_PER_FILE) as $i => $chunk) {
-            $name         = \sprintf(self::CHUNK_FORMAT, $i + 1);
-            $files[$name] = $this->wrap($chunk);
-            $indexEntries[] = rtrim($baseUrl, '/') . '/' . $name;
-        }
-        $files[self::INDEX_FILE] = $this->wrapIndex($indexEntries);
-
-        return $files;
-    }
-
-    /**
-     * Collect every <url> block for the sitemap (home pages + all entity types).
-     *
-     * @return string[]
-     */
-    private function collectBlocks(): array
+    public function streamBlocks(): \Generator
     {
         $map      = $this->storeLocaleMap->getMap();
         $storeIds = array_keys($map);
 
-        $blocks = $this->entityBlocks($this->homeRegionLinks($map));
+        yield from $this->entityBlocks($this->homeRegionLinks($map));
 
         foreach (self::ENTITY_TYPES as $entityType) {
-            foreach ($this->urlRewriteFetcher->fetchAllForType($entityType, $storeIds) as $paths) {
-                foreach ($this->entityBlocks($this->linkBuilder->buildFromPaths($paths)) as $block) {
-                    $blocks[] = $block;
-                }
+            foreach ($this->urlRewriteFetcher->streamAllForType($entityType, $storeIds) as $paths) {
+                yield from $this->entityBlocks($this->linkBuilder->buildFromPaths($paths));
             }
         }
+    }
 
-        return $blocks;
+    /**
+     * Opening lines of a urlset document.
+     *
+     * @return string
+     */
+    public function documentHeader(): string
+    {
+        return '<?xml version="1.0" encoding="UTF-8"?>' . "\n"
+            . '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"' . "\n"
+            . '        xmlns:xhtml="http://www.w3.org/1999/xhtml">' . "\n";
+    }
+
+    /**
+     * Closing line of a urlset document.
+     *
+     * @return string
+     */
+    public function documentFooter(): string
+    {
+        return '</urlset>' . "\n";
+    }
+
+    /**
+     * Render the sitemap index listing the chunk files of one store view.
+     *
+     * @param string $baseUrl Store base URL the chunks are served from
+     * @param string[] $chunkFileNames
+     * @return string
+     */
+    public function indexDocument(string $baseUrl, array $chunkFileNames): string
+    {
+        $entries = [];
+        foreach ($chunkFileNames as $fileName) {
+            $entries[] = '  <sitemap>' . "\n"
+                . '    <loc>' . $this->escape(rtrim($baseUrl, '/') . '/' . $fileName) . '</loc>' . "\n"
+                . '  </sitemap>';
+        }
+
+        return '<?xml version="1.0" encoding="UTF-8"?>' . "\n"
+            . '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' . "\n"
+            . implode("\n", $entries) . "\n"
+            . '</sitemapindex>' . "\n";
     }
 
     /**
@@ -164,42 +165,6 @@ class SitemapGenerator
         $lines[] = '  </url>';
 
         return implode("\n", $lines);
-    }
-
-    /**
-     * Wrap the url blocks in the urlset document.
-     *
-     * @param string[] $blocks
-     * @return string
-     */
-    private function wrap(array $blocks): string
-    {
-        return '<?xml version="1.0" encoding="UTF-8"?>' . "\n"
-            . '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"' . "\n"
-            . '        xmlns:xhtml="http://www.w3.org/1999/xhtml">' . "\n"
-            . ($blocks === [] ? '' : implode("\n", $blocks) . "\n")
-            . '</urlset>' . "\n";
-    }
-
-    /**
-     * Wrap chunk file URLs in a sitemapindex document.
-     *
-     * @param string[] $chunkUrls
-     * @return string
-     */
-    private function wrapIndex(array $chunkUrls): string
-    {
-        $entries = [];
-        foreach ($chunkUrls as $url) {
-            $entries[] = '  <sitemap>' . "\n"
-                . '    <loc>' . $this->escape($url) . '</loc>' . "\n"
-                . '  </sitemap>';
-        }
-
-        return '<?xml version="1.0" encoding="UTF-8"?>' . "\n"
-            . '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' . "\n"
-            . implode("\n", $entries) . "\n"
-            . '</sitemapindex>' . "\n";
     }
 
     /**

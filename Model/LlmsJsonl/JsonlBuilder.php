@@ -46,11 +46,13 @@ class JsonlBuilder
     }
 
     /**
-     * Build the NDJSON document for the current store.
+     * Stream the NDJSON document for the current store, one line at a time.
      *
-     * @return string
+     * The document is never assembled in memory: at 100k SKUs it runs to tens of megabytes.
+     *
+     * @return \Generator<string> Lines, each ending in a newline
      */
-    public function build(): string
+    public function stream(): \Generator
     {
         $storeId = (int) $this->storeManager->getStore()->getId();
 
@@ -68,7 +70,6 @@ class JsonlBuilder
         $collection->addUrlRewrite();
         $collection->setPageSize(self::PAGE_SIZE);
 
-        $output   = '';
         $lastPage = $collection->getLastPageNumber();
 
         for ($page = 1; $page <= $lastPage; $page++) {
@@ -94,7 +95,7 @@ class JsonlBuilder
                     $salability[(string) $product->getSku()] ?? false
                 ));
                 if ($line !== '') {
-                    $output .= $line . "\n";
+                    yield $line . "\n";
                 }
             }
         }
@@ -106,12 +107,10 @@ class JsonlBuilder
             foreach ($provider->getAdditionalLines($storeId) as $node) {
                 $line = $this->encode($node);
                 if ($line !== '') {
-                    $output .= $line . "\n";
+                    yield $line . "\n";
                 }
             }
         }
-
-        return $output;
     }
 
     /**

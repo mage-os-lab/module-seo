@@ -2,22 +2,31 @@
 
 declare(strict_types=1);
 
-namespace MageOS\Seo\Plugin\Catalog\Product;
+namespace MageOS\Seo\Observer\Adminhtml;
 
 use Magento\Catalog\Api\Data\ProductInterface;
-use Magento\Catalog\Api\ProductRepositoryInterface;
 use Magento\Framework\App\RequestInterface;
+use Magento\Framework\Event\Observer;
+use Magento\Framework\Event\ObserverInterface;
 use Magento\Framework\Message\ManagerInterface;
 use MageOS\Seo\Model\Category\ProductOverrideRepository;
 use Psr\Log\LoggerInterface;
 
 /**
- * Persists the Advanced SEO tab data from the product edit form after the product is saved.
+ * Persists the product edit form's "Advanced SEO" fieldset after the product is saved.
  *
- * Registered in etc/adminhtml/di.xml only: the plugin reads admin form POST data, which
- * must never influence REST/GraphQL/import/cron saves.
+ * Listens to controller_action_catalog_product_save_entity_after, which core's admin product
+ * save controller dispatches once, after the product save has committed, for the product the
+ * form was submitted for. The admin controller saves the model directly, so a plugin on
+ * ProductRepositoryInterface never runs for this form. The generic catalog_product_save_after
+ * event is not used either: it also fires for the other products saved during the same request
+ * (configurable variations generated from the form, "Save & Duplicate" copies, "copy to store
+ * views" saves), and the posted fieldset would be written onto every one of them.
+ *
+ * Registered in etc/adminhtml/events.xml only: admin form POST data must never influence
+ * REST/GraphQL/import/cron saves.
  */
-class SaveSeoOverridesPlugin
+class SaveProductSeoOverrides implements ObserverInterface
 {
     /**
      * @param RequestInterface $request
@@ -34,19 +43,23 @@ class SaveSeoOverridesPlugin
     }
 
     /**
-     * After the product is saved, persist any SEO overrides from the Advanced SEO tab.
+     * Persist any SEO overrides submitted with the product edit form.
      *
-     * @param \Magento\Catalog\Api\ProductRepositoryInterface $subject
-     * @param \Magento\Catalog\Api\Data\ProductInterface $result
-     * @return \Magento\Catalog\Api\Data\ProductInterface
+     * SEO-only problems are reported as warnings: the product itself is already saved.
+     *
+     * @param Observer $observer
+     * @return void
      */
-    public function afterSave(
-        ProductRepositoryInterface $subject,
-        ProductInterface           $result
-    ): ProductInterface {
-        $productId = (int) $result->getId();
+    public function execute(Observer $observer): void
+    {
+        $product = $observer->getEvent()->getData('product');
+        if (!$product instanceof ProductInterface) {
+            return;
+        }
+
+        $productId = (int) $product->getId();
         if ($productId <= 0) {
-            return $result;
+            return;
         }
 
         /** @var \Magento\Framework\App\Request\Http $postRequest */
@@ -54,7 +67,7 @@ class SaveSeoOverridesPlugin
         $postData = $postRequest->getPostValue();
 
         if (!isset($postData['mageos_seo_override_fields']) && !isset($postData['mageos_seo_robots_meta'])) {
-            return $result;
+            return;
         }
 
         // Core admin catalog passes the selected store view as the "store" request
@@ -73,7 +86,7 @@ class SaveSeoOverridesPlugin
                     $data['override_fields'] = $decoded;
                 } else {
                     // Invalid JSON: keep the stored value rather than silently wiping it.
-                    $this->messageManager->addErrorMessage(
+                    $this->messageManager->addWarningMessage(
                         (string) __('SEO override fields were not saved: the value is not valid JSON.')
                     );
                 }
@@ -84,22 +97,22 @@ class SaveSeoOverridesPlugin
             $data['robots_meta'] = (string) $postData['mageos_seo_robots_meta'] ?: null;
         }
 
-        if (!empty($data)) {
-            try {
-                $this->productOverrideRepository->save($productId, $storeId, $data);
-            } catch (\Throwable $e) {
-                // The product itself is already committed; a SEO-table failure must not
-                // make the whole save look failed.
-                $this->logger->error(
-                    'MageOS_Seo: could not save product SEO overrides: ' . $e->getMessage(),
-                    ['exception' => $e, 'product_id' => $productId, 'store_id' => $storeId]
-                );
-                $this->messageManager->addErrorMessage(
-                    (string) __('The product was saved, but its SEO overrides could not be saved.')
-                );
-            }
+        if (empty($data)) {
+            return;
         }
 
-        return $result;
+        try {
+            $this->productOverrideRepository->save($productId, $storeId, $data);
+        } catch (\Throwable $e) {
+            // The product itself is already committed; a SEO-table failure must not
+            // make the whole save look failed.
+            $this->logger->error(
+                'MageOS_Seo: could not save product SEO overrides: ' . $e->getMessage(),
+                ['exception' => $e, 'product_id' => $productId, 'store_id' => $storeId]
+            );
+            $this->messageManager->addWarningMessage(
+                (string) __('The product was saved, but its SEO overrides could not be saved.')
+            );
+        }
     }
 }

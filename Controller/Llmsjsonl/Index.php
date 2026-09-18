@@ -10,6 +10,7 @@ use Magento\Framework\Controller\ResultInterface;
 use Magento\Store\Model\StoreManagerInterface;
 use MageOS\Seo\Model\Config;
 use MageOS\Seo\Model\Feed\CanonicalPathRedirect;
+use MageOS\Seo\Model\Feed\FeedCache;
 use MageOS\Seo\Model\Feed\FeedRegenerator;
 use MageOS\Seo\Model\Feed\FeedStorage;
 use MageOS\Seo\Model\Feed\RegenerationRequester;
@@ -74,8 +75,8 @@ class Index implements HttpGetActionInterface
 
         $result->setHttpResponseCode(200);
         $result->setHeader('Content-Type', 'application/x-ndjson; charset=utf-8', true);
-        $result->setHeader('Cache-Control', 'public, max-age=3600, s-maxage=86400', true);
-        $result->setHeader('X-Magento-Tags', 'MAGEOS_SEO_LLMS_JSONL', true);
+        $result->setHeader('Cache-Control', FeedCache::CACHE_CONTROL, true);
+        $result->setHeader('X-Magento-Tags', FeedCache::TAG_LLMS_JSONL, true);
         $result->setContents($content);
 
         return $result;

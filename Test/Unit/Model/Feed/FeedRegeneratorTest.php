@@ -8,76 +8,415 @@ use Magento\Store\Model\App\Emulation;
 use Magento\Store\Model\Store;
 use Magento\Store\Model\StoreManagerInterface;
 use MageOS\Seo\Model\Config;
+use MageOS\Seo\Model\Feed\FeedCache;
+use MageOS\Seo\Model\Feed\FeedFileWriter;
 use MageOS\Seo\Model\Feed\FeedRegenerator;
 use MageOS\Seo\Model\Feed\FeedStorage;
+use MageOS\Seo\Model\Hreflang\SitemapFileWriter;
 use MageOS\Seo\Model\Hreflang\SitemapGenerator;
 use MageOS\Seo\Model\Hreflang\StoreLocaleMap;
 use MageOS\Seo\Model\LlmsJsonl\JsonlBuilder;
 use MageOS\Seo\Model\LlmsTxt\LlmsTxtBuilder;
-use PHPUnit\Framework\MockObject\MockObject;
+use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
 
 class FeedRegeneratorTest extends TestCase
 {
     /**
-     * @var StoreManagerInterface&MockObject
+     * @var StoreManagerInterface&Stub
      */
-    private StoreManagerInterface&MockObject $storeManager;
+    private StoreManagerInterface&Stub $storeManager;
 
     /**
-     * @var Emulation&MockObject
+     * @var Emulation&Stub
      */
-    private Emulation&MockObject $emulation;
+    private Emulation&Stub $emulation;
 
     /**
-     * @var Config&MockObject
+     * @var Config&Stub
      */
-    private Config&MockObject $seoConfig;
+    private Config&Stub $seoConfig;
 
     /**
-     * @var LlmsTxtBuilder&MockObject
+     * @var LlmsTxtBuilder&Stub
      */
-    private LlmsTxtBuilder&MockObject $llmsTxtBuilder;
+    private LlmsTxtBuilder&Stub $llmsTxtBuilder;
 
     /**
-     * @var JsonlBuilder&MockObject
+     * @var JsonlBuilder&Stub
      */
-    private JsonlBuilder&MockObject $jsonlBuilder;
+    private JsonlBuilder&Stub $jsonlBuilder;
 
     /**
-     * @var SitemapGenerator&MockObject
+     * @var SitemapFileWriter&Stub
      */
-    private SitemapGenerator&MockObject $sitemapGenerator;
+    private SitemapFileWriter&Stub $sitemapFileWriter;
 
     /**
-     * @var StoreLocaleMap&MockObject
+     * @var StoreLocaleMap&Stub
      */
-    private StoreLocaleMap&MockObject $storeLocaleMap;
+    private StoreLocaleMap&Stub $storeLocaleMap;
 
     /**
-     * @var FeedStorage&MockObject
+     * @var FeedStorage&Stub
      */
-    private FeedStorage&MockObject $feedStorage;
+    private FeedStorage&Stub $feedStorage;
 
     /**
-     * @var LoggerInterface&MockObject
+     * @var FeedCache&Stub
      */
-    private LoggerInterface&MockObject $logger;
+    private FeedCache&Stub $feedCache;
+
+    /**
+     * @var LoggerInterface&Stub
+     */
+    private LoggerInterface&Stub $logger;
+
+    /**
+     * Storage, sitemap and cache calls in the order they happened.
+     *
+     * @var list<string>
+     */
+    private array $calls = [];
+
+    /**
+     * Chunk file names the sitemap writer reports per generated store view.
+     *
+     * @var string[]
+     */
+    private array $chunkNames = [];
 
     protected function setUp(): void
     {
-        $this->storeManager     = $this->createMock(StoreManagerInterface::class);
-        $this->emulation        = $this->createMock(Emulation::class);
-        $this->seoConfig        = $this->createMock(Config::class);
-        $this->llmsTxtBuilder   = $this->createMock(LlmsTxtBuilder::class);
-        $this->jsonlBuilder     = $this->createMock(JsonlBuilder::class);
-        $this->sitemapGenerator = $this->createMock(SitemapGenerator::class);
-        $this->storeLocaleMap   = $this->createMock(StoreLocaleMap::class);
-        $this->feedStorage      = $this->createMock(FeedStorage::class);
-        $this->logger           = $this->createMock(LoggerInterface::class);
+        $this->storeManager      = $this->createStub(StoreManagerInterface::class);
+        $this->emulation         = $this->createStub(Emulation::class);
+        $this->seoConfig         = $this->createStub(Config::class);
+        $this->llmsTxtBuilder    = $this->createStub(LlmsTxtBuilder::class);
+        $this->jsonlBuilder      = $this->createStub(JsonlBuilder::class);
+        $this->sitemapFileWriter = $this->createStub(SitemapFileWriter::class);
+        $this->storeLocaleMap    = $this->createStub(StoreLocaleMap::class);
+        $this->feedStorage       = $this->createStub(FeedStorage::class);
+        $this->feedCache         = $this->createStub(FeedCache::class);
+        $this->logger            = $this->createStub(LoggerInterface::class);
+        $this->calls             = [];
+        $this->chunkNames        = [];
+
+        $this->feedStorage->method('write')->willReturnCallback(
+            function (string $fileName, int $storeId, string $content): void {
+                $this->calls[] = "write {$storeId}/{$fileName}={$content}";
+            }
+        );
+        $this->feedStorage->method('openForWrite')->willReturnCallback(
+            fn (int $storeId): FeedFileWriter => $this->recordingFile($storeId)
+        );
+        $this->feedStorage->method('deleteForStore')->willReturnCallback(
+            function (string $pattern, int $storeId): void {
+                $this->calls[] = "delete {$storeId}/{$pattern}";
+            }
+        );
+        $this->feedStorage->method('copyBetweenStores')->willReturnCallback(
+            function (string $fileName, int $from, int $to): void {
+                $this->calls[] = "copy {$fileName} {$from}->{$to}";
+            }
+        );
+        $this->feedCache->method('purge')->willReturnCallback(
+            function (array $groups): void {
+                $this->calls[] = 'purge ' . implode(',', $groups);
+            }
+        );
+        $this->sitemapFileWriter->method('write')->willReturnCallback(
+            function (int $storeId): array {
+                $this->calls[] = "sitemap build {$storeId}";
+                return $this->chunkNames;
+            }
+        );
+        $this->sitemapFileWriter->method('writeIndex')->willReturnCallback(
+            function (int $storeId): void {
+                $this->calls[] = "sitemap index {$storeId}";
+            }
+        );
     }
 
+    public function testInactiveStoresAreSkipped(): void
+    {
+        $store = $this->createStub(Store::class);
+        $store->method('getIsActive')->willReturn(false);
+        $this->storeManager->method('getStores')->willReturn([$store]);
+        $emulation = $this->createMock(Emulation::class);
+        $emulation->expects($this->never())->method('startEnvironmentEmulation');
+        $this->emulation = $emulation;
+
+        $this->regenerator()->regenerate(FeedRegenerator::GROUP_LLMS);
+
+        $this->assertSame(['purge llms'], $this->calls);
+    }
+
+    public function testGroupFilterBuildsOnlyTheRequestedGroup(): void
+    {
+        $this->storeManager->method('getStores')->willReturn([$this->activeStore()]);
+        $this->seoConfig->method('isLlmsTxtEnabled')->willReturn(true);
+        $this->seoConfig->method('isLlmsFullTxtEnabled')->willReturn(true);
+        $this->llmsTxtBuilder->method('buildConcise')->willReturn('concise');
+        $this->llmsTxtBuilder->method('buildFull')->willReturn('full');
+        $jsonlBuilder = $this->createMock(JsonlBuilder::class);
+        $jsonlBuilder->expects($this->never())->method('stream');
+        $this->jsonlBuilder = $jsonlBuilder;
+        $sitemapFileWriter = $this->createMock(SitemapFileWriter::class);
+        $sitemapFileWriter->expects($this->never())->method('write');
+        $this->sitemapFileWriter = $sitemapFileWriter;
+
+        $this->regenerator()->regenerate(FeedRegenerator::GROUP_LLMS);
+
+        $this->assertSame(
+            ['write 1/llms.txt=concise', 'write 1/llms-full.txt=full', 'purge llms'],
+            $this->calls
+        );
+    }
+
+    public function testJsonlIsStreamedToItsFileInsteadOfBuiltInMemory(): void
+    {
+        $this->storeManager->method('getStores')->willReturn([$this->activeStore()]);
+        $this->seoConfig->method('isLlmsJsonlEnabled')->willReturn(true);
+        $this->jsonlBuilder->method('stream')->willReturnCallback(
+            static function (): \Generator {
+                yield "{\"a\":1}\n";
+                yield "{\"b\":2}\n";
+            }
+        );
+
+        $this->regenerator()->regenerate(FeedRegenerator::GROUP_JSONL);
+
+        $this->assertSame(
+            ['stream 1: {"a":1}' . "\n" . '{"b":2}' . "\n" . ' -> llms.jsonl', 'purge jsonl'],
+            $this->calls
+        );
+    }
+
+    public function testAFailedStreamDiscardsThePartialFile(): void
+    {
+        $this->storeManager->method('getStores')->willReturn([$this->activeStore()]);
+        $this->seoConfig->method('isLlmsJsonlEnabled')->willReturn(true);
+        $this->jsonlBuilder->method('stream')->willReturnCallback(
+            static function (): \Generator {
+                yield "{\"a\":1}\n";
+                throw new \RuntimeException('collection failed');
+            }
+        );
+
+        $failures = $this->regenerator()->regenerate(FeedRegenerator::GROUP_JSONL);
+
+        $this->assertSame([1 => 'collection failed'], $failures);
+        $this->assertContains('discard 1', $this->calls);
+        $this->assertNotContains('commit 1 llms.jsonl', $this->calls);
+    }
+
+    public function testDisabledFeedsAreRemovedInsteadOfWritten(): void
+    {
+        $this->storeManager->method('getStores')->willReturn([$this->activeStore()]);
+        $this->seoConfig->method('isLlmsTxtEnabled')->willReturn(false);
+        $this->seoConfig->method('isLlmsFullTxtEnabled')->willReturn(false);
+        $this->seoConfig->method('isLlmsJsonlEnabled')->willReturn(false);
+        $llmsTxtBuilder = $this->createMock(LlmsTxtBuilder::class);
+        $llmsTxtBuilder->expects($this->never())->method('buildConcise');
+        $llmsTxtBuilder->expects($this->never())->method('buildFull');
+        $this->llmsTxtBuilder = $llmsTxtBuilder;
+
+        $this->regenerator()->regenerate(FeedRegenerator::GROUP_LLMS);
+        $this->regenerator()->regenerate(FeedRegenerator::GROUP_JSONL);
+
+        $this->assertSame(
+            ['delete 1/llms.txt', 'delete 1/llms-full.txt', 'purge llms', 'delete 1/llms.jsonl', 'purge jsonl'],
+            $this->calls
+        );
+    }
+
+    public function testHreflangIsBuiltOncePerAlternateSetAndCopiedToTheOtherStoreViews(): void
+    {
+        // Store views sharing an alternate set get byte-identical chunks: building the whole
+        // catalogue again per store view is what made this quadratic.
+        $this->givenHreflangEligible([1, 2, 3]);
+        $this->chunkNames = ['hreflang-sitemap-1.xml', 'hreflang-sitemap-2.xml'];
+
+        $this->regenerator()->regenerate(FeedRegenerator::GROUP_HREFLANG);
+
+        $this->assertSame(
+            [
+                'sitemap build 1',
+                'copy hreflang-sitemap-1.xml 1->2',
+                'copy hreflang-sitemap-2.xml 1->2',
+                'sitemap index 2',
+                'copy hreflang-sitemap-1.xml 1->3',
+                'copy hreflang-sitemap-2.xml 1->3',
+                'sitemap index 3',
+                'purge hreflang',
+            ],
+            $this->calls
+        );
+    }
+
+    public function testASingleDocumentSetIsCopiedWholeIncludingTheIndexFile(): void
+    {
+        $this->givenHreflangEligible([1, 2]);
+        $this->chunkNames = [];
+
+        $this->regenerator()->regenerate(FeedRegenerator::GROUP_HREFLANG);
+
+        $this->assertSame(
+            ['sitemap build 1', 'copy ' . SitemapGenerator::INDEX_FILE . ' 1->2', 'purge hreflang'],
+            $this->calls
+        );
+    }
+
+    public function testStoreViewsWithDifferentAlternateSetsAreBuiltSeparately(): void
+    {
+        // Two websites with hreflang limited to their own website: different sets, no sharing.
+        $this->storeManager->method('getStores')->willReturn([$this->activeStore(1), $this->activeStore(2)]);
+        $this->storeManager->method('getStore')->willReturn($this->activeStore());
+        $this->seoConfig->method('isHreflangEnabled')->willReturn(true);
+        $this->seoConfig->method('isHreflangSitemapEnabled')->willReturn(true);
+        // The map is store-scoped and reset between emulations; each store view asks twice
+        // (eligibility, then the alternate set's signature).
+        $lookups = 0;
+        $this->storeLocaleMap->method('getMap')->willReturnCallback(
+            static function () use (&$lookups): array {
+                return ++$lookups <= 2
+                    ? [1 => ['locale' => 'en-GB'], 2 => ['locale' => 'de-DE']]
+                    : [3 => ['locale' => 'fr-FR'], 4 => ['locale' => 'nl-NL']];
+            }
+        );
+
+        $this->regenerator()->regenerate(FeedRegenerator::GROUP_HREFLANG);
+
+        $this->assertSame(['sitemap build 1', 'sitemap build 2', 'purge hreflang'], $this->calls);
+    }
+
+    public function testChunksTheNewSetNoLongerContainsAreRemovedAfterTheIndex(): void
+    {
+        $this->givenHreflangEligible([1]);
+        $this->chunkNames = ['hreflang-sitemap-1.xml'];
+        $this->feedStorage->method('listForStore')->willReturn([
+            'hreflang-sitemap-1.xml',
+            'hreflang-sitemap-2.xml',
+        ]);
+
+        $this->regenerator()->regenerate(FeedRegenerator::GROUP_HREFLANG);
+
+        $this->assertSame(
+            ['sitemap build 1', 'delete 1/hreflang-sitemap-2.xml', 'purge hreflang'],
+            $this->calls
+        );
+    }
+
+    public function testHreflangFilesAreRemovedWhenFewerThanTwoLocalesQualify(): void
+    {
+        $this->storeManager->method('getStores')->willReturn([$this->activeStore()]);
+        $this->seoConfig->method('isHreflangEnabled')->willReturn(true);
+        $this->seoConfig->method('isHreflangSitemapEnabled')->willReturn(true);
+        $this->storeLocaleMap->method('getMap')->willReturn([1 => ['only-one']]);
+        $sitemapFileWriter = $this->createMock(SitemapFileWriter::class);
+        $sitemapFileWriter->expects($this->never())->method('write');
+        $this->sitemapFileWriter = $sitemapFileWriter;
+
+        $this->regenerator()->regenerate(FeedRegenerator::GROUP_HREFLANG);
+
+        $this->assertSame(['delete 1/hreflang-sitemap*.xml', 'purge hreflang'], $this->calls);
+    }
+
+    public function testRebuiltGroupIsPurgedOnceAfterEveryStore(): void
+    {
+        $this->storeManager->method('getStores')->willReturn([$this->activeStore(1), $this->activeStore(2)]);
+        $this->seoConfig->method('isLlmsJsonlEnabled')->willReturn(true);
+        $this->jsonlBuilder->method('stream')->willReturnCallback(
+            static function (): \Generator {
+                yield 'lines';
+            }
+        );
+
+        $this->regenerator()->regenerate(FeedRegenerator::GROUP_JSONL);
+
+        $this->assertSame(
+            ['stream 1: lines -> llms.jsonl', 'stream 2: lines -> llms.jsonl', 'purge jsonl'],
+            $this->calls
+        );
+    }
+
+    public function testFullRebuildPurgesEveryGroup(): void
+    {
+        $this->storeManager->method('getStores')->willReturn([]);
+
+        $this->regenerator()->regenerate();
+
+        $this->assertSame(['purge llms,jsonl,hreflang'], $this->calls);
+    }
+
+    public function testPurgeFailureIsLoggedNotThrown(): void
+    {
+        $this->storeManager->method('getStores')->willReturn([]);
+        $feedCache = $this->createStub(FeedCache::class);
+        $feedCache->method('purge')->willThrowException(new \RuntimeException('varnish down'));
+        $this->feedCache = $feedCache;
+        $logger = $this->createMock(LoggerInterface::class);
+        $logger->expects($this->once())->method('error')->with($this->stringContains('varnish down'));
+        $this->logger = $logger;
+
+        $this->regenerator()->regenerate(FeedRegenerator::GROUP_LLMS);
+    }
+
+    public function testAFailingStoreIsLoggedAndTheOtherStoresAreStillBuilt(): void
+    {
+        $this->storeManager->method('getStores')->willReturn([$this->activeStore(1), $this->activeStore(2)]);
+        $this->seoConfig->method('isLlmsTxtEnabled')->willReturn(true);
+        $builds = 0;
+        $this->llmsTxtBuilder->method('buildConcise')->willReturnCallback(
+            static function () use (&$builds): string {
+                if (++$builds === 1) {
+                    throw new \RuntimeException('build failed');
+                }
+                return 'concise';
+            }
+        );
+        $logger = $this->createMock(LoggerInterface::class);
+        $logger->expects($this->once())->method('error')->with($this->stringContains('store 1'));
+        $this->logger = $logger;
+
+        $failures = $this->regenerator()->regenerate(FeedRegenerator::GROUP_LLMS);
+
+        // llms-full.txt is disabled in this test, so it is removed for the store that built.
+        $this->assertSame(['write 2/llms.txt=concise', 'delete 2/llms-full.txt', 'purge llms'], $this->calls);
+        $this->assertSame([1 => 'build failed'], $failures);
+    }
+
+    public function testASuccessfulRebuildReportsNoFailures(): void
+    {
+        $this->storeManager->method('getStores')->willReturn([$this->activeStore()]);
+
+        $this->assertSame([], $this->regenerator()->regenerate(FeedRegenerator::GROUP_JSONL));
+    }
+
+    public function testEmulationStoppedAndLocaleMapResetInFinallyOnThrow(): void
+    {
+        $this->storeManager->method('getStores')->willReturn([$this->activeStore()]);
+        $this->seoConfig->method('isLlmsTxtEnabled')->willReturn(true);
+        $this->llmsTxtBuilder->method('buildConcise')->willThrowException(new \RuntimeException('build failed'));
+        $logger = $this->createMock(LoggerInterface::class);
+        $logger->expects($this->once())->method('error');
+        $this->logger = $logger;
+        $storeLocaleMap = $this->createMock(StoreLocaleMap::class);
+        $storeLocaleMap->expects($this->once())->method('reset');
+        $this->storeLocaleMap = $storeLocaleMap;
+        $emulation = $this->createMock(Emulation::class);
+        $emulation->expects($this->once())->method('stopEnvironmentEmulation');
+        $this->emulation = $emulation;
+
+        $this->regenerator()->regenerate(FeedRegenerator::GROUP_LLMS);
+    }
+
+    /**
+     * Build the regenerator from the current collaborators.
+     *
+     * @return FeedRegenerator
+     */
     private function regenerator(): FeedRegenerator
     {
         return new FeedRegenerator(
@@ -86,105 +425,74 @@ class FeedRegeneratorTest extends TestCase
             $this->seoConfig,
             $this->llmsTxtBuilder,
             $this->jsonlBuilder,
-            $this->sitemapGenerator,
+            $this->sitemapFileWriter,
             $this->storeLocaleMap,
             $this->feedStorage,
+            $this->feedCache,
             $this->logger
         );
     }
 
-    private function activeStore(int $id = 1): Store&MockObject
+    /**
+     * An active store view.
+     *
+     * @param int $id
+     * @return Store
+     */
+    private function activeStore(int $id = 1): Store
     {
-        $store = $this->createMock(Store::class);
+        $store = $this->createStub(Store::class);
         $store->method('getIsActive')->willReturn(true);
         $store->method('getId')->willReturn($id);
         $store->method('getBaseUrl')->willReturn('https://example.com/');
+
         return $store;
     }
 
-    public function testInactiveStoresAreSkipped(): void
+    /**
+     * Active store views for which the hreflang sitemap is enabled and has two locales.
+     *
+     * @param int[] $storeIds
+     * @return void
+     */
+    private function givenHreflangEligible(array $storeIds): void
     {
-        $store = $this->createMock(Store::class);
-        $store->method('getIsActive')->willReturn(false);
-        $this->storeManager->method('getStores')->willReturn([$store]);
-
-        $this->emulation->expects($this->never())->method('startEnvironmentEmulation');
-        $this->feedStorage->expects($this->never())->method('write');
-
-        $this->regenerator()->regenerate();
-    }
-
-    public function testGroupFilterBuildsOnlyTheRequestedGroup(): void
-    {
-        $this->storeManager->method('getStores')->willReturn([$this->activeStore()]);
-        $this->seoConfig->method('isLlmsTxtEnabled')->willReturn(true);
-        $this->seoConfig->method('isLlmsFullTxtEnabled')->willReturn(false);
-        $this->llmsTxtBuilder->method('buildConcise')->willReturn('concise');
-
-        // Only the llms group is requested: jsonl and hreflang must not be built.
-        $this->jsonlBuilder->expects($this->never())->method('build');
-        $this->sitemapGenerator->expects($this->never())->method('generateFiles');
-        $this->feedStorage->expects($this->once())->method('write')->with('llms.txt', 1, 'concise');
-
-        $this->regenerator()->regenerate(FeedRegenerator::GROUP_LLMS);
-    }
-
-    public function testDisabledFeedIsNotWritten(): void
-    {
-        $this->storeManager->method('getStores')->willReturn([$this->activeStore()]);
-        $this->seoConfig->method('isLlmsTxtEnabled')->willReturn(false);
-        $this->seoConfig->method('isLlmsFullTxtEnabled')->willReturn(false);
-
-        $this->llmsTxtBuilder->expects($this->never())->method('buildConcise');
-        $this->feedStorage->expects($this->never())->method('write');
-
-        $this->regenerator()->regenerate(FeedRegenerator::GROUP_LLMS);
-    }
-
-    public function testHreflangCleanupDeletesPerStoreNeverAllStores(): void
-    {
-        // Regression guard: deleting all stores' chunks inside the per-store loop
-        // wiped other stores' freshly written files.
-        $this->storeManager->method('getStores')->willReturn([$this->activeStore(2)]);
-        $this->storeManager->method('getStore')->willReturn($this->activeStore(2));
+        $this->storeManager->method('getStores')->willReturn(
+            array_map(fn (int $id): Store => $this->activeStore($id), $storeIds)
+        );
+        $this->storeManager->method('getStore')->willReturn($this->activeStore());
         $this->seoConfig->method('isHreflangEnabled')->willReturn(true);
         $this->seoConfig->method('isHreflangSitemapEnabled')->willReturn(true);
         $this->storeLocaleMap->method('getMap')->willReturn([1 => ['x'], 2 => ['y']]);
-        $this->sitemapGenerator->method('generateFiles')->willReturn(['hreflang-sitemap.xml' => '<xml/>']);
-
-        $this->feedStorage->expects($this->never())->method('deleteForAllStores');
-        $this->feedStorage->expects($this->once())->method('deleteForStore')
-            ->with('hreflang-sitemap*.xml', 2);
-        $this->feedStorage->expects($this->once())->method('write')
-            ->with('hreflang-sitemap.xml', 2, '<xml/>');
-
-        $this->regenerator()->regenerate(FeedRegenerator::GROUP_HREFLANG);
     }
 
-    public function testHreflangSkippedWhenFewerThanTwoLocales(): void
+    /**
+     * A file writer that records what was streamed into it and how it ended.
+     *
+     * @param int $storeId
+     * @return FeedFileWriter
+     */
+    private function recordingFile(int $storeId): FeedFileWriter
     {
-        $this->storeManager->method('getStores')->willReturn([$this->activeStore()]);
-        $this->seoConfig->method('isHreflangEnabled')->willReturn(true);
-        $this->seoConfig->method('isHreflangSitemapEnabled')->willReturn(true);
-        $this->storeLocaleMap->method('getMap')->willReturn([1 => ['only-one']]);
+        $content = '';
 
-        $this->sitemapGenerator->expects($this->never())->method('generateFiles');
-        $this->feedStorage->expects($this->never())->method('deleteForStore');
+        $file = $this->createStub(FeedFileWriter::class);
+        $file->method('write')->willReturnCallback(
+            static function (string $part) use (&$content): void {
+                $content .= $part;
+            }
+        );
+        $file->method('commit')->willReturnCallback(
+            function (string $fileName) use (&$content, $storeId): void {
+                $this->calls[] = "stream {$storeId}: {$content} -> {$fileName}";
+            }
+        );
+        $file->method('discard')->willReturnCallback(
+            function () use ($storeId): void {
+                $this->calls[] = "discard {$storeId}";
+            }
+        );
 
-        $this->regenerator()->regenerate(FeedRegenerator::GROUP_HREFLANG);
-    }
-
-    public function testEmulationStoppedAndLocaleMapResetInFinallyOnThrow(): void
-    {
-        $this->storeManager->method('getStores')->willReturn([$this->activeStore()]);
-        $this->seoConfig->method('isLlmsTxtEnabled')->willReturn(true);
-        $this->llmsTxtBuilder->method('buildConcise')->willThrowException(new \RuntimeException('build failed'));
-
-        // The failure is logged, not rethrown, and the finally block always runs.
-        $this->logger->expects($this->once())->method('error');
-        $this->storeLocaleMap->expects($this->once())->method('reset');
-        $this->emulation->expects($this->once())->method('stopEnvironmentEmulation');
-
-        $this->regenerator()->regenerate(FeedRegenerator::GROUP_LLMS);
+        return $file;
     }
 }

@@ -337,6 +337,15 @@
                 sortOrder="10"/>
     </type>
 
+    <!-- Mass attribute updates write straight to the EAV tables without saving the
+         products, so no save event reports them. Registered globally: the admin mass
+         actions, REST and any other caller reach the same service. -->
+    <type name="Magento\Catalog\Model\Product\Action">
+        <plugin name="mageos_seo_invalidate_feeds_on_mass_attribute_update"
+                type="MageOS\Seo\Plugin\Catalog\Product\Action\InvalidateFeedsOnMassAttributeUpdate"
+                sortOrder="10"/>
+    </type>
+
     <!-- Category/product SEO tab persistence plugins and the admin form modifiers
          are registered in etc/adminhtml/di.xml: they read admin form POST data and
          must not run on REST, GraphQL, import or cron saves. -->
@@ -366,12 +375,22 @@
         </arguments>
     </type>
 
-    <!-- Register the UCP keygen CLI command -->
+    <!-- Register the CLI commands -->
     <type name="Magento\Framework\Console\CommandList">
         <arguments>
             <argument name="commands" xsi:type="array">
                 <item name="mageos_seo_ucp_keygen" xsi:type="object">MageOS\Seo\Console\Command\UcpKeygenCommand</item>
+                <item name="mageos_seo_feeds_regenerate" xsi:type="object">MageOS\Seo\Console\Command\RegenerateFeedsCommand</item>
             </argument>
+        </arguments>
+    </type>
+    <!--
+        Every registered command is instantiated when bin/magento starts; the proxy keeps the
+        feed builders (and their dependencies) from loading unless this command runs.
+    -->
+    <type name="MageOS\Seo\Console\Command\RegenerateFeedsCommand">
+        <arguments>
+            <argument name="feedRegenerator" xsi:type="object">MageOS\Seo\Model\Feed\FeedRegenerator\Proxy</argument>
         </arguments>
     </type>
 

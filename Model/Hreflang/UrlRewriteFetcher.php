@@ -61,24 +61,25 @@ class UrlRewriteFetcher
     }
 
     /**
-     * Bulk-fetch canonical request paths for every entity of a type, for the sitemap generator.
+     * Stream canonical request paths for every entity of a type, one entity at a time.
      *
-     * One query for the whole catalogue. Returns entity_id => [store_id => request_path].
+     * One query for the whole catalogue, walked row by row and grouped on entity_id, so the
+     * sitemap generator never holds every rewrite of every store view at once.
      *
      * @param string $entityType
      * @param int[] $storeIds
-     * @return array<int, array<int, string>>
+     * @return \Generator<int, array<int, string>> store_id => request_path, per entity
      */
-    public function fetchAllForType(string $entityType, array $storeIds): array
+    public function streamAllForType(string $entityType, array $storeIds): \Generator
     {
         if ($storeIds === []) {
-            return [];
+            return;
         }
 
         $connection = $this->resourceConnection->getConnection();
         $table      = $this->resourceConnection->getTableName('url_rewrite');
 
-        $rows = $connection->fetchAll(
+        $statement = $connection->query(
             $connection->select()
                 ->from($table, ['entity_id', 'store_id', 'request_path'])
                 ->where('entity_type = ?', $entityType)
@@ -88,18 +89,32 @@ class UrlRewriteFetcher
                 // Root rewrites only: excludes category-nested product URL variants,
                 // which both bloats the result set and picks non-canonical URLs.
                 ->where('metadata IS NULL')
+                // Grouping happens on consecutive rows, so entity_id leads the ordering;
+                // url_rewrite_id keeps the winner per store deterministic.
+                ->order('entity_id ASC')
                 ->order('url_rewrite_id ASC')
         );
 
-        $result = [];
-        foreach ($rows as $row) {
+        $currentEntityId = null;
+        $paths           = [];
+
+        while ($row = $statement->fetch()) {
             $entityId = (int) $row['entity_id'];
-            $storeId  = (int) $row['store_id'];
-            if (!isset($result[$entityId][$storeId])) {
-                $result[$entityId][$storeId] = (string) $row['request_path'];
+            if ($currentEntityId !== null && $entityId !== $currentEntityId) {
+                yield $paths;
+                $paths = [];
+            }
+            $currentEntityId = $entityId;
+
+            $storeId = (int) $row['store_id'];
+            // First canonical row per store wins; ordering makes the winner deterministic.
+            if (!isset($paths[$storeId])) {
+                $paths[$storeId] = (string) $row['request_path'];
             }
         }
 
-        return $result;
+        if ($paths !== []) {
+            yield $paths;
+        }
     }
 }
