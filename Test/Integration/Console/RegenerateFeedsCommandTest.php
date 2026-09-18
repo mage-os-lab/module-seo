@@ -26,20 +26,13 @@ use Symfony\Component\Console\Tester\CommandTester;
 class RegenerateFeedsCommandTest extends TestCase
 {
     /**
-     * @var int
-     */
-    private int $storeId;
-
-    /**
      * Resolve the services and the default store view.
      *
      * @return void
      */
     protected function setUp(): void
     {
-        $objectManager = Bootstrap::getObjectManager();
-        $this->storeId = (int) $objectManager->get(StoreManagerInterface::class)->getStore('default')->getId();
-        $this->storage()->deleteForStore('llms*.txt', $this->storeId);
+        $this->storage()->deleteForStore('llms*.txt', $this->storeId());
     }
 
     /**
@@ -50,7 +43,7 @@ class RegenerateFeedsCommandTest extends TestCase
     protected function tearDown(): void
     {
         $objectManager = Bootstrap::getObjectManager();
-        $this->storage()->deleteForStore('llms*.txt', $this->storeId);
+        $this->storage()->deleteForStore('llms*.txt', $this->storeId());
         $objectManager->removeSharedInstance(FeedStorage::class);
     }
 
@@ -80,9 +73,9 @@ class RegenerateFeedsCommandTest extends TestCase
 
         $objectManager = Bootstrap::getObjectManager();
         $storage = $objectManager->create(FeedStorage::class);
-        $storage->deleteForStore('llms*.txt', $this->storeId);
+        $storage->deleteForStore('llms*.txt', $this->storeId());
         $this->assertSame(Command::INVALID, $tester->execute(['--group' => ['robots']]));
-        $this->assertNull($storage->read('llms.txt', $this->storeId));
+        $this->assertNull($storage->read('llms.txt', $this->storeId()));
     }
 
     /**
@@ -92,14 +85,14 @@ class RegenerateFeedsCommandTest extends TestCase
      */
     public function testTheCommandBuildsTheRequestedGroup(): void
     {
-        $this->storage()->deleteForStore('llms*.txt', $this->storeId);
+        $this->storage()->deleteForStore('llms*.txt', $this->storeId());
         $tester = new CommandTester(
             Bootstrap::getObjectManager()->create(RegenerateFeedsCommand::class)
         );
 
         $this->assertSame(Command::SUCCESS, $tester->execute(['--group' => ['llms']]), $tester->getDisplay());
-        $this->assertStringStartsWith('# ', (string) $this->storage()->read('llms.txt', $this->storeId));
-        $this->assertNotNull($this->storage()->read('llms-full.txt', $this->storeId));
+        $this->assertStringStartsWith('# ', (string) $this->storage()->read('llms.txt', $this->storeId()));
+        $this->assertNotNull($this->storage()->read('llms-full.txt', $this->storeId()));
     }
 
     /**
@@ -129,5 +122,13 @@ class RegenerateFeedsCommandTest extends TestCase
     private function storage()
     {
         return Bootstrap::getObjectManager()->create(FeedStorage::class);
+    }
+
+    private function storeId()
+    {
+        return (int) Bootstrap::getObjectManager()
+            ->get(StoreManagerInterface::class)
+            ->getStore('default')
+            ->getId();
     }
 }
