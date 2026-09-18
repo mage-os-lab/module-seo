@@ -43,7 +43,7 @@ class RegenerateFeedsCommandTest extends TestCase
     protected function setUp(): void
     {
         $objectManager = Bootstrap::getObjectManager();
-        $this->storage = $objectManager->create(FeedStorage::class);
+        $this->storage = $objectManager->get(FeedStorage::class);
         $this->storeId = (int) $objectManager->get(StoreManagerInterface::class)->getStore('default')->getId();
         $this->storage->deleteForStore('llms*.txt', $this->storeId);
     }
