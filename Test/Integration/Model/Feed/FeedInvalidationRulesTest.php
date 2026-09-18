@@ -127,14 +127,39 @@ class FeedInvalidationRulesTest extends TestCase
     /**
      * CMS page saves queue hreflang only for URL-relevant changes.
      * 
+     * @magentoDataFixture Magento/Store/_files/second_store.php
      * @magentoDataFixture Magento/Cms/_files/pages.php
+     *
+     * @return void
+     */
+    public function testCmsPageSavesQueueHreflangOnlyForUrlChangesLegacy(): void
+    {
+        if (method_exists($this, 'fixture')) {
+            $this->markTestSkipped('Handled by modern attribute test method.');
+        }
+
+        $pageId = (int) $this->fixture('page')->getId();
+
+        $this->assertQueuedBy([], fn () => $this->savePage($pageId, ['title' => 'Renamed page']));
+        $this->assertQueuedBy(
+            [FeedRegenerator::GROUP_HREFLANG],
+            fn () => $this->savePage($pageId, ['identifier' => 'renamed-page-' . uniqid()])
+        );
+    }
+
+    /**
+     * CMS page saves queue hreflang only for URL-relevant changes.
      *
      * @return void
      */
     #[DataFixture(StoreFixture::class, as: 'second_store')]
     #[DataFixture(\Magento\Cms\Test\Fixture\Page::class, as: 'page')]
-    public function testCmsPageSavesQueueHreflangOnlyForUrlChanges(): void
+    public function testCmsPageSavesQueueHreflangOnlyForUrlChangesModern(): void
     {
+        if (!method_exists($this, 'fixture')) {
+            $this->markTestSkipped('Legacy framework runner detected.');
+        }
+        
         $pageId = (int) $this->fixture('page')->getId();
 
         $this->assertQueuedBy([], fn () => $this->savePage($pageId, ['title' => 'Renamed page']));
