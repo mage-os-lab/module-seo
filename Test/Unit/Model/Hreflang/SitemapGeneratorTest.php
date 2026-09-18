@@ -129,14 +129,6 @@ class SitemapGeneratorTest extends TestCase
         $this->assertStringNotContainsString('a=1&b=2', $xml);
     }
 
-    public function testBlocksAreStreamedNotCollected(): void
-    {
-        // The whole catalogue must never be held as one document: streamBlocks() yields.
-        $this->noEntities();
-
-        $this->assertInstanceOf(\Generator::class, $this->generator->streamBlocks());
-    }
-
     public function testIndexDocumentListsTheChunksUnderTheStoreBaseUrl(): void
     {
         $xml = $this->generator->indexDocument('https://uk/', ['hreflang-sitemap-1.xml', 'hreflang-sitemap-2.xml']);

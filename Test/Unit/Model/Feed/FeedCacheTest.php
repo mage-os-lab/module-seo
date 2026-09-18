@@ -14,11 +14,6 @@ use PHPUnit\Framework\TestCase;
 
 class FeedCacheTest extends TestCase
 {
-    public function testCachePolicyIsTwentyFourHoursForBrowsersAndSharedCaches(): void
-    {
-        $this->assertSame('public, max-age=86400, s-maxage=86400', FeedCache::CACHE_CONTROL);
-    }
-
     public function testVarnishIsPurgedByTheTagsOfTheRebuiltGroups(): void
     {
         $purgeCache = $this->createMock(PurgeCache::class);

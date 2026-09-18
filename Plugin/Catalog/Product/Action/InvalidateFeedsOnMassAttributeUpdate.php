@@ -41,7 +41,7 @@ class InvalidateFeedsOnMassAttributeUpdate
      * @param array<string,mixed> $attrData Attribute code => value
      * @param int $storeId
      * @return Action
-     * @SuppressWarnings(PHPMD.UnusedFormalParameter)
+     * @SuppressWarnings("PHPMD.UnusedFormalParameter")
      */
     public function afterUpdateAttributes(
         Action $subject,

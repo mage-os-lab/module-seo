@@ -33,7 +33,7 @@ class AddSeoConfigToFormDataPlugin
      * @param DataProvider $subject
      * @param mixed $result Form data keyed by category ID, or null when no category is loaded
      * @return mixed
-     * @SuppressWarnings(PHPMD.UnusedFormalParameter)
+     * @SuppressWarnings("PHPMD.UnusedFormalParameter")
      */
     public function afterGetData(DataProvider $subject, mixed $result): mixed
     {

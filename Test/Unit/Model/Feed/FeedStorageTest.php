@@ -329,8 +329,6 @@ class FeedStorageTest extends TestCase
         $writeDir->method('isExist')->willThrowException(new \RuntimeException('io'));
 
         $this->storage()->deleteStoreDirectory(3);
-
-        $this->assertTrue(true, 'The filesystem error was swallowed.');
     }
 
     /**
