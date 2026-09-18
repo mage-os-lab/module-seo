@@ -42,7 +42,7 @@ class ProductOverrideRepository implements ResetAfterRequestInterface
         }
 
         $collection = $this->collectionFactory->create();
-        $collection->addFieldToFilter('product_id', $productId);
+        $collection->addFieldToFilter('product_id', ['eq' => $productId]);
         $collection->addFieldToFilter('store_id', ['in' => [0, $storeId]]);
         // Global row first, store-view row second: store-specific fields win over global ones.
         $collection->setOrder('store_id', DataCollection::SORT_ORDER_ASC);
@@ -87,8 +87,8 @@ class ProductOverrideRepository implements ResetAfterRequestInterface
         }
 
         $collection = $this->collectionFactory->create();
-        $collection->addFieldToFilter('product_id', $productId);
-        $collection->addFieldToFilter('store_id', $storeId);
+        $collection->addFieldToFilter('product_id', ['eq' => $productId]);
+        $collection->addFieldToFilter('store_id', ['eq' => $storeId]);
 
         /** @var ProductOverride $override An empty model when this product has no row yet */
         $override = $collection->getFirstItem();

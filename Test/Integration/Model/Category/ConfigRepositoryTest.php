@@ -29,9 +29,9 @@ class ConfigRepositoryTest extends TestCase
     /**
      * Category IDs whose configuration this test wrote.
      *
-     * @var int[]
+     * @var int[]|null
      */
-    private array $writtenCategoryIds = [];
+    private ?array $writtenCategoryIds = [];
 
     /**
      * Remove the rows the test wrote; the category fixtures revert themselves.

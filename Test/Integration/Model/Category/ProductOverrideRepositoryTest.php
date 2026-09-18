@@ -24,9 +24,9 @@ class ProductOverrideRepositoryTest extends TestCase
     /**
      * Product IDs whose overrides this test wrote.
      *
-     * @var int[]
+     * @var int[]|null
      */
-    private array $writtenProductIds = [];
+    private ?array $writtenProductIds = [];
 
     /**
      * Remove the rows the test wrote; the product fixtures revert themselves.

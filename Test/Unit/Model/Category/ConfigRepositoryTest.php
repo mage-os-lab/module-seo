@@ -10,8 +10,17 @@ use MageOS\Seo\Model\CategoryConfig;
 use MageOS\Seo\Model\ResourceModel\CategoryConfig as CategoryConfigResource;
 use MageOS\Seo\Model\ResourceModel\CategoryConfig\Collection;
 use MageOS\Seo\Model\ResourceModel\CategoryConfig\CollectionFactory;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * The collection factory is one of Magento's generated classes, so this test needs an
+ * installation to have generated it. The mutation-testing run works from the module directory
+ * alone and excludes this group; the unit job, which runs inside an installation, does not.
+ *
+ * @group magento-generated
+ */
+#[Group('magento-generated')]
 class ConfigRepositoryTest extends TestCase
 {
     /**

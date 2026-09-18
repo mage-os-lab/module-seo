@@ -10,12 +10,20 @@ use MageOS\Seo\Model\OrganisationRepository;
 use MageOS\Seo\Model\ResourceModel\Organisation as OrganisationResource;
 use MageOS\Seo\Model\ResourceModel\Organisation\Collection;
 use MageOS\Seo\Model\ResourceModel\Organisation\CollectionFactory;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 
 /**
  * Deleting Organisation records by scope: the table carries no foreign key, because scope_id
  * points at a website or a store view depending on the scope column.
+ *
+ * The model and collection factories are Magento's generated classes, so this test needs an
+ * installation to have generated them. The mutation-testing run works from the module directory
+ * alone and excludes this group; the unit job, which runs inside an installation, does not.
+ *
+ * @group magento-generated
  */
+#[Group('magento-generated')]
 class OrganisationRepositoryTest extends TestCase
 {
     /**

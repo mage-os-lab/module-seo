@@ -305,7 +305,12 @@ class FeedStorage
      */
     private function search(string $pattern): array
     {
-        Glob::clearCache();
+        // clearCache() arrived after this module's minimum version. Without it the listing can
+        // be the one from before this process wrote, which costs a surplus chunk file left on
+        // disk until the next rebuild — not worth a hard version requirement.
+        if (method_exists(Glob::class, 'clearCache')) {
+            Glob::clearCache();
+        }
 
         return $this->getWrite()->search($pattern);
     }

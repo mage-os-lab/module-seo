@@ -49,7 +49,9 @@ interface OrganisationRepositoryInterface
      * Website::beforeDelete() and Group::beforeDelete().
      *
      * @param string $scope 'default' | 'websites' | 'stores'
-     * @param int[] $scopeIds Website or store IDs; an empty list deletes nothing.
+     * @param array<int|string> $scopeIds Website or store IDs; an empty list deletes nothing.
+     *                                    Values are cast to int, so IDs read from a request or
+     *                                    a model's data are accepted as they come.
      * @return int Number of records deleted.
      */
     public function deleteForScope(string $scope, array $scopeIds): int;

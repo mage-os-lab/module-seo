@@ -109,7 +109,7 @@ class ConfigRepository implements ResetAfterRequestInterface
     {
         $collection = $this->collectionFactory->create();
         $collection->addFieldToFilter('category_id', ['in' => $categoryIds]);
-        $collection->addFieldToFilter('store_id', $storeId > 0 ? ['in' => [0, $storeId]] : 0);
+        $collection->addFieldToFilter('store_id', $storeId > 0 ? ['in' => [0, $storeId]] : ['eq' => 0]);
         // Global row first, store-view row second, so the store view's values are applied last.
         $collection->setOrder('store_id', DataCollection::SORT_ORDER_ASC);
 
@@ -166,8 +166,8 @@ class ConfigRepository implements ResetAfterRequestInterface
         }
 
         $collection = $this->collectionFactory->create();
-        $collection->addFieldToFilter('category_id', $categoryId);
-        $collection->addFieldToFilter('store_id', $storeId);
+        $collection->addFieldToFilter('category_id', ['eq' => $categoryId]);
+        $collection->addFieldToFilter('store_id', ['eq' => $storeId]);
 
         /** @var CategoryConfig $config An empty model when this category has no row yet */
         $config = $collection->getFirstItem();
