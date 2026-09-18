@@ -10,8 +10,9 @@ use Magento\Catalog\Model\Product\Action as ProductAction;
 use Magento\Catalog\Model\Product\Attribute\Source\Status;
 use Magento\Catalog\Test\Fixture\Category as CategoryFixture;
 use Magento\Catalog\Test\Fixture\Product as ProductFixture;
+use Magento\Cms\Api\Data\PageInterface;
 use Magento\Cms\Api\PageRepositoryInterface;
-use Magento\Cms\Test\Fixture\Page as PageFixture;
+use Magento\Cms\Model\PageFactory;
 use Magento\Framework\FlagManager;
 use Magento\Store\Model\ResourceModel\Store as StoreResource;
 use Magento\Store\Model\ScopeInterface;
@@ -40,12 +41,29 @@ class FeedInvalidationRulesTest extends TestCase
     private const JSONL_ENABLED = 'mageos_seo_general/llms_txt/jsonl_enabled';
 
     /**
-     * Leave no pending rebuild requests behind.
+     * IDs of the CMS pages created by the running test.
+     *
+     * @var int[]
+     */
+    private array $createdPageIds = [];
+
+    /**
+     * Remove the CMS pages the test created and leave no pending rebuild requests behind.
      *
      * @return void
      */
     protected function tearDown(): void
     {
+        $pageRepository = Bootstrap::getObjectManager()->get(PageRepositoryInterface::class);
+        foreach ($this->createdPageIds as $pageId) {
+            try {
+                $pageRepository->deleteById($pageId);
+            } catch (\Exception) {
+                // The test deleted it itself.
+            }
+        }
+        $this->createdPageIds = [];
+
         $this->clearPending();
     }
 
@@ -126,41 +144,13 @@ class FeedInvalidationRulesTest extends TestCase
 
     /**
      * CMS page saves queue hreflang only for URL-relevant changes.
-     * 
-     * @magentoDataFixture Magento/Store/_files/second_store.php
-     * @magentoDataFixture Magento/Cms/_files/pages.php
-     *
-     * @return void
-     */
-    public function testCmsPageSavesQueueHreflangOnlyForUrlChangesLegacy(): void
-    {
-        if (method_exists($this, 'fixture')) {
-            $this->markTestSkipped('Handled by modern attribute test method.');
-        }
-
-        $pageId = (int) $this->fixture('page')->getId();
-
-        $this->assertQueuedBy([], fn () => $this->savePage($pageId, ['title' => 'Renamed page']));
-        $this->assertQueuedBy(
-            [FeedRegenerator::GROUP_HREFLANG],
-            fn () => $this->savePage($pageId, ['identifier' => 'renamed-page-' . uniqid()])
-        );
-    }
-
-    /**
-     * CMS page saves queue hreflang only for URL-relevant changes.
      *
      * @return void
      */
     #[DataFixture(StoreFixture::class, as: 'second_store')]
-    #[DataFixture(\Magento\Cms\Test\Fixture\Page::class, as: 'page')]
-    public function testCmsPageSavesQueueHreflangOnlyForUrlChangesModern(): void
+    public function testCmsPageSavesQueueHreflangOnlyForUrlChanges(): void
     {
-        if (!method_exists($this, 'fixture')) {
-            $this->markTestSkipped('Legacy framework runner detected.');
-        }
-        
-        $pageId = (int) $this->fixture('page')->getId();
+        $pageId = $this->createPage();
 
         $this->assertQueuedBy([], fn () => $this->savePage($pageId, ['title' => 'Renamed page']));
         $this->assertQueuedBy(
@@ -308,7 +298,7 @@ class FeedInvalidationRulesTest extends TestCase
     #[DataFixture(StoreFixture::class, as: 'second_store')]
     public function testDeletingACmsPageQueuesTheHreflangSitemap(): void
     {
-        $pageId = (int) $this->create(PageFixture::class)->getId();
+        $pageId = $this->createPage();
 
         $this->assertQueuedBy(
             [FeedRegenerator::GROUP_HREFLANG],
@@ -441,6 +431,33 @@ class FeedInvalidationRulesTest extends TestCase
         $resource->load($store, $storeId);
         $resource->delete($store);
         $objectManager->get(StoreManagerInterface::class)->reinitStores();
+    }
+
+    /**
+     * Create an active CMS page and return its ID.
+     *
+     * Built here rather than with Magento\Cms\Test\Fixture\Page: that fixture only exists in
+     * recent releases, and on the versions without it the framework falls back to loading the
+     * class name as a legacy fixture file path and fails.
+     *
+     * @return int
+     */
+    private function createPage(): int
+    {
+        $page = Bootstrap::getObjectManager()->get(PageFactory::class)->create();
+        $page->setData([
+            PageInterface::IDENTIFIER => 'mageos-seo-test-page-' . uniqid(),
+            PageInterface::TITLE      => 'MageOS SEO test page',
+            PageInterface::CONTENT    => '<p>MageOS SEO test page</p>',
+            PageInterface::IS_ACTIVE  => 1,
+            'stores'                  => [0],
+        ]);
+        Bootstrap::getObjectManager()->get(PageRepositoryInterface::class)->save($page);
+
+        $pageId                 = (int) $page->getId();
+        $this->createdPageIds[] = $pageId;
+
+        return $pageId;
     }
 
     /**
