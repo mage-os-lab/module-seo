@@ -44,6 +44,13 @@
             <column name="scope"/>
             <column name="scope_id"/>
         </constraint>
+        <!--
+            No foreign key on scope_id: it points at a website or a store view depending on the
+            scope column, which no single constraint can express. core_config_data is built the
+            same way, and core cleans it up in Website::beforeDelete() / Group::beforeDelete()
+            via clearScopeData(). MageOS\Seo\Observer\RemoveOrganisationOnScopeDelete does the
+            equivalent for this table.
+        -->
     </table>
 
     <!-- Per-category SEO configuration (scoped: store_id=0 is global default) -->
@@ -69,6 +76,21 @@
             <column name="category_id"/>
             <column name="store_id"/>
         </constraint>
+        <!--
+            The config is meaningless without its category or store view, so both cascade.
+            The unique key above covers the category_id foreign key (leftmost column); store_id
+            needs an index of its own.
+        -->
+        <constraint xsi:type="foreign"
+                    referenceId="MAGEOS_SEO_CATEGORY_CONFIG_CATEGORY_ID_CATALOG_CATEGORY_ENTITY_ENTITY_ID"
+                    table="mageos_seo_category_config" column="category_id"
+                    referenceTable="catalog_category_entity" referenceColumn="entity_id" onDelete="CASCADE"/>
+        <constraint xsi:type="foreign" referenceId="MAGEOS_SEO_CATEGORY_CONFIG_STORE_ID_STORE_STORE_ID"
+                    table="mageos_seo_category_config" column="store_id"
+                    referenceTable="store" referenceColumn="store_id" onDelete="CASCADE"/>
+        <index referenceId="MAGEOS_SEO_CATEGORY_CONFIG_STORE_ID" indexType="btree">
+            <column name="store_id"/>
+        </index>
     </table>
 
     <!-- Per-product SEO field overrides -->
@@ -91,6 +113,17 @@
         <index referenceId="MAGEOS_SEO_PRODUCT_OVERRIDE_PRODUCT_ID_IDX" indexType="btree">
             <column name="product_id"/>
         </index>
+        <!-- An override without its product or store view is dead data, so both cascade. -->
+        <constraint xsi:type="foreign"
+                    referenceId="MAGEOS_SEO_PRODUCT_OVERRIDE_PRODUCT_ID_CATALOG_PRODUCT_ENTITY_ENTITY_ID"
+                    table="mageos_seo_product_override" column="product_id"
+                    referenceTable="catalog_product_entity" referenceColumn="entity_id" onDelete="CASCADE"/>
+        <constraint xsi:type="foreign" referenceId="MAGEOS_SEO_PRODUCT_OVERRIDE_STORE_ID_STORE_STORE_ID"
+                    table="mageos_seo_product_override" column="store_id"
+                    referenceTable="store" referenceColumn="store_id" onDelete="CASCADE"/>
+        <index referenceId="MAGEOS_SEO_PRODUCT_OVERRIDE_STORE_ID" indexType="btree">
+            <column name="store_id"/>
+        </index>
     </table>
 
     <!-- FAQ entries, grouped by a named identifier referenced from widgets / Page Builder -->
@@ -112,6 +145,16 @@
         </constraint>
         <index referenceId="MAGEOS_SEO_FAQ_IDENTIFIER_STORE_IDX" indexType="btree">
             <column name="identifier"/>
+            <column name="store_id"/>
+        </index>
+        <!--
+            store_id sits second in the index above, so the foreign key needs its own.
+            identifier is a free-text grouping key and references nothing.
+        -->
+        <constraint xsi:type="foreign" referenceId="MAGEOS_SEO_FAQ_STORE_ID_STORE_STORE_ID"
+                    table="mageos_seo_faq" column="store_id"
+                    referenceTable="store" referenceColumn="store_id" onDelete="CASCADE"/>
+        <index referenceId="MAGEOS_SEO_FAQ_STORE_ID" indexType="btree">
             <column name="store_id"/>
         </index>
     </table>

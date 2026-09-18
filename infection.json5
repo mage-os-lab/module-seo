@@ -29,6 +29,11 @@
     },
     "mutators": { "@default": true },
     "phpUnit": { "configDir": "." },
+    // Infection runs PHPUnit from the module directory, where Magento's code generator has
+    // never run, so this module's own *Factory classes do not exist and a test that doubles
+    // one cannot be built. Those tests are tagged magento-generated and run in the unit job,
+    // which runs inside an installation. The classes they cover are excluded above anyway.
+    "testFrameworkOptions": "--exclude-group=magento-generated",
     // Baseline thresholds; minMsi sits just below the measured MSI so a
     // regression fails CI. Raise it as coverage of the remaining excluded
     // classes (schema/meta providers, llms builders) grows.

@@ -63,6 +63,20 @@ After installing and running `bin/magento setup:upgrade`:
 | `mageos_seo_organisation` | Organisation identity settings, one row per scope (store/website/default) |
 | `mageos_seo_category_config` | Per-category SEO overrides, one row per category per store view |
 | `mageos_seo_product_override` | Per-product field overrides, one row per product per store view |
+| `mageos_seo_faq` | FAQ entries, grouped by identifier, one row per entry per store view |
+
+Records go when what they describe goes. `mageos_seo_category_config`,
+`mageos_seo_product_override` and `mageos_seo_faq` carry foreign keys with `ON DELETE CASCADE`
+to `catalog_category_entity`, `catalog_product_entity` and `store`, so deleting a category, a
+product or a store view removes its SEO records with it — including when a deleted website or
+store group takes its store views down with it, which happens in the database without any event
+a module could observe.
+
+`mageos_seo_organisation` is the exception: its `scope_id` points at a website or a store view
+depending on the `scope` column, which no single foreign key can express (`core_config_data` is
+built the same way). `MageOS\Seo\Observer\RemoveOrganisationOnScopeDelete` clears it instead,
+exactly as core clears its configuration table from `Website::beforeDelete()` and
+`Group::beforeDelete()`.
 
 ---
 

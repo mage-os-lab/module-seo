@@ -201,7 +201,13 @@ class FeedStorage
      */
     public function deleteForStore(string $fileNamePattern, int $storeId): void
     {
-        $this->deleteByPattern('store_' . $storeId . '/' . $fileNamePattern);
+        try {
+            $dir = $this->getWrite();
+            foreach ($this->search((string) $this->storeDirectory($storeId), $fileNamePattern) as $path) {
+                $dir->delete($path);
+            }
+        } catch (\Exception) { // phpcs:ignore Magento2.CodeAnalysis.EmptyBlock.DetectedCatch -- best-effort cleanup
+        }
     }
 
     /**
@@ -226,6 +232,33 @@ class FeedStorage
     }
 
     /**
+     * List the store view IDs that have a feed directory.
+     *
+     * Used to find directories left behind by store views that no longer exist: deleting a
+     * store group or a website removes its store views through a database-level cascade, with
+     * no event to act on.
+     *
+     * @return int[]
+     */
+    public function listStoreDirectories(): array
+    {
+        try {
+            $root     = $this->storeDirectory(null);
+            $storeIds = [];
+            foreach ($this->search($root, 'store_*') as $path) {
+                $name = substr((string) $path, $root === null ? 0 : \strlen($root) + 1);
+                if (preg_match('/^store_(\d+)$/', $name, $matches) === 1) {
+                    $storeIds[] = (int) $matches[1];
+                }
+            }
+
+            return $storeIds;
+        } catch (\Exception) {
+            return [];
+        }
+    }
+
+    /**
      * List the names of one store's feed files matching a pattern.
      *
      * @param string $fileNamePattern Glob pattern, e.g. "hreflang-sitemap-*.xml"
@@ -235,9 +268,10 @@ class FeedStorage
     public function listForStore(string $fileNamePattern, int $storeId): array
     {
         try {
-            $names = [];
-            foreach ($this->getWrite()->search($this->path($fileNamePattern, $storeId)) as $path) {
-                $names[] = substr((string) $path, (int) strrpos((string) $path, '/') + 1);
+            $directory = (string) $this->storeDirectory($storeId);
+            $names     = [];
+            foreach ($this->search($directory, $fileNamePattern) as $path) {
+                $names[] = substr((string) $path, \strlen($directory) + 1);
             }
 
             return $names;
@@ -247,20 +281,57 @@ class FeedStorage
     }
 
     /**
-     * Delete every file matching a storage-relative glob pattern (best effort).
+     * The storage-relative directory a store view's files live in.
      *
-     * @param string $relativePattern
-     * @return void
+     * With $storeId null it is the directory those store directories sit in, which is null for a
+     * custom storage root: the configured directory is itself the root, with nothing above it.
+     *
+     * @param int|null $storeId
+     * @return string|null
      */
-    private function deleteByPattern(string $relativePattern): void
+    private function storeDirectory(?int $storeId): ?string
     {
-        try {
-            $dir = $this->getWrite();
-            foreach ($dir->search($this->prefix() . $relativePattern) as $path) {
-                $dir->delete($path);
-            }
-        } catch (\Exception) { // phpcs:ignore Magento2.CodeAnalysis.EmptyBlock.DetectedCatch -- best-effort cleanup
+        if ($storeId !== null) {
+            return $this->prefix() . 'store_' . $storeId;
         }
+
+        $base = rtrim($this->prefix(), '/');
+
+        return $base === '' ? null : $base;
+    }
+
+    /**
+     * List the storage entries matching a pattern, reading the directory each time.
+     *
+     * Deliberately not WriteInterface::search(): that goes through
+     * Magento\Framework\Filesystem\Glob, which memoises every result for the life of the
+     * process, so a listing taken after this process has written or deleted files is the
+     * listing from before it did. Both the queue consumer and the cron rebuild more than once
+     * per process, and a rebuild lists its own output — surplus sitemap chunks, store
+     * directories — to decide what to remove. (Glob::clearCache() would do, but it does not
+     * exist on every version this module supports, and reading the directory is no more work.)
+     *
+     * @param string|null $directory Storage-relative directory, or null for the storage root
+     * @param string $mask Glob pattern matched against each entry's own name
+     * @throws \Magento\Framework\Exception\FileSystemException
+     * @return string[] Storage-relative paths
+     */
+    private function search(?string $directory, string $mask): array
+    {
+        // read() reports storage-relative paths, so an entry's own name is what follows the
+        // directory it was read from. The directory is always one this class built, which is
+        // why neither end needs taking apart with dirname()/basename().
+        $nameOffset = $directory === null ? 0 : \strlen($directory) + 1;
+
+        $paths = [];
+        foreach ($this->getWrite()->read($directory) as $entry) {
+            $entry = (string) $entry;
+            if (fnmatch($mask, substr($entry, $nameOffset))) {
+                $paths[] = $entry;
+            }
+        }
+
+        return $paths;
     }
 
     /**

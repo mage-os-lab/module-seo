@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace MageOS\Seo\Model\Category;
 
-use Magento\Framework\App\ResourceConnection;
-use Magento\Framework\DB\Adapter\AdapterInterface;
+use Magento\Framework\Data\Collection as DataCollection;
 use Magento\Framework\ObjectManager\ResetAfterRequestInterface;
+use MageOS\Seo\Model\CategoryConfig;
+use MageOS\Seo\Model\ResourceModel\CategoryConfig as CategoryConfigResource;
+use MageOS\Seo\Model\ResourceModel\CategoryConfig\CollectionFactory;
 
 class ConfigRepository implements ResetAfterRequestInterface
 {
@@ -14,10 +16,12 @@ class ConfigRepository implements ResetAfterRequestInterface
     private array $cache = [];
 
     /**
-     * @param ResourceConnection $resourceConnection
+     * @param CollectionFactory $collectionFactory
+     * @param CategoryConfigResource $resource
      */
     public function __construct(
-        private readonly ResourceConnection $resourceConnection
+        private readonly CollectionFactory      $collectionFactory,
+        private readonly CategoryConfigResource $resource
     ) {
     }
 
@@ -30,7 +34,7 @@ class ConfigRepository implements ResetAfterRequestInterface
      *
      * Walks up the category path to find the nearest ancestor with a configured
      * template if the category itself has none. Ancestor lookup also respects
-     * $storeId.
+     * $storeId, and the whole path is read in one query.
      *
      * @param int $categoryId
      * @param string[] $categoryPath Array of ancestor IDs from root to leaf (e.g. ['1','2','3','14'])
@@ -44,18 +48,14 @@ class ConfigRepository implements ResetAfterRequestInterface
             return $this->cache[$cacheKey];
         }
 
-        $row = $this->loadRow($categoryId, $storeId);
+        $ancestorIds = $this->ancestorIds($categoryId, $categoryPath);
+        $rows        = $this->loadRows([$categoryId, ...$ancestorIds], $storeId);
+        $row         = $rows[$categoryId] ?? [];
 
         // If no template configured, walk up the path to inherit from nearest ancestor
-        if (empty($row['schema_template']) && !empty($categoryPath)) {
-            $ancestors = array_reverse($categoryPath);
-            foreach ($ancestors as $ancestorId) {
-                $ancestorIdInt = (int) $ancestorId;
-                if ($ancestorIdInt === $categoryId || $ancestorIdInt <= 2) {
-                    // Skip self and root categories (1 = root, 2 = default category)
-                    continue;
-                }
-                $ancestorRow = $this->loadRow($ancestorIdInt, $storeId);
+        if (empty($row['schema_template'])) {
+            foreach ($ancestorIds as $ancestorId) {
+                $ancestorRow = $rows[$ancestorId] ?? [];
                 if (!empty($ancestorRow['schema_template'])) {
                     // Inherit template from ancestor, but keep non-null/non-empty own values.
                     // Use explicit check rather than array_filter to preserve legitimate 0 values
@@ -72,55 +72,83 @@ class ConfigRepository implements ResetAfterRequestInterface
     }
 
     /**
-     * Load a raw DB row for a category ID, with store-view fallback.
+     * The category's ancestors, nearest first, as the inheritance walk needs them.
      *
-     * When $storeId > 0, fetches both the store-specific row and the global row
-     * (store_id = 0) ordered store_id ASC, then merges them so that store-specific
-     * non-null/non-empty values take precedence over global values.
+     * Self and the root categories (1 = root, 2 = default category) carry no inheritable
+     * configuration of their own.
      *
      * @param int $categoryId
-     * @param int $storeId
-     * @return mixed[]
+     * @param string[] $categoryPath Ancestor IDs from root to leaf
+     * @return int[]
      */
-    private function loadRow(int $categoryId, int $storeId = 0): array
+    private function ancestorIds(int $categoryId, array $categoryPath): array
     {
-        $connection = $this->getConnection();
-        $table      = $this->resourceConnection->getTableName('mageos_seo_category_config');
-        $select     = $connection->select()
-            ->from($table)
-            ->where('category_id = ?', $categoryId);
-
-        if ($storeId > 0) {
-            $select->where('store_id IN (?)', [0, $storeId])
-                   ->order('store_id ASC'); // global row first, store-specific row second
-
-            $rows = $connection->fetchAll($select);
-            if (empty($rows)) {
-                return [];
+        $ancestorIds = [];
+        foreach (array_reverse($categoryPath) as $pathId) {
+            $ancestorId = (int) $pathId;
+            if ($ancestorId === $categoryId || $ancestorId <= 2) {
+                continue;
             }
-
-            // Merge: iterate rows in order (global then store-specific).
-            // Later values win for non-null/non-empty, preserving global as base.
-            $merged = [];
-            foreach ($rows as $row) {
-                foreach ($row as $key => $value) {
-                    if ($value !== null && $value !== '') {
-                        $merged[$key] = $value;
-                    } elseif (!isset($merged[$key])) {
-                        $merged[$key] = $value;
-                    }
-                }
-            }
-            return $merged;
+            $ancestorIds[] = $ancestorId;
         }
 
-        $select->where('store_id = ?', 0);
-        $row = $connection->fetchRow($select);
-        return \is_array($row) ? $row : [];
+        return array_values(array_unique($ancestorIds));
+    }
+
+    /**
+     * Load the rows of several categories in one query, keyed by category ID.
+     *
+     * When $storeId > 0 each category's global row (store_id = 0) and store-view row are
+     * merged, so that store-specific non-null/non-empty values take precedence.
+     *
+     * @param int[] $categoryIds
+     * @param int $storeId
+     * @return array<int, mixed[]>
+     */
+    private function loadRows(array $categoryIds, int $storeId = 0): array
+    {
+        $collection = $this->collectionFactory->create();
+        $collection->addFieldToFilter('category_id', ['in' => $categoryIds]);
+        $collection->addFieldToFilter('store_id', $storeId > 0 ? ['in' => [0, $storeId]] : ['eq' => 0]);
+        // Global row first, store-view row second, so the store view's values are applied last.
+        $collection->setOrder('store_id', DataCollection::SORT_ORDER_ASC);
+
+        $rows = [];
+        /** @var CategoryConfig $config */
+        foreach ($collection as $config) {
+            $row        = $config->getData();
+            $categoryId = (int) ($row['category_id'] ?? 0);
+            $rows[$categoryId] = isset($rows[$categoryId]) ? $this->merge($rows[$categoryId], $row) : $row;
+        }
+
+        return $rows;
+    }
+
+    /**
+     * Apply a row over a base row: a value that says something wins, otherwise the base stands.
+     *
+     * @param mixed[] $base
+     * @param mixed[] $row
+     * @return mixed[]
+     */
+    private function merge(array $base, array $row): array
+    {
+        foreach ($row as $key => $value) {
+            if ($value !== null && $value !== '') {
+                $base[$key] = $value;
+            } elseif (!\array_key_exists($key, $base)) {
+                $base[$key] = $value;
+            }
+        }
+
+        return $base;
     }
 
     /**
      * Save or update SEO config for a category and store view.
+     *
+     * Only the given fields are written; anything already stored for that category and store
+     * view is left as it is.
      *
      * @param int $categoryId
      * @param mixed[] $data
@@ -129,8 +157,6 @@ class ConfigRepository implements ResetAfterRequestInterface
      */
     public function save(int $categoryId, array $data, int $storeId = 0): void
     {
-        $table = $this->resourceConnection->getTableName('mageos_seo_category_config');
-
         // JSON-encode array values before persistence
         if (isset($data['enabled_fields']) && \is_array($data['enabled_fields'])) {
             $data['enabled_fields'] = json_encode(array_values($data['enabled_fields']));
@@ -139,10 +165,20 @@ class ConfigRepository implements ResetAfterRequestInterface
             $data['override_fields'] = json_encode($data['override_fields']);
         }
 
-        $data['category_id'] = $categoryId;
-        $data['store_id']    = $storeId;
+        $collection = $this->collectionFactory->create();
+        $collection->addFieldToFilter('category_id', ['eq' => $categoryId]);
+        $collection->addFieldToFilter('store_id', ['eq' => $storeId]);
 
-        $this->getConnection()->insertOnDuplicate($table, $data, array_keys($data));
+        /** @var CategoryConfig $config An empty model when this category has no row yet */
+        $config = $collection->getFirstItem();
+        $config->addData($data);
+        $config->setData('category_id', $categoryId);
+        $config->setData('store_id', $storeId);
+        // Let the database set updated_at: a value in the UPDATE statement takes precedence over
+        // the column's ON UPDATE CURRENT_TIMESTAMP, which would freeze it at the loaded value.
+        $config->unsetData('updated_at');
+
+        $this->resource->save($config);
         unset($this->cache["{$categoryId}_{$storeId}"]);
     }
 
@@ -174,22 +210,13 @@ class ConfigRepository implements ResetAfterRequestInterface
     /**
      * Clear the memoised rows between worker-mode requests.
      *
+     * The collections and the resource model resolve their connection themselves, so nothing
+     * else is held here.
+     *
      * @return void
      */
     public function _resetState(): void // phpcs:ignore PSR2.Methods.MethodDeclaration.Underscore -- framework interface
     {
         $this->cache = [];
-    }
-
-    /**
-     * Fetch the connection per operation — never cache the adapter on the
-     * instance: ResourceConnection::_resetState() closes connections between
-     * worker-mode requests, which would leave a cached handle stale.
-     *
-     * @return AdapterInterface
-     */
-    private function getConnection(): AdapterInterface
-    {
-        return $this->resourceConnection->getConnection();
     }
 }

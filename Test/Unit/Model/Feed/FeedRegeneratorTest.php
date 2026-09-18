@@ -87,6 +87,13 @@ class FeedRegeneratorTest extends TestCase
      */
     private array $chunkNames = [];
 
+    /**
+     * Store view IDs the storage reports as having a feed directory.
+     *
+     * @var int[]
+     */
+    private array $storeDirectories = [];
+
     protected function setUp(): void
     {
         $this->storeManager      = $this->createStub(StoreManagerInterface::class);
@@ -101,6 +108,16 @@ class FeedRegeneratorTest extends TestCase
         $this->logger            = $this->createStub(LoggerInterface::class);
         $this->calls             = [];
         $this->chunkNames        = [];
+        $this->storeDirectories  = [];
+
+        $this->feedStorage->method('listStoreDirectories')->willReturnCallback(
+            fn (): array => $this->storeDirectories
+        );
+        $this->feedStorage->method('deleteStoreDirectory')->willReturnCallback(
+            function (int $storeId): void {
+                $this->calls[] = "delete directory {$storeId}";
+            }
+        );
 
         $this->feedStorage->method('write')->willReturnCallback(
             function (string $fileName, int $storeId, string $content): void {
@@ -339,6 +356,32 @@ class FeedRegeneratorTest extends TestCase
             ['stream 1: lines -> llms.jsonl', 'stream 2: lines -> llms.jsonl', 'purge jsonl'],
             $this->calls
         );
+    }
+
+    public function testAFullRebuildSweepsTheDirectoriesOfStoreViewsThatNoLongerExist(): void
+    {
+        // Deleting a website or a store group takes its store views with it in the database,
+        // dispatching no event, so the directories are swept rather than chased.
+        $this->storeManager->method('getStores')->willReturn([$this->activeStore(1)]);
+        $this->storeDirectories = [1, 7, 9];
+
+        $this->regenerator()->regenerate();
+
+        // The store view that still exists keeps its directory; the build's own calls come first.
+        $this->assertSame(
+            ['delete directory 7', 'delete directory 9', 'purge llms,jsonl,hreflang'],
+            \array_slice($this->calls, -3)
+        );
+    }
+
+    public function testASingleGroupRebuildDoesNotSweepDirectories(): void
+    {
+        $this->storeManager->method('getStores')->willReturn([]);
+        $this->storeDirectories = [7];
+
+        $this->regenerator()->regenerate(FeedRegenerator::GROUP_HREFLANG);
+
+        $this->assertSame(['purge hreflang'], $this->calls);
     }
 
     public function testFullRebuildPurgesEveryGroup(): void

@@ -260,10 +260,15 @@ class FeedStorageTest extends TestCase
         $writeDir = $this->createMock(WriteInterface::class);
         $this->filesystem->method('getDirectoryWrite')->willReturn($writeDir);
 
-        $writeDir->method('search')->willReturnMap([[
-            'mageos_seo/store_2/hreflang-sitemap*.xml',
-            null,
-            ['mageos_seo/store_2/hreflang-sitemap.xml'],
+        // The store's directory is read and the entries are matched here, so the listing is
+        // never one the framework cached earlier in the process.
+        $writeDir->method('read')->willReturnMap([[
+            'mageos_seo/store_2',
+            [
+                'mageos_seo/store_2/hreflang-sitemap.xml',
+                // Another store's files are in another directory; other feeds do not match.
+                'mageos_seo/store_2/llms.txt',
+            ],
         ]]);
         $writeDir->expects($this->once())->method('delete')
             ->with('mageos_seo/store_2/hreflang-sitemap.xml');
@@ -276,10 +281,15 @@ class FeedStorageTest extends TestCase
         $this->config->method('getFeedStorageDir')->willReturn('');
         $writeDir = $this->createStub(WriteInterface::class);
         $this->filesystem->method('getDirectoryWrite')->willReturn($writeDir);
-        $writeDir->method('search')->willReturnMap([[
-            'mageos_seo/store_2/hreflang-sitemap-*.xml',
-            null,
-            ['mageos_seo/store_2/hreflang-sitemap-1.xml', 'mageos_seo/store_2/hreflang-sitemap-2.xml'],
+        $writeDir->method('read')->willReturnMap([[
+            'mageos_seo/store_2',
+            [
+                'mageos_seo/store_2/hreflang-sitemap-1.xml',
+                'mageos_seo/store_2/hreflang-sitemap-2.xml',
+                // The index and the other feeds do not match the chunk pattern.
+                'mageos_seo/store_2/hreflang-sitemap.xml',
+                'mageos_seo/store_2/llms.txt',
+            ],
         ]]);
 
         $this->assertSame(
@@ -293,9 +303,38 @@ class FeedStorageTest extends TestCase
         $this->config->method('getFeedStorageDir')->willReturn('');
         $writeDir = $this->createStub(WriteInterface::class);
         $this->filesystem->method('getDirectoryWrite')->willReturn($writeDir);
-        $writeDir->method('search')->willThrowException(new \RuntimeException('io'));
+        $writeDir->method('read')->willThrowException(new \RuntimeException('io'));
 
         $this->assertSame([], $this->storage()->listForStore('hreflang-sitemap-*.xml', 2));
+    }
+
+    public function testListStoreDirectoriesReturnsTheStoreIdsThatHaveOne(): void
+    {
+        $this->config->method('getFeedStorageDir')->willReturn('');
+        $writeDir = $this->createStub(WriteInterface::class);
+        $this->filesystem->method('getDirectoryWrite')->willReturn($writeDir);
+        $writeDir->method('read')->willReturnMap([[
+            'mageos_seo',
+            [
+                'mageos_seo/store_1',
+                'mageos_seo/store_12',
+                // Anything that is not a store directory is ignored.
+                'mageos_seo/store_notanumber',
+                'mageos_seo/README.md',
+            ],
+        ]]);
+
+        $this->assertSame([1, 12], $this->storage()->listStoreDirectories());
+    }
+
+    public function testListStoreDirectoriesIsEmptyOnFilesystemException(): void
+    {
+        $this->config->method('getFeedStorageDir')->willReturn('');
+        $writeDir = $this->createStub(WriteInterface::class);
+        $this->filesystem->method('getDirectoryWrite')->willReturn($writeDir);
+        $writeDir->method('read')->willThrowException(new \RuntimeException('io'));
+
+        $this->assertSame([], $this->storage()->listStoreDirectories());
     }
 
     public function testDeleteStoreDirectoryRemovesOnlyThatStoresDirectory(): void

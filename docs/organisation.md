@@ -41,6 +41,13 @@ Organisation settings are stored per scope in the `mageos_seo_organisation` tabl
 
 **Fallback chain (frontend):** When building JSON-LD or `/llms.txt`, the system looks for a store-view specific row first, then a website row, then the global default. The most specific scope wins.
 
+**Deleting a scope:** because `scope_id` means a website ID in one row and a store view ID in
+the next, the table carries no foreign key to clean up after itself — `core_config_data` has the
+same problem. `MageOS\Seo\Observer\RemoveOrganisationOnScopeDelete` removes the records of a
+store view, store group or website as it is deleted, inside the same transaction, which is also
+the last moment a website still knows which store views were its own: core removes them with a
+database-level cascade that dispatches no `store_delete` event.
+
 **Admin behaviour:** Opening the Organisation form with a `?store=3` or `?website=2` URL parameter loads and saves the record for that scope. Without a scope parameter, the global default is loaded. The scope selector in the admin header generates these parameters automatically.
 
 ### Practical example
