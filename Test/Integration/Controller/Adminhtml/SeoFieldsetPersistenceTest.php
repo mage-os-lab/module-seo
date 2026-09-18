@@ -42,19 +42,19 @@ class SeoFieldsetPersistenceTest extends AbstractBackendController
     private const OVERRIDE_JSON = '{"gtin13":"0123456789012","color":"Midnight Blue"}';
 
     /**
-     * @var int[]
+     * @var int[]|null
      */
-    private static array $productIds = [];
+    private ?array $productIds = [];
 
     /**
-     * @var int[]
+     * @var int[]|null
      */
-    private array $categoryIds = [];
+    private ?array $categoryIds = [];
 
     /**
-     * @var int[]
+     * @var int[]|null
      */
-    private array $createdCategoryIds = [];
+    private ?array $createdCategoryIds = [];
 
     /**
      * @var callable|null
