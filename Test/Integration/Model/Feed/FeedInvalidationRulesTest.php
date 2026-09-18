@@ -128,7 +128,7 @@ class FeedInvalidationRulesTest extends TestCase
      * CMS page saves queue hreflang only for URL-relevant changes.
      *
      * @return void
-     * 
+     *
      * @magentoDataFixture Magento/Cms/_files/pages.php
      */
     #[DataFixture(StoreFixture::class, as: 'second_store')]
