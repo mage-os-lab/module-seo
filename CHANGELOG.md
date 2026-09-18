@@ -212,6 +212,14 @@ become public contract.
   scope is deleted, mirroring core's own `clearScopeData()` calls in
   `Website::beforeDelete()` / `Group::beforeDelete()`, and
   `OrganisationRepositoryInterface` gains `deleteForScope()`.
+- Deleting a store view queues the sitemap rebuild from `store_delete_before`
+  rather than `store_delete`. The rebuild is also what removes a sitemap that can
+  no longer be built, and `store_delete` is dispatched once the store view is
+  already gone: deleting the second-to-last store view left one, the sitemap
+  counted as unbuildable, nothing was queued, and the surviving store view carried
+  on serving a sitemap listing the store view that had just been deleted until the
+  nightly rebuild. The store's own feed directory is still removed after the delete
+  commits, so a delete that rolls back keeps its files.
 - Deleting a store group or a website now invalidates the hreflang sitemap, and its
   store views' feed files are cleaned up. Core removes those store views with a
   database-level cascade that dispatches no `store_delete` event, so nothing had

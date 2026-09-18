@@ -238,9 +238,6 @@ class FeedInvalidationRulesTest extends TestCase
      * Deleting a store view changes the sitemap's alternate set, and its own feed files are
      * no longer served by anything.
      *
-     * Three store views: the deleted one must leave two behind, or the sitemap becomes
-     * unbuildable and the rebuild is (correctly) not queued at all.
-     *
      * @return void
      */
     #[DataFixture(StoreFixture::class, as: 'second_store')]
@@ -255,6 +252,24 @@ class FeedInvalidationRulesTest extends TestCase
         $this->assertQueuedBy([FeedRegenerator::GROUP_HREFLANG], fn () => $this->deleteStore($storeId));
 
         $this->assertNull($storage->read('llms.txt', $storeId), 'The store directory is gone.');
+    }
+
+    /**
+     * The last deletion that makes the sitemap unbuildable still has to queue a rebuild.
+     *
+     * Deleting the second-to-last store view leaves one, and a single store view has no
+     * alternates — but the sitemap the survivor is still serving lists the store view that has
+     * just gone. The rebuild is what removes it, so it has to be queued from the deletion while
+     * the store view still counts.
+     *
+     * @return void
+     */
+    #[DataFixture(StoreFixture::class, as: 'second_store')]
+    public function testDeletingTheStoreViewThatMakesTheSitemapUnbuildableStillQueuesIt(): void
+    {
+        $storeId = (int) $this->fixture('second_store')->getId();
+
+        $this->assertQueuedBy([FeedRegenerator::GROUP_HREFLANG], fn () => $this->deleteStore($storeId));
     }
 
     /**

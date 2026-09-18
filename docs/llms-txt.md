@@ -131,9 +131,11 @@ straight to the catalogue tables without saving the products, so no save event r
 They are covered separately (a plugin for attributes, the `catalog_product_to_website_change`
 event for websites).
 
-Deleting a store view also removes that store's feed directory. If it leaves fewer than two
-active store views, the hreflang sitemap can no longer be built at all, so no rebuild is
-queued; the nightly rebuild then removes the files it would otherwise still serve.
+Deleting a store view also removes that store's feed directory, and queues the sitemap rebuild
+that corrects the store views left behind. That includes the deletion that leaves only one store
+view: a single store view has no alternates, so the sitemap can no longer be built — and the
+rebuild is what removes the one the survivor is still serving, rather than leaving it listing a
+store view that no longer exists.
 
 Deleting a **store group or a website** takes its store views with it in the database, without
 dispatching a `store_delete` event for any of them, so the rebuild is queued from the website's
