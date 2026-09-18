@@ -29,21 +29,6 @@ class MultiStoreFeedBuildTest extends TestCase
     private const SECOND_STORE_CODE = 'seo_hreflang_de';
 
     /**
-     * @var FeedStorage
-     */
-    private FeedStorage $storage;
-
-    /**
-     * Resolve the storage fresh, so no directory handle is shared with the build.
-     *
-     * @return void
-     */
-    protected function setUp(): void
-    {
-        $this->storage = Bootstrap::getObjectManager()->create(FeedStorage::class);
-    }
-
-    /**
      * Remove the feed files the tests wrote; the storage directory is not rolled back.
      *
      * @return void
@@ -51,9 +36,9 @@ class MultiStoreFeedBuildTest extends TestCase
     protected function tearDown(): void
     {
         foreach ($this->storeIds() as $storeId) {
-            $this->storage->deleteForStore('hreflang-sitemap*.xml', $storeId);
-            $this->storage->deleteForStore('llms*', $storeId);
-            $this->storage->deleteForStore('.*.tmp', $storeId);
+            $this->storage()->deleteForStore('hreflang-sitemap*.xml', $storeId);
+            $this->storage()->deleteForStore('llms*', $storeId);
+            $this->storage()->deleteForStore('.*.tmp', $storeId);
         }
         Bootstrap::getObjectManager()->removeSharedInstance(FeedStorage::class);
     }
@@ -75,7 +60,7 @@ class MultiStoreFeedBuildTest extends TestCase
 
         $documents = [];
         foreach ($storeIds as $storeId) {
-            $documents[$storeId] = (string) $this->storage->read(SitemapGenerator::INDEX_FILE, $storeId);
+            $documents[$storeId] = (string) $this->storage()->read(SitemapGenerator::INDEX_FILE, $storeId);
             $this->assertStringContainsString('<urlset', $documents[$storeId], "store {$storeId}");
         }
 
@@ -101,7 +86,7 @@ class MultiStoreFeedBuildTest extends TestCase
         Bootstrap::getObjectManager()->create(FeedRegenerator::class)
             ->regenerate(FeedRegenerator::GROUP_JSONL);
 
-        $content = (string) $this->storage->read('llms.jsonl', $storeId);
+        $content = (string) $this->storage()->read('llms.jsonl', $storeId);
         $lines   = array_filter(explode("\n", $content));
 
         $this->assertNotSame([], $lines, 'The catalogue produced no lines.');
@@ -126,5 +111,10 @@ class MultiStoreFeedBuildTest extends TestCase
         }
 
         return $ids;
+    }
+
+    private function storage()
+    {
+        return Bootstrap::getObjectManager()->create(FeedStorage::class);
     }
 }

@@ -33,42 +33,14 @@ class FeedRebuildTest extends TestCase
     private const FLAG_LLMS = 'mageos_seo_feed_pending_llms';
 
     /**
-     * @var FeedStorage
-     */
-    private FeedStorage $storage;
-
-    /**
-     * @var FlagManager
-     */
-    private FlagManager $flags;
-
-    /**
-     * @var int
-     */
-    private int $storeId;
-
-    /**
-     * Resolve the services and the default store view.
-     *
-     * @return void
-     */
-    protected function setUp(): void
-    {
-        $objectManager = Bootstrap::getObjectManager();
-        $this->storage = $objectManager->get(FeedStorage::class);
-        $this->flags   = $objectManager->get(FlagManager::class);
-        $this->storeId = (int) $objectManager->get(StoreManagerInterface::class)->getStore('default')->getId();
-    }
-
-    /**
      * Remove the feed files the tests wrote; the storage directory is not rolled back.
      *
      * @return void
      */
     protected function tearDown(): void
     {
-        $this->storage->deleteForStore('llms*.txt', $this->storeId);
-        $this->storage->deleteForStore('.*.tmp', $this->storeId);
+        $this->storage()->deleteForStore('llms*.txt', $this->storeId());
+        $this->storage()->deleteForStore('.*.tmp', $this->storeId());
     }
 
     /**
@@ -79,17 +51,17 @@ class FeedRebuildTest extends TestCase
     #[DataFixture(CategoryFixture::class, as: 'category')]
     public function testSavingACategoryKeepsTheServedFeedAndQueuesARebuild(): void
     {
-        $this->storage->write('llms.txt', $this->storeId, 'served before the save');
+        $this->storage()->write('llms.txt', $this->storeId(), 'served before the save');
         // The fixture's own save already queued a rebuild; start from a clean slate.
-        $this->flags->deleteFlag(self::FLAG_LLMS);
+        $this->flags()->deleteFlag(self::FLAG_LLMS);
 
         $repository = Bootstrap::getObjectManager()->get(CategoryRepositoryInterface::class);
         $category   = $repository->get((int) DataFixtureStorageManager::getStorage()->get('category')->getId());
         $category->setName('Renamed to invalidate the feeds');
         $repository->save($category);
 
-        $this->assertSame('served before the save', $this->storage->read('llms.txt', $this->storeId));
-        $this->assertIsNumeric($this->flags->getFlagData(self::FLAG_LLMS), 'No llms rebuild was queued.');
+        $this->assertSame('served before the save', $this->storage()->read('llms.txt', $this->storeId()));
+        $this->assertIsNumeric($this->flags()->getFlagData(self::FLAG_LLMS), 'No llms rebuild was queued.');
     }
 
     /**
@@ -99,14 +71,14 @@ class FeedRebuildTest extends TestCase
      */
     public function testWritingReplacesTheFileWithoutLeavingTemporaryFiles(): void
     {
-        $this->storage->write('llms.txt', $this->storeId, 'first');
-        $this->storage->write('llms.txt', $this->storeId, 'second');
+        $this->storage()->write('llms.txt', $this->storeId(), 'first');
+        $this->storage()->write('llms.txt', $this->storeId(), 'second');
 
-        $this->assertSame('second', $this->storage->read('llms.txt', $this->storeId));
-        $this->assertSame([], $this->storage->listForStore('.*.tmp', $this->storeId));
+        $this->assertSame('second', $this->storage()->read('llms.txt', $this->storeId()));
+        $this->assertSame([], $this->storage()->listForStore('.*.tmp', $this->storeId()));
 
         $var      = Bootstrap::getObjectManager()->get(Filesystem::class)->getDirectoryRead(DirectoryList::VAR_DIR);
-        $storeDir = 'mageos_seo/store_' . $this->storeId;
+        $storeDir = 'mageos_seo/store_' . $this->storeId();
         $this->assertSame('640', $this->mode($var->getAbsolutePath($storeDir . '/llms.txt')));
         $this->assertSame('750', $this->mode($var->getAbsolutePath($storeDir)));
         $this->assertSame('750', $this->mode($var->getAbsolutePath('mageos_seo')));
@@ -133,15 +105,33 @@ class FeedRebuildTest extends TestCase
     public function testTheConsumerRebuildsTheGroupAndClearsThePendingFlag(): void
     {
         $objectManager = Bootstrap::getObjectManager();
-        $this->flags->deleteFlag(self::FLAG_LLMS);
+        $this->flags()->deleteFlag(self::FLAG_LLMS);
         $objectManager->get(RegenerationRequester::class)->request(FeedRegenerator::GROUP_LLMS);
-        $this->assertIsNumeric($this->flags->getFlagData(self::FLAG_LLMS));
-        $this->storage->write('llms.txt', $this->storeId, 'outdated');
+        $this->assertIsNumeric($this->flags()->getFlagData(self::FLAG_LLMS));
+        $this->storage()->write('llms.txt', $this->storeId(), 'outdated');
 
         $objectManager->get(RegenerateConsumer::class)->process(FeedRegenerator::GROUP_LLMS);
 
-        $this->assertStringStartsWith('# ', (string) $this->storage->read('llms.txt', $this->storeId));
-        $this->assertNotNull($this->storage->read('llms-full.txt', $this->storeId));
-        $this->assertNull($this->flags->getFlagData(self::FLAG_LLMS));
+        $this->assertStringStartsWith('# ', (string) $this->storage()->read('llms.txt', $this->storeId()));
+        $this->assertNotNull($this->storage()->read('llms-full.txt', $this->storeId()));
+        $this->assertNull($this->flags()->getFlagData(self::FLAG_LLMS));
+    }
+
+    private function storage()
+    {
+        return Bootstrap::getObjectManager()->create(FeedStorage::class);
+    }
+
+    private function flags()
+    {
+        return Bootstrap::getObjectManager()->create(FlagManager::class);
+    }
+
+    private function storeId()
+    {
+        return (int) Bootstrap::getObjectManager()
+            ->get(StoreManagerInterface::class)
+            ->getStore('default')
+            ->getId();
     }
 }
