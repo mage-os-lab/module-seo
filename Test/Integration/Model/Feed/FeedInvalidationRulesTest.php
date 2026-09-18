@@ -43,9 +43,9 @@ class FeedInvalidationRulesTest extends TestCase
     /**
      * IDs of the CMS pages created by the running test.
      *
-     * @var int[]
+     * @var int[]|null
      */
-    private array $createdPageIds = [];
+    private ?array $createdPageIds = [];
 
     /**
      * Remove the CMS pages the test created and leave no pending rebuild requests behind.
