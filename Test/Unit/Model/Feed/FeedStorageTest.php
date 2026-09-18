@@ -320,6 +320,9 @@ class FeedStorageTest extends TestCase
         $this->storage()->deleteStoreDirectory(3);
     }
 
+    /**
+     * @doesNotPerformAssertions
+     */
     public function testDeleteStoreDirectorySwallowsFilesystemErrors(): void
     {
         // The store view is already deleted when this runs; a failure here must not surface.
