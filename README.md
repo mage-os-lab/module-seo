@@ -51,14 +51,12 @@ Every cross-cutting concern is built as an **extensible provider pool** — a se
 
 ## Requirements
 
-- PHP 8.1 – 8.5
-- Magento Open Source / Mage-OS **2.4.6-p15 or newer** (`magento/framework
-  ^103.0.6-p15`), including 2.4.9 on PHP 8.5. The module runs unmodified across
-  the whole range: on versions below 2.4.7 a bundled
-  `Compat/ResetAfterRequestInterface` polyfill supplies the worker-mode reset
-  interface, and `Model/Cache/CleaningMode` supplies the full-page-cache
-  cleaning-mode identifier that 2.4.9's `Magento\Framework\Cache\CacheConstants`
-  provides.
+- PHP 8.3 – 8.5
+- Magento Open Source / Mage-OS **2.4.7 or newer** (`magento/framework
+  ^103.0.7`), including 2.4.9 on PHP 8.5. The module runs unmodified across the
+  whole range and carries no version polyfills: 2.4.7 is the first release with
+  `Magento\Framework\ObjectManager\ResetAfterRequestInterface`, which the
+  request-scoped services implement directly.
 - Magento MSI (`Inventory*`) modules — a hard dependency: product availability
   is resolved through the MSI service contracts.
 

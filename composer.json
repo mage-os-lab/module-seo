@@ -5,8 +5,8 @@
     "license": "OSL-3.0",
     "minimum-stability": "stable",
     "require": {
-        "php": "~8.1.0 || ~8.2.0 || ~8.3.0 || ~8.4.0 || ~8.5.0",
-        "magento/framework": "^103.0.6-p15",
+        "php": "~8.3.0 || ~8.4.0 || ~8.5.0",
+        "magento/framework": "^103.0.7",
         "magento/framework-message-queue": "*",
         "magento/module-backend": "*",
         "magento/module-cache-invalidate": "*",
@@ -19,10 +19,15 @@
         "magento/module-media-storage": "*",
         "magento/module-message-queue": "*",
         "magento/module-page-cache": "*",
+        "magento/module-review": "*",
         "magento/module-robots": "*",
         "magento/module-store": "*",
         "magento/module-ui": "*",
+        "magento/module-url-rewrite": "*",
         "magento/module-widget": "*"
+    },
+    "suggest": {
+        "magento/module-page-builder": "Adds the FAQ content type to Page Builder. Everything else in this module works without it."
     },
     "require-dev": {
         "bitexpert/phpstan-magento": "^0.42",
@@ -47,8 +52,7 @@
         ],
         "psr-4": {
             "MageOS\\Seo\\": ""
-        },
-        "exclude-from-classmap": ["Compat/"]
+        }
     },
     "config": {
         "sort-packages": true,

@@ -114,6 +114,26 @@ become public contract.
 
 ### Changed
 
+- **Breaking:** the support floor moves to **Magento 2.4.7 and PHP 8.3**
+  (`magento/framework ^103.0.7`, `php ~8.3.0 || ~8.4.0 || ~8.5.0`), matching the
+  Mage-OS monorepo. With it, the version polyfills go: the bundled
+  `Compat/ResetAfterRequestInterface` is deleted, along with the conditional
+  `require` in `registration.php` and the `exclude-from-classmap` entry it needed.
+  That polyfill declared a *framework-namespace* symbol from a module, and
+  `exclude-from-classmap` only applies to a composer package — installed under
+  `app/code`, the psr-0 fallback classmapped it and shadowed the real interface on
+  `composer dump-autoload -o`. 2.4.7 is the first release that ships the interface,
+  so nothing needs supplying. `Model\Cache\CleaningMode` likewise no longer names
+  `Magento\Framework\Cache\CacheConstants` (2.4.9-only); the cleaning-mode
+  identifier is the same string on every supported version and is written out once,
+  with a note on where it came from.
+- `magento/module-url-rewrite` and `magento/module-review` are now declared
+  dependencies. Both were already required in practice — the hreflang sitemap reads
+  `url_rewrite` and the rating provider reads `review_entity_summary` — but neither
+  appeared in `composer.json`, because a dependency reached through a table name is
+  invisible to a class-based scan. `magento/module-page-builder` is declared as a
+  `suggest`: it is needed only for the Page Builder FAQ content type, and
+  `etc/module.xml` already sequenced it.
 - **Breaking (pre-release):** all `rs_seo`/`rs-seo` names renamed to
   `mageos_seo`/`mageos-seo` (routes, layout handles, block names, DI/observer/
   plugin names, admin form field names); cache tags `RS_*` renamed to
