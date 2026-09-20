@@ -38,7 +38,7 @@ class NoSessionForPublicFeeds
      * @param SessionStartChecker $subject
      * @param bool $result
      * @return bool
-     * @SuppressWarnings(PHPMD.UnusedFormalParameter)
+     * @SuppressWarnings("PHPMD.UnusedFormalParameter")
      */
     public function afterCheck(SessionStartChecker $subject, bool $result): bool
     {

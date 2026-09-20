@@ -36,7 +36,7 @@ class RecurringData implements InstallDataInterface
      * @param ModuleDataSetupInterface $setup
      * @param ModuleContextInterface $context
      * @return void
-     * @SuppressWarnings(PHPMD.UnusedFormalParameter)
+     * @SuppressWarnings("PHPMD.UnusedFormalParameter")
      */
     public function install(ModuleDataSetupInterface $setup, ModuleContextInterface $context): void
     {

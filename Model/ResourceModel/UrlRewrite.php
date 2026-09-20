@@ -9,6 +9,7 @@ use Magento\Catalog\Api\Data\ProductInterface;
 use Magento\Catalog\Model\Product\Attribute\Source\Status;
 use Magento\Catalog\Model\Product\Visibility;
 use Magento\Eav\Model\Config as EavConfig;
+use Magento\Framework\DB\Adapter\AdapterInterface;
 use Magento\Framework\DB\Select;
 use Magento\Framework\EntityManager\MetadataPool;
 use Magento\Framework\Model\ResourceModel\Db\AbstractDb;
@@ -60,6 +61,34 @@ class UrlRewrite extends AbstractDb
     }
 
     /**
+     * The read connection, or a failure that says which connection is missing.
+     *
+     * AbstractDb::getConnection() returns false when the resource's connection name is not
+     * configured in env.php. Every query in this class is a read against the default connection,
+     * so false is a deployment fault, not a case to fall back from: reporting it here names the
+     * cause, where letting it through produces "call to a member function on bool" further down.
+     *
+     * @return AdapterInterface
+     * @throws \RuntimeException
+     */
+    private function connection(): AdapterInterface
+    {
+        $connection = $this->getConnection();
+
+        if (!$connection instanceof AdapterInterface) {
+            throw new \RuntimeException(
+                sprintf(
+                    'MageOS_Seo: no database connection named "%s" is configured;'
+                    . ' url_rewrite cannot be read.',
+                    $this->connectionName
+                )
+            );
+        }
+
+        return $connection;
+    }
+
+    /**
      * Canonical request paths of one entity, ordered so the first row per store view wins.
      *
      * @param string $entityType One of the TYPE_* constants
@@ -72,7 +101,7 @@ class UrlRewrite extends AbstractDb
             ->where('main_table.entity_id = ?', $entityId)
             ->order('main_table.url_rewrite_id ASC');
 
-        return $this->getConnection()->fetchAll($select);
+        return $this->connection()->fetchAll($select);
     }
 
     /**
@@ -93,7 +122,7 @@ class UrlRewrite extends AbstractDb
             ->order('main_table.entity_id ASC')
             ->order('main_table.url_rewrite_id ASC');
 
-        return $this->getConnection()->query($select);
+        return $this->connection()->query($select);
     }
 
     /**
@@ -105,7 +134,7 @@ class UrlRewrite extends AbstractDb
      */
     private function canonicalSelect(string $entityType, array $columns): Select
     {
-        $select = $this->getConnection()->select()
+        $select = $this->connection()->select()
             ->from(['main_table' => $this->getMainTable()], $columns)
             ->where('main_table.entity_type = ?', $entityType)
             ->where('main_table.redirect_type = ?', 0)
@@ -211,7 +240,7 @@ class UrlRewrite extends AbstractDb
         string $alias,
         array $acceptedValues
     ): void {
-        $connection  = $this->getConnection();
+        $connection   = $this->connection();
         $defaultAlias = $alias . '_default';
         $storeAlias   = $alias . '_store';
 
