@@ -12,6 +12,7 @@ use Magento\Store\Model\ScopeInterface;
 use Magento\Store\Model\StoreManagerInterface;
 use MageOS\Seo\Api\OrganisationRepositoryInterface;
 use MageOS\Seo\Model\Feed\FeedInvalidator;
+use MageOS\Seo\Model\Organisation\UrlValidator;
 
 class Save extends Action implements HttpPostActionInterface
 {
@@ -25,13 +26,15 @@ class Save extends Action implements HttpPostActionInterface
      * @param ScopeConfigInterface $scopeConfig
      * @param StoreManagerInterface $storeManager
      * @param FeedInvalidator $feedInvalidator
+     * @param UrlValidator $urlValidator
      */
     public function __construct(
         Context                                          $context,
         private readonly OrganisationRepositoryInterface $organisationRepository,
         private readonly ScopeConfigInterface            $scopeConfig,
         private readonly StoreManagerInterface           $storeManager,
-        private readonly FeedInvalidator                 $feedInvalidator
+        private readonly FeedInvalidator                 $feedInvalidator,
+        private readonly UrlValidator                    $urlValidator
     ) {
         parent::__construct($context);
     }
@@ -63,7 +66,17 @@ class Save extends Action implements HttpPostActionInterface
                 $org->setName((string) $data['name']);
             }
             if (isset($data['url'])) {
-                $org->setUrl((string) $data['url']);
+                $url = (string) $data['url'];
+                // These values are published into JSON-LD and Open Graph tags, so a scheme the
+                // browser will execute is refused rather than stored.
+                if (!$this->urlValidator->isValid($url)) {
+                    $this->messageManager->addErrorMessage(
+                        __('The organisation URL must be an http:// or https:// address.')
+                    );
+
+                    return $resultRedirect->setPath('*/*/edit', $this->redirectParams(0));
+                }
+                $org->setUrl($url);
             }
             if (isset($data['org_type'])) {
                 $org->setOrgType((string) $data['org_type']);
@@ -87,7 +100,14 @@ class Save extends Action implements HttpPostActionInterface
                 $uploadData = $data['logo_upload'] ?? [];
                 if (!empty($uploadData) && \is_array($uploadData)) {
                     $first = reset($uploadData);
-                    $url   = $first['url'] ?? '';
+                    $url   = (string) ($first['url'] ?? '');
+                    if ($url !== '' && !$this->urlValidator->isValid($url)) {
+                        $this->messageManager->addErrorMessage(
+                            __('The logo URL must be an http:// or https:// address or a media path.')
+                        );
+
+                        return $resultRedirect->setPath('*/*/edit', $this->redirectParams(0));
+                    }
                     if ($url !== '') {
                         $org->setLogoPath($url);
                     }
@@ -108,7 +128,20 @@ class Save extends Action implements HttpPostActionInterface
                         $profiles[] = $url;
                     }
                 }
-                $org->setSocialProfiles($profiles);
+
+                // A profile that cannot be published is dropped rather than failing the save:
+                // the rest of the record is valid, and the message names what was left out.
+                $safeProfiles = $this->urlValidator->filter($profiles);
+                if (\count($safeProfiles) !== \count($profiles)) {
+                    $this->messageManager->addErrorMessage(
+                        __(
+                            'These social profiles were not saved — a profile must be an http:// or'
+                            . ' https:// address: %1',
+                            implode(', ', array_diff($profiles, $safeProfiles))
+                        )
+                    );
+                }
+                $org->setSocialProfiles($safeProfiles);
             }
 
             // Contact point
@@ -148,6 +181,17 @@ class Save extends Action implements HttpPostActionInterface
             $this->messageManager->addErrorMessage(__('Could not save: %1', $e->getMessage()));
         }
 
+        return $resultRedirect->setPath('*/*/edit', $this->redirectParams($savedEntityId));
+    }
+
+    /**
+     * Parameters that send the admin back to the form in the scope they were editing.
+     *
+     * @param int $savedEntityId
+     * @return array<string, int>
+     */
+    private function redirectParams(int $savedEntityId): array
+    {
         [$scope, $scopeId] = $this->resolveScopeFromRequest();
         $params = ['entity_id' => $savedEntityId];
         if ($scope === 'websites') {
@@ -156,7 +200,7 @@ class Save extends Action implements HttpPostActionInterface
             $params['store'] = $scopeId;
         }
 
-        return $resultRedirect->setPath('*/*/edit', $params);
+        return $params;
     }
 
     /**

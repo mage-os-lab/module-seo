@@ -84,4 +84,4 @@ interact with `CanonicalUrlManager`.
 
 Canonical URLs are always absolute. The product and category URL methods return store-aware absolute URLs, so canonicals are correct for each store view without any extra configuration.
 
-For stores sharing a product catalogue (e.g. the same product visible on two store views), Magento's built-in canonical handling applies — each store view's canonical points to that store view's URL. If cross-store-view canonical consolidation is needed, that requires hreflang and alternate link management, which is out of scope for this module.
+For stores sharing a product catalogue (e.g. the same product visible on two store views), Magento's built-in canonical handling applies — each store view's canonical points to that store view's URL. Telling search engines that those URLs are versions of one another is the job of hreflang alternates, which this module publishes both in the page head and as a sitemap — see [hreflang.md](hreflang.md).

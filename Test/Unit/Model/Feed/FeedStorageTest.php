@@ -14,8 +14,10 @@ use Magento\Framework\Filesystem\DriverPool;
 use Magento\Framework\Filesystem\File\WriteInterface as FileWriteInterface;
 use MageOS\Seo\Model\Config;
 use MageOS\Seo\Model\Feed\FeedStorage;
+use MageOS\Seo\Model\Feed\StorageDirectory;
 use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
+use Psr\Log\LoggerInterface;
 
 class FeedStorageTest extends TestCase
 {
@@ -174,6 +176,26 @@ class FeedStorageTest extends TestCase
         $writeDir->expects($this->once())->method('renameFile');
 
         $this->storage()->write('llms.txt', 1, 'the-body');
+    }
+
+    public function testADirectoryTheInstallationDoesNotPermitIsIgnored(): void
+    {
+        // The admin field is validated on save, but a configuration row can arrive by other
+        // routes — a data patch, a deployment tool, a direct database write — so the value is
+        // checked again here. Refusing it falls back to var/mageos_seo rather than failing.
+        $this->config->method('getFeedStorageDir')->willReturn('/etc');
+        $writeDir = $this->createStub(WriteInterface::class);
+        $this->filesystem->method('getDirectoryWrite')
+            ->willReturnMap([[DirectoryList::VAR_DIR, DriverPool::FILE, $writeDir]]);
+        // The mageos_seo/ prefix is used only for the default location, so its presence below is
+        // what shows /etc was never handed to the write factory.
+        $writeDir->method('read')->willReturnMap([['mageos_seo/store_1', ['mageos_seo/store_1/llms.txt']]]);
+
+        $this->assertSame(
+            ['llms.txt'],
+            $this->storage(false)->listForStore('llms.txt', 1),
+            'The default directory is used, prefix and all.'
+        );
     }
 
     public function testWriteUsesCustomDirectoryWithoutThePrefix(): void
@@ -386,10 +408,24 @@ class FeedStorageTest extends TestCase
     /**
      * Build the storage from the current collaborators.
      *
+     * The configured directory is permitted unless a test says otherwise; what makes a directory
+     * permitted at all is StorageDirectoryTest's subject, not this one's.
+     *
+     * @param bool $directoryAllowed
      * @return FeedStorage
      */
-    private function storage(): FeedStorage
+    private function storage(bool $directoryAllowed = true): FeedStorage
     {
-        return new FeedStorage($this->filesystem, $this->writeFactory, $this->readFactory, $this->config);
+        $storageDirectory = $this->createStub(StorageDirectory::class);
+        $storageDirectory->method('isAllowed')->willReturn($directoryAllowed);
+
+        return new FeedStorage(
+            $this->filesystem,
+            $this->writeFactory,
+            $this->readFactory,
+            $this->config,
+            $storageDirectory,
+            $this->createStub(LoggerInterface::class)
+        );
     }
 }

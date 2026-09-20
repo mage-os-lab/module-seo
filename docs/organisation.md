@@ -81,6 +81,23 @@ Common profiles to include:
 - YouTube channel
 - Pinterest profile
 
+### Which URLs are accepted
+
+The Organisation URL, the social profiles and the logo are published into JSON-LD and Open Graph
+tags, where they end up in `href`, `src` and `@id` positions. Only addresses a browser can safely
+follow are stored:
+
+- `http://` and `https://`;
+- a relative path, such as the media path a logo upload produces;
+- **not** `javascript:`, `data:`, `vbscript:`, `file:` or any other scheme;
+- **not** `//host/path`, which adopts the page's scheme and points at another host;
+- **not** anything containing a control character, which would break out of the attribute it is
+  written into.
+
+An Organisation URL or logo that fails this is refused with a message, so nothing is silently
+changed. Invalid social profiles are dropped and named in the message, because the rest of the
+record is still worth saving.
+
 ---
 
 ## What happens if Organisation is left blank

@@ -18,7 +18,7 @@ use MageOS\Seo\Model\WellKnown\EndpointPool;
  */
 class WellKnownRouter implements RouterInterface
 {
-    private const PREFIX = '.well-known/';
+    private const PREFIX = PublicPaths::WELL_KNOWN_PREFIX;
 
     /**
      * @param ActionFactory $actionFactory

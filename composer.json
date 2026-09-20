@@ -6,6 +6,7 @@
     "minimum-stability": "stable",
     "require": {
         "php": "~8.3.0 || ~8.4.0 || ~8.5.0",
+        "laminas/laminas-uri": "^2.14",
         "magento/framework": "^103.0.7",
         "magento/framework-message-queue": "*",
         "magento/module-backend": "*",

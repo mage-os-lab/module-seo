@@ -31,6 +31,11 @@
         <settings>
             <submitUrl path="mageos_seo/organisation/save"/>
         </settings>
+        <!--
+            The controllers declare the same resource, but a UI component's data is also reachable
+            through the generic mui/index/render endpoint, which checks this and not them.
+        -->
+        <aclResource>MageOS_Seo::organisation</aclResource>
         <dataProvider class="MageOS\Seo\Ui\DataProvider\OrganisationDataProvider"
                       name="mageos_seo_organisation_form_data_source">
             <settings>

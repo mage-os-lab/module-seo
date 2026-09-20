@@ -9,6 +9,18 @@
                 sortOrder="25"/>
     </type>
 
+    <!--
+        No session for the feeds and the /.well-known/ documents. A session cookie stops shared
+        caches storing a response at all, and PHP's session cache limiter then emits
+        Pragma: no-cache over the 24-hour policy these endpoints set. None of them read session
+        state. Frontend only: the same check runs in every area, and this must not affect admin
+        or REST requests.
+    -->
+    <type name="Magento\Framework\Session\SessionStartChecker">
+        <plugin name="mageos_seo_no_session_for_public_feeds"
+                type="MageOS\Seo\Plugin\Session\NoSessionForPublicFeeds"/>
+    </type>
+
     <!-- Register the llms.txt router before the default router (sortOrder 20) -->
     <type name="Magento\Framework\App\RouterList">
         <arguments>

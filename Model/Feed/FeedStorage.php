@@ -11,6 +11,7 @@ use Magento\Framework\Filesystem\Directory\ReadInterface;
 use Magento\Framework\Filesystem\Directory\WriteFactory;
 use Magento\Framework\Filesystem\Directory\WriteInterface;
 use MageOS\Seo\Model\Config;
+use Psr\Log\LoggerInterface;
 
 /**
  * File storage for pre-generated SEO feeds (llms.txt, llms-full.txt, llms.jsonl,
@@ -42,13 +43,43 @@ class FeedStorage
      * @param WriteFactory $writeFactory
      * @param ReadFactory $readFactory
      * @param Config $seoConfig
+     * @param StorageDirectory $storageDirectory
+     * @param LoggerInterface $logger
      */
     public function __construct(
-        private readonly Filesystem   $filesystem,
-        private readonly WriteFactory $writeFactory,
-        private readonly ReadFactory  $readFactory,
-        private readonly Config       $seoConfig
+        private readonly Filesystem       $filesystem,
+        private readonly WriteFactory     $writeFactory,
+        private readonly ReadFactory      $readFactory,
+        private readonly Config           $seoConfig,
+        private readonly StorageDirectory $storageDirectory,
+        private readonly LoggerInterface  $logger
     ) {
+    }
+
+    /**
+     * The configured storage directory, or none when the installation does not permit it.
+     *
+     * The admin field is validated on save, but a configuration row can arrive another way — a
+     * data patch, a deployment tool, a direct database write — so the value is checked again here,
+     * where it turns into a directory handle. Refusing it falls back to var/mageos_seo rather than
+     * failing: the feeds keep working, in the one place every installation can write.
+     *
+     * @return string
+     */
+    private function configuredDirectory(): string
+    {
+        $configured = $this->seoConfig->getFeedStorageDir();
+        if ($configured === '' || $this->storageDirectory->isAllowed($configured)) {
+            return $configured;
+        }
+
+        $this->logger->error(
+            'MageOS_Seo: the configured feed storage directory is not permitted and was ignored;'
+            . ' falling back to var/mageos_seo.',
+            ['storage_dir' => $configured]
+        );
+
+        return '';
     }
 
     /**
@@ -353,7 +384,7 @@ class FeedStorage
      */
     private function prefix(): string
     {
-        return $this->seoConfig->getFeedStorageDir() === '' ? self::DEFAULT_BASE_DIR . '/' : '';
+        return $this->configuredDirectory() === '' ? self::DEFAULT_BASE_DIR . '/' : '';
     }
 
     /**
@@ -363,7 +394,7 @@ class FeedStorage
      */
     private function getWrite(): WriteInterface
     {
-        $custom = $this->seoConfig->getFeedStorageDir();
+        $custom = $this->configuredDirectory();
         if ($custom !== '') {
             return $this->writeFactory->create($custom);
         }
@@ -378,7 +409,7 @@ class FeedStorage
      */
     private function getRead(): ReadInterface
     {
-        $custom = $this->seoConfig->getFeedStorageDir();
+        $custom = $this->configuredDirectory();
         if ($custom !== '') {
             return $this->readFactory->create($custom);
         }

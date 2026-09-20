@@ -17,7 +17,7 @@ use Magento\Framework\App\RouterInterface;
  */
 class HreflangSitemapRouter implements RouterInterface
 {
-    private const PATH_PATTERN = '#^hreflang-sitemap(?:-(\d+))?\.xml$#';
+    private const PATH_PATTERN = PublicPaths::HREFLANG_PATTERN;
 
     /**
      * @param ActionFactory $actionFactory

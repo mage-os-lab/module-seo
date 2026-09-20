@@ -16,7 +16,9 @@ The SEO module provides structured data (JSON-LD), Open Graph meta tags, canonic
 | [Robots Meta](robots-meta.md) | Global defaults and per-page overrides | Admin / SEO manager |
 | [Per-Category SEO](category-seo.md) | Schema template, field config, robots, ItemList per category | Admin / merchandiser |
 | [Per-Product SEO](product-seo.md) | Field overrides and robots meta per product per store | Admin / merchandiser |
-| [AI Discoverability (llms.txt)](llms-txt.md) | `/llms.txt` and `/llms-full.txt` for LLM crawlers | Admin / developer |
+| [AI Discoverability (llms.txt)](llms-txt.md) | `/llms.txt`, `/llms-full.txt` and `/llms.jsonl` — what they contain | Admin / developer |
+| [Hreflang Alternates & Sitemap](hreflang.md) | Head alternates and `/hreflang-sitemap.xml` — what appears in them | Developer / SEO manager |
+| [Pre-generated Feeds](feeds.md) | The machinery behind all four: rebuilds, caching, storage, multi-server, CLI | Developer / DevOps |
 | [Extending the Module](extending.md) | Adding providers, builders, and section content | Developer |
 
 ---
@@ -40,7 +42,7 @@ After installing and running `bin/magento setup:upgrade`:
 1. Go to **Marketing → SEO → Organisation** and fill in Name, URL, Description, Logo, and any social profiles. Without this, JSON-LD and `/llms.txt` will output empty values.
 2. Go to **Stores → Configuration → MageOS → SEO** and verify the defaults suit your store.
 3. Assign a schema template to each top-level category via **Catalog → Categories → SEO (Structured Data) tab**.
-4. Add the two URL rewrites so `/llms.txt` and `/llms-full.txt` work at clean paths (see [llms-txt.md](llms-txt.md)).
+4. Nothing to do for `/llms.txt`, `/llms-full.txt`, `/llms.jsonl` or `/hreflang-sitemap.xml`: a router serves them at those paths. Do **not** add URL rewrites for them — a rewrite fights the router (see [feeds.md](feeds.md)).
 5. Flush the cache.
 
 ---
@@ -93,6 +95,7 @@ All paths live under `mageos_seo_general/`:
 | `mageos_seo_general/structured_data/category_item_list_max` | 36 | Max items in ItemList |
 | `mageos_seo_general/structured_data/has_variant_max` | 50 | Max hasVariant entries (global only) |
 | `mageos_seo_general/structured_data/price_valid_until_months` | 12 | Months ahead for priceValidUntil when no special-price end date applies (0 = omit) |
+| `mageos_seo_general/feeds/storage_dir` | *(empty)* | Where the pre-generated feeds are written; empty = `var/mageos_seo`. Restricted: inside the installation only `var/`, and anywhere else only under a root declared in `app/etc/env.php` as `mageos_seo/feed_storage_roots` — see [feeds.md](feeds.md#storing-the-feeds-outside-var-multi-server) |
 | `mageos_seo_general/llms_txt/enabled` | 1 | Serve /llms.txt |
 | `mageos_seo_general/llms_txt/full_enabled` | 1 | Serve /llms-full.txt |
 | `mageos_seo_general/robots_meta/product_default` | *(empty)* | Default for product pages (empty = Magento's Design → Search Engine Robots setting) |

@@ -161,6 +161,8 @@ Both render the same theme-agnostic `<details>/<summary>` markup (no JS) and fee
 
 `/llms.txt` content draws the organisation name and description from the Organisation record — **configure Organisation first** or these documents will be incomplete.
 
+These documents are pre-generated to files (by default `var/mageos_seo/`) and served from there; web requests never build them. **Multi-server deployments** must point the web servers and the cron/consumer host at a shared mount, which takes one entry in each machine's `app/etc/env.php` as well as the admin setting — see [Storing the feeds outside var/](docs/feeds.md#storing-the-feeds-outside-var-multi-server).
+
 ---
 
 ## Agentic commerce (`/.well-known/`)

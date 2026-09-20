@@ -17,11 +17,7 @@ use Magento\Framework\App\RouterInterface;
  */
 class LlmsTxtRouter implements RouterInterface
 {
-    private const ROUTES = [
-        'llms.txt'      => ['module' => 'mageos-seo', 'controller' => 'llms',      'action' => 'index'],
-        'llms-full.txt' => ['module' => 'mageos-seo', 'controller' => 'llmsfull',  'action' => 'index'],
-        'llms.jsonl'    => ['module' => 'mageos-seo', 'controller' => 'llmsjsonl', 'action' => 'index'],
-    ];
+    private const ROUTES = PublicPaths::LLMS_ROUTES;
 
     /**
      * @param ActionFactory $actionFactory

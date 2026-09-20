@@ -23,6 +23,58 @@ become public contract.
 
 ### Fixed
 
+- The Organisation and FAQ admin forms declare an ACL resource. Their controllers
+  always did, but a UI component's data is also reachable through the generic
+  `mui/index/render` endpoint, which checks the component's own `aclResource` and
+  not the controller's — so an authenticated administrator with none of this
+  module's permissions could read the form data.
+- Organisation URLs, social profiles and the logo are validated before they are
+  stored. They are published into JSON-LD and Open Graph tags, where they land in
+  `href`, `src` and `@id` positions, so only `http`/`https` and genuine relative
+  paths are accepted: `javascript:`, `data:` and friends are refused, as is
+  `//host/path`, which adopts the page's scheme and points elsewhere. Parsing uses
+  `Laminas\Uri`, with a control-character check first, because a URL with an
+  embedded newline parses as valid. An invalid Organisation or logo URL refuses the
+  save with a message; invalid social profiles are dropped and named.
+- `/.well-known/security.txt` fields are cut at the first line break. The document
+  is one directive per line (RFC 9116), so a newline in a configured value could
+  forge further directives — an `Encryption:` or `Contact:` of someone else's
+  choosing — from a field that looks like free text.
+- `mageos_seo_general/feeds/storage_dir` is restricted and validated. It is an
+  absolute path set from the admin panel, so as it stood an administrator could
+  point feed writes at any directory PHP can reach. Inside the installation only
+  `var/` is now accepted — the root and every other standard directory (`app/`,
+  `bin/`, `dev/`, `generated/`, `lib/`, `pub/`, `setup/`, `update/`, `vendor/`) are
+  refused — along with no hidden directories anywhere, no `..`, and the path
+  resolved first so a symlink inside `var/` cannot stand for a target outside it.
+  The shared mount a multi-server deployment needs is declared in `app/etc/env.php`
+  under `mageos_seo/feed_storage_roots`, which the admin panel cannot edit. A declared
+  root extends where feeds may go without opening up the codebase: the installation
+  rule is applied first, so a root pointing at `pub/`, `app/` or `vendor/` is ignored
+  rather than obeyed. The
+  rules run on save, with the reason shown, and again when the value is read, since
+  a configuration row can arrive from a data patch or the database without passing
+  through the form; a refused value is logged and the feeds fall back to
+  `var/mageos_seo`.
+- The feeds and the `/.well-known/` documents no longer start a session. A session
+  sets a cookie, which stops shared caches storing the response at all, and makes
+  PHP emit `Pragma: no-cache` over the 24-hour policy the controller just set.
+  None of these endpoints read session state. `/.well-known/` also gained the
+  canonical-path redirect the feeds already had, so query-string and internal-URL
+  variants collapse onto one cacheable URL.
+- The hreflang sitemap and the `<link rel="alternate">` tags no longer advertise
+  entities a visitor cannot reach. They were built from `url_rewrite` rows filtered
+  only on the rewrite's own flags, and a rewrite outlives the state of the thing it
+  points at — so disabling a product, deactivating a category or unpublishing a CMS
+  page left it listed as an alternate, on every store view, until something else
+  removed the row. The queries now join the entity's published state at each row's
+  store view: product `status` and `visibility`, category `is_active`, CMS
+  `is_active` plus its store assignment, with the store-view value overriding the
+  global one as the storefront does. The queries moved to a new
+  `Model\ResourceModel\UrlRewrite` — `UrlRewriteFetcher` keeps its two methods as
+  accessors and its row-by-row streaming, so the memory profile is unchanged. The
+  join to the entity table carries the link field from `MetadataPool`, so
+  installations with content staging (`row_id`) work the same way.
 - Admin product and category edit pages no longer fail with `ReflectionException:
   Class "…\Form\Modifier\Pool" does not exist`. The SEO form modifiers were
   registered with `<type>` on the virtual-type pool names, which replaced the pool

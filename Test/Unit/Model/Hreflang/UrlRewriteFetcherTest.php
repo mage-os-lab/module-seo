@@ -4,20 +4,23 @@ declare(strict_types=1);
 
 namespace MageOS\Seo\Test\Unit\Model\Hreflang;
 
-use Magento\Framework\App\ResourceConnection;
-use Magento\Framework\DB\Adapter\AdapterInterface;
-use Magento\Framework\DB\Select;
 use Magento\Framework\DB\Statement\Pdo\Mysql as PdoMysqlStatement;
 use MageOS\Seo\Model\Hreflang\UrlRewriteFetcher;
+use MageOS\Seo\Model\ResourceModel\UrlRewrite as UrlRewriteResource;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * Grouping and store precedence only. Which rows the queries return — including the published
+ * filter that keeps disabled entities out — belongs to the resource model and is covered against
+ * a real database by Test/Integration/Model/Hreflang/PublishedEntitiesOnlyTest.
+ */
 class UrlRewriteFetcherTest extends TestCase
 {
     /**
-     * @var AdapterInterface&MockObject
+     * @var UrlRewriteResource&MockObject
      */
-    private AdapterInterface&MockObject $connection;
+    private UrlRewriteResource&MockObject $resource;
 
     /**
      * @var UrlRewriteFetcher
@@ -26,23 +29,13 @@ class UrlRewriteFetcherTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->connection = $this->createMock(AdapterInterface::class);
-        $select           = $this->createMock(Select::class);
-        $select->method('from')->willReturnSelf();
-        $select->method('where')->willReturnSelf();
-        $select->method('order')->willReturnSelf();
-        $this->connection->method('select')->willReturn($select);
-
-        $resource = $this->createMock(ResourceConnection::class);
-        $resource->method('getConnection')->willReturn($this->connection);
-        $resource->method('getTableName')->willReturn('url_rewrite');
-
-        $this->fetcher = new UrlRewriteFetcher($resource);
+        $this->resource = $this->createMock(UrlRewriteResource::class);
+        $this->fetcher  = new UrlRewriteFetcher($this->resource);
     }
 
     public function testReturnsPathsKeyedByStore(): void
     {
-        $this->connection->method('fetchAll')->willReturn([
+        $this->resource->method('getPathsForEntity')->willReturn([
             ['store_id' => '1', 'request_path' => 'uk-path'],
             ['store_id' => '2', 'request_path' => 'us-path'],
         ]);
@@ -54,7 +47,7 @@ class UrlRewriteFetcherTest extends TestCase
 
     public function testFirstRowPerStoreWins(): void
     {
-        $this->connection->method('fetchAll')->willReturn([
+        $this->resource->method('getPathsForEntity')->willReturn([
             ['store_id' => '1', 'request_path' => 'current'],
             ['store_id' => '1', 'request_path' => 'old-history'],
         ]);
@@ -63,13 +56,13 @@ class UrlRewriteFetcherTest extends TestCase
 
     public function testReturnsEmptyWhenNoRewrites(): void
     {
-        $this->connection->method('fetchAll')->willReturn([]);
+        $this->resource->method('getPathsForEntity')->willReturn([]);
         $this->assertSame([], $this->fetcher->fetchForEntity('cms-page', 9));
     }
 
     public function testStreamAllForTypeYieldsNothingWithoutStores(): void
     {
-        $this->connection->expects($this->never())->method('query');
+        $this->resource->expects($this->never())->method('queryPathsForType');
 
         $this->assertSame([], $this->streamed('product', []));
     }
@@ -121,7 +114,7 @@ class UrlRewriteFetcherTest extends TestCase
                 return array_shift($rows) ?? false;
             }
         );
-        $this->connection->method('query')->willReturn($statement);
+        $this->resource->method('queryPathsForType')->willReturn($statement);
     }
 
     /**

@@ -80,7 +80,8 @@
                 <label>Feed Storage</label>
                 <field id="storage_dir" translate="label comment" type="text" sortOrder="10" showInDefault="1" showInWebsite="0" showInStore="0">
                     <label>Storage Directory</label>
-                    <comment>Absolute path for pre-generated feed files (llms.txt, llms.jsonl, hreflang sitemap). Leave empty to use var/mageos_seo. On multi-server deployments set a mount shared between web servers and the cron/consumer host.</comment>
+                    <backend_model>MageOS\Seo\Model\Config\Backend\FeedStorageDir</backend_model>
+                    <comment><![CDATA[Absolute path for pre-generated feed files (llms.txt, llms.jsonl, hreflang sitemap). Leave empty to use var/mageos_seo. Inside the installation only var/ may be used; a shared mount for multi-server deployments must be listed under <code>mageos_seo/feed_storage_roots</code> in app/etc/env.php.]]></comment>
                 </field>
             </group>
 
