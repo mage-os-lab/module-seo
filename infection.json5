@@ -3,12 +3,17 @@
     // Scope mutation testing to source whose logic unit tests can actually
     // verify. The excludes are classes that are only meaningfully covered by
     // Test/Integration against a real database/framework: resource models and
-    // the SQL-construction Category repositories (their WHERE clauses and
-    // per-row ordering are invisible to a mocked adapter, so those mutants are
+    // the collection-backed repositories (their WHERE clauses and per-row
+    // ordering are invisible to a doubled collection, so those mutants are
     // unkillable in unit tests by design), schema/meta providers, the
     // llms.txt/llms.jsonl builders and the Organisation repository. Infection
     // cannot boot Magento to run those suites locally. Catalog/CurrentEntity is
     // pure Registry delegation. Cron/ is outside the scanned directories.
+    //
+    // Faq/Repository and Review/NativeAggregateRatingProvider joined that list
+    // when their queries moved onto collections: their tests now double a
+    // generated CollectionFactory, so they carry the magento-generated group
+    // excluded below and cannot run here.
     "source": {
         "directories": ["Model", "Observer", "Service"],
         "excludes": [
@@ -17,11 +22,13 @@
             "Category",
             "Config/Source/LogoSource.php",
             "Config/Source/OrgType.php",
+            "Faq/Repository.php",
             "LlmsJsonl/JsonlBuilder.php",
             "LlmsTxt",
             "MetaTag/Provider",
             "Organisation.php",
             "OrganisationRepository.php",
+            "Review/NativeAggregateRatingProvider.php",
             "StructuredData/Provider/CategorySchemaProvider.php",
             "StructuredData/Provider/CmsPageSchemaProvider.php",
             "StructuredData/Provider/ProductSchemaProvider.php"

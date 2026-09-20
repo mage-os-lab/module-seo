@@ -9,10 +9,8 @@ use Magento\Catalog\Api\Data\ProductInterface;
 use Magento\Catalog\Model\Product\Attribute\Source\Status;
 use Magento\Catalog\Model\Product\Visibility;
 use Magento\Eav\Model\Config as EavConfig;
-use Magento\Framework\DB\Adapter\AdapterInterface;
 use Magento\Framework\DB\Select;
 use Magento\Framework\EntityManager\MetadataPool;
-use Magento\Framework\Model\ResourceModel\Db\AbstractDb;
 use Magento\Framework\Model\ResourceModel\Db\Context;
 
 /**
@@ -29,7 +27,7 @@ use Magento\Framework\Model\ResourceModel\Db\Context;
  * the link field: on installations with content staging the EAV tables key on row_id rather than
  * entity_id, and MetadataPool is what knows the difference.
  */
-class UrlRewrite extends AbstractDb
+class UrlRewrite extends AbstractConnectedResource
 {
     public const TYPE_PRODUCT  = 'product';
     public const TYPE_CATEGORY = 'category';
@@ -58,34 +56,6 @@ class UrlRewrite extends AbstractDb
     protected function _construct(): void
     {
         $this->_init('url_rewrite', 'url_rewrite_id');
-    }
-
-    /**
-     * The read connection, or a failure that says which connection is missing.
-     *
-     * AbstractDb::getConnection() returns false when the resource's connection name is not
-     * configured in env.php. Every query in this class is a read against the default connection,
-     * so false is a deployment fault, not a case to fall back from: reporting it here names the
-     * cause, where letting it through produces "call to a member function on bool" further down.
-     *
-     * @return AdapterInterface
-     * @throws \RuntimeException
-     */
-    private function connection(): AdapterInterface
-    {
-        $connection = $this->getConnection();
-
-        if (!$connection instanceof AdapterInterface) {
-            throw new \RuntimeException(
-                sprintf(
-                    'MageOS_Seo: no database connection named "%s" is configured;'
-                    . ' url_rewrite cannot be read.',
-                    $this->connectionName
-                )
-            );
-        }
-
-        return $connection;
     }
 
     /**

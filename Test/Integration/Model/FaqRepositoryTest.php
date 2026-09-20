@@ -90,8 +90,9 @@ class FaqRepositoryTest extends TestCase
 
     public function testReadByIdentifierReturnsActiveOrdered(): void
     {
-        $this->repository->save($this->newFaq('faqgrp', 'First', 'A1'));
-        $this->repository->save($this->newFaq('faqgrp', 'Second', 'A2'));
+        // Saved out of order, so passing means the sort_order is what ordered them.
+        $this->repository->save($this->sorted($this->newFaq('faqgrp', 'Second', 'A2'), 2));
+        $this->repository->save($this->sorted($this->newFaq('faqgrp', 'First', 'A1'), 1));
         $inactive = $this->newFaq('faqgrp', 'Hidden', 'A3');
         $inactive->setIsActive(false);
         $this->repository->save($inactive);
@@ -99,8 +100,32 @@ class FaqRepositoryTest extends TestCase
         $faqs      = $this->readRepository->getByIdentifier('faqgrp', 1);
         $questions = array_column($faqs, 'question');
 
-        $this->assertContains('First', $questions);
-        $this->assertContains('Second', $questions);
+        $this->assertSame(['First', 'Second'], $questions);
         $this->assertNotContains('Hidden', $questions);
+    }
+
+    public function testEntriesSharingASortOrderComeBackInAStableOrder(): void
+    {
+        // Equal sort_order values leave the order to the storage engine unless something breaks
+        // the tie, and this list is rendered into FAQPage JSON-LD that the page cache keeps.
+        foreach (['Alpha', 'Bravo', 'Charlie'] as $question) {
+            $this->repository->save($this->sorted($this->newFaq('tiegrp', $question, 'A'), 5));
+        }
+
+        $questions = array_column($this->readRepository->getByIdentifier('tiegrp', 1), 'question');
+
+        $this->assertSame(['Alpha', 'Bravo', 'Charlie'], $questions);
+    }
+
+    /**
+     * @param FaqInterface $faq
+     * @param int $sortOrder
+     * @return FaqInterface
+     */
+    private function sorted(FaqInterface $faq, int $sortOrder): FaqInterface
+    {
+        $faq->setSortOrder($sortOrder);
+
+        return $faq;
     }
 }

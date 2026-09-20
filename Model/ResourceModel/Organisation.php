@@ -4,10 +4,9 @@ declare(strict_types=1);
 
 namespace MageOS\Seo\Model\ResourceModel;
 
-use Magento\Framework\Model\ResourceModel\Db\AbstractDb;
 use MageOS\Seo\Model\Organisation as OrganisationModel;
 
-class Organisation extends AbstractDb
+class Organisation extends AbstractConnectedResource
 {
     /**
      * Initialize resource model table and primary key.
@@ -31,8 +30,7 @@ class Organisation extends AbstractDb
      */
     public function loadByScope(OrganisationModel $model, string $scope, int $scopeId): void
     {
-        /** @var \Magento\Framework\DB\Adapter\AdapterInterface $connection */
-        $connection = $this->getConnection();
+        $connection = $this->connection();
         $select     = $connection->select()
             ->from($this->getMainTable())
             ->where('scope = ?', $scope)
