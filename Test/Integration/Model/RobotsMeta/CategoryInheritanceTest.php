@@ -32,9 +32,9 @@ class CategoryInheritanceTest extends TestCase
     /**
      * Category IDs whose configuration this test wrote.
      *
-     * @var int[]
+     * @var int[]|null
      */
-    private array $writtenCategoryIds = [];
+    private ?array $writtenCategoryIds = [];
 
     /**
      * Remove the rows the test wrote and the category it registered; the fixtures revert
