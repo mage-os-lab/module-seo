@@ -38,9 +38,9 @@ class PublishedEntitiesOnlyTest extends TestCase
     /**
      * IDs of the CMS pages created by the running test.
      *
-     * @var int[]
+     * @var int[]|null
      */
-    private array $createdPageIds = [];
+    private ?array $createdPageIds = [];
 
     /**
      * @return void
