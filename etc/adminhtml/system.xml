@@ -6,117 +6,166 @@
             <label>MageOS SEO</label>
         </tab>
 
-        <section id="mageos_seo_general" translate="label" type="text" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1">
+        <section id="mageos_seo_general" translate="label" type="text" sortOrder="10"
+                 showInDefault="1" showInWebsite="1" showInStore="1">
             <label>SEO</label>
             <tab>mageos_seo</tab>
             <resource>MageOS_Seo::config</resource>
 
-            <group id="og_tags" translate="label" type="text" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1">
+            <group id="og_tags" translate="label" type="text" sortOrder="10"
+                   showInDefault="1" showInWebsite="1" showInStore="1">
                 <label>Open Graph Tags</label>
-                <field id="enabled" translate="label comment" type="select" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1">
+                <field id="enabled" translate="label comment" type="select"
+                       sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Enable OG Tags</label>
-                    <comment>Output og:title, og:description, og:image, og:type on product and category pages.</comment>
+                    <comment>Output og:title, og:description, og:image, og:type on product and
+category pages.</comment>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                 </field>
             </group>
 
-            <group id="structured_data" translate="label" type="text" sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="1">
+            <group id="structured_data" translate="label" type="text" sortOrder="20"
+                   showInDefault="1" showInWebsite="1" showInStore="1">
                 <label>Structured Data (JSON-LD)</label>
-                <field id="enabled" translate="label" type="select" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1">
+                <field id="enabled" translate="label" type="select"
+                       sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Enable JSON-LD Output</label>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                 </field>
-                <field id="default_product_template" translate="label comment" type="text" sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="1">
+                <field id="default_product_template" translate="label comment" type="text"
+                       sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Default Product Schema Template</label>
-                    <comment>Used for products in categories with no template configured. Default: GenericProduct.</comment>
+                    <comment>Used for products in categories with no template configured.
+Default: GenericProduct.</comment>
                 </field>
-                <field id="category_item_list_enabled" translate="label comment" type="select" sortOrder="30" showInDefault="1" showInWebsite="1" showInStore="1">
+                <field id="category_item_list_enabled" translate="label comment" type="select"
+                       sortOrder="30" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Enable Category ItemList Schema</label>
                     <comment>Output an ItemList schema on category pages. Can be overridden per category.</comment>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                 </field>
-                <field id="category_item_list_max" translate="label comment" type="text" sortOrder="40" showInDefault="1" showInWebsite="1" showInStore="0">
+                <field id="category_item_list_max" translate="label comment" type="text"
+                       sortOrder="40" showInDefault="1" showInWebsite="1" showInStore="0">
                     <label>Category ItemList Max Items</label>
-                    <comment>Maximum products to include in ItemList schema per page. Recommended: 36 (matches default toolbar page size).</comment>
+                    <comment>Maximum products to include in ItemList schema per page. Recommended: 36
+(matches default toolbar page size).</comment>
                     <validate>validate-digits validate-greater-than-zero</validate>
                 </field>
-                <field id="has_variant_max" translate="label comment" type="text" sortOrder="50" showInDefault="1" showInWebsite="0" showInStore="0">
+                <field id="has_variant_max" translate="label comment" type="text"
+                       sortOrder="50" showInDefault="1" showInWebsite="0" showInStore="0">
                     <label>hasVariant Max Entries</label>
-                    <comment>Maximum variant nodes to include in a product's hasVariant array. Recommended: 50.</comment>
+                    <comment>Maximum variant nodes to include in a product's hasVariant array.
+Recommended: 50.</comment>
                     <validate>validate-digits validate-greater-than-zero</validate>
                 </field>
-                <field id="price_valid_until_months" translate="label comment" type="text" sortOrder="60" showInDefault="1" showInWebsite="1" showInStore="1">
+                <field id="price_valid_until_months" translate="label comment" type="text"
+                       sortOrder="60" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Price Valid Until (months)</label>
-                    <comment>Months from today to use as priceValidUntil when a product has no active special-price end date (which always wins). Set 0 to omit the synthetic date entirely. Default: 12.</comment>
+                    <comment>Months from today to use as priceValidUntil when a product has no active
+special-price end date (which always wins). Set 0 to omit the synthetic date entirely. Default: 12.</comment>
                     <validate>validate-digits</validate>
                 </field>
-                <field id="aggregate_rating_enabled" translate="label comment" type="select" sortOrder="70" showInDefault="1" showInWebsite="1" showInStore="1">
+                <field id="aggregate_rating_enabled" translate="label comment" type="select"
+                       sortOrder="70" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Enable AggregateRating</label>
-                    <comment>Output aggregateRating (review score + count) on product schema. Source is pluggable — native Magento reviews by default, or a bridge module (Yotpo, Trustpilot, …).</comment>
+                    <comment>Output aggregateRating (review score + count) on product schema. Source is
+pluggable — native Magento reviews by default, or a bridge module (Yotpo, Trustpilot, …).</comment>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                 </field>
             </group>
 
-            <group id="category_config" translate="label" type="text" sortOrder="25" showInDefault="1" showInWebsite="0" showInStore="0">
+            <group id="category_config" translate="label" type="text" sortOrder="25"
+                   showInDefault="1" showInWebsite="0" showInStore="0">
                 <label>Category SEO Settings</label>
-                <field id="inheritance_strategy" translate="label comment" type="select" sortOrder="10" showInDefault="1" showInWebsite="0" showInStore="0">
+                <field id="inheritance_strategy" translate="label comment" type="select"
+                       sortOrder="10" showInDefault="1" showInWebsite="0" showInStore="0">
                     <label>Inheritance Strategy</label>
-                    <comment><![CDATA[Where a category's SEO settings come from when it does not set them itself. Each setting is resolved separately, so a category can take its schema template from one place and its robots directive from another.<br/><br/><strong>Category first</strong> suits a catalogue whose tree carries the meaning: a setting made on a category applies to it whether it was made globally or for one store view, and only a category that says nothing defers to its parent.<br/><br/><strong>Store view first</strong> suits store views that carry their own SEO policy: anything set for this store view, anywhere up the tree, outranks anything set globally. With one store view the two behave identically.<br/><br/>Global only — this decides how store-view scope itself is resolved.]]></comment>
+                    <comment><![CDATA[Where a category's SEO settings come from when it does not set
+them itself. Each setting is resolved separately, so a category can take its schema template from
+one place and its robots directive from another.<br/><br/>
+<strong>Category first</strong> suits a catalogue whose tree carries the meaning: a setting made on
+a category applies to it whether it was made globally or for one store view, and only a category
+that says nothing defers to its parent.<br/><br/>
+<strong>Store view first</strong> suits store views that carry their own SEO policy: anything set
+for this store view, anywhere up the tree, outranks anything set globally. With one store view the
+two behave identically.<br/><br/>
+Global only — this decides how store-view scope itself is resolved.]]></comment>
                     <source_model>MageOS\Seo\Model\Config\Source\InheritanceStrategy</source_model>
                 </field>
             </group>
 
-            <group id="llms_txt" translate="label" type="text" sortOrder="30" showInDefault="1" showInWebsite="1" showInStore="1">
+            <group id="llms_txt" translate="label" type="text" sortOrder="30"
+                   showInDefault="1" showInWebsite="1" showInStore="1">
                 <label>AI Discoverability (llms.txt)</label>
-                <field id="enabled" translate="label comment" type="select" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1">
+                <field id="enabled" translate="label comment" type="select"
+                       sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Enable /llms.txt</label>
                     <comment>Serve a machine-readable site summary at /llms.txt for LLM crawlers.</comment>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                 </field>
-                <field id="full_enabled" translate="label comment" type="select" sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="1">
+                <field id="full_enabled" translate="label comment" type="select"
+                       sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Enable /llms-full.txt</label>
-                    <comment>Serve the extended document with full vendor and category listings at /llms-full.txt.</comment>
+                    <comment>Serve the extended document with full vendor and category listings
+at /llms-full.txt.</comment>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                 </field>
-                <field id="jsonl_enabled" translate="label comment" type="select" sortOrder="30" showInDefault="1" showInWebsite="1" showInStore="1">
+                <field id="jsonl_enabled" translate="label comment" type="select"
+                       sortOrder="30" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Enable /llms.jsonl</label>
-                    <comment>Serve a machine-readable NDJSON product catalog (one JSON-LD Product per line) at /llms.jsonl. Off by default.</comment>
+                    <comment>Serve a machine-readable NDJSON product catalog (one JSON-LD Product per
+line) at /llms.jsonl. Off by default.</comment>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                 </field>
             </group>
 
-            <group id="feeds" translate="label" type="text" sortOrder="35" showInDefault="1" showInWebsite="0" showInStore="0">
+            <group id="feeds" translate="label" type="text" sortOrder="35"
+                   showInDefault="1" showInWebsite="0" showInStore="0">
                 <label>Feed Storage</label>
-                <field id="storage_dir" translate="label comment" type="text" sortOrder="10" showInDefault="1" showInWebsite="0" showInStore="0">
+                <field id="storage_dir" translate="label comment" type="text"
+                       sortOrder="10" showInDefault="1" showInWebsite="0" showInStore="0">
                     <label>Storage Directory</label>
                     <backend_model>MageOS\Seo\Model\Config\Backend\FeedStorageDir</backend_model>
-                    <comment><![CDATA[Absolute path for pre-generated feed files (llms.txt, llms.jsonl, hreflang sitemap). Leave empty to use var/mageos_seo. Inside the installation only var/ may be used; a shared mount for multi-server deployments must be listed under <code>mageos_seo/feed_storage_roots</code> in app/etc/env.php.]]></comment>
+                    <comment><![CDATA[Absolute path for pre-generated feed files (llms.txt, llms.jsonl,
+hreflang sitemap). Leave empty to use var/mageos_seo. Inside the installation only var/ may be used;
+a shared mount for multi-server deployments must be listed under
+<code>mageos_seo/feed_storage_roots</code> in app/etc/env.php.]]></comment>
                 </field>
             </group>
 
-            <group id="robots_meta" translate="label" type="text" sortOrder="40" showInDefault="1" showInWebsite="1" showInStore="1">
+            <group id="robots_meta" translate="label" type="text" sortOrder="40"
+                   showInDefault="1" showInWebsite="1" showInStore="1">
                 <label>Robots Meta Defaults</label>
-                <field id="product_default" translate="label comment" type="select" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1">
+                <field id="product_default" translate="label comment" type="select"
+                       sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Product Pages Default</label>
                     <source_model>MageOS\Seo\Model\Config\Source\RobotsMeta</source_model>
-                    <comment>When set to "Use Magento Default", the core Design &gt; Search Engine Robots setting applies.</comment>
+                    <comment>When set to "Use Magento Default", the core Design &gt; Search Engine
+Robots setting applies.</comment>
                 </field>
-                <field id="category_default" translate="label comment" type="select" sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="1">
+                <field id="category_default" translate="label comment" type="select"
+                       sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Category Pages Default</label>
                     <source_model>MageOS\Seo\Model\Config\Source\RobotsMeta</source_model>
-                    <comment>When set to "Use Magento Default", the core Design &gt; Search Engine Robots setting applies.</comment>
+                    <comment>When set to "Use Magento Default", the core Design &gt; Search Engine
+Robots setting applies.</comment>
                 </field>
-                <field id="cms_page_default" translate="label comment" type="select" sortOrder="30" showInDefault="1" showInWebsite="1" showInStore="1">
+                <field id="cms_page_default" translate="label comment" type="select"
+                       sortOrder="30" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>CMS Pages Default</label>
                     <source_model>MageOS\Seo\Model\Config\Source\RobotsMeta</source_model>
-                    <comment>When set to "Use Magento Default", the core Design &gt; Search Engine Robots setting applies.</comment>
+                    <comment>When set to "Use Magento Default", the core Design &gt; Search Engine
+Robots setting applies.</comment>
                 </field>
-                <field id="paginated_enabled" translate="label comment" type="select" sortOrder="40" showInDefault="1" showInWebsite="1" showInStore="1">
+                <field id="paginated_enabled" translate="label comment" type="select"
+                       sortOrder="40" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Override Robots on Paginated Pages</label>
-                    <comment>Apply a dedicated robots meta to category listing pages from page 2 onward (?p=2+). Canonicalisation is left to Magento's native category canonical tag.</comment>
+                    <comment>Apply a dedicated robots meta to category listing pages from page 2 onward
+(?p=2+). Canonicalisation is left to Magento's native category canonical tag.</comment>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                 </field>
-                <field id="paginated_robots" translate="label" type="select" sortOrder="50" showInDefault="1" showInWebsite="1" showInStore="1">
+                <field id="paginated_robots" translate="label" type="select"
+                       sortOrder="50" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Paginated Pages Robots</label>
                     <source_model>MageOS\Seo\Model\Config\Source\RobotsMeta</source_model>
                     <depends>
@@ -125,62 +174,81 @@
                 </field>
             </group>
 
-            <group id="hreflang" translate="label" type="text" sortOrder="50" showInDefault="1" showInWebsite="1" showInStore="1">
+            <group id="hreflang" translate="label" type="text" sortOrder="50"
+                   showInDefault="1" showInWebsite="1" showInStore="1">
                 <label>Hreflang (Multistore)</label>
-                <field id="enabled" translate="label comment" type="select" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1">
+                <field id="enabled" translate="label comment" type="select"
+                       sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Enable Hreflang Tags</label>
-                    <comment>Output rel="alternate" hreflang link tags in the head across store views. No output on single-store pages.</comment>
+                    <comment>Output rel="alternate" hreflang link tags in the head across store views.
+No output on single-store pages.</comment>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                 </field>
-                <field id="language_only_enabled" translate="label comment" type="select" sortOrder="20" showInDefault="1" showInWebsite="0" showInStore="0">
+                <field id="language_only_enabled" translate="label comment" type="select"
+                       sortOrder="20" showInDefault="1" showInWebsite="0" showInStore="0">
                     <label>Add Language-only Tags</label>
-                    <comment>Automatically add hreflang="en" when a base language is served by exactly one store view.</comment>
+                    <comment>Automatically add hreflang="en" when a base language is served by
+exactly one store view.</comment>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                 </field>
-                <field id="xdefault_store_id" translate="label comment" type="select" sortOrder="30" showInDefault="1" showInWebsite="0" showInStore="0">
+                <field id="xdefault_store_id" translate="label comment" type="select"
+                       sortOrder="30" showInDefault="1" showInWebsite="0" showInStore="0">
                     <label>x-default Store View</label>
                     <comment>Store view to advertise as hreflang x-default. Leave unset to omit x-default.</comment>
                     <source_model>MageOS\Seo\Model\Config\Source\StoreViews</source_model>
                 </field>
-                <field id="excluded_store_ids" translate="label comment" type="multiselect" sortOrder="40" showInDefault="1" showInWebsite="0" showInStore="0">
+                <field id="excluded_store_ids" translate="label comment" type="multiselect"
+                       sortOrder="40" showInDefault="1" showInWebsite="0" showInStore="0">
                     <label>Exclude Store Views</label>
                     <comment>Store views to omit from all hreflang output (e.g. staging or internal stores).</comment>
                     <source_model>MageOS\Seo\Model\Config\Source\StoreViews</source_model>
                 </field>
-                <field id="sitemap_enabled" translate="label comment" type="select" sortOrder="50" showInDefault="1" showInWebsite="0" showInStore="0">
+                <field id="sitemap_enabled" translate="label comment" type="select"
+                       sortOrder="50" showInDefault="1" showInWebsite="0" showInStore="0">
                     <label>Enable /hreflang-sitemap.xml</label>
-                    <comment>Serve a dedicated hreflang sitemap at /hreflang-sitemap.xml. Submit it in Google Search Console alongside your main sitemap.</comment>
+                    <comment>Serve a dedicated hreflang sitemap at /hreflang-sitemap.xml. Submit it in
+Google Search Console alongside your main sitemap.</comment>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                 </field>
-                <field id="same_website_only" translate="label comment" type="select" sortOrder="60" showInDefault="1" showInWebsite="0" showInStore="0">
+                <field id="same_website_only" translate="label comment" type="select"
+                       sortOrder="60" showInDefault="1" showInWebsite="0" showInStore="0">
                     <label>Limit Alternates to Current Website</label>
-                    <comment>Only link store views of the same website as hreflang alternates. Disable only when separate websites really are language/region variants of the same content.</comment>
+                    <comment>Only link store views of the same website as hreflang alternates. Disable
+only when separate websites really are language/region variants of the same content.</comment>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                 </field>
             </group>
 
-            <group id="aeo" translate="label" type="text" sortOrder="60" showInDefault="1" showInWebsite="1" showInStore="1">
+            <group id="aeo" translate="label" type="text" sortOrder="60"
+                   showInDefault="1" showInWebsite="1" showInStore="1">
                 <label>Answer Engine Optimization (AEO)</label>
-                <field id="speakable_enabled" translate="label comment" type="select" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1">
+                <field id="speakable_enabled" translate="label comment" type="select"
+                       sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Enable Speakable Schema</label>
-                    <comment>Emit Speakable structured data marking page sections for voice/audio assistants. Off by default.</comment>
+                    <comment>Emit Speakable structured data marking page sections for voice/audio
+assistants. Off by default.</comment>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                 </field>
-                <field id="speakable_css_selectors" translate="label comment" type="textarea" sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="1">
+                <field id="speakable_css_selectors" translate="label comment" type="textarea"
+                       sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Speakable CSS Selectors</label>
                     <comment>One CSS selector per line identifying content suitable for text-to-speech.</comment>
                     <depends><field id="speakable_enabled">1</field></depends>
                 </field>
             </group>
 
-            <group id="ai_robots" translate="label" type="text" sortOrder="70" showInDefault="1" showInWebsite="0" showInStore="0">
+            <group id="ai_robots" translate="label" type="text" sortOrder="70"
+                   showInDefault="1" showInWebsite="0" showInStore="0">
                 <label>AI Crawler robots.txt Directives</label>
-                <field id="enabled" translate="label comment" type="select" sortOrder="10" showInDefault="1" showInWebsite="0" showInStore="0">
+                <field id="enabled" translate="label comment" type="select"
+                       sortOrder="10" showInDefault="1" showInWebsite="0" showInStore="0">
                     <label>Append AI Crawler Directives</label>
-                    <comment>Add a "Disallow: /" robots.txt group for each AI crawler selected below. Crawlers not selected keep following your standard "User-agent: *" rules.</comment>
+                    <comment>Add a "Disallow: /" robots.txt group for each AI crawler selected below.
+Crawlers not selected keep following your standard "User-agent: *" rules.</comment>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                 </field>
-                <field id="disallowed" translate="label comment" type="multiselect" sortOrder="20" showInDefault="1" showInWebsite="0" showInStore="0">
+                <field id="disallowed" translate="label comment" type="multiselect"
+                       sortOrder="20" showInDefault="1" showInWebsite="0" showInStore="0">
                     <label>Disallow These AI Crawlers</label>
                     <comment>Selected crawlers get "Disallow: /"; all other known crawlers get "Allow: /".</comment>
                     <source_model>MageOS\Seo\Model\Config\Source\AiBots</source_model>
@@ -189,101 +257,123 @@
             </group>
         </section>
 
-        <section id="mageos_seo_merchant" translate="label" type="text" sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="1">
+        <section id="mageos_seo_merchant" translate="label" type="text" sortOrder="20"
+                 showInDefault="1" showInWebsite="1" showInStore="1">
             <label>SEO Merchant Policies</label>
             <tab>mageos_seo</tab>
             <resource>MageOS_Seo::config</resource>
 
-            <group id="condition" translate="label" type="text" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1">
+            <group id="condition" translate="label" type="text" sortOrder="10"
+                   showInDefault="1" showInWebsite="1" showInStore="1">
                 <label>Item Condition</label>
-                <field id="default_condition" translate="label comment" type="select" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1">
+                <field id="default_condition" translate="label comment" type="select"
+                       sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Default Item Condition</label>
                     <comment>schema.org itemCondition applied to all product offers.</comment>
                     <source_model>MageOS\Seo\Model\Config\Source\ItemCondition</source_model>
                 </field>
             </group>
 
-            <group id="return" translate="label" type="text" sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="1">
+            <group id="return" translate="label" type="text" sortOrder="20"
+                   showInDefault="1" showInWebsite="1" showInStore="1">
                 <label>Return Policy (hasMerchantReturnPolicy)</label>
-                <field id="enabled" translate="label comment" type="select" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1">
+                <field id="enabled" translate="label comment" type="select"
+                       sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Enable Return Policy Schema</label>
-                    <comment>Output hasMerchantReturnPolicy on product offers. Required for Google Merchant free listings.</comment>
+                    <comment>Output hasMerchantReturnPolicy on product offers. Required for Google
+Merchant free listings.</comment>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                 </field>
-                <field id="applicable_country" translate="label comment" type="text" sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="1">
+                <field id="applicable_country" translate="label comment" type="text"
+                       sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Applicable Country</label>
                     <comment>ISO 3166-1 alpha-2 code, e.g. GB.</comment>
                     <depends><field id="enabled">1</field></depends>
                 </field>
-                <field id="policy_category" translate="label" type="select" sortOrder="30" showInDefault="1" showInWebsite="1" showInStore="1">
+                <field id="policy_category" translate="label" type="select"
+                       sortOrder="30" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Return Policy Category</label>
                     <source_model>MageOS\Seo\Model\Config\Source\ReturnPolicyCategory</source_model>
                     <depends><field id="enabled">1</field></depends>
                 </field>
-                <field id="days" translate="label comment" type="text" sortOrder="40" showInDefault="1" showInWebsite="1" showInStore="1">
+                <field id="days" translate="label comment" type="text"
+                       sortOrder="40" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Return Window (days)</label>
                     <comment>Used only with a finite return window.</comment>
                     <validate>validate-digits</validate>
                     <depends><field id="enabled">1</field></depends>
                 </field>
-                <field id="method" translate="label" type="select" sortOrder="50" showInDefault="1" showInWebsite="1" showInStore="1">
+                <field id="method" translate="label" type="select"
+                       sortOrder="50" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Return Method</label>
                     <source_model>MageOS\Seo\Model\Config\Source\ReturnMethod</source_model>
                     <depends><field id="enabled">1</field></depends>
                 </field>
-                <field id="fees" translate="label" type="select" sortOrder="60" showInDefault="1" showInWebsite="1" showInStore="1">
+                <field id="fees" translate="label" type="select"
+                       sortOrder="60" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Return Fees</label>
                     <source_model>MageOS\Seo\Model\Config\Source\ReturnFees</source_model>
                     <depends><field id="enabled">1</field></depends>
                 </field>
-                <field id="refund_type" translate="label" type="select" sortOrder="70" showInDefault="1" showInWebsite="1" showInStore="1">
+                <field id="refund_type" translate="label" type="select"
+                       sortOrder="70" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Refund Type</label>
                     <source_model>MageOS\Seo\Model\Config\Source\RefundType</source_model>
                     <depends><field id="enabled">1</field></depends>
                 </field>
-                <field id="policy_url" translate="label" type="text" sortOrder="80" showInDefault="1" showInWebsite="1" showInStore="1">
+                <field id="policy_url" translate="label" type="text"
+                       sortOrder="80" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Returns Policy URL</label>
                     <depends><field id="enabled">1</field></depends>
                 </field>
             </group>
 
-            <group id="shipping" translate="label" type="text" sortOrder="30" showInDefault="1" showInWebsite="1" showInStore="1">
+            <group id="shipping" translate="label" type="text" sortOrder="30"
+                   showInDefault="1" showInWebsite="1" showInStore="1">
                 <label>Shipping Details (OfferShippingDetails)</label>
-                <field id="enabled" translate="label comment" type="select" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1">
+                <field id="enabled" translate="label comment" type="select"
+                       sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Enable Shipping Details Schema</label>
                     <comment>Output a single domestic OfferShippingDetails zone on product offers.</comment>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                 </field>
-                <field id="label" translate="label" type="text" sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="1">
+                <field id="label" translate="label" type="text"
+                       sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Shipping Label</label>
                     <depends><field id="enabled">1</field></depends>
                 </field>
-                <field id="destination_country" translate="label comment" type="text" sortOrder="30" showInDefault="1" showInWebsite="1" showInStore="1">
+                <field id="destination_country" translate="label comment" type="text"
+                       sortOrder="30" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Destination Country</label>
                     <comment>ISO 3166-1 alpha-2 code, e.g. GB.</comment>
                     <depends><field id="enabled">1</field></depends>
                 </field>
-                <field id="rate" translate="label comment" type="text" sortOrder="40" showInDefault="1" showInWebsite="1" showInStore="1">
+                <field id="rate" translate="label comment" type="text"
+                       sortOrder="40" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Shipping Rate</label>
                     <comment>0.00 for free shipping. Currency follows the store display currency.</comment>
                     <depends><field id="enabled">1</field></depends>
                 </field>
-                <field id="handling_min" translate="label" type="text" sortOrder="50" showInDefault="1" showInWebsite="1" showInStore="1">
+                <field id="handling_min" translate="label" type="text"
+                       sortOrder="50" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Handling Time Min (days)</label>
                     <validate>validate-digits</validate>
                     <depends><field id="enabled">1</field></depends>
                 </field>
-                <field id="handling_max" translate="label" type="text" sortOrder="60" showInDefault="1" showInWebsite="1" showInStore="1">
+                <field id="handling_max" translate="label" type="text"
+                       sortOrder="60" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Handling Time Max (days)</label>
                     <validate>validate-digits</validate>
                     <depends><field id="enabled">1</field></depends>
                 </field>
-                <field id="transit_min" translate="label" type="text" sortOrder="70" showInDefault="1" showInWebsite="1" showInStore="1">
+                <field id="transit_min" translate="label" type="text"
+                       sortOrder="70" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Transit Time Min (days)</label>
                     <validate>validate-digits</validate>
                     <depends><field id="enabled">1</field></depends>
                 </field>
-                <field id="transit_max" translate="label" type="text" sortOrder="80" showInDefault="1" showInWebsite="1" showInStore="1">
+                <field id="transit_max" translate="label" type="text"
+                       sortOrder="80" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Transit Time Max (days)</label>
                     <validate>validate-digits</validate>
                     <depends><field id="enabled">1</field></depends>
@@ -291,103 +381,130 @@
             </group>
         </section>
 
-        <section id="mageos_seo_ucp" translate="label" type="text" sortOrder="30" showInDefault="1" showInWebsite="1" showInStore="0">
+        <section id="mageos_seo_ucp" translate="label" type="text" sortOrder="30"
+                 showInDefault="1" showInWebsite="1" showInStore="0">
             <label>SEO Agentic Commerce (UCP)</label>
             <tab>mageos_seo</tab>
             <resource>MageOS_Seo::config</resource>
 
-            <group id="general" translate="label" type="text" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="0">
+            <group id="general" translate="label" type="text" sortOrder="10"
+                   showInDefault="1" showInWebsite="1" showInStore="0">
                 <label>UCP Profile</label>
-                <field id="enabled" translate="label comment" type="select" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="0">
+                <field id="enabled" translate="label comment" type="select"
+                       sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="0">
                     <label>Enable UCP Profile</label>
                     <comment>Serve /.well-known/ucp for AI shopping agents. Returns 404 when disabled.</comment>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                 </field>
-                <field id="merchant_id" translate="label comment" type="text" sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="0">
+                <field id="merchant_id" translate="label comment" type="text"
+                       sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="0">
                     <label>Merchant ID</label>
-                    <comment>Reverse-domain identifier (e.g. uk.co.example). Auto-derived from the domain when blank.</comment>
+                    <comment>Reverse-domain identifier (e.g. uk.co.example). Auto-derived from the
+domain when blank.</comment>
                     <depends><field id="enabled">1</field></depends>
                 </field>
-                <field id="merchant_name" translate="label comment" type="text" sortOrder="30" showInDefault="1" showInWebsite="1" showInStore="0">
+                <field id="merchant_name" translate="label comment" type="text"
+                       sortOrder="30" showInDefault="1" showInWebsite="1" showInStore="0">
                     <label>Merchant Name</label>
-                    <comment>Display name in the manifest. Falls back to the store information name when blank.</comment>
+                    <comment>Display name in the manifest. Falls back to the store information name
+when blank.</comment>
                     <depends><field id="enabled">1</field></depends>
                 </field>
             </group>
 
-            <group id="capabilities" translate="label comment" type="text" sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="0">
+            <group id="capabilities" translate="label comment" type="text" sortOrder="20"
+                   showInDefault="1" showInWebsite="1" showInStore="0">
                 <label>Advertised Capabilities</label>
-                <comment>Only enable a capability once its live UCP endpoint exists; advertising a missing endpoint harms agent-readiness.</comment>
-                <field id="catalog" translate="label" type="select" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="0">
+                <comment>Only enable a capability once its live UCP endpoint exists; advertising a
+missing endpoint harms agent-readiness.</comment>
+                <field id="catalog" translate="label" type="select"
+                       sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="0">
                     <label>Advertise Catalog API</label>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                 </field>
-                <field id="cart" translate="label" type="select" sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="0">
+                <field id="cart" translate="label" type="select"
+                       sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="0">
                     <label>Advertise Cart API</label>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                 </field>
-                <field id="checkout" translate="label" type="select" sortOrder="30" showInDefault="1" showInWebsite="1" showInStore="0">
+                <field id="checkout" translate="label" type="select"
+                       sortOrder="30" showInDefault="1" showInWebsite="1" showInStore="0">
                     <label>Advertise Checkout API</label>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                 </field>
-                <field id="identity_linking" translate="label" type="select" sortOrder="40" showInDefault="1" showInWebsite="1" showInStore="0">
+                <field id="identity_linking" translate="label" type="select"
+                       sortOrder="40" showInDefault="1" showInWebsite="1" showInStore="0">
                     <label>Advertise Identity Linking</label>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                 </field>
-                <field id="order_management" translate="label" type="select" sortOrder="50" showInDefault="1" showInWebsite="1" showInStore="0">
+                <field id="order_management" translate="label" type="select"
+                       sortOrder="50" showInDefault="1" showInWebsite="1" showInStore="0">
                     <label>Advertise Order Management</label>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                 </field>
             </group>
 
-            <group id="signing" translate="label comment" type="text" sortOrder="30" showInDefault="1" showInWebsite="1" showInStore="0">
+            <group id="signing" translate="label comment" type="text" sortOrder="30"
+                   showInDefault="1" showInWebsite="1" showInStore="0">
                 <label>Signing Keys</label>
-                <comment>Generated by "bin/magento mageos:seo:ucp:keygen --website=N". The private key is stored encrypted; only the public JWK is served.</comment>
-                <field id="private_key" translate="label" type="obscure" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="0">
+                <comment>Generated by "bin/magento mageos:seo:ucp:keygen --website=N". The private key
+is stored encrypted; only the public JWK is served.</comment>
+                <field id="private_key" translate="label" type="obscure"
+                       sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="0">
                     <label>Private Key (encrypted)</label>
                     <backend_model>Magento\Config\Model\Config\Backend\Encrypted</backend_model>
                 </field>
-                <field id="public_key_jwk" translate="label comment" type="textarea" sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="0">
+                <field id="public_key_jwk" translate="label comment" type="textarea"
+                       sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="0">
                     <label>Public Key JWK</label>
                     <comment>Read-only. Populated by the keygen command.</comment>
                 </field>
             </group>
 
-            <group id="ai_plugin" translate="label" type="text" sortOrder="40" showInDefault="1" showInWebsite="1" showInStore="0">
+            <group id="ai_plugin" translate="label" type="text" sortOrder="40"
+                   showInDefault="1" showInWebsite="1" showInStore="0">
                 <label>AI Plugin Manifest (ai-plugin.json)</label>
-                <field id="enabled" translate="label comment" type="select" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="0">
+                <field id="enabled" translate="label comment" type="select"
+                       sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="0">
                     <label>Enable ai-plugin.json</label>
                     <comment>Serve /.well-known/ai-plugin.json for GPT-based agents.</comment>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                 </field>
-                <field id="description" translate="label comment" type="textarea" sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="0">
+                <field id="description" translate="label comment" type="textarea"
+                       sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="0">
                     <label>Description</label>
                     <comment>Agent-facing store description (truncated to 200 chars).</comment>
                     <depends><field id="enabled">1</field></depends>
                 </field>
-                <field id="legal_url" translate="label" type="text" sortOrder="30" showInDefault="1" showInWebsite="1" showInStore="0">
+                <field id="legal_url" translate="label" type="text"
+                       sortOrder="30" showInDefault="1" showInWebsite="1" showInStore="0">
                     <label>Legal Info URL</label>
                     <depends><field id="enabled">1</field></depends>
                 </field>
             </group>
 
-            <group id="security_txt" translate="label" type="text" sortOrder="50" showInDefault="1" showInWebsite="1" showInStore="0">
+            <group id="security_txt" translate="label" type="text" sortOrder="50"
+                   showInDefault="1" showInWebsite="1" showInStore="0">
                 <label>security.txt (RFC 9116)</label>
-                <field id="enabled" translate="label comment" type="select" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="0">
+                <field id="enabled" translate="label comment" type="select"
+                       sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="0">
                     <label>Enable security.txt</label>
                     <comment>Serve /.well-known/security.txt.</comment>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                 </field>
-                <field id="contact_email" translate="label" type="text" sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="0">
+                <field id="contact_email" translate="label" type="text"
+                       sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="0">
                     <label>Security Contact Email</label>
                     <depends><field id="enabled">1</field></depends>
                 </field>
-                <field id="expires" translate="label comment" type="text" sortOrder="30" showInDefault="1" showInWebsite="1" showInStore="0">
+                <field id="expires" translate="label comment" type="text"
+                       sortOrder="30" showInDefault="1" showInWebsite="1" showInStore="0">
                     <label>Expires</label>
                     <comment>ISO 8601 timestamp (e.g. 2027-01-01T00:00:00.000Z). Required by RFC 9116.</comment>
                     <depends><field id="enabled">1</field></depends>
                 </field>
-                <field id="policy_url" translate="label" type="text" sortOrder="40" showInDefault="1" showInWebsite="1" showInStore="0">
+                <field id="policy_url" translate="label" type="text"
+                       sortOrder="40" showInDefault="1" showInWebsite="1" showInStore="0">
                     <label>Policy URL</label>
                     <depends><field id="enabled">1</field></depends>
                 </field>

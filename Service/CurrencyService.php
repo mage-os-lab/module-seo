@@ -111,7 +111,7 @@ class CurrencyService
      * e.g. 29.99 => "£29.99"
      *
      * @param float $amount The price to format
-     * @param bool  $includeSymbol Whether to include the currency symbol
+     * @param bool $includeSymbol Whether to include the currency symbol
      * @param int|null $storeId Optional store ID, defaults to current store
      * @return string
      */
@@ -142,7 +142,7 @@ class CurrencyService
      * Useful when displaying prices that have not been converted.
      *
      * @param float $amount The price to format
-     * @param bool  $includeSymbol Whether to include the currency symbol
+     * @param bool $includeSymbol Whether to include the currency symbol
      * @param int|null $storeId Optional store ID, defaults to current store
      */
     public function formatBasePrice(

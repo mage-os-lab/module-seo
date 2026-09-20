@@ -16,7 +16,16 @@ use MageOS\Seo\Api\CategoryConfigSourceOrderInterface;
 class OrderPool
 {
     /**
-     * @param CategoryConfigSourceOrderInterface[] $strategies Keyed by the configuration value
+     * Typed as mixed[] because that is what arrives.
+     *
+     * The array is assembled by di.xml, which names classes as strings and enforces nothing about
+     * them: a module can register something that does not implement the interface, or a class
+     * that once did and no longer does, and object-manager configuration will happily build it.
+     * Declaring the element type here would describe an intention rather than a fact, and would
+     * make the checks below look redundant when they are the only thing standing between a
+     * mis-registered strategy and a fatal in the middle of a page render.
+     *
+     * @param mixed[] $strategies Keyed by the configuration value
      */
     public function __construct(
         private readonly array $strategies = []
@@ -56,10 +65,15 @@ class OrderPool
      */
     public function getAll(): array
     {
-        return array_filter(
-            $this->strategies,
-            static fn ($strategy): bool => $strategy instanceof CategoryConfigSourceOrderInterface
-        );
+        $registered = [];
+
+        foreach ($this->strategies as $code => $strategy) {
+            if ($strategy instanceof CategoryConfigSourceOrderInterface) {
+                $registered[(string) $code] = $strategy;
+            }
+        }
+
+        return $registered;
     }
 
     /**
