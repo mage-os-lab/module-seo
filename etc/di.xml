@@ -48,6 +48,50 @@
     </type>
 
     <!-- ═══════════════════════════════════════════════════════════════════
+         CATEGORY INHERITANCE — where a category's settings are looked for
+         ═══════════════════════════════════════════════════════════════════ -->
+
+    <!--
+        The strategies selectable under Stores → Configuration → MageOS → SEO → Category SEO
+        Settings. The admin dropdown is rendered from this pool, so registering another
+        implementation of CategoryConfigSourceOrderInterface here is all it takes to offer it —
+        no change to system.xml or to the source model.
+    -->
+    <type name="MageOS\Seo\Model\Category\Inheritance\OrderPool">
+        <arguments>
+            <argument name="strategies" xsi:type="array">
+                <item name="category_first"
+                      xsi:type="object">MageOS\Seo\Model\Category\Inheritance\CategoryFirstOrder</item>
+                <item name="store_first"
+                      xsi:type="object">MageOS\Seo\Model\Category\Inheritance\StoreFirstOrder</item>
+            </argument>
+        </arguments>
+    </type>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         HANDLE MATCHING — pages wildcard providers are kept off
+         ═══════════════════════════════════════════════════════════════════ -->
+
+    <!--
+        Providers returning ['*'] from getHandles() run everywhere, including pages that are
+        uncacheable — so their work is repeated on every request — and that have no business
+        carrying structured data or social meta at all. A trailing '*' matches a family of
+        handles. A provider that names one of these handles explicitly still runs: this only
+        suppresses wildcards. Override this argument to extend or empty the list.
+    -->
+    <type name="MageOS\Seo\Model\Pool\HandleMatcher">
+        <arguments>
+            <argument name="deniedHandles" xsi:type="array">
+                <item name="cart" xsi:type="string">checkout_cart_index</item>
+                <item name="checkout" xsi:type="string">checkout_*</item>
+                <item name="multishipping" xsi:type="string">multishipping_*</item>
+                <item name="customer" xsi:type="string">customer_*</item>
+                <item name="loginAsCustomer" xsi:type="string">loginascustomer_*</item>
+            </argument>
+        </arguments>
+    </type>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
          STRUCTURED DATA COMPOSITOR — built-in providers
          ═══════════════════════════════════════════════════════════════════ -->
 
@@ -369,8 +413,10 @@
         <arguments>
             <argument name="endpoints" xsi:type="array">
                 <item name="ucp" xsi:type="object">MageOS\Seo\Model\WellKnown\Endpoint\UcpEndpoint</item>
-                <item name="ai-plugin.json" xsi:type="object">MageOS\Seo\Model\WellKnown\Endpoint\AiPluginEndpoint</item>
-                <item name="security.txt" xsi:type="object">MageOS\Seo\Model\WellKnown\Endpoint\SecurityTxtEndpoint</item>
+                <item name="ai-plugin.json"
+                xsi:type="object">MageOS\Seo\Model\WellKnown\Endpoint\AiPluginEndpoint</item>
+                <item name="security.txt"
+                xsi:type="object">MageOS\Seo\Model\WellKnown\Endpoint\SecurityTxtEndpoint</item>
             </argument>
         </arguments>
     </type>
@@ -380,7 +426,8 @@
         <arguments>
             <argument name="commands" xsi:type="array">
                 <item name="mageos_seo_ucp_keygen" xsi:type="object">MageOS\Seo\Console\Command\UcpKeygenCommand</item>
-                <item name="mageos_seo_feeds_regenerate" xsi:type="object">MageOS\Seo\Console\Command\RegenerateFeedsCommand</item>
+                <item name="mageos_seo_feeds_regenerate"
+                xsi:type="object">MageOS\Seo\Console\Command\RegenerateFeedsCommand</item>
             </argument>
         </arguments>
     </type>

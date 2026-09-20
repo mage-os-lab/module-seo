@@ -60,7 +60,8 @@
             <settings>
                 <label translate="true">Group Identifier</label>
                 <dataType>text</dataType>
-                <notice translate="true">Reference this group from the FAQ widget. Use "global" to include in /llms.txt.</notice>
+                <notice
+                translate="true">Reference this group from the FAQ widget. Use "global" to include in llms.txt.</notice>
                 <validation><rule name="required-entry" xsi:type="boolean">true</rule></validation>
             </settings>
         </field>

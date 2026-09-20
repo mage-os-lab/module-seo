@@ -7,6 +7,7 @@ namespace MageOS\Seo\Console\Command;
 use Magento\Framework\App\Area;
 use Magento\Framework\App\State;
 use Magento\Framework\Exception\LocalizedException;
+use MageOS\Seo\Exception\FeedRebuildInProgressException;
 use MageOS\Seo\Model\Feed\FeedRegenerator;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
@@ -84,6 +85,13 @@ class RegenerateFeedsCommand extends Command
                     $failures[] = \sprintf('%s, store view %d: %s', $label, $storeId, $message);
                 }
             }
+        } catch (FeedRebuildInProgressException $e) {
+            // Distinguished from a crash for the operator's sake — nothing is broken, the cron or
+            // the queue consumer is mid-rebuild. Still a failure: the feeds asked for were not
+            // written, and a deployment script must not read this as "done".
+            $output->writeln('<error>' . $e->getMessage() . '</error>');
+            $output->writeln('<comment>Wait for the running rebuild to finish, then retry.</comment>');
+            return Command::FAILURE;
         } catch (\Throwable $e) {
             $output->writeln('<error>' . $e->getMessage() . '</error>');
             return Command::FAILURE;

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace MageOS\Seo\Test\Unit\Model\Feed;
 
+use MageOS\Seo\Exception\FeedRebuildInProgressException;
 use MageOS\Seo\Model\Feed\FeedRegenerator;
 use MageOS\Seo\Model\Feed\RegenerateConsumer;
 use MageOS\Seo\Model\Feed\RegenerationRequester;
@@ -78,5 +79,32 @@ class RegenerateConsumerTest extends TestCase
         $this->regenerator->expects($this->never())->method('regenerate');
 
         $this->consumer->process('not-a-feed-group');
+    }
+
+    public function testLosingTheRebuildLockPutsTheRequestBack(): void
+    {
+        // acknowledge() has already cleared the pending flag by this point, so dropping the
+        // message would lose the invalidation: the build holding the lock may have passed the
+        // data this message was about before the message existed.
+        $this->regenerator->method('regenerate')
+            ->willThrowException(new FeedRebuildInProgressException(__('already running')));
+
+        $this->requester->expects($this->once())
+            ->method('request')
+            ->with(FeedRegenerator::GROUP_LLMS);
+
+        $this->consumer->process(FeedRegenerator::GROUP_LLMS);
+    }
+
+    public function testLosingTheRebuildLockIsNotAnError(): void
+    {
+        // Another process doing the same work is expected, not a fault: nothing is logged at
+        // error level and nothing is thrown at the queue.
+        $this->regenerator->method('regenerate')
+            ->willThrowException(new FeedRebuildInProgressException(__('already running')));
+        $this->logger->expects($this->never())->method('error');
+        $this->logger->expects($this->once())->method('info');
+
+        $this->consumer->process(FeedRegenerator::GROUP_LLMS);
     }
 }

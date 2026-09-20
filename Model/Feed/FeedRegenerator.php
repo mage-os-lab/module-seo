@@ -12,6 +12,7 @@ use MageOS\Seo\Model\Hreflang\SitemapFileWriter;
 use MageOS\Seo\Model\Hreflang\SitemapGenerator;
 use MageOS\Seo\Model\Hreflang\StoreLocaleMap;
 use MageOS\Seo\Model\LlmsJsonl\JsonlBuilder;
+use MageOS\Seo\Exception\FeedRebuildInProgressException;
 use MageOS\Seo\Model\LlmsTxt\LlmsTxtBuilder;
 use Psr\Log\LoggerInterface;
 
@@ -52,6 +53,7 @@ class FeedRegenerator
      * @param FeedStorage $feedStorage
      * @param FeedCache $feedCache
      * @param LoggerInterface $logger
+     * @param RebuildLock $rebuildLock
      */
     public function __construct(
         private readonly StoreManagerInterface $storeManager,
@@ -63,7 +65,8 @@ class FeedRegenerator
         private readonly StoreLocaleMap        $storeLocaleMap,
         private readonly FeedStorage           $feedStorage,
         private readonly FeedCache             $feedCache,
-        private readonly LoggerInterface       $logger
+        private readonly LoggerInterface       $logger,
+        private readonly RebuildLock           $rebuildLock
     ) {
     }
 
@@ -75,8 +78,30 @@ class FeedRegenerator
      *
      * @param string|null $group One of self::GROUPS, or null for all
      * @return array<int, string> Error message per failed store view ID
+     * @throws FeedRebuildInProgressException When another process is already building
      */
     public function regenerate(?string $group = null): array
+    {
+        if (!$this->rebuildLock->acquire()) {
+            throw new FeedRebuildInProgressException(
+                __('A feed rebuild is already running; this one was not started.')
+            );
+        }
+
+        try {
+            return $this->build($group);
+        } finally {
+            $this->rebuildLock->release();
+        }
+    }
+
+    /**
+     * Build the feeds, with the rebuild lock already held.
+     *
+     * @param string|null $group
+     * @return array<int, string> Error message per failed store view ID
+     */
+    private function build(?string $group): array
     {
         $failures = [];
         // Hreflang sitemap file sets already built in this run, keyed by alternate set.

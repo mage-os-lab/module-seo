@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 namespace MageOS\Seo\Model\Category;
 
-use Magento\Framework\Data\Collection as DataCollection;
 use Magento\Framework\ObjectManager\ResetAfterRequestInterface;
 use MageOS\Seo\Model\CategoryConfig;
+use MageOS\Seo\Model\Category\Inheritance\OrderPool;
+use MageOS\Seo\Model\Config as SeoConfig;
 use MageOS\Seo\Model\ResourceModel\CategoryConfig as CategoryConfigResource;
 use MageOS\Seo\Model\ResourceModel\CategoryConfig\CollectionFactory;
 
@@ -18,10 +19,16 @@ class ConfigRepository implements ResetAfterRequestInterface
     /**
      * @param CollectionFactory $collectionFactory
      * @param CategoryConfigResource $resource
+     * @param InheritanceResolver $resolver
+     * @param OrderPool $orderPool
+     * @param SeoConfig $seoConfig
      */
     public function __construct(
         private readonly CollectionFactory      $collectionFactory,
-        private readonly CategoryConfigResource $resource
+        private readonly CategoryConfigResource $resource,
+        private readonly InheritanceResolver    $resolver,
+        private readonly OrderPool              $orderPool,
+        private readonly SeoConfig              $seoConfig
     ) {
     }
 
@@ -43,29 +50,27 @@ class ConfigRepository implements ResetAfterRequestInterface
      */
     public function getForCategory(int $categoryId, array $categoryPath = [], int $storeId = 0): array
     {
-        $cacheKey = "{$categoryId}_{$storeId}";
+        $ancestorIds   = $this->ancestorIds($categoryId, $categoryPath);
+        $categoryChain = [$categoryId, ...$ancestorIds];
+        $strategy      = $this->seoConfig->getCategoryInheritanceStrategy();
+
+        // The ancestors belong in the key. A caller that passes no path gets the category's own
+        // row and nothing inherited, and keying on the category alone would then hand that
+        // un-inherited row to every later caller in the request — including the ones that did
+        // pass a path. The strategy belongs in it for the same reason: it changes the answer.
+        $cacheKey = $categoryId . '_' . $storeId . '_' . $strategy . '_' . implode('.', $ancestorIds);
         if (isset($this->cache[$cacheKey])) {
             return $this->cache[$cacheKey];
         }
 
-        $ancestorIds = $this->ancestorIds($categoryId, $categoryPath);
-        $rows        = $this->loadRows([$categoryId, ...$ancestorIds], $storeId);
-        $row         = $rows[$categoryId] ?? [];
+        $rows    = $this->loadRows($categoryChain, $storeId);
+        $sources = [];
 
-        // If no template configured, walk up the path to inherit from nearest ancestor
-        if (empty($row['schema_template'])) {
-            foreach ($ancestorIds as $ancestorId) {
-                $ancestorRow = $rows[$ancestorId] ?? [];
-                if (!empty($ancestorRow['schema_template'])) {
-                    // Inherit template from ancestor, but keep non-null/non-empty own values.
-                    // Use explicit check rather than array_filter to preserve legitimate 0 values
-                    // (e.g. item_list_enabled = 0 must not be silently discarded).
-                    $ownValues = array_filter($row, fn ($v) => $v !== null && $v !== '');
-                    $row       = $ownValues + $ancestorRow;
-                    break;
-                }
-            }
+        foreach ($this->orderPool->get($strategy)->order($categoryChain, $storeId) as $source) {
+            $sources[] = $rows[$source['category_id']][$source['store_id']] ?? [];
         }
+
+        $row = $this->resolver->resolve($sources);
 
         $this->cache[$cacheKey] = $row;
         return $row;
@@ -96,52 +101,29 @@ class ConfigRepository implements ResetAfterRequestInterface
     }
 
     /**
-     * Load the rows of several categories in one query, keyed by category ID.
+     * Load the rows of several categories in one query, keyed by category ID and store view.
      *
-     * When $storeId > 0 each category's global row (store_id = 0) and store-view row are
-     * merged, so that store-specific non-null/non-empty values take precedence.
+     * Kept unmerged, unlike before: which of a category's two scopes outranks an ancestor's is
+     * the configured strategy's decision, and merging them here would settle it in advance.
      *
      * @param int[] $categoryIds
      * @param int $storeId
-     * @return array<int, mixed[]>
+     * @return array<int, array<int, mixed[]>>
      */
     private function loadRows(array $categoryIds, int $storeId = 0): array
     {
         $collection = $this->collectionFactory->create();
         $collection->addFieldToFilter('category_id', ['in' => $categoryIds]);
         $collection->addFieldToFilter('store_id', $storeId > 0 ? ['in' => [0, $storeId]] : ['eq' => 0]);
-        // Global row first, store-view row second, so the store view's values are applied last.
-        $collection->setOrder('store_id', DataCollection::SORT_ORDER_ASC);
 
         $rows = [];
         /** @var CategoryConfig $config */
         foreach ($collection as $config) {
-            $row        = $config->getData();
-            $categoryId = (int) ($row['category_id'] ?? 0);
-            $rows[$categoryId] = isset($rows[$categoryId]) ? $this->merge($rows[$categoryId], $row) : $row;
+            $row = $config->getData();
+            $rows[(int) ($row['category_id'] ?? 0)][(int) ($row['store_id'] ?? 0)] = $row;
         }
 
         return $rows;
-    }
-
-    /**
-     * Apply a row over a base row: a value that says something wins, otherwise the base stands.
-     *
-     * @param mixed[] $base
-     * @param mixed[] $row
-     * @return mixed[]
-     */
-    private function merge(array $base, array $row): array
-    {
-        foreach ($row as $key => $value) {
-            if ($value !== null && $value !== '') {
-                $base[$key] = $value;
-            } elseif (!\array_key_exists($key, $base)) {
-                $base[$key] = $value;
-            }
-        }
-
-        return $base;
     }
 
     /**
@@ -179,7 +161,11 @@ class ConfigRepository implements ResetAfterRequestInterface
         $config->unsetData('updated_at');
 
         $this->resource->save($config);
-        unset($this->cache["{$categoryId}_{$storeId}"]);
+        // The whole memo, not this category's entry. Descendants inherit from the nearest
+        // configured ancestor, so saving one category changes what every category below it
+        // resolves to — and since the path is part of the key, a single category can hold
+        // several entries anyway.
+        $this->cache = [];
     }
 
     /**

@@ -92,11 +92,13 @@ This is a per-store-view setting.
 
 ## Template inheritance
 
-Template assignment is category-level and supports inheritance. If a category has no template configured, the builder walks up the category path and inherits the template from the nearest ancestor that has one configured.
+Template assignment is category-level and supports inheritance. If a category has no template configured, the template comes from the nearest ancestor that has one.
 
 Example: if "Clothing" has `Apparel` set and "Women's T-shirts" (a child) has nothing set, products in "Women's T-shirts" will use `Apparel`.
 
-Enabled fields and override values are also inherited using the same ancestor-walk logic.
+Enabled fields and override values inherit the same way, but **independently of the template** — each setting is resolved on its own, so they can come from a different ancestor than the template does, and a category that configures only one of them does not affect the others.
+
+Where each setting is looked for, and how an ancestor's setting ranks against a wider store scope, is described in full under [Inheritance](category-seo.md#inheritance) — including the **Inheritance Strategy** setting that chooses between the two orders.
 
 ---
 

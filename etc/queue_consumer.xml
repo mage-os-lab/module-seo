@@ -1,10 +1,19 @@
 <?xml version="1.0"?>
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xsi:noNamespaceSchemaLocation="urn:magento:framework-message-queue:etc/consumer.xsd">
-    <!-- Started by consumers_runner cron (default) or a process manager (supervisor). -->
+    <!--
+        Started by consumers_runner cron (default) or a process manager (supervisor).
+
+        No connection and no maxMessages: both are deliberately left to the installation, as core's
+        own consumers do. Declaring connection="db" here would pin this consumer to the database
+        transport on an install that runs AMQP, and the only way back would be an env.php override
+        the merchant has to know to write. Declaring maxMessages would override whatever
+        queue/consumers_max_messages the install has tuned.
+
+        Running more than one process of this consumer is safe: Model\Feed\RebuildLock lets one
+        rebuild through at a time and the others put their message back on the queue.
+    -->
     <consumer name="mageosSeoFeedRegenerate"
               queue="mageos.seo.feed.regenerate"
-              connection="db"
-              maxMessages="100"
               handler="MageOS\Seo\Model\Feed\RegenerateConsumer::process"/>
 </config>

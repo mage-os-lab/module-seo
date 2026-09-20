@@ -15,6 +15,15 @@
                 <price_valid_until_months>12</price_valid_until_months>
                 <aggregate_rating_enabled>1</aggregate_rating_enabled>
             </structured_data>
+            <category_config>
+                <!--
+                    How a category's settings are looked up when it does not set them itself.
+                    category_first: the category's own scopes, then its nearest ancestor's.
+                    store_first: this store view across the whole tree, then the global scope.
+                    A third party may register further strategies; see docs/category-seo.md.
+                -->
+                <inheritance_strategy>category_first</inheritance_strategy>
+            </category_config>
             <llms_txt>
                 <enabled>1</enabled>
                 <full_enabled>1</full_enabled>

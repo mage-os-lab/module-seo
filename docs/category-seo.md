@@ -65,7 +65,13 @@ Keys are schema property names. Values override the corresponding property in th
 
 ## Inheritance
 
-Category SEO settings inherit from ancestor categories. If a category has no schema template set, the module walks up the category path and uses the nearest ancestor's template. The same walk applies to enabled fields and override values.
+A category that does not set something takes it from somewhere less specific. **Each setting is
+resolved separately**, so a category can take its schema template from its parent and its robots
+directive from its grandparent — one setting being configured somewhere does not drag the rest
+along with it, and leaving a setting blank never prevents another from being inherited.
+
+The settings that inherit are the schema template, enabled fields, override values, the ItemList
+override and the robots directive.
 
 Example:
 - "Makers" (level 2) → template: `GenericProduct`
@@ -74,7 +80,54 @@ Example:
 
 Products in "Women's Dresses" use the `Apparel` template inherited from "Clothing".
 
-If no ancestor has a template configured, the global default template is used.
+If nothing in the tree configures a setting, the store's global default applies.
+
+### A value of "no" is a value
+
+`Disabled` on the ItemList override is a decision, not a blank. A category that switches the
+ItemList off keeps it off even where an ancestor switches it on. Only **Use Global Setting** —
+which stores nothing — defers to an ancestor.
+
+### Where a setting is looked for
+
+Two things can make a source less specific: it belongs to an ancestor category, or it belongs to
+a wider scope than the store view being rendered. Which of those takes precedence is a property
+of the shop rather than of the module, so it is configurable at
+**Stores → Configuration → MageOS → SEO → Category SEO Settings → Inheritance Strategy**:
+
+| Strategy | Order settings are looked for | Suits |
+|---|---|---|
+| **Category first** (default) | the category's own store-view row, its own global row, then the parent's store-view row, the parent's global row, and so on up the tree | a catalogue where the tree carries the meaning — a setting made on a category applies to it whether it was made globally or for one store view |
+| **Store view first** | every category's store-view row from the category upwards, then every category's global row | store views that carry their own SEO policy — anything set for this store view, anywhere up the tree, outranks anything set globally |
+
+The two differ in exactly one case: whether an **ancestor's store-view** setting beats the
+**category's own global** setting. With a single store view they behave identically.
+
+The setting is global — it decides how store-view scope itself is resolved, so it cannot
+sensibly differ per store view.
+
+### Adding a strategy
+
+The dropdown is built from the strategies registered in `di.xml`, so an integration can add its
+own without touching this module's configuration:
+
+```xml
+<type name="MageOS\Seo\Model\Category\Inheritance\OrderPool">
+    <arguments>
+        <argument name="strategies" xsi:type="array">
+            <item name="my_order" xsi:type="object">Vendor\Module\Model\MyOrder</item>
+        </argument>
+    </arguments>
+</type>
+```
+
+Implement `MageOS\Seo\Api\CategoryConfigSourceOrderInterface`: return the places to look, most
+specific first, and a label for the dropdown. It performs no queries and decides no values —
+what is found is resolved field by field by `MageOS\Seo\Model\Category\InheritanceResolver`.
+
+If configuration names a strategy that is not registered, the module raises an error rather than
+quietly falling back to the default: pages would otherwise render with settings resolved by a
+rule nobody chose, and nothing would say why.
 
 ---
 

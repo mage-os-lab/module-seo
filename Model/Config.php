@@ -17,6 +17,13 @@ class Config
     public const XML_SD_HAS_VARIANT_MAX            = 'mageos_seo_general/structured_data/has_variant_max';
     public const XML_SD_PRICE_VALID_UNTIL_MONTHS   = 'mageos_seo_general/structured_data/price_valid_until_months';
     public const XML_SD_AGGREGATE_RATING_ENABLED   = 'mageos_seo_general/structured_data/aggregate_rating_enabled';
+
+    public const XML_CATEGORY_INHERITANCE_STRATEGY = 'mageos_seo_general/category_config/inheritance_strategy';
+
+    /**
+     * The strategy used when configuration names none, and the one shipped as the default.
+     */
+    public const DEFAULT_INHERITANCE_STRATEGY = 'category_first';
     public const XML_LLMS_ENABLED                  = 'mageos_seo_general/llms_txt/enabled';
     public const XML_LLMS_FULL_ENABLED             = 'mageos_seo_general/llms_txt/full_enabled';
     public const XML_LLMS_JSONL_ENABLED            = 'mageos_seo_general/llms_txt/jsonl_enabled';
@@ -120,6 +127,22 @@ class Config
             ScopeInterface::SCOPE_STORE,
             $storeId
         ) ?: 36));
+    }
+
+    /**
+     * Return the code of the configured category inheritance strategy.
+     *
+     * Read at default scope and takes no store ID: this decides how store-view scope itself is
+     * resolved against the category tree, so letting it vary per store view would mean the rule
+     * for choosing between scopes depended on the scope it was choosing.
+     *
+     * @return string
+     */
+    public function getCategoryInheritanceStrategy(): string
+    {
+        $configured = (string) $this->scopeConfig->getValue(self::XML_CATEGORY_INHERITANCE_STRATEGY);
+
+        return $configured !== '' ? $configured : self::DEFAULT_INHERITANCE_STRATEGY;
     }
 
     /**

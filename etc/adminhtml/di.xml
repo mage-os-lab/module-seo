@@ -30,7 +30,8 @@
     -->
     <type name="Magento\Catalog\Model\Category\DataProvider">
         <arguments>
-            <argument name="pool" xsi:type="object">Magento\Catalog\Ui\DataProvider\Category\Form\Modifier\Pool</argument>
+            <argument name="pool"
+            xsi:type="object">Magento\Catalog\Ui\DataProvider\Category\Form\Modifier\Pool</argument>
         </arguments>
         <plugin name="mageos_seo_add_seo_config_to_form_data"
                 type="MageOS\Seo\Plugin\Catalog\Category\AddSeoConfigToFormDataPlugin"/>
@@ -40,7 +41,8 @@
         <arguments>
             <argument name="modifiers" xsi:type="array">
                 <item name="mageos_seo_category_modifier" xsi:type="array">
-                    <item name="class"     xsi:type="string">MageOS\Seo\Ui\DataProvider\Category\Form\Modifier\SeoModifier</item>
+                    <item name="class"
+                    xsi:type="string">MageOS\Seo\Ui\DataProvider\Category\Form\Modifier\SeoModifier</item>
                     <item name="sortOrder" xsi:type="number">200</item>
                 </item>
             </argument>
@@ -58,7 +60,8 @@
         <arguments>
             <argument name="modifiers" xsi:type="array">
                 <item name="mageos_seo_product_modifier" xsi:type="array">
-                    <item name="class"     xsi:type="string">MageOS\Seo\Ui\DataProvider\Product\Form\Modifier\SeoModifier</item>
+                    <item name="class"
+                    xsi:type="string">MageOS\Seo\Ui\DataProvider\Product\Form\Modifier\SeoModifier</item>
                     <item name="sortOrder" xsi:type="number">200</item>
                 </item>
             </argument>

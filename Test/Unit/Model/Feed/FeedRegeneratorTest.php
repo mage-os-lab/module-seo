@@ -7,11 +7,13 @@ namespace MageOS\Seo\Test\Unit\Model\Feed;
 use Magento\Store\Model\App\Emulation;
 use Magento\Store\Model\Store;
 use Magento\Store\Model\StoreManagerInterface;
+use MageOS\Seo\Exception\FeedRebuildInProgressException;
 use MageOS\Seo\Model\Config;
 use MageOS\Seo\Model\Feed\FeedCache;
 use MageOS\Seo\Model\Feed\FeedFileWriter;
 use MageOS\Seo\Model\Feed\FeedRegenerator;
 use MageOS\Seo\Model\Feed\FeedStorage;
+use MageOS\Seo\Model\Feed\RebuildLock;
 use MageOS\Seo\Model\Hreflang\SitemapFileWriter;
 use MageOS\Seo\Model\Hreflang\SitemapGenerator;
 use MageOS\Seo\Model\Hreflang\StoreLocaleMap;
@@ -72,6 +74,13 @@ class FeedRegeneratorTest extends TestCase
      * @var LoggerInterface&Stub
      */
     private LoggerInterface&Stub $logger;
+
+    /**
+     * Set only by the tests that care whether the rebuild lock was free.
+     *
+     * @var RebuildLock|null
+     */
+    private ?RebuildLock $rebuildLock = null;
 
     /**
      * Storage, sitemap and cache calls in the order they happened.
@@ -472,8 +481,66 @@ class FeedRegeneratorTest extends TestCase
             $this->storeLocaleMap,
             $this->feedStorage,
             $this->feedCache,
-            $this->logger
+            $this->logger,
+            $this->rebuildLock ?? $this->freeRebuildLock()
         );
+    }
+
+    public function testNothingIsBuiltWhenAnotherProcessHoldsTheRebuildLock(): void
+    {
+        $lock = $this->createStub(RebuildLock::class);
+        $lock->method('acquire')->willReturn(false);
+        $this->rebuildLock = $lock;
+
+        $this->expectException(FeedRebuildInProgressException::class);
+
+        try {
+            $this->regenerator()->regenerate(FeedRegenerator::GROUP_LLMS);
+        } finally {
+            // Not merely "returned nothing": no store view was touched at all.
+            $this->assertSame([], $this->calls);
+        }
+    }
+
+    public function testTheLockIsReleasedEvenWhenABuildThrows(): void
+    {
+        $released = 0;
+
+        $lock = $this->createStub(RebuildLock::class);
+        $lock->method('acquire')->willReturn(true);
+        $lock->method('release')->willReturnCallback(
+            function () use (&$released): void {
+                $released++;
+            }
+        );
+        $this->rebuildLock = $lock;
+
+        // A store manager that throws is the harshest case: without the finally, the lock would
+        // be held until the lock provider's own timeout and every later rebuild would be refused.
+        $storeManager = $this->createStub(StoreManagerInterface::class);
+        $storeManager->method('getStores')->willThrowException(new \RuntimeException('no stores'));
+        $this->storeManager = $storeManager;
+
+        try {
+            $this->regenerator()->regenerate(FeedRegenerator::GROUP_LLMS);
+        } catch (\RuntimeException) {
+            // The point of the test is the release below, not this exception.
+        }
+
+        $this->assertSame(1, $released);
+    }
+
+    /**
+     * A rebuild lock nobody else holds, which is the case for every test but one.
+     *
+     * @return RebuildLock
+     */
+    private function freeRebuildLock(): RebuildLock
+    {
+        $lock = $this->createStub(RebuildLock::class);
+        $lock->method('acquire')->willReturn(true);
+
+        return $lock;
     }
 
     /**

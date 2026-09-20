@@ -9,6 +9,7 @@ use Magento\Store\Model\StoreManagerInterface;
 use MageOS\Seo\Api\StructuredDataProviderInterface;
 use MageOS\Seo\Model\Catalog\CurrentEntity;
 use MageOS\Seo\Model\Category\ConfigRepository as CategoryConfigRepository;
+use MageOS\Seo\Model\Category\PathResolver as CategoryPathResolver;
 use MageOS\Seo\Model\Category\ProductOverrideRepository;
 use MageOS\Seo\Model\Config;
 use MageOS\Seo\Model\Product\SchemaBuilderPool;
@@ -28,6 +29,7 @@ class ProductSchemaProvider implements StructuredDataProviderInterface
      * @param StoreManagerInterface $storeManager
      * @param Config $seoConfig
      * @param RequestInterface $request
+     * @param CategoryPathResolver $categoryPathResolver
      */
     public function __construct(
         private readonly CurrentEntity $currentEntity,
@@ -37,7 +39,8 @@ class ProductSchemaProvider implements StructuredDataProviderInterface
         private readonly ProductOverrideRepository $productOverrideRepository,
         private readonly StoreManagerInterface     $storeManager,
         private readonly Config                    $seoConfig,
-        private readonly RequestInterface          $request
+        private readonly RequestInterface          $request,
+        private readonly CategoryPathResolver      $categoryPathResolver
     ) {
     }
 
@@ -66,7 +69,11 @@ class ProductSchemaProvider implements StructuredDataProviderInterface
         // Resolve category config (template + fields) — use first assigned category
         $categoryIds  = $product->getCategoryIds();
         $categoryId   = !empty($categoryIds) ? (int) reset($categoryIds) : 0;
-        $categoryRow  = $this->categoryConfigRepository->getForCategory($categoryId, [], $storeId);
+        $categoryRow  = $this->categoryConfigRepository->getForCategory(
+            $categoryId,
+            $this->categoryPathResolver->forCategoryId($categoryId, $storeId),
+            $storeId
+        );
         $categoryRow  = $this->categoryConfigRepository->decode($categoryRow);
 
         $templateCode  = $categoryRow['schema_template'] ?? '';

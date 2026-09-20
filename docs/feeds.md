@@ -40,6 +40,33 @@ A queued rebuild that the consumer has not picked up within one hour is queued a
 and a warning is logged (`the "<group>" feed rebuild … was never picked up`). If you
 see that warning, the consumer is not running: check your cron or process manager.
 
+### Only one rebuild runs at a time
+
+Three things write the same files — the consumer, the nightly cron and
+`bin/magento mageos:seo:feeds:regenerate` — and none of them is guaranteed to be alone:
+`consumers_runner` can be configured to run several processes of a consumer, and on a
+multi-server install the cron runs on every node. A shared lock
+(`Magento\Framework\Lock\LockManagerInterface`, so it spans processes and hosts) lets one
+rebuild through at a time:
+
+- the **consumer** puts its message back on the queue, so the invalidation is not lost;
+- the **cron** skips and logs at info level — the process holding the lock is doing the same
+  work, and the cron comes round again;
+- the **CLI** reports that a rebuild is already running and exits non-zero, so a deployment
+  script cannot mistake it for a completed build.
+
+Nothing needs configuring for this. The lock uses whichever lock provider the installation
+already has (database by default; Zookeeper, Redis or the filesystem if configured).
+
+### Queue transport
+
+`etc/queue_consumer.xml`, `etc/queue_publisher.xml` and `etc/queue_topology.xml` name **no
+connection and no `maxMessages`**, exactly as core's own queue configuration does. The topic
+therefore travels over whatever transport the installation runs — the database queue by
+default, AMQP where that is configured — and honours the install's
+`queue/consumers_max_messages`. There is nothing to override in `env.php` to move this module
+onto RabbitMQ.
+
 No session is started for these requests. A session cookie stops shared caches storing a
 response at all, and makes PHP emit `Pragma: no-cache` over the policy below; none of these
 endpoints read session state.

@@ -6,6 +6,9 @@
  *
  * @var \MageOS\Seo\Block\Hreflang $block
  */
+use Magento\Framework\Escaper;
+
+/** @var Escaper $escaper */
 
 $links = $block->getLinks();
 if (empty($links)) {
@@ -13,5 +16,6 @@ if (empty($links)) {
 }
 ?>
 <?php foreach ($links as $link): ?>
-<link rel="alternate" hreflang="<?= $block->escapeHtmlAttr($link['hreflang']) ?>" href="<?= $block->escapeUrl($link['url']) ?>"/>
+<link rel="alternate" hreflang="<?= $escaper->escapeHtmlAttr($link['hreflang']) ?>"
+href="<?= $escaper->escapeUrl($link['url']) ?>"/>
 <?php endforeach; ?>

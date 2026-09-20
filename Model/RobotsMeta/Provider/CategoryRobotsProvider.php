@@ -7,6 +7,7 @@ namespace MageOS\Seo\Model\RobotsMeta\Provider;
 use Magento\Catalog\Model\Layer\Resolver as LayerResolver;
 use MageOS\Seo\Api\RobotsMetaProviderInterface;
 use MageOS\Seo\Model\Category\ConfigRepository as CategoryConfigRepository;
+use MageOS\Seo\Model\Category\PathResolver as CategoryPathResolver;
 use MageOS\Seo\Model\Config;
 
 /**
@@ -18,11 +19,13 @@ class CategoryRobotsProvider implements RobotsMetaProviderInterface
      * @param LayerResolver $layerResolver
      * @param CategoryConfigRepository $categoryConfigRepository
      * @param Config $seoConfig
+     * @param CategoryPathResolver $categoryPathResolver
      */
     public function __construct(
         private readonly LayerResolver            $layerResolver,
         private readonly CategoryConfigRepository $categoryConfigRepository,
-        private readonly Config                   $seoConfig
+        private readonly Config                   $seoConfig,
+        private readonly CategoryPathResolver     $categoryPathResolver
     ) {
     }
 
@@ -49,7 +52,14 @@ class CategoryRobotsProvider implements RobotsMetaProviderInterface
             return null;
         }
 
-        $config     = $this->categoryConfigRepository->getForCategory((int) $category->getId(), [], $storeId);
+        // The path is what lets a category inherit its nearest configured ancestor's settings;
+        // without it only the category's own row is read and the admin's inherited value, which
+        // it shows for exactly this category, never reaches the storefront.
+        $config = $this->categoryConfigRepository->getForCategory(
+            (int) $category->getId(),
+            $this->categoryPathResolver->forCategory($category),
+            $storeId
+        );
         $robotsMeta = $config['robots_meta'] ?? null;
 
         if (empty($robotsMeta)) {

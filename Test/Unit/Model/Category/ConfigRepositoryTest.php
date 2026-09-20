@@ -9,6 +9,11 @@ use MageOS\Seo\Model\Category\ConfigRepository;
 use MageOS\Seo\Model\CategoryConfig;
 use MageOS\Seo\Model\ResourceModel\CategoryConfig as CategoryConfigResource;
 use MageOS\Seo\Model\ResourceModel\CategoryConfig\Collection;
+use MageOS\Seo\Model\Category\Inheritance\CategoryFirstOrder;
+use MageOS\Seo\Model\Category\Inheritance\OrderPool;
+use MageOS\Seo\Model\Category\Inheritance\StoreFirstOrder;
+use MageOS\Seo\Model\Category\InheritanceResolver;
+use MageOS\Seo\Model\Config as SeoConfig;
 use MageOS\Seo\Model\ResourceModel\CategoryConfig\CollectionFactory;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
@@ -44,11 +49,19 @@ class ConfigRepositoryTest extends TestCase
      */
     private array $saved = [];
 
+    /**
+     * The configured source-order strategy; category first unless a test says otherwise.
+     *
+     * @var string
+     */
+    private string $strategy = 'category_first';
+
     protected function setUp(): void
     {
         $this->rows       = [];
         $this->filterSets = [];
         $this->saved      = [];
+        $this->strategy   = 'category_first';
     }
 
     public function testGetForCategoryMemoisesPerCategoryAndStore(): void
@@ -119,6 +132,79 @@ class ConfigRepositoryTest extends TestCase
         $this->assertSame('INDEX,FOLLOW', $result['robots_meta']);
         $this->assertSame(0, $result['item_list_enabled']);
         $this->assertSame(['in' => [0, 2]], $this->filterSets[0]['store_id']);
+    }
+
+    public function testCategoryFirstPrefersTheCategorysOwnGlobalValueToAnAncestorsStoreValue(): void
+    {
+        $this->rows = [
+            ['category_id' => 14, 'store_id' => 0, 'robots_meta' => 'INDEX,FOLLOW'],
+            ['category_id' => 5, 'store_id' => 2, 'robots_meta' => 'NOINDEX,FOLLOW'],
+        ];
+
+        $result = $this->repository()->getForCategory(14, ['1', '2', '5', '14'], 2);
+
+        $this->assertSame('INDEX,FOLLOW', $result['robots_meta']);
+    }
+
+    public function testStoreFirstPrefersAnAncestorsStoreValueToTheCategorysOwnGlobalOne(): void
+    {
+        // Same rows, same category, opposite answer: this single disagreement is what the
+        // configuration setting exists to decide.
+        $this->strategy = 'store_first';
+        $this->rows     = [
+            ['category_id' => 14, 'store_id' => 0, 'robots_meta' => 'INDEX,FOLLOW'],
+            ['category_id' => 5, 'store_id' => 2, 'robots_meta' => 'NOINDEX,FOLLOW'],
+        ];
+
+        $result = $this->repository()->getForCategory(14, ['1', '2', '5', '14'], 2);
+
+        $this->assertSame('NOINDEX,FOLLOW', $result['robots_meta']);
+    }
+
+    public function testTheStrategyIsPartOfTheMemoKey(): void
+    {
+        // Otherwise a second read under a different strategy would be answered from the first
+        // one's memo, which is how a configuration change would appear not to take effect.
+        $this->rows = [
+            ['category_id' => 14, 'store_id' => 0, 'robots_meta' => 'INDEX,FOLLOW'],
+            ['category_id' => 5, 'store_id' => 2, 'robots_meta' => 'NOINDEX,FOLLOW'],
+        ];
+
+        $repository = $this->repository();
+        $first      = $repository->getForCategory(14, ['1', '2', '5', '14'], 2);
+
+        $this->strategy = 'store_first';
+        $second         = $repository->getForCategory(14, ['1', '2', '5', '14'], 2);
+
+        $this->assertSame('INDEX,FOLLOW', $first['robots_meta']);
+        $this->assertSame('NOINDEX,FOLLOW', $second['robots_meta']);
+    }
+
+    public function testAnAncestorIsInheritedFromEvenWhenItSetsNoTemplate(): void
+    {
+        // The walk used to start only when an ancestor had a schema_template, so a parent that
+        // set nothing but a robots value was passed over entirely.
+        $this->rows = [
+            ['category_id' => 5, 'store_id' => 0, 'robots_meta' => 'NOINDEX,FOLLOW'],
+        ];
+
+        $result = $this->repository()->getForCategory(14, ['1', '2', '5', '14'], 0);
+
+        $this->assertSame('NOINDEX,FOLLOW', $result['robots_meta']);
+        $this->assertArrayNotHasKey('schema_template', $result);
+    }
+
+    public function testFieldsAreInheritedFromDifferentAncestorsIndependently(): void
+    {
+        $this->rows = [
+            ['category_id' => 5, 'store_id' => 0, 'schema_template' => 'Apparel'],
+            ['category_id' => 3, 'store_id' => 0, 'robots_meta' => 'NOINDEX,FOLLOW'],
+        ];
+
+        $result = $this->repository()->getForCategory(14, ['1', '2', '3', '5', '14'], 0);
+
+        $this->assertSame('Apparel', $result['schema_template'], 'From the parent.');
+        $this->assertSame('NOINDEX,FOLLOW', $result['robots_meta'], 'From the grandparent.');
     }
 
     public function testTemplateIsInheritedFromNearestAncestorKeepingOwnValues(): void
@@ -216,7 +302,21 @@ class ConfigRepositoryTest extends TestCase
             }
         );
 
-        return new ConfigRepository($collectionFactory, $resource);
+        $seoConfig = $this->createStub(SeoConfig::class);
+        $seoConfig->method('getCategoryInheritanceStrategy')->willReturnCallback(
+            fn (): string => $this->strategy
+        );
+
+        return new ConfigRepository(
+            $collectionFactory,
+            $resource,
+            new InheritanceResolver(),
+            new OrderPool([
+                'category_first' => new CategoryFirstOrder(),
+                'store_first'    => new StoreFirstOrder(),
+            ]),
+            $seoConfig
+        );
     }
 
     /**

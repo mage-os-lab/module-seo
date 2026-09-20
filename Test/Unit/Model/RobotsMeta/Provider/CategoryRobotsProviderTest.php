@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace MageOS\Seo\Test\Unit\Model\RobotsMeta\Provider;
 
+use Magento\Catalog\Api\CategoryRepositoryInterface;
 use Magento\Catalog\Api\Data\CategoryInterface;
 use Magento\Catalog\Model\Layer;
 use Magento\Catalog\Model\Layer\Resolver as LayerResolver;
 use MageOS\Seo\Model\Category\ConfigRepository as CategoryConfigRepository;
+use MageOS\Seo\Model\Category\PathResolver;
 use MageOS\Seo\Model\Config;
 use MageOS\Seo\Model\RobotsMeta\Provider\CategoryRobotsProvider;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -50,14 +52,21 @@ class CategoryRobotsProviderTest extends TestCase
         $this->provider = new CategoryRobotsProvider(
             $this->layerResolver,
             $this->configRepository,
-            $this->config
+            $this->config,
+            new PathResolver($this->createStub(CategoryRepositoryInterface::class))
         );
     }
 
-    private function withCategory(int $id): void
+    /**
+     * @param int $id
+     * @param string $path
+     * @return void
+     */
+    private function withCategory(int $id, string $path = ''): void
     {
         $category = $this->createMock(CategoryInterface::class);
         $category->method('getId')->willReturn($id);
+        $category->method('getPath')->willReturn($path);
         $this->layer->method('getCurrentCategory')->willReturn($category);
     }
 
@@ -101,5 +110,19 @@ class CategoryRobotsProviderTest extends TestCase
             ->willReturn([]);
         $this->config->method('getRobotsCategoryDefault')->with(1)->willReturn('');
         $this->assertNull($this->provider->getRobots(1));
+    }
+
+    public function testTheAncestorPathIsPassedSoSettingsCanBeInherited(): void
+    {
+        // Without the path the repository reads this category's own row and nothing else, and a
+        // value set on an ancestor — which the admin form shows this category inheriting — never
+        // reaches the page.
+        $this->withCategory(9, '1/2/5/9');
+        $this->configRepository->expects($this->once())
+            ->method('getForCategory')
+            ->with(9, ['1', '2', '5', '9'], 1)
+            ->willReturn(['robots_meta' => 'NOINDEX,FOLLOW']);
+
+        $this->assertSame('NOINDEX,FOLLOW', $this->provider->getRobots(1));
     }
 }

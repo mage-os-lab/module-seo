@@ -4,7 +4,8 @@
 
     <argument name="data" xsi:type="array">
         <item name="js_config" xsi:type="array">
-            <item name="provider" xsi:type="string">mageos_seo_organisation_form.mageos_seo_organisation_form_data_source</item>
+            <item name="provider"
+            xsi:type="string">mageos_seo_organisation_form.mageos_seo_organisation_form_data_source</item>
         </item>
         <item name="label" xsi:type="string" translate="true">Organisation Settings</item>
         <item name="template" xsi:type="string">templates/form/collapsible</item>
@@ -91,7 +92,8 @@
             <settings>
                 <label translate="true">Description / Tagline</label>
                 <dataType>text</dataType>
-                <notice translate="true">Short description used in the Organisation schema and llms.txt. Max 300 characters.</notice>
+                <notice translate="true"
+                >Short description used in the Organisation schema and llms.txt. Max 300 characters.</notice>
             </settings>
         </field>
     </fieldset>
@@ -117,7 +119,8 @@
             <settings>
                 <label translate="true">Logo Source</label>
                 <dataType>text</dataType>
-                <notice translate="true">Use your existing Design logo, or upload a dedicated SEO logo (recommended: min 112x112px).</notice>
+                <notice translate="true"
+                >Use your existing Design logo, or upload a dedicated SEO logo (recommended: min 112x112px).</notice>
             </settings>
             <formElements>
                 <select>
@@ -132,7 +135,8 @@
             <settings>
                 <label translate="true">Custom SEO Logo</label>
                 <dataType>text</dataType>
-                <notice translate="true">Recommended: PNG, minimum 112x112px. Used in structured data and llms.txt.</notice>
+                <notice translate="true"
+                >Recommended: PNG, minimum 112x112px. Used in structured data and llms.txt.</notice>
                 <visible>false</visible>
             </settings>
             <formElements>
@@ -176,7 +180,8 @@
         <dynamicRows name="social_profiles" sortOrder="10">
             <settings>
                 <label translate="true">Social Profile URLs</label>
-                <notice translate="true">Add one URL per row. These appear as sameAs links in Organisation schema and in llms.txt.</notice>
+                <notice translate="true"
+                >Add one URL per row. These appear as sameAs links in Organisation schema and in llms.txt.</notice>
                 <addButtonLabel translate="true">Add Social Profile</addButtonLabel>
                 <columnsHeader>false</columnsHeader>
                 <collapsibleHeader>false</collapsibleHeader>
@@ -258,7 +263,8 @@
             <settings>
                 <label translate="true">Street Address</label>
                 <dataType>text</dataType>
-                <notice translate="true">Set Organisation Type to a LocalBusiness subtype (e.g. Store) for address/geo to apply.</notice>
+                <notice translate="true"
+                >Set Organisation Type to a LocalBusiness subtype (e.g. Store) for address/geo to apply.</notice>
             </settings>
         </field>
         <field name="address_locality" sortOrder="20" formElement="input">

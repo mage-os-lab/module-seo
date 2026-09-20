@@ -6,6 +6,9 @@
  *
  * @var \MageOS\Seo\Block\MetaTags $block
  */
+use Magento\Framework\Escaper;
+
+/** @var Escaper $escaper */
 
 $tags = $block->getMetaTags();
 if (empty($tags)) {
@@ -13,9 +16,11 @@ if (empty($tags)) {
 }
 ?>
 <?php foreach ($tags as $tag): ?>
-<?php if (isset($tag['property'])): ?>
-<meta property="<?= $block->escapeHtml($tag['property']) ?>" content="<?= $block->escapeMetaContent((string) $tag['content']) ?>"/>
-<?php elseif (isset($tag['name'])): ?>
-<meta name="<?= $block->escapeHtml($tag['name']) ?>" content="<?= $block->escapeMetaContent((string) $tag['content']) ?>"/>
-<?php endif; ?>
+    <?php if (isset($tag['property'])): ?>
+        <meta property="<?= $escaper->escapeHtml($tag['property']) ?>"
+        content="<?= /* @noEscape */ $block->escapeMetaContent((string) $tag['content']) ?>"/>
+    <?php elseif (isset($tag['name'])): ?>
+        <meta name="<?= $escaper->escapeHtml($tag['name']) ?>"
+        content="<?= /* @noEscape */ $block->escapeMetaContent((string) $tag['content']) ?>"/>
+    <?php endif; ?>
 <?php endforeach; ?>

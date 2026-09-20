@@ -1,0 +1,26 @@
+<?xml version="1.0"?>
+<!--
+    The category ItemList node renders at end of body, not in head.additional with the rest of
+    the JSON-LD.
+
+    It describes the products the listing is showing, and while head renders, the listing has
+    not been built: the layer's product collection is unloaded, so reading it there runs the
+    whole catalogue query a second time — once for this node, once for the page — and the node
+    has to guess the page and page size from request parameters. Rendered here, it reads the
+    collection the page has already loaded, and reflects the visitor's filters, sort order and
+    page size exactly. JSON-LD is valid anywhere in the document; FaqJsonLd renders late for the
+    same kind of reason.
+
+    Not cacheable="false" — the node derives entirely from the URL-keyed listing, so FPC caches
+    one version per URL like the rest of the page.
+-->
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <body>
+        <referenceContainer name="before.body.end">
+            <block class="MageOS\Seo\Block\ItemListJsonLd"
+                   name="mageos_seo.item_list_json_ld"
+                   template="MageOS_Seo::seo/item-list-json-ld.phtml"/>
+        </referenceContainer>
+    </body>
+</page>

@@ -1,8 +1,11 @@
 <?xml version="1.0"?>
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xsi:noNamespaceSchemaLocation="urn:magento:framework-message-queue:etc/publisher.xsd">
-    <!-- DB transport: works on every install; swappable to AMQP via env.php overrides -->
-    <publisher topic="mageos.seo.feed.regenerate">
-        <connection name="db" exchange="magento-db"/>
-    </publisher>
+    <!--
+        No <connection> element: the topic is published to its queue over whatever transport the
+        installation has configured, which is what core's own publishers do. Naming a connection
+        here would tie the module to the database transport and leave an AMQP install needing an
+        env.php override to undo it.
+    -->
+    <publisher topic="mageos.seo.feed.regenerate" queue="mageos.seo.feed.regenerate"/>
 </config>

@@ -1,12 +1,10 @@
 <?php
 /**
- * JSON-LD Structured Data output template.
+ * Category ItemList JSON-LD output template (rendered late, end of body).
  *
- * Cache safety: this block is fully cacheable. All schema data is sourced from
- * URL-keyed resources (product, category, config) so Magento FPC caches a unique
- * version per URL. No cacheable="false" on this block — ever.
+ * Cache safety: fully cacheable as part of the page. No cacheable="false".
  *
- * @var \MageOS\Seo\Block\JsonLd $block
+ * @var \MageOS\Seo\Block\ItemListJsonLd $block
  */
 
 $json = $block->getJsonLd();
@@ -14,7 +12,7 @@ if ($json === '') {
     return;
 }
 
-// CSP nonce registration (Hyva pattern)
+// CSP nonce registration (Hyva pattern), mirroring seo/json-ld.phtml.
 $cspNonce = '';
 $cspBlock = $block->getLayout()->getBlock('hyva.csp');
 if ($cspBlock) {

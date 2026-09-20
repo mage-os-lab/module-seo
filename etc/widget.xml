@@ -11,11 +11,13 @@
             class="MageOS\Seo\Block\Widget\FaqList"
             is_email_compatible="false">
         <label translate="true">SEO FAQ List</label>
-        <description translate="true">Renders a FAQ group as an accordion and adds matching FAQPage structured data.</description>
+        <description translate="true"
+        >Renders a FAQ group as an accordion and adds matching FAQPage structured data.</description>
         <parameters>
             <parameter name="identifier" xsi:type="text" visible="true" required="true" sort_order="10">
                 <label translate="true">FAQ Group Identifier</label>
-                <description translate="true">The group identifier of the FAQ entries to display (e.g. shipping, returns).</description>
+                <description translate="true"
+                >The group identifier of the FAQ entries to display (e.g. shipping, returns).</description>
             </parameter>
             <parameter name="heading" xsi:type="text" visible="true" required="false" sort_order="20">
                 <label translate="true">Heading (optional)</label>

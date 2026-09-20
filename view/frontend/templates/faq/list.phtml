@@ -7,6 +7,9 @@
  *
  * @var \MageOS\Seo\Block\AbstractFaqElement $block
  */
+use Magento\Framework\Escaper;
+
+/** @var Escaper $escaper */
 
 $faqs = $block->getFaqs();
 if (empty($faqs)) {
@@ -16,12 +19,12 @@ $heading = $block->getHeading();
 ?>
 <div class="mageos-seo-faq">
 <?php if ($heading !== ''): ?>
-    <h2 class="mageos-seo-faq__heading"><?= $block->escapeHtml($heading) ?></h2>
+    <h2 class="mageos-seo-faq__heading"><?= $escaper->escapeHtml($heading) ?></h2>
 <?php endif; ?>
 <?php foreach ($faqs as $faq): ?>
     <details class="mageos-seo-faq__item">
-        <summary class="mageos-seo-faq__question"><?= $block->escapeHtml($faq['question']) ?></summary>
-        <div class="mageos-seo-faq__answer"><?= $block->escapeHtml($faq['answer']) ?></div>
+        <summary class="mageos-seo-faq__question"><?= $escaper->escapeHtml($faq['question']) ?></summary>
+        <div class="mageos-seo-faq__answer"><?= $escaper->escapeHtml($faq['answer']) ?></div>
     </details>
 <?php endforeach; ?>
 </div>

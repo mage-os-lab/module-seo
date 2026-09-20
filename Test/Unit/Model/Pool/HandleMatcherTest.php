@@ -62,4 +62,48 @@ class HandleMatcherTest extends TestCase
     {
         $this->assertFalse($this->matcher->matches(['catalog_product_view'], []));
     }
+
+    public function testWildcardIsKeptOffADeniedHandle(): void
+    {
+        $matcher = new HandleMatcher(['checkout_cart_index']);
+
+        $this->assertFalse($matcher->matches(['*'], ['default', 'checkout_cart_index']));
+    }
+
+    public function testWildcardStillRunsOnPagesThatAreNotDenied(): void
+    {
+        $matcher = new HandleMatcher(['checkout_cart_index']);
+
+        $this->assertTrue($matcher->matches(['*'], ['default', 'cms_index_index']));
+    }
+
+    public function testATrailingStarDeniesTheWholeFamily(): void
+    {
+        $matcher = new HandleMatcher(['checkout_*']);
+
+        $this->assertFalse($matcher->matches(['*'], ['default', 'checkout_onepage_success']));
+        $this->assertFalse($matcher->matches(['*'], ['default', 'checkout_index_index']));
+    }
+
+    public function testATrailingStarDoesNotDenyAnUnrelatedHandleSharingNoPrefix(): void
+    {
+        $matcher = new HandleMatcher(['customer_*']);
+
+        $this->assertTrue($matcher->matches(['*'], ['default', 'catalog_product_view']));
+    }
+
+    public function testAProviderThatNamesADeniedHandleStillRuns(): void
+    {
+        // Naming the handle is asking to be there; only wildcards are suppressed.
+        $matcher = new HandleMatcher(['checkout_cart_index']);
+
+        $this->assertTrue(
+            $matcher->matches(['checkout_cart_index'], ['default', 'checkout_cart_index'])
+        );
+    }
+
+    public function testAnEmptyDenyListLeavesWildcardsAlone(): void
+    {
+        $this->assertTrue($this->matcher->matches(['*'], ['default', 'checkout_cart_index']));
+    }
 }

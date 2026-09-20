@@ -57,6 +57,15 @@
                 </field>
             </group>
 
+            <group id="category_config" translate="label" type="text" sortOrder="25" showInDefault="1" showInWebsite="0" showInStore="0">
+                <label>Category SEO Settings</label>
+                <field id="inheritance_strategy" translate="label comment" type="select" sortOrder="10" showInDefault="1" showInWebsite="0" showInStore="0">
+                    <label>Inheritance Strategy</label>
+                    <comment><![CDATA[Where a category's SEO settings come from when it does not set them itself. Each setting is resolved separately, so a category can take its schema template from one place and its robots directive from another.<br/><br/><strong>Category first</strong> suits a catalogue whose tree carries the meaning: a setting made on a category applies to it whether it was made globally or for one store view, and only a category that says nothing defers to its parent.<br/><br/><strong>Store view first</strong> suits store views that carry their own SEO policy: anything set for this store view, anywhere up the tree, outranks anything set globally. With one store view the two behave identically.<br/><br/>Global only — this decides how store-view scope itself is resolved.]]></comment>
+                    <source_model>MageOS\Seo\Model\Config\Source\InheritanceStrategy</source_model>
+                </field>
+            </group>
+
             <group id="llms_txt" translate="label" type="text" sortOrder="30" showInDefault="1" showInWebsite="1" showInStore="1">
                 <label>AI Discoverability (llms.txt)</label>
                 <field id="enabled" translate="label comment" type="select" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1">
