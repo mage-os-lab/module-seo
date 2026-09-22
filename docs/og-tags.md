@@ -56,6 +56,21 @@ OG tags are rendered by the `Block\MetaTags` block, which is injected into the `
 
 Each provider declares which layout handles it applies to — the compositor only calls providers whose handles match the current page.
 
+### Core's product Open Graph is removed
+
+Magento renders its own Open Graph on product pages — `catalog_product_view` pulls in
+`catalog_product_opengraph`, which adds the `opengraph.general` block: `og:type`, `og:title`,
+`og:image`, `og:description`, `og:url`, and `product:price:amount` / `product:price:currency` from
+its `opengraph.currency` child. This module emits every one of those as well, so leaving core's
+block in place put two of each tag on every product page, and a crawler meeting two `og:image`
+values chooses one itself.
+
+`MageOS\Seo\Observer\RemoveCoreOpenGraph` unsets core's block on `layout_generate_blocks_after`
+**only while this module's Open Graph output is enabled**. Switching it off under
+**Enable / disable** above hands product pages back to core's tags rather than leaving them with
+none. That dependency is why the block is removed at runtime rather than with `remove="true"` in
+layout XML, which cannot be made conditional.
+
 ---
 
 ## Caching

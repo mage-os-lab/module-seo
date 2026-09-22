@@ -26,12 +26,36 @@ default (e.g. `NOINDEX,FOLLOW`) on a specific store view while keeping another v
 
 The robots meta value is set on the `PageConfig` object rather than output directly by a block. This means it participates in Magento's standard `<head>` rendering, and only one robots meta tag ever appears on the page regardless of how many places try to set it.
 
-Two plugins handle this:
+`MageOS\Seo\Observer\ApplyRobotsMeta` runs once per frontend page on
+`layout_generate_blocks_after`, after the controller has put the product, category or CMS page in
+place and before the head renders. It asks the provider pool
+(`MageOS\Seo\Model\RobotsMeta\Resolver`) for a directive; each provider checks its own entity-level
+override and falls back to the configured default. When no provider has an opinion, nothing is
+written and Magento's own **Design → Search Engine Robots** value stands.
 
-- `CategoryRobotsMetaPlugin` — runs after `Magento\Catalog\Controller\Category\View::execute()`
-- `ProductRobotsMetaPlugin` — runs after `Magento\Catalog\Controller\Product\View::execute()`
+### Other modules' restrictions are kept
 
-Each plugin checks for a category- or product-level override first, then falls back to the global default.
+The resolved directive is **composed with** the page's current robots value, not written over it.
+Otherwise it discards what other modules set — including `MageOS_MetaRobotsTag`, which ships in
+the Mage-OS distribution and turns `INDEX` into `NOINDEX` from per-product, per-category and
+per-CMS-page flags.
+
+The rule, in `MageOS\Seo\Model\RobotsMeta\DirectiveComposer`: a **restriction** on the page that
+is **not part of core's default** was added by another module, and survives. A restriction is any
+directive spelled `no…` — `noindex`, `nofollow`, `noarchive`, `nosnippet`, `noimageindex`, `noai`,
+`noimageai` — so a third party's is recognised without being listed. Everything that came from
+core's Design setting is this module's to override, as documented above.
+
+| Core default | On the page before this module | This module resolves | Written |
+|---|---|---|---|
+| `INDEX,FOLLOW` | `NOINDEX,FOLLOW` — another module's per-page flag | `INDEX,FOLLOW` | `NOINDEX,FOLLOW` |
+| `NOINDEX,NOFOLLOW` — a staging store | `NOINDEX,NOFOLLOW` | `INDEX,FOLLOW` | `INDEX,FOLLOW` |
+| `NOINDEX,NOFOLLOW` | `NOINDEX,NOFOLLOW,NOARCHIVE` | `INDEX,FOLLOW` | `INDEX,FOLLOW,NOARCHIVE` |
+
+The outcome does not depend on which module's observer runs first — on CMS pages another module
+typically runs earlier (`cms_page_render` precedes layout generation), on catalog pages the order
+is not pinned. If it runs earlier its restriction is carried through here; if it runs later it
+patches this module's value itself.
 
 ---
 
