@@ -97,6 +97,7 @@ class SaveCmsPageSeoConfig implements ObserverInterface
      */
     private function storeId(PageInterface|Page $page): int
     {
+        /* @var Page $page */
         $stores = $page->getData('store_id');
         if (!\is_array($stores)) {
             return max(0, (int) $stores);
