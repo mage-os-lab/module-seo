@@ -7,6 +7,7 @@ namespace MageOS\Seo\Test\Integration\Model\Sitemap;
 use Magento\Catalog\Test\Fixture\Category as CategoryFixture;
 use Magento\Catalog\Test\Fixture\Product as ProductFixture;
 use Magento\Framework\App\Area;
+use Magento\Framework\App\Config\MutableScopeConfigInterface;
 use Magento\Framework\App\Filesystem\DirectoryList;
 use Magento\Framework\Filesystem;
 use Magento\Framework\ObjectManager\ConfigInterface as ObjectManagerConfig;
@@ -24,6 +25,8 @@ use Magento\TestFramework\Fixture\DataFixtureStorageManager;
 use Magento\TestFramework\Helper\Bootstrap;
 use MageOS\Seo\Api\Sitemap\ItemProviderInterface;
 use MageOS\Seo\Api\Sitemap\SitemapItemInterface;
+use MageOS\Seo\Model\Config;
+use MageOS\Seo\Model\Config\Source\SitemapGenerator;
 use MageOS\Seo\Model\Sitemap\ItemProvider\Category;
 use MageOS\Seo\Model\Sitemap\ItemProvider\CmsPage;
 use MageOS\Seo\Model\Sitemap\ItemProvider\Composite;
@@ -122,6 +125,11 @@ class ItemProviderWiringTest extends TestCase
     #[DataFixture(ProductFixture::class, ['category_ids' => ['$category.id$']], as: 'product')]
     public function testCoresGeneratorWritesTheSameFileOnThisModulesProviders(): void
     {
+        // Core's own generator, not this module's: select it for the store view, at store scope,
+        // where the setting is read.
+        Bootstrap::getObjectManager()->get(MutableScopeConfigInterface::class)
+            ->setValue(Config::XML_SITEMAP_GENERATOR, SitemapGenerator::MAGENTO, 'store', 'default');
+
         $onThisModule = $this->generate('mageos_seo_f1_this_module.xml');
 
         Bootstrap::getObjectManager()->configure([

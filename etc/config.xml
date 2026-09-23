@@ -97,5 +97,10 @@
                 <enabled>0</enabled>
             </security_txt>
         </mageos_seo_ucp>
+        <sitemap>
+            <generate>
+                <mageos_seo_generator>mageos_seo</mageos_seo_generator>
+            </generate>
+        </sitemap>
     </default>
 </config>

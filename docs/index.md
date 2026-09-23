@@ -18,6 +18,7 @@ The SEO module provides structured data (JSON-LD), Open Graph meta tags, canonic
 | [Per-Product SEO](product-seo.md) | Field overrides and robots meta per product per store | Admin / merchandiser |
 | [AI Discoverability (llms.txt)](llms-txt.md) | `/llms.txt`, `/llms-full.txt` and `/llms.jsonl` — what they contain | Admin / developer |
 | [Hreflang Alternates & Sitemap](hreflang.md) | Head alternates and `/hreflang-sitemap.xml` — what appears in them | Developer / SEO manager |
+| [XML Sitemap](sitemap.md) | The sitemap generator, its file layout, and how to extend it | Developer / SEO manager |
 | [Pre-generated Feeds](feeds.md) | The machinery behind all four: rebuilds, caching, storage, multi-server, CLI | Developer / DevOps |
 | [Extending the Module](extending.md) | Adding providers, builders, and section content | Developer |
 

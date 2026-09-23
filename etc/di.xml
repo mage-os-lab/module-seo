@@ -464,4 +464,23 @@
         </arguments>
     </type>
 
+    <!--
+        The sitemap generator, reached from core's generateXml() when "MageOS SEO" is selected under
+        Catalog → XML Sitemap → Generation Settings. Renderers write each row in sortOrder; add
+        yours — and enrichers and filters — here from your own module's di.xml.
+    -->
+    <type name="Magento\Sitemap\Model\Sitemap">
+        <plugin name="mageos_seo_use_seo_generator" type="MageOS\Seo\Plugin\Sitemap\UseSeoGenerator"/>
+    </type>
+    <type name="MageOS\Seo\Model\Sitemap\Generator">
+        <arguments>
+            <argument name="renderers" xsi:type="array">
+                <item name="coreFields" xsi:type="object"
+                      sortOrder="10">MageOS\Seo\Model\Sitemap\Renderer\CoreFields</item>
+                <item name="images" xsi:type="object"
+                      sortOrder="20">MageOS\Seo\Model\Sitemap\Renderer\Images</item>
+            </argument>
+        </arguments>
+    </type>
+
 </config>

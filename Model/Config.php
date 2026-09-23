@@ -6,6 +6,7 @@ namespace MageOS\Seo\Model;
 
 use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Store\Model\ScopeInterface;
+use MageOS\Seo\Model\Config\Source\SitemapGenerator;
 
 class Config
 {
@@ -40,6 +41,7 @@ class Config
     public const XML_HREFLANG_SITEMAP_ENABLED      = 'mageos_seo_general/hreflang/sitemap_enabled';
     public const XML_HREFLANG_SAME_WEBSITE_ONLY    = 'mageos_seo_general/hreflang/same_website_only';
     public const XML_HREFLANG_CODES                = 'mageos_seo_general/hreflang/codes';
+    public const XML_SITEMAP_GENERATOR             = 'sitemap/generate/mageos_seo_generator';
     public const XML_AEO_SPEAKABLE_ENABLED         = 'mageos_seo_general/aeo/speakable_enabled';
     public const XML_AEO_SPEAKABLE_SELECTORS       = 'mageos_seo_general/aeo/speakable_css_selectors';
     public const XML_AI_ROBOTS_ENABLED             = 'mageos_seo_general/ai_robots/enabled';
@@ -408,6 +410,21 @@ class Config
     public function isHreflangLanguageOnlyEnabled(): bool
     {
         return (bool) $this->scopeConfig->getValue(self::XML_HREFLANG_LANGUAGE_ONLY);
+    }
+
+    /**
+     * Whether this module generates the store view's sitemaps, rather than Magento.
+     *
+     * @param int $storeId
+     * @return bool
+     */
+    public function isSitemapGeneratorEnabled(int $storeId): bool
+    {
+        return $this->scopeConfig->getValue(
+            self::XML_SITEMAP_GENERATOR,
+            ScopeInterface::SCOPE_STORE,
+            $storeId
+        ) === SitemapGenerator::MAGEOS_SEO;
     }
 
     /**

@@ -17,18 +17,20 @@ use MageOS\Seo\Model\Sitemap\SitemapItemFactory;
  */
 class StoreUrl extends AbstractEntityProvider
 {
+    // phpcs:disable Generic.CodeAnalysis.UselessOverridingMethod -- it narrows the config reader's type
     /**
      * Names core's store URL config reader, which is what dependency injection supplies.
      *
      * @param StoreUrlConfigReader $configReader
      * @param SitemapItemFactory $itemFactory
      */
-    public function __construct( // phpcs:ignore Generic.CodeAnalysis.UselessOverridingMethod -- narrows the type
+    public function __construct(
         StoreUrlConfigReader $configReader,
         SitemapItemFactory   $itemFactory
     ) {
         parent::__construct($configReader, $itemFactory);
     }
+    // phpcs:enable Generic.CodeAnalysis.UselessOverridingMethod
 
     /**
      * @inheritdoc

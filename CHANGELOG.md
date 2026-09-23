@@ -14,6 +14,21 @@ become public contract.
 
 ### Added
 
+- A sitemap generator for the sitemaps configured under Marketing → Site Map, selected by the
+  new **Catalog → XML Sitemap → Generation Settings → Generator** (default **MageOS SEO**;
+  **Magento** leaves core's generator in charge). It lists the same URLs as core's, writes one file
+  per kind of page under a `sitemap.xml` index, streams the catalogue whatever core's Generation
+  Method says, and never lets a file pass the configured size. See `docs/sitemap.md`.
+- Sitemap extension points (`Api\Sitemap\*`): items carry their entity and a data bag; providers
+  say which file their items belong in and stream them; enrichers, filters and row renderers are
+  registered on the generator. Providers registered on core's composite keep working, written
+  under "other".
+- Hreflang: several codes per store view, validated against the country directory; x-default per
+  website; the `mageos_seo_hreflang_alternates_after` event; CMS translation groups, which purge
+  the other translations' cached pages when a page joins, leaves or is deleted.
+- Per-CMS-page robots override, and `noarchive` with every index/follow combination.
+- Data patches carrying `MageOS_MetaRobotsTag`'s flags and `MageOS_Hreflang`'s settings and CMS
+  links into this module; the latter then switches `MageOS_Hreflang`'s output off.
 - `bin/magento mageos:seo:feeds:regenerate [-g llms|jsonl|hreflang]` rebuilds the
   pre-generated feeds in the running process, for deployment scripts and manual
   rebuilds. It reports per-store-view failures and exits non-zero on any.
@@ -166,6 +181,16 @@ become public contract.
 
 ### Changed
 
+- With the MageOS SEO sitemap generator selected — the default — `sitemap.xml` is always a sitemap
+  index, listing `{name}-{store}-pages-1.xml`, `-categories-`, `-products-` and so on. Search
+  engines need only the one URL they already have. Files core's generator wrote for the same
+  sitemap are removed on the first generation.
+- The robots dropdowns on the product, category and CMS page forms offer one empty option each,
+  saying where the page falls back to. The product form's "Use Category / Global Default" was
+  wrong: a product's directive never comes from its category.
+- Hreflang codes are deduplicated per code rather than per store view, so two store views on the
+  same locale both keep their alternates once either is given its own code.
+- `magento/module-sitemap` is now a dependency.
 - **Breaking:** the support floor moves to **Magento 2.4.7 and PHP 8.3**
   (`magento/framework ^103.0.7`, `php ~8.3.0 || ~8.4.0 || ~8.5.0`), matching the
   Mage-OS monorepo. With it, the version polyfills go: the bundled
