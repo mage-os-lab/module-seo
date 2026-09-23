@@ -51,8 +51,7 @@ class SaveCmsPageSeoConfig implements ObserverInterface
     {
         /* @var Magento\Cms\Model\Page $page */
         $page = $observer->getEvent()->getData('object') ?? $observer->getEvent()->getData('page');
-        if (
-            !$page instanceof PageInterface ||
+        if (!$page instanceof PageInterface ||
             !$page instanceof Page
         ) {
             return;
