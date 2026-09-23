@@ -48,13 +48,51 @@ class LinkBuilder
             if (!isset($map[$storeId])) {
                 continue;
             }
-            $links[] = [
-                'hreflang' => $map[$storeId]['locale'],
-                'url'      => $map[$storeId]['base_url'] . '/' . ltrim($path, '/'),
-                'store_id' => $storeId,
-            ];
+            $url = $map[$storeId]['base_url'] . '/' . ltrim($path, '/');
+            foreach ($this->linksFor((int) $storeId, $map[$storeId]['codes'], $url) as $link) {
+                $links[] = $link;
+            }
         }
 
         return $links;
+    }
+
+    /**
+     * Build the home-page alternates: every eligible store view's base URL.
+     *
+     * The home page has no URL rewrite to look up, so it is built from the store map directly. The
+     * head resolver and the sitemap generator used to each carry their own copy of this.
+     *
+     * @return array<int, array{hreflang: string, url: string, store_id: int}>
+     */
+    public function buildHome(): array
+    {
+        $links = [];
+        foreach ($this->storeLocaleMap->getMap() as $storeId => $data) {
+            foreach ($this->linksFor((int) $storeId, $data['codes'], $data['base_url'] . '/') as $link) {
+                $links[] = $link;
+            }
+        }
+
+        return $links;
+    }
+
+    /**
+     * One link per code a store view claims, all pointing at the same URL.
+     *
+     * A store serving es-MX, es-AR and es-CL is one page in three regions; Google expects one
+     * annotation for each, sharing the URL.
+     *
+     * @param int $storeId
+     * @param string[] $codes
+     * @param string $url
+     * @return array<int, array{hreflang: string, url: string, store_id: int}>
+     */
+    private function linksFor(int $storeId, array $codes, string $url): array
+    {
+        return array_map(
+            static fn (string $code): array => ['hreflang' => $code, 'url' => $url, 'store_id' => $storeId],
+            $codes
+        );
     }
 }

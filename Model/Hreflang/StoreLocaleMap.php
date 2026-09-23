@@ -11,7 +11,12 @@ use Magento\Store\Model\StoreManagerInterface;
 use MageOS\Seo\Model\Config;
 
 /**
- * Request-scoped map of active store views to their base URL and BCP 47 locale.
+ * Request-scoped map of active store views to their base URL and the hreflang codes they claim.
+ *
+ * A store view claims the codes set for it under **hreflang/codes**, or failing that the one its
+ * locale gives. A locale is not a target region: one store can serve several (es-MX, es-AR, es-CL),
+ * and a store whose Magento locale cannot name its region — or that shares a locale with another —
+ * needs saying explicitly.
  *
  * Excluded and inactive stores are filtered here so downstream resolvers and the sitemap never see
  * them. Built once per request and memoised.
@@ -19,7 +24,7 @@ use MageOS\Seo\Model\Config;
 class StoreLocaleMap implements ResetAfterRequestInterface
 {
     /**
-     * @var array<int, array{base_url: string, locale: string, language: string}>|null
+     * @var array<int, array{base_url: string, codes: string[]}>|null
      */
     private ?array $map = null;
 
@@ -27,22 +32,26 @@ class StoreLocaleMap implements ResetAfterRequestInterface
      * @param StoreManagerInterface $storeManager
      * @param ScopeConfigInterface $scopeConfig
      * @param Config $seoConfig
+     * @param CodeValidator $codeValidator
      */
     public function __construct(
         private readonly StoreManagerInterface $storeManager,
         private readonly ScopeConfigInterface  $scopeConfig,
-        private readonly Config                $seoConfig
+        private readonly Config                $seoConfig,
+        private readonly CodeValidator         $codeValidator
     ) {
     }
 
     /**
-     * Return store_id => [base_url, locale, language] for all eligible store views.
+     * Return store_id => [base_url, codes] for all eligible store views.
      *
-     * Scoped to the current website by default (config: hreflang/same_website_only)
-     * and deduplicated by locale — two alternates with the same hreflang value are
-     * invalid, so the lowest store ID deterministically wins per locale.
+     * Scoped to the current website by default (config: hreflang/same_website_only). Two alternates
+     * with the same hreflang value are invalid, so a code already claimed is skipped — deterministically,
+     * the lowest store ID keeps it. That happens **per code**: a store losing one code keeps its
+     * others, and drops out only when every code it claims is taken. It used to be per store, so two
+     * store views sharing a locale lost the second one entirely.
      *
-     * @return array<int, array{base_url: string, locale: string, language: string}>
+     * @return array<int, array{base_url: string, codes: string[]}>
      */
     public function getMap(): array
     {
@@ -60,8 +69,8 @@ class StoreLocaleMap implements ResetAfterRequestInterface
         $stores = array_values($this->storeManager->getStores());
         usort($stores, static fn ($a, $b): int => (int) $a->getId() <=> (int) $b->getId());
 
-        $map         = [];
-        $seenLocales = [];
+        $map     = [];
+        $claimed = [];
 
         foreach ($stores as $store) {
             $storeId = (int) $store->getId();
@@ -72,31 +81,49 @@ class StoreLocaleMap implements ResetAfterRequestInterface
                 continue;
             }
 
-            $localeCode = (string) $this->scopeConfig->getValue(
-                'general/locale/code',
-                ScopeInterface::SCOPE_STORE,
-                $storeId
-            );
-            if ($localeCode === '') {
-                continue;
+            $codes = [];
+            foreach ($this->codesFor($storeId) as $code) {
+                if (isset($claimed[$code])) {
+                    continue;
+                }
+                $claimed[$code] = true;
+                $codes[]        = $code;
             }
 
-            $locale = $this->formatLocale($localeCode);
-            if (isset($seenLocales[$locale])) {
-                // Duplicate hreflang values are invalid; first (lowest ID) store wins.
+            if ($codes === []) {
                 continue;
             }
-            $seenLocales[$locale] = true;
 
             $map[$storeId] = [
                 'base_url' => rtrim((string) $store->getBaseUrl(), '/'),
-                'locale'   => $locale,
-                'language' => $this->extractLanguage($locale),
+                'codes'    => $codes,
             ];
         }
 
         $this->map = $map;
         return $this->map;
+    }
+
+    /**
+     * The codes a store view claims: its configured list, else the one its locale gives.
+     *
+     * @param int $storeId
+     * @return string[]
+     */
+    private function codesFor(int $storeId): array
+    {
+        $configured = $this->seoConfig->getHreflangCodes($storeId);
+        if ($configured !== []) {
+            return $configured;
+        }
+
+        $localeCode = (string) $this->scopeConfig->getValue(
+            'general/locale/code',
+            ScopeInterface::SCOPE_STORE,
+            $storeId
+        );
+
+        return $localeCode === '' ? [] : [$this->codeValidator->normalise($localeCode)];
     }
 
     /**
@@ -125,12 +152,15 @@ class StoreLocaleMap implements ResetAfterRequestInterface
     /**
      * Convert a Magento locale code to a BCP 47 tag ('en_GB' → 'en-GB').
      *
+     * Kept for callers outside this class; the one implementation lives in CodeValidator, which the
+     * configured codes go through as well, so a locale and a typed code normalise identically.
+     *
      * @param string $magentoLocale
      * @return string
      */
     public function formatLocale(string $magentoLocale): string
     {
-        return str_replace('_', '-', $magentoLocale);
+        return $this->codeValidator->normalise($magentoLocale);
     }
 
     /**

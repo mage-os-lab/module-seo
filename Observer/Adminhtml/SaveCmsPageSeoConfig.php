@@ -10,6 +10,8 @@ use Magento\Framework\Event\Observer;
 use Magento\Framework\Event\ObserverInterface;
 use Magento\Framework\Message\ManagerInterface;
 use MageOS\Seo\Model\Cms\ConfigRepository;
+use MageOS\Seo\Model\Cms\HreflangGroup;
+use MageOS\Seo\Model\Feed\FeedInvalidator;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -19,30 +21,39 @@ use Psr\Log\LoggerInterface;
  * on admin form data, and a global registration would let a REST, GraphQL or import save steer it
  * with a request payload.
  *
- * The value is written against the store view the page is being edited in, so a page shown in
- * several store views can carry a different directive in each.
+ * The values are written to the page's global (store 0) row, which is the row
+ * Plugin\Cms\Page\AddSeoConfigToFormData loads. The CMS page form has no store switcher, only the
+ * page's store assignment, so the admin has no store view to save "for"; and a page assigned to
+ * one store view is only served there, so its global row already applies exactly where the page
+ * does. Store-view rows remain supported for reading, for anything writing through
+ * Model\Cms\ConfigRepository directly.
  */
 class SaveCmsPageSeoConfig implements ObserverInterface
 {
     /**
-     * The form field, named so it cannot collide with a core or third-party cms_page column.
+     * The form fields, named so they cannot collide with a core or third-party cms_page column.
      */
-    public const FIELD_ROBOTS_META = 'mageos_seo_robots_meta';
+    public const FIELD_ROBOTS_META    = 'mageos_seo_robots_meta';
+    public const FIELD_HREFLANG_GROUP = 'mageos_seo_hreflang_group';
 
     /**
      * @param ConfigRepository $configRepository
+     * @param HreflangGroup $hreflangGroup
+     * @param FeedInvalidator $feedInvalidator
      * @param ManagerInterface $messageManager
      * @param LoggerInterface $logger
      */
     public function __construct(
         private readonly ConfigRepository $configRepository,
+        private readonly HreflangGroup    $hreflangGroup,
+        private readonly FeedInvalidator  $feedInvalidator,
         private readonly ManagerInterface $messageManager,
         private readonly LoggerInterface  $logger
     ) {
     }
 
     /**
-     * Save the page's robots override.
+     * Save the page's robots override and translation group.
      *
      * @param Observer $observer
      * @return void
@@ -57,21 +68,48 @@ class SaveCmsPageSeoConfig implements ObserverInterface
             return;
         }
 
-        $pageId     = (int) $page->getId();
-        $robotsMeta = $page->getData(self::FIELD_ROBOTS_META);
+        $pageId = (int) $page->getId();
+        if ($pageId <= 0) {
+            return;
+        }
 
-        // A save that never carried the field — a REST call, an import — leaves the stored value
+        // A save that never carried a field — a REST call, an import — leaves its stored value
         // alone rather than blanking it.
-        if ($pageId <= 0 || $robotsMeta === null) {
+        $data = [];
+
+        $robotsMeta = $page->getData(self::FIELD_ROBOTS_META);
+        if ($robotsMeta !== null) {
+            $data['robots_meta'] = (string) $robotsMeta ?: null;
+        }
+
+        $groupEntered = $page->getData(self::FIELD_HREFLANG_GROUP);
+        if ($groupEntered !== null) {
+            $group = $this->hreflangGroup->normalise((string) $groupEntered);
+            if ($group === null || $this->hreflangGroup->isValid($group)) {
+                $data['hreflang_group'] = $group;
+            } else {
+                $this->messageManager->addWarningMessage((string) __(
+                    'The page was saved, but its hreflang translation group was not: use letters, '
+                    . 'digits, dots, hyphens and underscores only, for example "about-us".'
+                ));
+            }
+        }
+
+        if ($data === []) {
             return;
         }
 
         try {
-            $this->configRepository->save(
-                $pageId,
-                ['robots_meta' => (string) $robotsMeta ?: null],
-                $this->storeId($page)
-            );
+            $groupChanged = \array_key_exists('hreflang_group', $data)
+                && $data['hreflang_group'] !== $this->configRepository->getHreflangGroup($pageId);
+
+            $this->configRepository->save($pageId, $data);
+
+            // The sitemap lists a group's pages as one entry, so joining or leaving a group changes
+            // it; nothing about the page itself changed for the save's own invalidation to notice.
+            if ($groupChanged) {
+                $this->feedInvalidator->invalidateHreflangSitemap();
+            }
         } catch (\Throwable $e) {
             // The page itself is already saved; a failure in the SEO table must not make the
             // whole save look failed.
@@ -83,29 +121,5 @@ class SaveCmsPageSeoConfig implements ObserverInterface
                 (string) __('The page was saved, but its SEO settings could not be saved.')
             );
         }
-    }
-
-    /**
-     * The store view the override belongs to.
-     *
-     * A CMS page's store assignment is a list; `0` in it means "all store views", which is the
-     * global row. Editing a page assigned to exactly one store view writes that store view's row.
-     *
-     * @param Page $page
-     * @return int
-     */
-    private function storeId(Page $page): int
-    {
-        /* @var Page $page */
-        $stores = $page->getData('store_id');
-        if (!\is_array($stores)) {
-            return max(0, (int) $stores);
-        }
-
-        if (\count($stores) !== 1) {
-            return 0;
-        }
-
-        return max(0, (int) reset($stores));
     }
 }

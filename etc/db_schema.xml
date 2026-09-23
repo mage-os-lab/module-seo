@@ -148,6 +148,13 @@
                 comment="Store view ID (0 = all stores / global default)"/>
         <column xsi:type="varchar" name="robots_meta" nullable="true" length="64"
                 comment="Robots meta override for this CMS page (INDEX,FOLLOW etc.)"/>
+        <!--
+            Pages sharing a value are translations of one another, and list each other as hreflang
+            alternates. It identifies the page rather than a store view's presentation of it, so it
+            is kept on the global (store 0) row. MageOS_Hreflang's cms_page.meta_identifier.
+        -->
+        <column xsi:type="varchar" name="hreflang_group" nullable="true" length="255"
+                comment="Translation group: CMS pages sharing it are hreflang alternates"/>
         <column xsi:type="timestamp" name="updated_at" nullable="false" default="CURRENT_TIMESTAMP"
                 on_update="true" comment="Last updated"/>
         <constraint xsi:type="primary" referenceId="PRIMARY">
@@ -171,6 +178,9 @@
                     referenceTable="store" referenceColumn="store_id" onDelete="CASCADE"/>
         <index referenceId="MAGEOS_SEO_CMS_PAGE_CONFIG_STORE_ID" indexType="btree">
             <column name="store_id"/>
+        </index>
+        <index referenceId="MAGEOS_SEO_CMS_PAGE_CONFIG_HREFLANG_GROUP" indexType="btree">
+            <column name="hreflang_group"/>
         </index>
     </table>
 

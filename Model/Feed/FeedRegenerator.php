@@ -7,12 +7,12 @@ namespace MageOS\Seo\Model\Feed;
 use Magento\Framework\App\Area;
 use Magento\Store\Model\App\Emulation;
 use Magento\Store\Model\StoreManagerInterface;
+use MageOS\Seo\Exception\FeedRebuildInProgressException;
 use MageOS\Seo\Model\Config;
 use MageOS\Seo\Model\Hreflang\SitemapFileWriter;
 use MageOS\Seo\Model\Hreflang\SitemapGenerator;
 use MageOS\Seo\Model\Hreflang\StoreLocaleMap;
 use MageOS\Seo\Model\LlmsJsonl\JsonlBuilder;
-use MageOS\Seo\Exception\FeedRebuildInProgressException;
 use MageOS\Seo\Model\LlmsTxt\LlmsTxtBuilder;
 use Psr\Log\LoggerInterface;
 
@@ -77,8 +77,8 @@ class FeedRegenerator
      * failures are returned for callers that report them (the CLI command).
      *
      * @param string|null $group One of self::GROUPS, or null for all
-     * @return array<int, string> Error message per failed store view ID
      * @throws FeedRebuildInProgressException When another process is already building
+     * @return array<int, string> Error message per failed store view ID
      */
     public function regenerate(?string $group = null): array
     {
@@ -276,8 +276,15 @@ class FeedRegenerator
      */
     private function writeHreflangFiles(int $storeId, array &$builtSets): void
     {
-        $baseUrl   = (string) $this->storeManager->getStore()->getBaseUrl();
-        $signature = hash('sha256', (string) json_encode($this->storeLocaleMap->getMap()));
+        $store   = $this->storeManager->getStore();
+        $baseUrl = (string) $store->getBaseUrl();
+        // Everything that changes the document goes in the signature. The map alone was enough
+        // while x-default was one global setting; now it is per website, two websites sharing a
+        // map can still want different x-defaults, and a copy would hand one the other's.
+        $signature = hash('sha256', (string) json_encode([
+            $this->storeLocaleMap->getMap(),
+            $this->seoConfig->getHreflangXDefaultStoreId((int) $store->getWebsiteId()),
+        ]));
 
         if (isset($builtSets[$signature])) {
             $built  = $builtSets[$signature];

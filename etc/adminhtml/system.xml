@@ -191,10 +191,20 @@ No output on single-store pages.</comment>
 exactly one store view.</comment>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                 </field>
+                <field id="codes" translate="label comment" type="text"
+                       sortOrder="25" showInDefault="0" showInWebsite="0" showInStore="1">
+                    <label>Hreflang Codes</label>
+                    <comment><![CDATA[The codes this store view targets, comma-separated — for example
+<code>en-GB</code>, or <code>es-MX, es-AR, es-CL</code> for one store serving several regions. Leave
+empty to use the store's locale. A region is an ISO 3166-1 country code: the United Kingdom is
+<code>GB</code>, not <code>UK</code>.]]></comment>
+                    <backend_model>MageOS\Seo\Model\Config\Backend\HreflangCodes</backend_model>
+                </field>
                 <field id="xdefault_store_id" translate="label comment" type="select"
-                       sortOrder="30" showInDefault="1" showInWebsite="0" showInStore="0">
+                       sortOrder="30" showInDefault="1" showInWebsite="1" showInStore="0">
                     <label>x-default Store View</label>
-                    <comment>Store view to advertise as hreflang x-default. Leave unset to omit x-default.</comment>
+                    <comment>Store view to advertise as hreflang x-default. Leave unset to omit x-default.
+Set per website where websites serve different markets.</comment>
                     <source_model>MageOS\Seo\Model\Config\Source\StoreViews</source_model>
                 </field>
                 <field id="excluded_store_ids" translate="label comment" type="multiselect"

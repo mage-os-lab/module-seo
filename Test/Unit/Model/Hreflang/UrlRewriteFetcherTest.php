@@ -72,9 +72,9 @@ class UrlRewriteFetcherTest extends TestCase
         // The rows arrive ordered by entity, and are grouped as they are walked: the whole
         // catalogue's rewrites are never held at once.
         $this->givenRows([
-            ['entity_id' => '5', 'store_id' => '1', 'request_path' => 'a'],
-            ['entity_id' => '5', 'store_id' => '2', 'request_path' => 'a-de'],
-            ['entity_id' => '6', 'store_id' => '1', 'request_path' => 'b'],
+            ['entity_id' => '5', 'group_key' => '5', 'store_id' => '1', 'request_path' => 'a'],
+            ['entity_id' => '5', 'group_key' => '5', 'store_id' => '2', 'request_path' => 'a-de'],
+            ['entity_id' => '6', 'group_key' => '6', 'store_id' => '1', 'request_path' => 'b'],
         ]);
 
         $this->assertSame(
@@ -86,11 +86,48 @@ class UrlRewriteFetcherTest extends TestCase
     public function testStreamAllForTypeKeepsTheFirstPathPerStore(): void
     {
         $this->givenRows([
-            ['entity_id' => '5', 'store_id' => '1', 'request_path' => 'current'],
-            ['entity_id' => '5', 'store_id' => '1', 'request_path' => 'history'],
+            ['entity_id' => '5', 'group_key' => '5', 'store_id' => '1', 'request_path' => 'current'],
+            ['entity_id' => '5', 'group_key' => '5', 'store_id' => '1', 'request_path' => 'history'],
         ]);
 
         $this->assertSame([[1 => 'current']], $this->streamed('product', [1]));
+    }
+
+    public function testCmsTranslationsAreStreamedAsOneEntry(): void
+    {
+        // Different pages, one group: each store view contributes its own translation.
+        $this->givenRows([
+            ['entity_id' => '11', 'group_key' => 'g:about-us', 'store_id' => '1', 'request_path' => 'about-us'],
+            ['entity_id' => '12', 'group_key' => 'g:about-us', 'store_id' => '2', 'request_path' => 'ueber-uns'],
+            ['entity_id' => '13', 'group_key' => 'p:13', 'store_id' => '1', 'request_path' => 'contact'],
+        ]);
+
+        $this->assertSame(
+            [[1 => 'about-us', 2 => 'ueber-uns'], [1 => 'contact']],
+            $this->streamed('cms-page', [1, 2])
+        );
+    }
+
+    public function testTheFirstCandidateForAStoreInAGroupWins(): void
+    {
+        // The query puts the page assigned to the store view ahead of an all-store-views page.
+        $this->givenRows([
+            ['entity_id' => '12', 'group_key' => 'g:about-us', 'store_id' => '2', 'request_path' => 'ueber-uns'],
+            ['entity_id' => '11', 'group_key' => 'g:about-us', 'store_id' => '2', 'request_path' => 'about-us'],
+        ]);
+
+        $this->assertSame([[2 => 'ueber-uns']], $this->streamed('cms-page', [2]));
+    }
+
+    public function testFetchForCmsGroupKeepsTheFirstPathPerStore(): void
+    {
+        $this->resource->method('getPathsForCmsGroup')->with('about-us')->willReturn([
+            ['entity_id' => '12', 'store_id' => '2', 'request_path' => 'ueber-uns'],
+            ['entity_id' => '11', 'store_id' => '1', 'request_path' => 'about-us'],
+            ['entity_id' => '11', 'store_id' => '2', 'request_path' => 'about-us'],
+        ]);
+
+        $this->assertSame([2 => 'ueber-uns', 1 => 'about-us'], $this->fetcher->fetchForCmsGroup('about-us'));
     }
 
     public function testStreamAllForTypeYieldsNothingForAnEmptyResult(): void

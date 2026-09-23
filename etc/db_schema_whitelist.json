@@ -82,6 +82,7 @@
             "page_id": true,
             "store_id": true,
             "robots_meta": true,
+            "hreflang_group": true,
             "updated_at": true
         },
         "constraint": {
@@ -90,7 +91,8 @@
             "MAGEOS_SEO_CMS_PAGE_CONFIG_STORE_ID_STORE_STORE_ID": true
         },
         "index": {
-            "MAGEOS_SEO_CMS_PAGE_CONFIG_STORE_ID": true
+            "MAGEOS_SEO_CMS_PAGE_CONFIG_STORE_ID": true,
+            "MAGEOS_SEO_CMS_PAGE_CONFIG_HREFLANG_GROUP": true
         }
     },
     "mageos_seo_faq": {

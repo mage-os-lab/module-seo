@@ -36,23 +36,29 @@ class UrlRewriteFetcher
      */
     public function fetchForEntity(string $entityType, int $entityId): array
     {
-        $paths = [];
-        foreach ($this->urlRewriteResource->getPathsForEntity($entityType, $entityId) as $row) {
-            $storeId = (int) $row['store_id'];
-            // First canonical row per store wins; ordering makes the winner deterministic.
-            if (!isset($paths[$storeId])) {
-                $paths[$storeId] = (string) $row['request_path'];
-            }
-        }
+        return $this->firstPathPerStore($this->urlRewriteResource->getPathsForEntity($entityType, $entityId));
+    }
 
-        return $paths;
+    /**
+     * Fetch the request paths of a CMS translation group, keyed by store ID.
+     *
+     * Each store view maps to its own translation — the page assigned to it, else one assigned to
+     * all store views, the lowest page ID breaking a tie.
+     *
+     * @param string $group A normalised translation group
+     * @return array<int, string> store_id => request_path
+     */
+    public function fetchForCmsGroup(string $group): array
+    {
+        return $this->firstPathPerStore($this->urlRewriteResource->getPathsForCmsGroup($group));
     }
 
     /**
      * Stream canonical request paths for every entity of a type, one entity at a time.
      *
-     * One query for the whole catalogue, walked row by row and grouped on entity_id, so the
-     * sitemap generator never holds every rewrite of every store view at once.
+     * One query for the whole catalogue, walked row by row and grouped on the row's group key, so
+     * the sitemap generator never holds every rewrite of every store view at once. The key is the
+     * entity itself, except for CMS pages in a translation group, which come out as one entity.
      *
      * @param string $entityType
      * @param int[] $storeIds
@@ -66,26 +72,42 @@ class UrlRewriteFetcher
 
         $statement = $this->urlRewriteResource->queryPathsForType($entityType, $storeIds);
 
-        $currentEntityId = null;
-        $paths           = [];
+        $currentKey = null;
+        $rows       = [];
 
         while ($row = $statement->fetch()) {
-            $entityId = (int) $row['entity_id'];
-            if ($currentEntityId !== null && $entityId !== $currentEntityId) {
-                yield $paths;
-                $paths = [];
+            $key = (string) $row['group_key'];
+            if ($currentKey !== null && $key !== $currentKey) {
+                yield $this->firstPathPerStore($rows);
+                $rows = [];
             }
-            $currentEntityId = $entityId;
+            $currentKey = $key;
+            $rows[]     = $row;
+        }
 
+        if ($rows !== []) {
+            yield $this->firstPathPerStore($rows);
+        }
+    }
+
+    /**
+     * Reduce rewrite rows to one request path per store view: the first row's.
+     *
+     * The queries order their rows so the first per store is the one to use.
+     *
+     * @param iterable<array<string,mixed>> $rows
+     * @return array<int, string> store_id => request_path
+     */
+    private function firstPathPerStore(iterable $rows): array
+    {
+        $paths = [];
+        foreach ($rows as $row) {
             $storeId = (int) $row['store_id'];
-            // First canonical row per store wins; ordering makes the winner deterministic.
             if (!isset($paths[$storeId])) {
                 $paths[$storeId] = (string) $row['request_path'];
             }
         }
 
-        if ($paths !== []) {
-            yield $paths;
-        }
+        return $paths;
     }
 }

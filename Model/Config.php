@@ -39,6 +39,7 @@ class Config
     public const XML_HREFLANG_LANGUAGE_ONLY        = 'mageos_seo_general/hreflang/language_only_enabled';
     public const XML_HREFLANG_SITEMAP_ENABLED      = 'mageos_seo_general/hreflang/sitemap_enabled';
     public const XML_HREFLANG_SAME_WEBSITE_ONLY    = 'mageos_seo_general/hreflang/same_website_only';
+    public const XML_HREFLANG_CODES                = 'mageos_seo_general/hreflang/codes';
     public const XML_AEO_SPEAKABLE_ENABLED         = 'mageos_seo_general/aeo/speakable_enabled';
     public const XML_AEO_SPEAKABLE_SELECTORS       = 'mageos_seo_general/aeo/speakable_css_selectors';
     public const XML_AI_ROBOTS_ENABLED             = 'mageos_seo_general/ai_robots/enabled';
@@ -341,11 +342,44 @@ class Config
     /**
      * Return the store view ID to advertise as hreflang x-default (0 = none).
      *
+     * Read at website scope: on an installation with several websites — a .com and a .co.uk, say —
+     * each has its own idea of which store view a visitor matching no alternate should land on.
+     * A website with no value of its own inherits the default-scope one.
+     *
+     * @param int|null $websiteId null reads the default scope
      * @return int
      */
-    public function getHreflangXDefaultStoreId(): int
+    public function getHreflangXDefaultStoreId(?int $websiteId = null): int
     {
-        return (int) $this->scopeConfig->getValue(self::XML_HREFLANG_XDEFAULT_STORE);
+        if ($websiteId === null) {
+            return (int) $this->scopeConfig->getValue(self::XML_HREFLANG_XDEFAULT_STORE);
+        }
+
+        return (int) $this->scopeConfig->getValue(
+            self::XML_HREFLANG_XDEFAULT_STORE,
+            ScopeInterface::SCOPE_WEBSITE,
+            $websiteId
+        );
+    }
+
+    /**
+     * Return the hreflang codes a store view claims, normalised, or none when it relies on its locale.
+     *
+     * @param int $storeId
+     * @return string[]
+     */
+    public function getHreflangCodes(int $storeId): array
+    {
+        $raw = (string) $this->scopeConfig->getValue(
+            self::XML_HREFLANG_CODES,
+            ScopeInterface::SCOPE_STORE,
+            $storeId
+        );
+
+        return array_values(array_filter(
+            array_map('trim', explode(',', $raw)),
+            static fn (string $code): bool => $code !== ''
+        ));
     }
 
     /**

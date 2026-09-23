@@ -75,11 +75,35 @@ class UrlRewrite extends AbstractConnectedResource
     }
 
     /**
+     * Canonical request paths of the CMS pages in a translation group, best candidate first.
+     *
+     * Several pages of one group can be live in the same store view — a translation assigned to
+     * it, and another assigned to all store views. Rows come ordered so the first per store view is
+     * the one to use: see orderCmsCandidates().
+     *
+     * @param string $group A normalised translation group
+     * @return array<int, array{store_id: string, request_path: string}>
+     */
+    public function getPathsForCmsGroup(string $group): array
+    {
+        $select = $this->canonicalSelect(self::TYPE_CMS_PAGE, ['entity_id', 'store_id', 'request_path']);
+        $this->joinCmsTranslationGroup($select);
+        $select->where('cms_config.hreflang_group = ?', $group);
+        $this->orderCmsCandidates($select);
+        $select->order('main_table.url_rewrite_id ASC');
+
+        return $this->connection()->fetchAll($select);
+    }
+
+    /**
      * Every entity of a type, as a statement to be walked row by row.
      *
-     * Deliberately not a collection or fetchAll(): the caller groups consecutive rows per entity
-     * and yields them one entity at a time, so a 100k-product catalogue never lands in memory.
-     * Ordering by entity_id first is what makes that grouping correct.
+     * Deliberately not a collection or fetchAll(): the caller groups consecutive rows on
+     * `group_key` and yields them one group at a time, so a 100k-product catalogue never lands in
+     * memory. Ordering by the group key first is what makes that grouping correct.
+     *
+     * The group key is the entity ID, except for CMS pages in a translation group: those are one
+     * entry between them, each store view contributing its own translation.
      *
      * @param string $entityType One of the TYPE_* constants
      * @param int[] $storeIds
@@ -88,11 +112,60 @@ class UrlRewrite extends AbstractConnectedResource
     public function queryPathsForType(string $entityType, array $storeIds): \Zend_Db_Statement_Interface
     {
         $select = $this->canonicalSelect($entityType, ['entity_id', 'store_id', 'request_path'])
-            ->where('main_table.store_id IN (?)', $storeIds)
-            ->order('main_table.entity_id ASC')
-            ->order('main_table.url_rewrite_id ASC');
+            ->where('main_table.store_id IN (?)', $storeIds);
+
+        if ($entityType === self::TYPE_CMS_PAGE) {
+            $this->joinCmsTranslationGroup($select);
+            $select->order('group_key ASC');
+            $this->orderCmsCandidates($select);
+        } else {
+            $select->columns(['group_key' => 'main_table.entity_id'])
+                ->order('main_table.entity_id ASC');
+        }
+        $select->order('main_table.url_rewrite_id ASC');
 
         return $this->connection()->query($select);
+    }
+
+    /**
+     * Join each CMS page's translation group, and select the key its rows are grouped on.
+     *
+     * The group lives on the page's global row. A page outside any group is a group of its own;
+     * the prefixes keep a group named like a page ID from ever meeting that page's own key.
+     *
+     * @param Select $select A CMS page canonicalSelect()
+     * @return void
+     */
+    private function joinCmsTranslationGroup(Select $select): void
+    {
+        $select->joinLeft(
+            ['cms_config' => $this->getTable('mageos_seo_cms_page_config')],
+            'cms_config.page_id = cms_page.page_id AND cms_config.store_id = 0',
+            [
+                'group_key' => new \Zend_Db_Expr(
+                    "CASE WHEN cms_config.hreflang_group IS NULL OR cms_config.hreflang_group = ''"
+                    . " THEN CONCAT('p:', cms_page.page_id)"
+                    . " ELSE CONCAT('g:', cms_config.hreflang_group) END"
+                ),
+            ]
+        );
+    }
+
+    /**
+     * Order CMS candidates so the first row per store view is the page to link.
+     *
+     * A page assigned to the store view itself beats one assigned to all store views — it is the
+     * translation made for that store — and between equals the lowest page ID wins, so the answer
+     * never depends on the order rows happen to come back in.
+     *
+     * @param Select $select A CMS page canonicalSelect()
+     * @return void
+     */
+    private function orderCmsCandidates(Select $select): void
+    {
+        $select->columns(['assigned_store_id' => 'cms_page_store.store_id'])
+            ->order('assigned_store_id DESC')
+            ->order('main_table.entity_id ASC');
     }
 
     /**

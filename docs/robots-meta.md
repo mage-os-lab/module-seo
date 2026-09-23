@@ -1,6 +1,6 @@
 # Robots Meta
 
-The module controls the `<meta name="robots">` tag on product and category pages. It supports a global default per page type, category-level overrides, and product-level overrides.
+The module controls the `<meta name="robots">` tag on product, category and CMS pages. It supports a global default per page type, category-level overrides, product-level overrides and CMS-page-level overrides.
 
 ---
 
@@ -12,13 +12,17 @@ The module controls the `<meta name="robots">` tag on product and category pages
 |---|---|---|
 | Product pages | *(empty — use Magento default)* | Applies to all product pages without a specific override |
 | Category pages | *(empty — use Magento default)* | Applies to all category pages without a specific override |
+| CMS pages | *(empty — use Magento default)* | Applies to all CMS pages, the home page included, without a specific override |
 
 The defaults ship empty ("Use Magento Default"): until you configure a value, Magento core's
 **Design → Search Engine Robots** setting stays in charge, so installing the module never
 re-opens a NOINDEXed environment. These are per-store-view settings — you can set a stricter
 default (e.g. `NOINDEX,FOLLOW`) on a specific store view while keeping another value globally.
 
-**Accepted values:** Any combination of `INDEX`, `NOINDEX`, `FOLLOW`, `NOFOLLOW` separated by a comma. Examples: `INDEX,FOLLOW` · `NOINDEX,FOLLOW` · `NOINDEX,NOFOLLOW`
+**Accepted values:** the dropdown offers each combination of `INDEX`/`NOINDEX` with
+`FOLLOW`/`NOFOLLOW`, each of those with `noarchive`, `INDEX,FOLLOW` with rich-preview limits
+(`max-image-preview:large,max-snippet:-1`), and `NOINDEX,NOFOLLOW,noai,noimageai`. The same list
+is used by every override below.
 
 ---
 
@@ -85,6 +89,33 @@ Common use cases:
 
 ---
 
+## CMS-page-level override
+
+In the CMS page edit form, the core **Search Engine Optimization** section includes a **Robots
+Meta** dropdown. It overrides the store's **CMS Pages** default for that one page. Leave it on
+**Use Magento Default** to follow the store setting.
+
+The value is stored in `mageos_seo_cms_page_config`, not on `cms_page`, and applies wherever the
+page is served. There is no per-store-view value to set from the admin: the CMS page form has no
+store switcher, and a page's store views are chosen by its **Store View** assignment — to give two
+store views different directives, give them different pages.
+
+The table does carry a `store_id`, and a store view's row wins over the global (`store_id = 0`)
+row when both exist. The admin form only ever reads and writes the global row; store-view rows are
+for integrations writing through `MageOS\Seo\Model\Cms\ConfigRepository` directly.
+
+Common use cases:
+- `NOINDEX,FOLLOW` on thin utility pages (a no-results page, a campaign landing page after the
+  campaign).
+- `INDEX,FOLLOW,noarchive` on pages whose content changes often enough that a cached copy
+  misleads.
+
+Coming from `MageOS_MetaRobotsTag`: its per-page `no_index` / `no_follow` / `no_archive` flags are
+converted into this override on `setup:upgrade`, resolved against the global **Design → Search
+Engine Robots** value that module was modifying. Its columns on `cms_page` are left in place.
+
+---
+
 ## Resolution order
 
 The most specific setting wins:
@@ -95,6 +126,14 @@ Global default (system config)
 Category override (mageos_seo_category_config.robots_meta)
     ↑ overridden by
 Product override (mageos_seo_product_override.robots_meta, for that store view)
+```
+
+CMS pages form no tree, so they have one level:
+
+```
+CMS Pages default (system config)
+    ↑ overridden by
+CMS page override (mageos_seo_cms_page_config.robots_meta)
 ```
 
 If no override is set at any level, the global default is used. If the global default is empty, no robots meta tag is output and the browser defaults to `index,follow`.

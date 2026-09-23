@@ -72,6 +72,22 @@ class ConfigRepository implements ResetAfterRequestInterface
     }
 
     /**
+     * The translation group a CMS page belongs to, or null when it has none.
+     *
+     * Read from the global row only: the group identifies the page, not a store view's presentation
+     * of it (see the column's comment in db_schema.xml).
+     *
+     * @param int $pageId
+     * @return string|null
+     */
+    public function getHreflangGroup(int $pageId): ?string
+    {
+        $group = (string) ($this->getForPage($pageId)['hreflang_group'] ?? '');
+
+        return $group === '' ? null : $group;
+    }
+
+    /**
      * Save or update the configuration for a CMS page and store view.
      *
      * @param int $pageId

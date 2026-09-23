@@ -4,9 +4,9 @@
     creating a section of its own: a merchant looking for robots settings on a CMS page looks
     where the URL key and meta description already are.
 
-    The value is not a cms_page column — it lives in mageos_seo_cms_page_config, per store view —
-    so it is loaded into the form by Plugin\Cms\Page\AddSeoConfigToFormData and saved by
-    Observer\Adminhtml\SaveCmsPageSeoConfig.
+    The value is not a cms_page column — it lives in mageos_seo_cms_page_config, on the page's
+    global row — so it is loaded into the form by Plugin\Cms\Page\AddSeoConfigToFormData and saved
+    by Observer\Adminhtml\SaveCmsPageSeoConfig.
 -->
 <form xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
       xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Ui:etc/ui_configuration.xsd">
@@ -21,6 +21,19 @@
                 <dataScope>mageos_seo_robots_meta</dataScope>
                 <notice translate="true">Overrides the store's CMS robots default for this page.
 Leave on "Use Magento Default" to follow the store setting.</notice>
+            </settings>
+        </field>
+        <field name="mageos_seo_hreflang_group" sortOrder="90" formElement="input">
+            <settings>
+                <dataType>text</dataType>
+                <label translate="true">Hreflang Translation Group</label>
+                <dataScope>mageos_seo_hreflang_group</dataScope>
+                <validation>
+                    <rule name="max_text_length" xsi:type="number">255</rule>
+                </validation>
+                <notice translate="true">Give each translation of this page the same value, for example
+"about-us", and they list one another as hreflang alternates. Letters, digits, dots, hyphens and
+underscores. Leave empty to link this page only to itself in other store views.</notice>
             </settings>
         </field>
     </fieldset>

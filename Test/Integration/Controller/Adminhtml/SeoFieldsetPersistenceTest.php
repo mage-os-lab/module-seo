@@ -8,6 +8,9 @@ use Magento\Catalog\Api\CategoryRepositoryInterface;
 use Magento\Catalog\Model\Category\DataProvider as CategoryFormDataProvider;
 use Magento\Catalog\Test\Fixture\Category as CategoryFixture;
 use Magento\Catalog\Test\Fixture\Product as ProductFixture;
+use Magento\Cms\Api\PageRepositoryInterface;
+use Magento\Cms\Model\Page as CmsPage;
+use Magento\Cms\Model\Page\DataProvider as CmsPageFormDataProvider;
 use Magento\Framework\App\Request\Http as HttpRequest;
 use Magento\Framework\App\ResourceConnection;
 use Magento\Framework\Exception\NoSuchEntityException;
@@ -20,10 +23,11 @@ use Magento\TestFramework\Fixture\DataFixtureStorageManager;
 use Magento\TestFramework\TestCase\AbstractBackendController;
 use MageOS\Seo\Model\Category\ConfigRepository;
 use MageOS\Seo\Model\Category\ProductOverrideRepository;
+use MageOS\Seo\Model\Cms\ConfigRepository as CmsConfigRepository;
 
 /**
- * Round trip of the category "SEO (Structured Data)" and product "Advanced SEO" fieldsets
- * through the real admin save controllers.
+ * Round trip of the category "SEO (Structured Data)", product "Advanced SEO" and CMS page
+ * "Search Engine Optimization" fieldsets through the real admin save controllers.
  *
  * Core's admin save controllers call the model's save() rather than the repositories, so
  * persistence must hook the save path the forms actually use. The category form data
@@ -55,6 +59,11 @@ class SeoFieldsetPersistenceTest extends AbstractBackendController
      * @var int[]|null
      */
     private ?array $createdCategoryIds = [];
+
+    /**
+     * @var int[]|null
+     */
+    private ?array $cmsPageIds = [];
 
     /**
      * @var callable|null
@@ -115,7 +124,18 @@ class SeoFieldsetPersistenceTest extends AbstractBackendController
         }
         $registry->unregister('isSecureArea');
 
-        $this->productIds = $this->categoryIds = $this->createdCategoryIds = [];
+        // Deleting a page takes its SEO rows with it (Observer\RemoveCmsPageConfigOnDelete); the
+        // explicit delete covers a page the test failed before deleting.
+        $this->_objectManager->get(CmsConfigRepository::class)->deleteForPages($this->cmsPageIds);
+        $pageRepository = $this->_objectManager->get(PageRepositoryInterface::class);
+        foreach ($this->cmsPageIds as $pageId) {
+            try {
+                $pageRepository->deleteById($pageId);
+            } catch (NoSuchEntityException) { // phpcs:ignore Magento2.CodeAnalysis.EmptyBlock.DetectedCatch
+            }
+        }
+
+        $this->productIds = $this->categoryIds = $this->createdCategoryIds = $this->cmsPageIds = [];
         parent::tearDown();
     }
 
@@ -339,6 +359,93 @@ class SeoFieldsetPersistenceTest extends AbstractBackendController
     }
 
     /**
+     * The CMS page form shows the directive a save stored, for a page in a single store view.
+     *
+     * The CMS page form has no store switcher — its only scope is the page's store assignment — so
+     * whatever row the save writes must be the row the form reads back.
+     *
+     * @return void
+     */
+    public function testCmsPageFormShowsTheStoredDirectiveForASingleStoreViewPage(): void
+    {
+        $storeId = $this->defaultStoreViewId();
+        $pageId  = $this->createCmsPage([$storeId]);
+
+        $this->dispatchCmsPageSave($pageId, [$storeId], 'NOINDEX,FOLLOW');
+
+        $this->assertSame('NOINDEX,FOLLOW', $this->cmsPageFormData($pageId)['mageos_seo_robots_meta'] ?? null);
+    }
+
+    /**
+     * Saving the CMS page form again, untouched, keeps the directive.
+     *
+     * Every save posts the field back as the form loaded it, so a form that loads the wrong row
+     * turns an unrelated content edit into "Use Magento Default".
+     *
+     * @return void
+     */
+    public function testResavingAnUntouchedCmsPageFormKeepsTheDirective(): void
+    {
+        $storeId = $this->defaultStoreViewId();
+        $pageId  = $this->createCmsPage([$storeId]);
+
+        $this->dispatchCmsPageSave($pageId, [$storeId], 'NOINDEX,FOLLOW');
+        $loaded = (string) ($this->cmsPageFormData($pageId)['mageos_seo_robots_meta'] ?? '');
+        $this->resetRequest();
+        $this->dispatchCmsPageSave($pageId, [$storeId], $loaded);
+
+        $this->assertSame(
+            'NOINDEX,FOLLOW',
+            $this->_objectManager->create(CmsConfigRepository::class)->getForPage($pageId, $storeId)['robots_meta']
+                ?? null
+        );
+    }
+
+    /**
+     * The translation group round-trips through the form, stored in its canonical form.
+     *
+     * @return void
+     */
+    public function testCmsPageTranslationGroupIsSavedNormalisedAndShownInTheForm(): void
+    {
+        $storeId = $this->defaultStoreViewId();
+        $pageId  = $this->createCmsPage([$storeId]);
+
+        $this->dispatchCmsPageSave($pageId, [$storeId], '', ' About-Us ');
+
+        $this->assertSame(
+            'about-us',
+            $this->_objectManager->create(CmsConfigRepository::class)->getHreflangGroup($pageId)
+        );
+        $this->assertSame('about-us', $this->cmsPageFormData($pageId)['mageos_seo_hreflang_group'] ?? null);
+    }
+
+    /**
+     * A group that cannot be stored is reported, and the rest of the fieldset is still saved.
+     *
+     * @return void
+     */
+    public function testAnInvalidCmsPageTranslationGroupIsAWarning(): void
+    {
+        $storeId = $this->defaultStoreViewId();
+        $pageId  = $this->createCmsPage([$storeId]);
+
+        $this->dispatchCmsPageSave($pageId, [$storeId], 'NOINDEX,FOLLOW', 'about us!');
+
+        // Session messages come back HTML-escaped, so match the part without the quoted example.
+        $this->assertSessionMessages(
+            $this->callback(static fn (array $messages): bool => str_contains(
+                implode("\n", $messages),
+                'The page was saved, but its hreflang translation group was not'
+            )),
+            MessageInterface::TYPE_WARNING
+        );
+        $repository = $this->_objectManager->create(CmsConfigRepository::class);
+        $this->assertNull($repository->getHreflangGroup($pageId));
+        $this->assertSame('NOINDEX,FOLLOW', $repository->getForPage($pageId)['robots_meta'] ?? null);
+    }
+
+    /**
      * Unwind error/exception handlers that the dispatched requests registered and left behind.
      *
      * Dispatching goes through App\Http::launch(), and plugins on it may register handlers for
@@ -441,6 +548,84 @@ class SeoFieldsetPersistenceTest extends AbstractBackendController
         $this->getRequest()->setMethod(HttpRequest::METHOD_POST);
         $this->getRequest()->setPostValue($seoFields);
         $this->dispatch(\sprintf('backend/catalog/product/save/id/%d/store/%d', $productId, $storeId));
+    }
+
+    /**
+     * A saved CMS page in the given store views, tracked for cleanup.
+     *
+     * @param int[] $storeIds
+     * @return int
+     */
+    private function createCmsPage(array $storeIds): int
+    {
+        /** @var CmsPage $page */
+        $page = $this->_objectManager->create(CmsPage::class);
+        $page->setTitle('MageOS SEO fieldset')
+            ->setIdentifier('mageos-seo-fieldset-' . uniqid('', false))
+            ->setIsActive(true)
+            ->setContent('<p>Test</p>')
+            ->setPageLayout('1column')
+            ->setStores($storeIds);
+
+        $pageId = (int) $this->_objectManager->get(PageRepositoryInterface::class)->save($page)->getId();
+        $this->cmsPageIds[] = $pageId;
+
+        return $pageId;
+    }
+
+    /**
+     * Post the CMS page edit form for an existing page.
+     *
+     * @param int $pageId
+     * @param int[] $storeIds The page's store assignment, as the form's multiselect posts it
+     * @param string $robotsMeta
+     * @param string $hreflangGroup
+     * @return void
+     */
+    private function dispatchCmsPageSave(
+        int $pageId,
+        array $storeIds,
+        string $robotsMeta,
+        string $hreflangGroup = ''
+    ): void {
+        $page = $this->_objectManager->get(PageRepositoryInterface::class)->getById($pageId);
+
+        $this->getRequest()->setMethod(HttpRequest::METHOD_POST);
+        $this->getRequest()->setPostValue([
+            'page_id'                   => $pageId,
+            'title'                     => $page->getTitle(),
+            'identifier'                => $page->getIdentifier(),
+            'is_active'                 => '1',
+            'page_layout'               => '1column',
+            'content'                   => $page->getContent(),
+            'store_id'                  => array_map('strval', $storeIds),
+            'mageos_seo_robots_meta'    => $robotsMeta,
+            'mageos_seo_hreflang_group' => $hreflangGroup,
+        ]);
+        $this->dispatch('backend/cms/page/save/page_id/' . $pageId);
+
+        $this->assertSessionMessages(
+            $this->containsEqual('You saved the page.'),
+            MessageInterface::TYPE_SUCCESS
+        );
+    }
+
+    /**
+     * What the CMS page form loads for a page.
+     *
+     * @param int $pageId
+     * @return array<string, mixed>
+     */
+    private function cmsPageFormData(int $pageId): array
+    {
+        $this->getRequest()->setParam('page_id', $pageId);
+        $provider = $this->_objectManager->create(CmsPageFormDataProvider::class, [
+            'name'             => 'cms_page_form_data_source',
+            'primaryFieldName' => 'page_id',
+            'requestFieldName' => 'page_id',
+        ]);
+
+        return $provider->getData()[$pageId] ?? [];
     }
 
     /**

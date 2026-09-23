@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace MageOS\Seo\Test\Unit\Model\Hreflang;
 
+use Magento\Framework\Event\ManagerInterface as EventManagerInterface;
 use Magento\Framework\View\Layout;
 use Magento\Framework\View\Layout\ProcessorInterface;
+use Magento\Store\Api\Data\StoreInterface;
+use Magento\Store\Model\StoreManagerInterface;
 use MageOS\Seo\Api\HreflangResolverInterface;
 use MageOS\Seo\Model\Config;
 use MageOS\Seo\Model\Hreflang\AlternateBuilder;
@@ -61,6 +64,26 @@ class ResolverPoolTest extends TestCase
     }
 
     /**
+     * The real builder, on a store in website 1 and an event manager with no observers.
+     *
+     * @return AlternateBuilder
+     */
+    private function alternateBuilder(): AlternateBuilder
+    {
+        $store = $this->createStub(StoreInterface::class);
+        $store->method('getWebsiteId')->willReturn(1);
+
+        $storeManager = $this->createStub(StoreManagerInterface::class);
+        $storeManager->method('getStore')->willReturn($store);
+
+        return new AlternateBuilder(
+            $this->config,
+            $storeManager,
+            $this->createStub(EventManagerInterface::class)
+        );
+    }
+
+    /**
      * @param array<int, array{hreflang: string, url: string, store_id: int}> $links
      */
     private function pool(array $links): ResolverPool
@@ -69,7 +92,7 @@ class ResolverPoolTest extends TestCase
             $this->layout,
             $this->config,
             new HandleMatcher(),
-            new AlternateBuilder($this->config),
+            $this->alternateBuilder(),
             [
                 $this->makeResolver(['catalog_product_view'], $links),
             ]
@@ -176,7 +199,7 @@ class ResolverPoolTest extends TestCase
             $this->layout,
             $this->config,
             new HandleMatcher(),
-            new AlternateBuilder($this->config),
+            $this->alternateBuilder(),
             [$first, $second]
         );
         $this->assertSame('https://uk/first', $pool->getLinks()[0]['url']);
@@ -188,7 +211,7 @@ class ResolverPoolTest extends TestCase
             $this->layout,
             $this->config,
             new HandleMatcher(),
-            new AlternateBuilder($this->config),
+            $this->alternateBuilder(),
             [
                 $this->makeResolver(['cms_page_view'], [
                     $this->link('en-GB', 'https://uk/p', 1),
@@ -205,7 +228,7 @@ class ResolverPoolTest extends TestCase
             $this->layout,
             $this->config,
             new HandleMatcher(),
-            new AlternateBuilder($this->config),
+            $this->alternateBuilder(),
             [new \stdClass()]
         );
         $this->assertSame([], $pool->getLinks());

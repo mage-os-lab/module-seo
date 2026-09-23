@@ -5,9 +5,12 @@ declare(strict_types=1);
 namespace MageOS\Seo\Model\ResourceModel;
 
 /**
- * Answers whether MageOS_MetaRobotsTag's CMS columns are present.
+ * Answers whether a retired module's columns are present on cms_page.
  *
- * The migration cannot ask the module manager instead: a merchant migrating away has usually
+ * Named for its first user, MageOS_MetaRobotsTag's per-page flags; MageOS_Hreflang's
+ * meta_identifier is checked the same way.
+ *
+ * The migrations cannot ask the module manager instead: a merchant migrating away has usually
  * already disabled or removed that module, while its columns — and the merchant's settings in
  * them — are still in the database and still worth carrying over. Only the table itself can say.
  */

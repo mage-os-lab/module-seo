@@ -51,7 +51,7 @@ class SitemapGenerator
         $map      = $this->storeLocaleMap->getMap();
         $storeIds = array_keys($map);
 
-        yield from $this->entityBlocks($this->homeRegionLinks($map));
+        yield from $this->entityBlocks($this->linkBuilder->buildHome());
 
         foreach (self::ENTITY_TYPES as $entityType) {
             foreach ($this->urlRewriteFetcher->streamAllForType($entityType, $storeIds) as $paths) {
@@ -105,27 +105,10 @@ class SitemapGenerator
     }
 
     /**
-     * Home-page region links built directly from each store's base URL.
+     * Build one <url> block per distinct URL of an entity, each with the full alternate set.
      *
-     * @param array<int,array{base_url:string,locale:string,language:string}> $map
-     * @return array<int, array{hreflang: string, url: string, store_id: int}>
-     */
-    private function homeRegionLinks(array $map): array
-    {
-        $links = [];
-        foreach ($map as $storeId => $data) {
-            $links[] = [
-                'hreflang' => $data['locale'],
-                'url'      => $data['base_url'] . '/',
-                'store_id' => $storeId,
-            ];
-        }
-
-        return $links;
-    }
-
-    /**
-     * Build one <url> block per store view for an entity, each with the full alternate set.
+     * A store view serving several codes contributes one region link per code, all at the same
+     * URL; the sitemap lists that URL once, with every code among its alternates.
      *
      * @param array<int,array{hreflang:string,url:string,store_id:int}> $regionLinks
      * @return string[]
@@ -138,8 +121,8 @@ class SitemapGenerator
         }
 
         $blocks = [];
-        foreach ($regionLinks as $link) {
-            $blocks[] = $this->renderUrlBlock($link['url'], $alternates);
+        foreach (array_unique(array_column($regionLinks, 'url')) as $url) {
+            $blocks[] = $this->renderUrlBlock($url, $alternates);
         }
 
         return $blocks;

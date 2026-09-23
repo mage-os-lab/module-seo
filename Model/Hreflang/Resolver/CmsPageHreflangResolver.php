@@ -7,28 +7,32 @@ namespace MageOS\Seo\Model\Hreflang\Resolver;
 use Magento\Framework\App\RequestInterface;
 use MageOS\Seo\Api\HreflangResolverInterface;
 use MageOS\Seo\Model\Cms\CmsPageResolver;
+use MageOS\Seo\Model\Cms\ConfigRepository;
 use MageOS\Seo\Model\Hreflang\LinkBuilder;
-use MageOS\Seo\Model\Hreflang\StoreLocaleMap;
+use MageOS\Seo\Model\Hreflang\UrlRewriteFetcher;
 
 /**
  * Hreflang alternates for CMS pages, including the home page.
  *
  * The home page has no usable URL rewrite (it is served at the store root), so each store's base URL
- * is used directly. Other CMS pages resolve through their cms-page URL rewrites.
+ * is used directly. Other CMS pages resolve through their cms-page URL rewrites: those of every page
+ * in the page's translation group when it has one, else the page's own in the other store views.
  */
 class CmsPageHreflangResolver implements HreflangResolverInterface
 {
     /**
      * @param CmsPageResolver $cmsPageResolver
      * @param RequestInterface $request
-     * @param StoreLocaleMap $storeLocaleMap
      * @param LinkBuilder $linkBuilder
+     * @param ConfigRepository $cmsConfigRepository
+     * @param UrlRewriteFetcher $urlRewriteFetcher
      */
     public function __construct(
-        private readonly CmsPageResolver  $cmsPageResolver,
-        private readonly RequestInterface $request,
-        private readonly StoreLocaleMap   $storeLocaleMap,
-        private readonly LinkBuilder      $linkBuilder
+        private readonly CmsPageResolver   $cmsPageResolver,
+        private readonly RequestInterface  $request,
+        private readonly LinkBuilder       $linkBuilder,
+        private readonly ConfigRepository  $cmsConfigRepository,
+        private readonly UrlRewriteFetcher $urlRewriteFetcher
     ) {
     }
 
@@ -46,7 +50,7 @@ class CmsPageHreflangResolver implements HreflangResolverInterface
     public function getLinks(): array
     {
         if ($this->isHomePage()) {
-            return $this->homeLinks();
+            return $this->linkBuilder->buildHome();
         }
 
         $page = $this->cmsPageResolver->resolve();
@@ -54,7 +58,13 @@ class CmsPageHreflangResolver implements HreflangResolverInterface
             return [];
         }
 
-        return $this->linkBuilder->build('cms-page', (int) $page->getId());
+        $pageId = (int) $page->getId();
+        $group  = $this->cmsConfigRepository->getHreflangGroup($pageId);
+        if ($group === null) {
+            return $this->linkBuilder->build('cms-page', $pageId);
+        }
+
+        return $this->linkBuilder->buildFromPaths($this->urlRewriteFetcher->fetchForCmsGroup($group));
     }
 
     /**
@@ -67,24 +77,5 @@ class CmsPageHreflangResolver implements HreflangResolverInterface
         /** @var \Magento\Framework\App\Request\Http $request */
         $request = $this->request;
         return trim($request->getPathInfo(), '/') === '';
-    }
-
-    /**
-     * Build home-page alternates directly from each store's base URL.
-     *
-     * @return array<int, array{hreflang: string, url: string, store_id: int}>
-     */
-    private function homeLinks(): array
-    {
-        $links = [];
-        foreach ($this->storeLocaleMap->getMap() as $storeId => $data) {
-            $links[] = [
-                'hreflang' => $data['locale'],
-                'url'      => $data['base_url'] . '/',
-                'store_id' => $storeId,
-            ];
-        }
-
-        return $links;
     }
 }

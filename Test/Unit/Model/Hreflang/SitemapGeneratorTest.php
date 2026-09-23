@@ -53,8 +53,8 @@ class SitemapGeneratorTest extends TestCase
         );
 
         $this->storeLocaleMap->method('getMap')->willReturn([
-            1 => ['base_url' => 'https://uk', 'locale' => 'en-GB', 'language' => 'en'],
-            2 => ['base_url' => 'https://de', 'locale' => 'de-DE', 'language' => 'de'],
+            1 => ['base_url' => 'https://uk', 'codes' => ['en-GB']],
+            2 => ['base_url' => 'https://de', 'codes' => ['de-DE']],
         ]);
 
         // Region links → alternate set ([] when fewer than 2 distinct locales).
@@ -84,6 +84,10 @@ class SitemapGeneratorTest extends TestCase
     public function testHomePagesEmittedPerStore(): void
     {
         $this->noEntities();
+        $this->linkBuilder->method('buildHome')->willReturn([
+            ['hreflang' => 'en-GB', 'url' => 'https://uk/', 'store_id' => 1],
+            ['hreflang' => 'de-DE', 'url' => 'https://de/', 'store_id' => 2],
+        ]);
 
         $xml = $this->blocks();
 
@@ -105,6 +109,21 @@ class SitemapGeneratorTest extends TestCase
 
         $this->assertSame(1, substr_count($xml, '<loc>https://uk/p.html</loc>'));
         $this->assertSame(1, substr_count($xml, '<loc>https://de/p-de.html</loc>'));
+    }
+
+    public function testAStoreServingSeveralCodesIsListedOnceWithEveryCode(): void
+    {
+        $this->givenProduct([1 => 'p.html', 2 => 'p-es.html'], [
+            ['hreflang' => 'es-MX', 'url' => 'https://latam/p.html', 'store_id' => 1],
+            ['hreflang' => 'es-AR', 'url' => 'https://latam/p.html', 'store_id' => 1],
+            ['hreflang' => 'es-ES', 'url' => 'https://es/p-es.html', 'store_id' => 2],
+        ]);
+
+        $xml = $this->blocks();
+
+        $this->assertSame(1, substr_count($xml, '<loc>https://latam/p.html</loc>'));
+        $this->assertSame(2, substr_count($xml, 'hreflang="es-MX" href="https://latam/p.html"'));
+        $this->assertSame(2, substr_count($xml, 'hreflang="es-AR" href="https://latam/p.html"'));
     }
 
     public function testSingleStoreEntityProducesNoBlocks(): void
