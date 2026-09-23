@@ -67,4 +67,14 @@
             </argument>
         </arguments>
     </virtualType>
+
+    <!--
+        The CMS page form has no modifier pool, so its data provider is extended directly to put
+        the stored robots override into the form. The field itself is declared in
+        view/adminhtml/ui_component/cms_page_form.xml.
+    -->
+    <type name="Magento\Cms\Model\Page\DataProvider">
+        <plugin name="mageos_seo_add_seo_config_to_cms_page_form_data"
+                type="MageOS\Seo\Plugin\Cms\Page\AddSeoConfigToFormData"/>
+    </type>
 </config>

@@ -6,24 +6,27 @@ namespace MageOS\Seo\Model\RobotsMeta\Provider;
 
 use MageOS\Seo\Api\RobotsMetaProviderInterface;
 use MageOS\Seo\Model\Cms\CmsPageResolver;
+use MageOS\Seo\Model\Cms\ConfigRepository as CmsPageConfigRepository;
 use MageOS\Seo\Model\Config;
 
 /**
- * Robots meta for CMS pages: the configured CMS default.
+ * Robots meta for CMS pages: the page's own override, else the configured CMS default.
  *
- * Closes the long-standing gap where CMS pages had no robots meta control alongside product and
- * category pages. A per-page override mechanism can later be added behind this provider without
- * changing the pool or the applier.
+ * Product and category pages have had a per-entity override since this module's robots work
+ * began; CMS pages had only a store-wide default, which is what MageOS_MetaRobotsTag's per-page
+ * flags were there for.
  */
 class CmsPageRobotsProvider implements RobotsMetaProviderInterface
 {
     /**
      * @param CmsPageResolver $cmsPageResolver
      * @param Config $seoConfig
+     * @param CmsPageConfigRepository $cmsPageConfigRepository
      */
     public function __construct(
-        private readonly CmsPageResolver $cmsPageResolver,
-        private readonly Config          $seoConfig
+        private readonly CmsPageResolver         $cmsPageResolver,
+        private readonly Config                  $seoConfig,
+        private readonly CmsPageConfigRepository $cmsPageConfigRepository
     ) {
     }
 
@@ -40,13 +43,19 @@ class CmsPageRobotsProvider implements RobotsMetaProviderInterface
      */
     public function getRobots(int $storeId): ?string
     {
-        if ($this->cmsPageResolver->resolve() === null) {
+        $page = $this->cmsPageResolver->resolve();
+        if ($page === null) {
             return null;
         }
 
-        $robotsMeta = $this->seoConfig->getRobotsCmsDefault($storeId);
+        $config     = $this->cmsPageConfigRepository->getForPage((int) $page->getId(), $storeId);
+        $robotsMeta = $config['robots_meta'] ?? null;
 
-        return empty($robotsMeta) ? null : $robotsMeta;
+        if (empty($robotsMeta)) {
+            $robotsMeta = $this->seoConfig->getRobotsCmsDefault($storeId);
+        }
+
+        return empty($robotsMeta) ? null : (string) $robotsMeta;
     }
 
     /**

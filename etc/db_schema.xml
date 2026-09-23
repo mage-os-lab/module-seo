@@ -140,6 +140,40 @@
     </table>
 
     <!-- FAQ entries, grouped by a named identifier referenced from widgets / Page Builder -->
+    <table name="mageos_seo_cms_page_config" resource="default" engine="innodb"
+           comment="MageOS SEO — per-CMS-page SEO configuration">
+        <column xsi:type="int" name="entity_id" unsigned="true" nullable="false" identity="true" comment="Entity ID"/>
+        <column xsi:type="int" name="page_id" unsigned="true" nullable="false" comment="CMS page page_id"/>
+        <column xsi:type="smallint" name="store_id" unsigned="true" nullable="false" default="0"
+                comment="Store view ID (0 = all stores / global default)"/>
+        <column xsi:type="varchar" name="robots_meta" nullable="true" length="64"
+                comment="Robots meta override for this CMS page (INDEX,FOLLOW etc.)"/>
+        <column xsi:type="timestamp" name="updated_at" nullable="false" default="CURRENT_TIMESTAMP"
+                on_update="true" comment="Last updated"/>
+        <constraint xsi:type="primary" referenceId="PRIMARY">
+            <column name="entity_id"/>
+        </constraint>
+        <constraint xsi:type="unique" referenceId="MAGEOS_SEO_CMS_PAGE_CONFIG_PAGE_STORE">
+            <column name="page_id"/>
+            <column name="store_id"/>
+        </constraint>
+        <!--
+            Store view cascades, as it does for the category and product overrides.
+
+            page_id deliberately carries NO foreign key. On Adobe Commerce, content staging keys
+            cms_page on row_id and page_id stops being unique, so the constraint cannot be created
+            there — the same reason MageOS_MetaRobotsTag adds plain columns instead. Rows are
+            removed with their page by Observer\RemoveCmsPageConfigOnDelete rather than by the
+            database.
+        -->
+        <constraint xsi:type="foreign" referenceId="MAGEOS_SEO_CMS_PAGE_CONFIG_STORE_ID_STORE_STORE_ID"
+                    table="mageos_seo_cms_page_config" column="store_id"
+                    referenceTable="store" referenceColumn="store_id" onDelete="CASCADE"/>
+        <index referenceId="MAGEOS_SEO_CMS_PAGE_CONFIG_STORE_ID" indexType="btree">
+            <column name="store_id"/>
+        </index>
+    </table>
+
     <table name="mageos_seo_faq" resource="default" engine="innodb"
            comment="MageOS SEO — FAQ entries (FAQPage structured data)">
         <column xsi:type="int" name="entity_id" unsigned="true" nullable="false" identity="true" comment="Entity ID"/>

@@ -153,5 +153,8 @@
     <event name="cms_page_delete_commit_after">
         <observer name="mageos_seo_invalidate_hreflang_sitemap_on_cms_delete"
                   instance="MageOS\Seo\Observer\InvalidateHreflangSitemapCache"/>
+        <!-- No foreign key can reach cms_page, so the configuration is cleared here. -->
+        <observer name="mageos_seo_remove_cms_page_config_on_delete"
+                  instance="MageOS\Seo\Observer\RemoveCmsPageConfigOnDelete"/>
     </event>
 </config>

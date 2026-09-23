@@ -19,10 +19,26 @@ class RobotsMetaTest extends TestCase
         $this->source = new RobotsMeta();
     }
 
-    public function testToOptionArrayReturnsAllOptions(): void
+    public function testEveryIndexFollowArchiveCombinationCanBeChosen(): void
+    {
+        // Replaces an assertion on the number of options, which said nothing about what a
+        // merchant can actually express. noarchive used to be offered only beside NOINDEX, so
+        // "index this page but keep no cached copy" could not be asked for at all.
+        $values = array_column($this->source->toOptionArray(), 'value');
+
+        foreach (['INDEX', 'NOINDEX'] as $index) {
+            foreach (['FOLLOW', 'NOFOLLOW'] as $follow) {
+                $this->assertContains("{$index},{$follow}", $values);
+                $this->assertContains("{$index},{$follow},noarchive", $values);
+            }
+        }
+    }
+
+    public function testTheFirstOptionDefersToMagento(): void
     {
         $options = $this->source->toOptionArray();
-        $this->assertCount(8, $options);
+
+        $this->assertSame('', $options[0]['value'], 'An empty value means "no override".');
     }
 
     public function testIncludesRichPreviewDirective(): void

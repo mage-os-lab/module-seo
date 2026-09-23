@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Adds the robots override to core's existing Search Engine Optimization fieldset, rather than
+    creating a section of its own: a merchant looking for robots settings on a CMS page looks
+    where the URL key and meta description already are.
+
+    The value is not a cms_page column — it lives in mageos_seo_cms_page_config, per store view —
+    so it is loaded into the form by Plugin\Cms\Page\AddSeoConfigToFormData and saved by
+    Observer\Adminhtml\SaveCmsPageSeoConfig.
+-->
+<form xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Ui:etc/ui_configuration.xsd">
+    <fieldset name="search_engine_optimisation" sortOrder="20">
+        <field name="mageos_seo_robots_meta" sortOrder="80" formElement="select">
+            <argument name="data" xsi:type="array">
+                <item name="options" xsi:type="object">MageOS\Seo\Model\Config\Source\RobotsMeta</item>
+            </argument>
+            <settings>
+                <dataType>text</dataType>
+                <label translate="true">Robots Meta</label>
+                <dataScope>mageos_seo_robots_meta</dataScope>
+                <notice translate="true">Overrides the store's CMS robots default for this page.
+Leave on "Use Magento Default" to follow the store setting.</notice>
+            </settings>
+        </field>
+    </fieldset>
+</form>

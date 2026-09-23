@@ -76,6 +76,23 @@
             "MAGEOS_SEO_PRODUCT_OVERRIDE_STORE_ID": true
         }
     },
+    "mageos_seo_cms_page_config": {
+        "column": {
+            "entity_id": true,
+            "page_id": true,
+            "store_id": true,
+            "robots_meta": true,
+            "updated_at": true
+        },
+        "constraint": {
+            "PRIMARY": true,
+            "MAGEOS_SEO_CMS_PAGE_CONFIG_PAGE_STORE": true,
+            "MAGEOS_SEO_CMS_PAGE_CONFIG_STORE_ID_STORE_STORE_ID": true
+        },
+        "index": {
+            "MAGEOS_SEO_CMS_PAGE_CONFIG_STORE_ID": true
+        }
+    },
     "mageos_seo_faq": {
         "column": {
             "entity_id": true,
