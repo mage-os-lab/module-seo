@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace MageOS\Seo\Observer\Adminhtml;
 
 use Magento\Cms\Api\Data\PageInterface;
+use Magento\Cms\Model\Page;
 use Magento\Framework\Event\Observer;
 use Magento\Framework\Event\ObserverInterface;
 use Magento\Framework\Message\ManagerInterface;
@@ -50,7 +51,10 @@ class SaveCmsPageSeoConfig implements ObserverInterface
     {
         /* @var Magento\Cms\Model\Page $page */
         $page = $observer->getEvent()->getData('object') ?? $observer->getEvent()->getData('page');
-        if (!$page instanceof PageInterface) {
+        if (
+            !$page instanceof PageInterface ||
+            !$page instanceof Page
+        ) {
             return;
         }
 
@@ -88,10 +92,10 @@ class SaveCmsPageSeoConfig implements ObserverInterface
      * A CMS page's store assignment is a list; `0` in it means "all store views", which is the
      * global row. Editing a page assigned to exactly one store view writes that store view's row.
      *
-     * @param PageInterface $page
+     * @param PageInterface|Page $page
      * @return int
      */
-    private function storeId(PageInterface $page): int
+    private function storeId(PageInterface|Page $page): int
     {
         $stores = $page->getData('store_id');
         if (!\is_array($stores)) {
