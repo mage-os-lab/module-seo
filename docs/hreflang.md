@@ -128,7 +128,11 @@ still saved. The restriction exists because the group is matched in SQL, where t
 collations treat `About` and `about`, or `café` and `cafe`, as equal, and grouped in PHP, which
 does not; storing one canonical form is what keeps the two in agreement.
 
-Changing a page's group queues a sitemap rebuild.
+Changing a page's group in the admin queues a sitemap rebuild and purges the cached copies of
+every page in the group it left and the group it joined, since each of them lists the others in
+its head; deleting a page in a group — from the admin, by REST or an import — purges the rest of
+its group the same way. This goes through `clean_cache_by_tags`, so it reaches Varnish as well
+as the built-in full page cache.
 
 Coming from `MageOS_Hreflang`: its `cms_page.meta_identifier` is the same idea, and is migrated
 into this field — see [Moving from MageOS_Hreflang](#moving-from-mageos_hreflang).

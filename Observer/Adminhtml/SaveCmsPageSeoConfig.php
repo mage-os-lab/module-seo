@@ -11,6 +11,7 @@ use Magento\Framework\Event\ObserverInterface;
 use Magento\Framework\Message\ManagerInterface;
 use MageOS\Seo\Model\Cms\ConfigRepository;
 use MageOS\Seo\Model\Cms\HreflangGroup;
+use MageOS\Seo\Model\Cms\TranslationGroupCache;
 use MageOS\Seo\Model\Feed\FeedInvalidator;
 use Psr\Log\LoggerInterface;
 
@@ -40,15 +41,17 @@ class SaveCmsPageSeoConfig implements ObserverInterface
      * @param ConfigRepository $configRepository
      * @param HreflangGroup $hreflangGroup
      * @param FeedInvalidator $feedInvalidator
+     * @param TranslationGroupCache $translationGroupCache
      * @param ManagerInterface $messageManager
      * @param LoggerInterface $logger
      */
     public function __construct(
-        private readonly ConfigRepository $configRepository,
-        private readonly HreflangGroup    $hreflangGroup,
-        private readonly FeedInvalidator  $feedInvalidator,
-        private readonly ManagerInterface $messageManager,
-        private readonly LoggerInterface  $logger
+        private readonly ConfigRepository      $configRepository,
+        private readonly HreflangGroup         $hreflangGroup,
+        private readonly FeedInvalidator       $feedInvalidator,
+        private readonly TranslationGroupCache $translationGroupCache,
+        private readonly ManagerInterface      $messageManager,
+        private readonly LoggerInterface       $logger
     ) {
     }
 
@@ -100,16 +103,8 @@ class SaveCmsPageSeoConfig implements ObserverInterface
         }
 
         try {
-            $groupChanged = \array_key_exists('hreflang_group', $data)
-                && $data['hreflang_group'] !== $this->configRepository->getHreflangGroup($pageId);
-
+            $previousGroup = $this->configRepository->getHreflangGroup($pageId);
             $this->configRepository->save($pageId, $data);
-
-            // The sitemap lists a group's pages as one entry, so joining or leaving a group changes
-            // it; nothing about the page itself changed for the save's own invalidation to notice.
-            if ($groupChanged) {
-                $this->feedInvalidator->invalidateHreflangSitemap();
-            }
         } catch (\Throwable $e) {
             // The page itself is already saved; a failure in the SEO table must not make the
             // whole save look failed.
@@ -119,6 +114,40 @@ class SaveCmsPageSeoConfig implements ObserverInterface
             );
             $this->messageManager->addWarningMessage(
                 (string) __('The page was saved, but its SEO settings could not be saved.')
+            );
+
+            return;
+        }
+
+        if (\array_key_exists('hreflang_group', $data) && $data['hreflang_group'] !== $previousGroup) {
+            $this->groupChanged($pageId, $previousGroup, $data['hreflang_group']);
+        }
+    }
+
+    /**
+     * Bring the hreflang output of both groups up to date after a page joined or left one.
+     *
+     * The sitemap lists a group's pages as one entry, and every page of a group lists the others in
+     * its head. Nothing about the other pages changed, so neither the save's own sitemap
+     * invalidation nor its cache tags reach them.
+     *
+     * @param int $pageId
+     * @param string|null $previousGroup
+     * @param string|null $group
+     * @return void
+     */
+    private function groupChanged(int $pageId, ?string $previousGroup, ?string $group): void
+    {
+        try {
+            $this->feedInvalidator->invalidateHreflangSitemap();
+            $this->translationGroupCache->purge([$previousGroup, $group]);
+        } catch (\Throwable $e) {
+            // The settings are saved; what failed is only bringing other pages up to date, which
+            // their cache lifetime and the nightly rebuild will still do.
+            $this->logger->error(
+                'MageOS_Seo: could not refresh the translation group of CMS page ' . $pageId
+                . ': ' . $e->getMessage(),
+                ['exception' => $e]
             );
         }
     }

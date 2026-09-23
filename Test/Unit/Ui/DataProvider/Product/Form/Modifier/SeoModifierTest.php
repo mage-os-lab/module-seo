@@ -6,7 +6,7 @@ namespace MageOS\Seo\Test\Unit\Ui\DataProvider\Product\Form\Modifier;
 
 use Magento\Framework\App\RequestInterface;
 use MageOS\Seo\Model\Category\ProductOverrideRepository;
-use MageOS\Seo\Model\Config\Source\RobotsMeta;
+use MageOS\Seo\Model\Config\Source\RobotsMeta\ProductOverride;
 use MageOS\Seo\Ui\DataProvider\Product\Form\Modifier\SeoModifier;
 use PHPUnit\Framework\TestCase;
 
@@ -90,7 +90,7 @@ class SeoModifierTest extends TestCase
         $request->method('getParam')->willReturnCallback(
             static fn (string $key, mixed $default = null): mixed => $params[$key] ?? $default
         );
-        $robotsMeta = $this->createStub(RobotsMeta::class);
+        $robotsMeta = $this->createStub(ProductOverride::class);
         $robotsMeta->method('toOptionArray')->willReturn([['value' => 'NOINDEX,FOLLOW', 'label' => 'NOINDEX, FOLLOW']]);
 
         return new SeoModifier(

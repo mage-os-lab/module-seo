@@ -9,6 +9,8 @@
             <module name="Magento_Widget"/>
             <module name="Magento_PageBuilder"/>
             <module name="Magento_Robots"/>
+            <!-- After core's sitemap, so this module's di.xml replaces its item providers. -->
+            <module name="Magento_Sitemap"/>
         </sequence>
     </module>
 </config>

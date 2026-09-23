@@ -7,6 +7,7 @@ namespace MageOS\Seo\Test\Integration\Model\Hreflang;
 use Magento\Cms\Api\Data\PageInterface;
 use Magento\Cms\Api\PageRepositoryInterface;
 use Magento\Cms\Model\PageFactory;
+use Magento\PageCache\Model\Cache\Type as FullPageCache;
 use Magento\Store\Model\StoreManagerInterface;
 use Magento\Store\Test\Fixture\Store as StoreFixture;
 use Magento\TestFramework\Fixture\DataFixture;
@@ -157,6 +158,30 @@ class CmsTranslationGroupTest extends TestCase
         $this->assertContains([$default => $en, $second => $de], array_map([$this, 'sortedByStore'], $entries));
         $this->assertNotContains([$second => $de], $entries, 'A translation is not also an entry of its own.');
         $this->assertContains([$default => $ungrouped], $entries, 'A page outside any group is its own entry.');
+    }
+
+    /**
+     * Deleting a translation changes the alternates of the pages left in its group, so their cached
+     * copies have to go. Deletion runs outside the admin form too — a REST call, an import — so this
+     * goes through the repository.
+     *
+     * @magentoCache full_page enabled
+     * @return void
+     */
+    public function testDeletingATranslationPurgesTheOthersFromTheFullPageCache(): void
+    {
+        $group = $this->newGroup();
+        $this->createPage([0], $group);
+        $memberId = end($this->createdPageIds);
+        $this->createPage([0], $group);
+        $deletedId = end($this->createdPageIds);
+
+        $cache = Bootstrap::getObjectManager()->get(FullPageCache::class);
+        $cache->save('<html>old alternates</html>', 'mageos_seo_group_member', ['cms_p_' . $memberId]);
+
+        Bootstrap::getObjectManager()->get(PageRepositoryInterface::class)->deleteById($deletedId);
+
+        $this->assertFalse($cache->load('mageos_seo_group_member'));
     }
 
     /**

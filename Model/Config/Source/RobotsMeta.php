@@ -13,6 +13,12 @@ use Magento\Framework\Data\OptionSourceInterface;
  * beside NOINDEX, which left "index this page but do not keep a cached copy" — a normal request
  * for pages whose content changes, and one MageOS_MetaRobotsTag can express with its independent
  * no_archive flag — impossible to ask for here.
+ *
+ * The first option, the empty value, means "no directive here" — and what that falls back to
+ * depends on where it is chosen. This class is the store-level wording, used by the configuration
+ * defaults, where an empty value leaves Magento's Design → Search Engine Robots in charge. The
+ * product, category and CMS page forms each use a subclass under RobotsMeta\ that says what an
+ * empty value falls back to there. Each form lists exactly one empty option.
  */
 class RobotsMeta implements OptionSourceInterface
 {
@@ -24,7 +30,7 @@ class RobotsMeta implements OptionSourceInterface
     public function toOptionArray(): array
     {
         return [
-            ['value' => '',                 'label' => (string) __('Use Magento Default (no override)')],
+            ['value' => '',                 'label' => $this->emptyLabel()],
             ['value' => 'INDEX,FOLLOW',     'label' => 'INDEX, FOLLOW'],
             ['value' => 'NOINDEX,FOLLOW',   'label' => 'NOINDEX, FOLLOW'],
             ['value' => 'INDEX,NOFOLLOW',   'label' => 'INDEX, NOFOLLOW'],
@@ -42,5 +48,18 @@ class RobotsMeta implements OptionSourceInterface
                 'label' => 'NOINDEX, NOFOLLOW, noai, noimageai (block AI training)',
             ],
         ];
+    }
+
+    /**
+     * What choosing no directive here means.
+     *
+     * Translated when the options are rendered, not when the object is built, so the admin user's
+     * locale applies.
+     *
+     * @return string
+     */
+    protected function emptyLabel(): string
+    {
+        return (string) __('Use Magento Default (no override)');
     }
 }

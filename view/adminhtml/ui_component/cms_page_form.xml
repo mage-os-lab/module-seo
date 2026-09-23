@@ -13,14 +13,13 @@
     <fieldset name="search_engine_optimisation" sortOrder="20">
         <field name="mageos_seo_robots_meta" sortOrder="80" formElement="select">
             <argument name="data" xsi:type="array">
-                <item name="options" xsi:type="object">MageOS\Seo\Model\Config\Source\RobotsMeta</item>
+                <item name="options" xsi:type="object">MageOS\Seo\Model\Config\Source\RobotsMeta\CmsPageOverride</item>
             </argument>
             <settings>
                 <dataType>text</dataType>
                 <label translate="true">Robots Meta</label>
                 <dataScope>mageos_seo_robots_meta</dataScope>
-                <notice translate="true">Overrides the store's CMS robots default for this page.
-Leave on "Use Magento Default" to follow the store setting.</notice>
+                <notice translate="true">Overrides the store's CMS Pages robots default for this page.</notice>
             </settings>
         </field>
         <field name="mageos_seo_hreflang_group" sortOrder="90" formElement="input">

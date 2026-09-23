@@ -88,6 +88,31 @@ class ConfigRepository implements ResetAfterRequestInterface
     }
 
     /**
+     * IDs of the CMS pages in any of the given translation groups.
+     *
+     * @param string[] $groups Normalised translation groups
+     * @return int[]
+     */
+    public function getPageIdsInGroups(array $groups): array
+    {
+        $groups = array_values(array_unique(array_filter($groups, static fn ($group) => $group !== '')));
+        if ($groups === []) {
+            return [];
+        }
+
+        $collection = $this->collectionFactory->create();
+        $collection->addFieldToFilter('store_id', ['eq' => 0]);
+        $collection->addFieldToFilter('hreflang_group', ['in' => $groups]);
+
+        $pageIds = [];
+        foreach ($collection as $config) {
+            $pageIds[] = (int) $config->getData('page_id');
+        }
+
+        return $pageIds;
+    }
+
+    /**
      * Save or update the configuration for a CMS page and store view.
      *
      * @param int $pageId

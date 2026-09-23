@@ -441,4 +441,27 @@
         </arguments>
     </type>
 
+    <!--
+        Sitemap item providers.
+
+        Core's four providers are replaced, under the names core registered them with, by wrappers
+        that read the same resource models through the same config readers but keep each item's
+        entity (Model\Sitemap\ItemProvider\*). Other modules keep registering their providers on
+        core's composite as before. This module's composite subclass is the preference for core's
+        provider interface and inherits that registration, so it can hand the providers out one by
+        one; its getItems() is core's, so core's own generator sees the same list.
+    -->
+    <preference for="Magento\Sitemap\Model\ItemProvider\ItemProviderInterface"
+                type="MageOS\Seo\Model\Sitemap\ItemProvider\Composite"/>
+    <type name="Magento\Sitemap\Model\ItemProvider\Composite">
+        <arguments>
+            <argument name="itemProviders" xsi:type="array">
+                <item name="storeUrlProvider" xsi:type="object">MageOS\Seo\Model\Sitemap\ItemProvider\StoreUrl</item>
+                <item name="categoryProvider" xsi:type="object">MageOS\Seo\Model\Sitemap\ItemProvider\Category</item>
+                <item name="cmsPageProvider" xsi:type="object">MageOS\Seo\Model\Sitemap\ItemProvider\CmsPage</item>
+                <item name="productProvider" xsi:type="object">MageOS\Seo\Model\Sitemap\ItemProvider\Product</item>
+            </argument>
+        </arguments>
+    </type>
+
 </config>

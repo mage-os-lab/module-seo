@@ -65,7 +65,14 @@ patches this module's value itself.
 
 ## Category-level override
 
-In the category edit form, the **SEO (Structured Data)** tab includes a **Robots Meta** dropdown. Setting a value here overrides the global default for all pages in that category.
+In the category edit form, the **SEO (Structured Data)** tab includes a **Robots Meta** dropdown.
+Setting a value here overrides the store's **Category Pages** default for the category's own page,
+and for any subcategory that does not set one of its own — see
+[Inheritance](category-seo.md#inheritance).
+
+It does **not** reach the products in the category: a product page follows its own override, then
+the store's **Product Pages** default. To keep a category's products out of the index, set the
+override on the products, or the Product Pages default for the store view.
 
 This is a per-store-view setting — open the category in the context of a specific store view to set a store-specific override.
 
@@ -73,13 +80,14 @@ Common use cases:
 - Set `NOINDEX,FOLLOW` on internal/sorting categories you don't want indexed.
 - Set `NOINDEX,NOFOLLOW` on a staging or preview category.
 
-Leave the dropdown at **Use Global Default** to inherit the store's global setting.
+Leave it on **Inherit (parent category, then the store's Category Pages default)** to take the
+value of the nearest parent category that sets one, and failing that the store's default.
 
 ---
 
 ## Product-level override
 
-In the product edit form, the **Advanced SEO** tab includes a **Robots Meta** dropdown. This overrides the global and category defaults for that specific product and store view.
+In the product edit form, the **Advanced SEO** tab includes a **Robots Meta** dropdown. This overrides the store's **Product Pages** default for that specific product and store view. Category overrides play no part in a product page's directive.
 
 The product override is stored per store view (store_id), with `store_id = 0` acting as an all-stores default. A store-specific row takes precedence over the all-stores row.
 
@@ -93,7 +101,7 @@ Common use cases:
 
 In the CMS page edit form, the core **Search Engine Optimization** section includes a **Robots
 Meta** dropdown. It overrides the store's **CMS Pages** default for that one page. Leave it on
-**Use Magento Default** to follow the store setting.
+**Use the store's CMS Pages default** to follow the store setting.
 
 The value is stored in `mageos_seo_cms_page_config`, not on `cms_page`, and applies wherever the
 page is served. There is no per-store-view value to set from the admin: the CMS page form has no
@@ -118,17 +126,28 @@ Engine Robots** value that module was modifying. Its columns on `cms_page` are l
 
 ## Resolution order
 
-The most specific setting wins:
+Each page type resolves on its own, and the most specific setting wins. The three do not feed
+into one another — in particular, a category's override never reaches its products.
+
+Product pages:
 
 ```
-Global default (system config)
+Product Pages default (system config)
     ↑ overridden by
-Category override (mageos_seo_category_config.robots_meta)
-    ↑ overridden by
-Product override (mageos_seo_product_override.robots_meta, for that store view)
+Product override (mageos_seo_product_override.robots_meta — the store view's row, else all stores)
 ```
 
-CMS pages form no tree, so they have one level:
+Category pages:
+
+```
+Category Pages default (system config)
+    ↑ overridden by
+Nearest parent category's override (see category-seo.md, Inheritance)
+    ↑ overridden by
+The category's own override (mageos_seo_category_config.robots_meta)
+```
+
+CMS pages, which form no tree:
 
 ```
 CMS Pages default (system config)
@@ -136,4 +155,6 @@ CMS Pages default (system config)
 CMS page override (mageos_seo_cms_page_config.robots_meta)
 ```
 
-If no override is set at any level, the global default is used. If the global default is empty, no robots meta tag is output and the browser defaults to `index,follow`.
+Where nothing along the chain has a value — the defaults ship empty — this module writes nothing,
+and Magento's own **Design → Search Engine Robots** setting stays in charge, as described under
+[Global defaults](#global-defaults).

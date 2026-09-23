@@ -12,7 +12,7 @@ use Magento\Ui\Component\Form\Field;
 use Magento\Ui\Component\Form\Fieldset;
 use Magento\Ui\DataProvider\Modifier\ModifierInterface;
 use MageOS\Seo\Model\Category\ProductOverrideRepository;
-use MageOS\Seo\Model\Config\Source\RobotsMeta;
+use MageOS\Seo\Model\Config\Source\RobotsMeta\ProductOverride as ProductRobotsMeta;
 
 class SeoModifier implements ModifierInterface
 {
@@ -30,12 +30,12 @@ class SeoModifier implements ModifierInterface
     /**
      * @param RequestInterface $request
      * @param ProductOverrideRepository $productOverrideRepository
-     * @param RobotsMeta $robotsMetaSource
+     * @param ProductRobotsMeta $robotsMetaSource
      */
     public function __construct(
         private readonly RequestInterface          $request,
         private readonly ProductOverrideRepository $productOverrideRepository,
-        private readonly RobotsMeta                $robotsMetaSource
+        private readonly ProductRobotsMeta         $robotsMetaSource
     ) {
     }
 
@@ -109,10 +109,7 @@ class SeoModifier implements ModifierInterface
                                 'dataScope'     => 'mageos_seo_robots_meta',
                                 'sortOrder'     => 20,
                             ],
-                            'options' => array_merge(
-                                [['value' => '', 'label' => __('Use Category / Global Default')]],
-                                $this->robotsMetaSource->toOptionArray()
-                            ),
+                            'options' => $this->robotsMetaSource->toOptionArray(),
                         ],
                     ],
                 ],

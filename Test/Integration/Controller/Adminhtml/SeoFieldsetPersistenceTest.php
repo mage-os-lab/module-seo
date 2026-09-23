@@ -17,6 +17,7 @@ use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Framework\Message\MessageInterface;
 use Magento\Framework\Registry;
 use Magento\Framework\Serialize\SerializerInterface;
+use Magento\PageCache\Model\Cache\Type as FullPageCache;
 use Magento\Store\Model\StoreManagerInterface;
 use Magento\TestFramework\Fixture\DataFixture;
 use Magento\TestFramework\Fixture\DataFixtureStorageManager;
@@ -222,6 +223,62 @@ class SeoFieldsetPersistenceTest extends AbstractBackendController
     }
 
     /**
+     * The product form offers one way to set no directive, and says where the product then goes.
+     *
+     * It used to offer two — its own "Use Category / Global Default" and the option source's
+     * "Use Magento Default" — and the first was wrong: a product never reads its category's
+     * directive.
+     *
+     * @return void
+     */
+    #[DataFixture(ProductFixture::class, as: 'product')]
+    public function testProductRobotsFieldOffersOneEmptyOptionNamingTheProductDefault(): void
+    {
+        $this->dispatch('backend/catalog/product/edit/id/' . $this->fixtureId('product'));
+        $components = $this->renderedUiComponents($this->getResponse()->getBody());
+
+        $this->assertSame(
+            ["Use the store's Product Pages default"],
+            $this->emptyOptionLabels($this->findNode($components, 'mageos_seo_robots_meta'))
+        );
+    }
+
+    /**
+     * The category form offers one way to set no directive, and says it inherits.
+     *
+     * @return void
+     */
+    #[DataFixture(CategoryFixture::class, as: 'category')]
+    public function testCategoryRobotsFieldOffersOneEmptyOptionThatInherits(): void
+    {
+        $this->dispatch('backend/catalog/category/edit/id/' . $this->fixtureId('category'));
+        $components = $this->renderedUiComponents($this->getResponse()->getBody());
+
+        $this->assertSame(
+            ["Inherit (parent category, then the store's Category Pages default)"],
+            $this->emptyOptionLabels($this->findNode($this->findNode($components, 'mageos_seo') ?? [], 'robots_meta'))
+        );
+    }
+
+    /**
+     * The CMS page form offers one way to set no directive, and names the CMS default.
+     *
+     * @return void
+     */
+    public function testCmsPageRobotsFieldOffersOneEmptyOptionNamingTheCmsDefault(): void
+    {
+        $pageId = $this->createCmsPage([$this->defaultStoreViewId()]);
+
+        $this->dispatch('backend/cms/page/edit/page_id/' . $pageId);
+        $components = $this->renderedUiComponents($this->getResponse()->getBody());
+
+        $this->assertSame(
+            ["Use the store's CMS Pages default"],
+            $this->emptyOptionLabels($this->findNode($components, 'mageos_seo_robots_meta'))
+        );
+    }
+
+    /**
      * The category form's SEO fieldset is persisted for an existing category.
      *
      * @return void
@@ -421,6 +478,74 @@ class SeoFieldsetPersistenceTest extends AbstractBackendController
     }
 
     /**
+     * Joining a group changes the alternates of every page already in it, and those pages are
+     * cached with their old head: their cached copies have to go.
+     *
+     * @magentoCache full_page enabled
+     * @return void
+     */
+    public function testJoiningAGroupPurgesTheOtherTranslationsFromTheFullPageCache(): void
+    {
+        $storeId = $this->defaultStoreViewId();
+        $member  = $this->createCmsPage([$storeId]);
+        $this->_objectManager->get(CmsConfigRepository::class)->save($member, ['hreflang_group' => 'about-us']);
+        $joiner  = $this->createCmsPage([$storeId]);
+
+        $cache = $this->_objectManager->get(FullPageCache::class);
+        $cache->save('<html>old alternates</html>', 'mageos_seo_group_member', ['cms_p_' . $member]);
+
+        $this->dispatchCmsPageSave($joiner, [$storeId], '', 'about-us');
+
+        $this->assertFalse($cache->load('mageos_seo_group_member'));
+    }
+
+    /**
+     * Leaving a group purges the group left behind, whose pages listed this one.
+     *
+     * @magentoCache full_page enabled
+     * @return void
+     */
+    public function testLeavingAGroupPurgesTheTranslationsLeftBehind(): void
+    {
+        $storeId    = $this->defaultStoreViewId();
+        $repository = $this->_objectManager->get(CmsConfigRepository::class);
+        $member     = $this->createCmsPage([$storeId]);
+        $leaver     = $this->createCmsPage([$storeId]);
+        $repository->save($member, ['hreflang_group' => 'about-us']);
+        $repository->save($leaver, ['hreflang_group' => 'about-us']);
+
+        $cache = $this->_objectManager->get(FullPageCache::class);
+        $cache->save('<html>old alternates</html>', 'mageos_seo_group_member', ['cms_p_' . $member]);
+
+        $this->dispatchCmsPageSave($leaver, [$storeId], '', '');
+
+        $this->assertFalse($cache->load('mageos_seo_group_member'));
+    }
+
+    /**
+     * Re-saving a page without touching its group leaves the other translations' cache alone.
+     *
+     * @magentoCache full_page enabled
+     * @return void
+     */
+    public function testAnUnchangedGroupPurgesNothing(): void
+    {
+        $storeId    = $this->defaultStoreViewId();
+        $repository = $this->_objectManager->get(CmsConfigRepository::class);
+        $member     = $this->createCmsPage([$storeId]);
+        $saved      = $this->createCmsPage([$storeId]);
+        $repository->save($member, ['hreflang_group' => 'about-us']);
+        $repository->save($saved, ['hreflang_group' => 'about-us']);
+
+        $cache = $this->_objectManager->get(FullPageCache::class);
+        $cache->save('<html>current alternates</html>', 'mageos_seo_group_member', ['cms_p_' . $member]);
+
+        $this->dispatchCmsPageSave($saved, [$storeId], '', 'about-us');
+
+        $this->assertSame('<html>current alternates</html>', $cache->load('mageos_seo_group_member'));
+    }
+
+    /**
      * A group that cannot be stored is reported, and the rest of the fieldset is still saved.
      *
      * @return void
@@ -532,6 +657,28 @@ class SeoFieldsetPersistenceTest extends AbstractBackendController
         }
 
         return null;
+    }
+
+    /**
+     * Labels of a rendered select field's empty-value options.
+     *
+     * @param array<mixed>|null $field
+     * @return string[]
+     */
+    private function emptyOptionLabels(?array $field): array
+    {
+        $this->assertNotNull($field, 'The robots field was not rendered.');
+        $options = $field['options'] ?? $field['config']['options'] ?? null;
+        $this->assertIsArray($options, 'The robots field carries no options.');
+
+        $labels = [];
+        foreach ($options as $option) {
+            if ((string) ($option['value'] ?? '') === '') {
+                $labels[] = (string) ($option['label'] ?? '');
+            }
+        }
+
+        return $labels;
     }
 
     /**

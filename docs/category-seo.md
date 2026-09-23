@@ -42,7 +42,10 @@ The ItemList is paginated — it reflects the products actually visible on the c
 
 ### Robots Meta
 
-Override the global robots meta default for all pages in this category. Leave at **Use Global Default** to inherit the store's setting.
+Override the store's Category Pages robots default for this category's page, and for any
+subcategory that does not set its own. Leave it on **Inherit** to take the nearest parent
+category's value, and failing that the store's. It does not apply to the products in the
+category — they follow their own override and the Product Pages default.
 
 See [robots-meta.md](robots-meta.md) for accepted values and full resolution order.
 

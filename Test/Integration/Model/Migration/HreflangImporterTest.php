@@ -51,9 +51,9 @@ class HreflangImporterTest extends TestCase
     /**
      * Whether this test added cms_page.meta_identifier, and so must drop it.
      *
-     * @var bool
+     * @var bool|null
      */
-    private bool $addedColumn = false;
+    private ?bool $addedColumn = false;
 
     /**
      * IDs of the CMS pages created by the running test.
