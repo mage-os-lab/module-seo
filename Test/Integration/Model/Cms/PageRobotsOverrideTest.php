@@ -26,9 +26,9 @@ class PageRobotsOverrideTest extends TestCase
     /**
      * Page IDs this test wrote configuration for.
      *
-     * @var int[]
+     * @var int[]|null
      */
-    private array $writtenPageIds = [];
+    private ?array $writtenPageIds = [];
 
     /**
      * @return void
