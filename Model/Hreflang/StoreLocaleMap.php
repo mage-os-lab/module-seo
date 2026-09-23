@@ -7,8 +7,10 @@ namespace MageOS\Seo\Model\Hreflang;
 use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\ObjectManager\ResetAfterRequestInterface;
 use Magento\Store\Model\ScopeInterface;
+use Magento\Store\Model\Store;
 use Magento\Store\Model\StoreManagerInterface;
 use MageOS\Seo\Model\Config;
+use MageOS\Seo\Model\Store\CanonicalBaseUrl;
 
 /**
  * Request-scoped map of active store views to their base URL and the hreflang codes they claim.
@@ -19,26 +21,35 @@ use MageOS\Seo\Model\Config;
  * needs saying explicitly.
  *
  * Excluded and inactive stores are filtered here so downstream resolvers and the sitemap never see
- * them. Built once per request and memoised.
+ * them. Built once per request for each website it is asked about, and memoised: which store views
+ * are in the map depends on the current store's website, and a cron run generating sitemaps moves
+ * from one website's store views to another's in one process.
+ *
+ * Base URLs are the store views' canonical ones (Model\Store\CanonicalBaseUrl), the same the
+ * sitemap's `<loc>` uses — not whatever scheme the current request happens to have.
  */
 class StoreLocaleMap implements ResetAfterRequestInterface
 {
     /**
-     * @var array<int, array{base_url: string, codes: string[]}>|null
+     * Built maps, keyed by the website they were limited to, or "all".
+     *
+     * @var array<int|string,array<int,array{base_url:string,codes:string[]}>>
      */
-    private ?array $map = null;
+    private array $maps = [];
 
     /**
      * @param StoreManagerInterface $storeManager
      * @param ScopeConfigInterface $scopeConfig
      * @param Config $seoConfig
      * @param CodeValidator $codeValidator
+     * @param CanonicalBaseUrl $canonicalBaseUrl
      */
     public function __construct(
         private readonly StoreManagerInterface $storeManager,
         private readonly ScopeConfigInterface  $scopeConfig,
         private readonly Config                $seoConfig,
-        private readonly CodeValidator         $codeValidator
+        private readonly CodeValidator         $codeValidator,
+        private readonly CanonicalBaseUrl      $canonicalBaseUrl
     ) {
     }
 
@@ -55,14 +66,22 @@ class StoreLocaleMap implements ResetAfterRequestInterface
      */
     public function getMap(): array
     {
-        if ($this->map !== null) {
-            return $this->map;
-        }
-
-        $excluded  = $this->seoConfig->getHreflangExcludedStoreIds();
         $websiteId = $this->seoConfig->isHreflangSameWebsiteOnly()
             ? (int) $this->storeManager->getStore()->getWebsiteId()
             : null;
+
+        return $this->maps[$websiteId === null ? 'all' : (string) $websiteId] ??= $this->build($websiteId);
+    }
+
+    /**
+     * Build the map, limited to one website's store views or not.
+     *
+     * @param int|null $websiteId
+     * @return array<int,array{base_url:string,codes:string[]}>
+     */
+    private function build(?int $websiteId): array
+    {
+        $excluded = $this->seoConfig->getHreflangExcludedStoreIds();
 
         // Sort by actual store ID (not array keys) so the dedupe winner below is
         // deterministic regardless of how the store list is keyed.
@@ -72,6 +91,7 @@ class StoreLocaleMap implements ResetAfterRequestInterface
         $map     = [];
         $claimed = [];
 
+        /** @var Store $store */
         foreach ($stores as $store) {
             $storeId = (int) $store->getId();
             if (!$store->getIsActive() || \in_array($storeId, $excluded, true)) {
@@ -95,13 +115,12 @@ class StoreLocaleMap implements ResetAfterRequestInterface
             }
 
             $map[$storeId] = [
-                'base_url' => rtrim((string) $store->getBaseUrl(), '/'),
+                'base_url' => $this->canonicalBaseUrl->of($store),
                 'codes'    => $codes,
             ];
         }
 
-        $this->map = $map;
-        return $this->map;
+        return $map;
     }
 
     /**
@@ -127,16 +146,16 @@ class StoreLocaleMap implements ResetAfterRequestInterface
     }
 
     /**
-     * Drop the memoised map so the next getMap() rebuilds for the current store scope.
+     * Drop the memoised maps, so the next getMap() reads the configuration again.
      *
-     * Needed by cron feed generation, which iterates stores under environment
-     * emulation within a single process.
+     * The maps are kept per website, so moving between store views no longer needs this; a
+     * configuration change within the process does.
      *
      * @return void
      */
     public function reset(): void
     {
-        $this->map = null;
+        $this->maps = [];
     }
 
     /**

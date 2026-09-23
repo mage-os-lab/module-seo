@@ -19,6 +19,8 @@ become public contract.
   **Magento** leaves core's generator in charge). It lists the same URLs as core's, writes one file
   per kind of page under a `sitemap.xml` index, streams the catalogue whatever core's Generation
   Method says, and never lets a file pass the configured size. See `docs/sitemap.md`.
+- Hreflang alternates inline in `sitemap.xml`, beside each URL, as the MageOS SEO generator writes
+  it — the same set the page's head declares, and only where the URL is among its own alternates.
 - Sitemap extension points (`Api\Sitemap\*`): items carry their entity and a data bag; providers
   say which file their items belong in and stream them; enrichers, filters and row renderers are
   registered on the generator. Providers registered on core's composite keep working, written
@@ -38,6 +40,9 @@ become public contract.
 
 ### Fixed
 
+- Hreflang URLs use the store view's configured scheme. They followed the current request, so
+  anything built from cron or the command line — `/hreflang-sitemap.xml` included — listed an https
+  store view's pages as `http://`.
 - The Organisation and FAQ admin forms declare an ACL resource. Their controllers
   always did, but a UI component's data is also reachable through the generic
   `mui/index/render` endpoint, which checks the component's own `aclResource` and

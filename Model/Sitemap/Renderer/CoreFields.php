@@ -5,12 +5,10 @@ declare(strict_types=1);
 namespace MageOS\Seo\Model\Sitemap\Renderer;
 
 use Magento\Framework\Escaper;
-use Magento\Framework\UrlInterface;
 use Magento\Sitemap\Model\Sitemap;
-use Magento\Store\Model\Store;
-use Magento\Store\Model\StoreManagerInterface;
 use MageOS\Seo\Api\Sitemap\RowRendererInterface;
 use MageOS\Seo\Api\Sitemap\SitemapItemInterface;
+use MageOS\Seo\Model\Store\CanonicalBaseUrl;
 
 /**
  * `<loc>`, `<lastmod>`, `<changefreq>` and `<priority>`, exactly as core's sitemap writes them.
@@ -27,12 +25,12 @@ class CoreFields implements RowRendererInterface
     private ?int $lastModFloor = null;
 
     /**
-     * @param StoreManagerInterface $storeManager
+     * @param CanonicalBaseUrl $canonicalBaseUrl
      * @param Escaper $escaper
      */
     public function __construct(
-        private readonly StoreManagerInterface $storeManager,
-        private readonly Escaper               $escaper
+        private readonly CanonicalBaseUrl $canonicalBaseUrl,
+        private readonly Escaper          $escaper
     ) {
     }
 
@@ -49,7 +47,7 @@ class CoreFields implements RowRendererInterface
      */
     public function render(SitemapItemInterface $item, int $storeId): string
     {
-        $url = $this->baseUrl($storeId) . ltrim((string) $item->getUrl(), '/');
+        $url = $this->canonicalBaseUrl->forStore($storeId) . '/' . ltrim((string) $item->getUrl(), '/');
         $row = '<loc>' . $this->escaper->escapeUrl($url) . '</loc>';
 
         $updatedAt = $item->getUpdatedAt();
@@ -68,20 +66,6 @@ class CoreFields implements RowRendererInterface
         }
 
         return $row;
-    }
-
-    /**
-     * The store view's link base URL, as core's `_getStoreBaseUrl()` builds it.
-     *
-     * @param int $storeId
-     * @return string
-     */
-    private function baseUrl(int $storeId): string
-    {
-        /** @var Store $store */
-        $store = $this->storeManager->getStore($storeId);
-
-        return rtrim((string) $store->getBaseUrl(UrlInterface::URL_TYPE_LINK, $store->isUrlSecure()), '/') . '/';
     }
 
     /**

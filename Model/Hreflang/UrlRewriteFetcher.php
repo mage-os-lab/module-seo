@@ -54,6 +54,54 @@ class UrlRewriteFetcher
     }
 
     /**
+     * Fetch canonical request paths for several entities of one type, in one query.
+     *
+     * @param string $entityType
+     * @param int[] $entityIds
+     * @return array<int,array<int,string>> entity_id => (store_id => request_path); entities without
+     *                                      a published rewrite are absent
+     */
+    public function fetchForEntities(string $entityType, array $entityIds): array
+    {
+        $rows  = $this->urlRewriteResource->getPathsForEntities($entityType, $entityIds);
+        $paths = [];
+        foreach ($this->perKey($rows, 'entity_id') as $id => $storePaths) {
+            $paths[(int) $id] = $storePaths;
+        }
+
+        return $paths;
+    }
+
+    /**
+     * Fetch the request paths of several CMS translation groups, in one query.
+     *
+     * @param string[] $groups Normalised translation groups
+     * @return array<int|string,array<int,string>> group => (store_id => request_path); PHP makes a
+     *                                            group of digits, such as "404", an integer key
+     */
+    public function fetchForCmsGroups(array $groups): array
+    {
+        return $this->perKey($this->urlRewriteResource->getPathsForCmsGroups($groups), 'hreflang_group');
+    }
+
+    /**
+     * Split rows by a column, and reduce each set to one request path per store view.
+     *
+     * @param array<int,array<string,mixed>> $rows
+     * @param string $column
+     * @return array<int|string,array<int,string>>
+     */
+    private function perKey(array $rows, string $column): array
+    {
+        $byKey = [];
+        foreach ($rows as $row) {
+            $byKey[$row[$column]][] = $row;
+        }
+
+        return array_map(fn (array $keyRows): array => $this->firstPathPerStore($keyRows), $byKey);
+    }
+
+    /**
      * Stream canonical request paths for every entity of a type, one entity at a time.
      *
      * One query for the whole catalogue, walked row by row and grouped on the row's group key, so

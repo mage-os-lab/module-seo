@@ -12,6 +12,7 @@ use Magento\Store\Model\StoreManagerInterface;
 use MageOS\Seo\Model\Sitemap\Renderer\CoreFields;
 use MageOS\Seo\Model\Sitemap\Renderer\Images;
 use MageOS\Seo\Model\Sitemap\SitemapItem;
+use MageOS\Seo\Model\Store\CanonicalBaseUrl;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -101,7 +102,8 @@ class RenderersTest extends TestCase
         $storeManager = $this->createStub(StoreManagerInterface::class);
         $storeManager->method('getStore')->willReturn($store);
 
-        return new CoreFields($storeManager, $this->escaper());
+        // The real one: the link base URL with the store view's own secure flag is what is under test.
+        return new CoreFields(new CanonicalBaseUrl($storeManager), $this->escaper());
     }
 
     /**

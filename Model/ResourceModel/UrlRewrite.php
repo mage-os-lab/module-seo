@@ -67,8 +67,28 @@ class UrlRewrite extends AbstractConnectedResource
      */
     public function getPathsForEntity(string $entityType, int $entityId): array
     {
-        $select = $this->canonicalSelect($entityType, ['store_id', 'request_path'])
-            ->where('main_table.entity_id = ?', $entityId)
+        return $this->getPathsForEntities($entityType, [$entityId]);
+    }
+
+    /**
+     * Canonical request paths of several entities of one type, in one query.
+     *
+     * Ordered by entity, then so the first row per store view wins — the sitemap asks for a chunk
+     * of entities at a time rather than one query each.
+     *
+     * @param string $entityType One of the TYPE_* constants
+     * @param int[] $entityIds
+     * @return array<int, array{entity_id: string, store_id: string, request_path: string}>
+     */
+    public function getPathsForEntities(string $entityType, array $entityIds): array
+    {
+        if ($entityIds === []) {
+            return [];
+        }
+
+        $select = $this->canonicalSelect($entityType, ['entity_id', 'store_id', 'request_path'])
+            ->where('main_table.entity_id IN (?)', array_map('intval', $entityIds))
+            ->order('main_table.entity_id ASC')
             ->order('main_table.url_rewrite_id ASC');
 
         return $this->connection()->fetchAll($select);
@@ -86,9 +106,27 @@ class UrlRewrite extends AbstractConnectedResource
      */
     public function getPathsForCmsGroup(string $group): array
     {
+        return $this->getPathsForCmsGroups([$group]);
+    }
+
+    /**
+     * Canonical request paths of the CMS pages in several translation groups, in one query.
+     *
+     * Ordered by group, then best candidate first, as getPathsForCmsGroup().
+     *
+     * @param string[] $groups Normalised translation groups
+     * @return array<int, array{hreflang_group: string, store_id: string, request_path: string}>
+     */
+    public function getPathsForCmsGroups(array $groups): array
+    {
+        if ($groups === []) {
+            return [];
+        }
+
         $select = $this->canonicalSelect(self::TYPE_CMS_PAGE, ['entity_id', 'store_id', 'request_path']);
         $this->joinCmsTranslationGroup($select);
-        $select->where('cms_config.hreflang_group = ?', $group);
+        $select->where('cms_config.hreflang_group IN (?)', array_values($groups))
+            ->order('hreflang_group ASC');
         $this->orderCmsCandidates($select);
         $select->order('main_table.url_rewrite_id ASC');
 
@@ -147,6 +185,7 @@ class UrlRewrite extends AbstractConnectedResource
                     . " THEN CONCAT('p:', cms_page.page_id)"
                     . " ELSE CONCAT('g:', cms_config.hreflang_group) END"
                 ),
+                'hreflang_group' => 'cms_config.hreflang_group',
             ]
         );
     }

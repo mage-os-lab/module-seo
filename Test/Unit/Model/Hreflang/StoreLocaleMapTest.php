@@ -10,6 +10,7 @@ use Magento\Store\Model\StoreManagerInterface;
 use MageOS\Seo\Model\Config;
 use MageOS\Seo\Model\Hreflang\CodeValidator;
 use MageOS\Seo\Model\Hreflang\StoreLocaleMap;
+use MageOS\Seo\Model\Store\CanonicalBaseUrl;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 
@@ -63,19 +64,38 @@ class StoreLocaleMapTest extends TestCase
         $this->scopeConfig->method('getValue')->willReturnCallback(
             static fn (string $path, string $scope, $scopeId) => $locales[(int) $scopeId] ?? ''
         );
-        return new StoreLocaleMap($this->storeManager, $this->scopeConfig, $this->config, new CodeValidator());
+        return $this->newMap();
+    }
+
+    /**
+     * The map under test, its canonical base URLs being the stores' own without the slash.
+     *
+     * @return StoreLocaleMap
+     */
+    private function newMap(): StoreLocaleMap
+    {
+        $canonicalBaseUrl = $this->createStub(CanonicalBaseUrl::class);
+        $canonicalBaseUrl->method('of')->willReturnCallback(
+            static fn (Store $store): string => rtrim((string) $store->getBaseUrl(), '/')
+        );
+
+        return new StoreLocaleMap(
+            $this->storeManager,
+            $this->scopeConfig,
+            $this->config,
+            new CodeValidator(),
+            $canonicalBaseUrl
+        );
     }
 
     public function testFormatLocaleConvertsToBcp47(): void
     {
-        $map = new StoreLocaleMap($this->storeManager, $this->scopeConfig, $this->config, new CodeValidator());
-        $this->assertSame('en-GB', $map->formatLocale('en_GB'));
+        $this->assertSame('en-GB', $this->newMap()->formatLocale('en_GB'));
     }
 
     public function testExtractLanguageReturnsBaseLanguage(): void
     {
-        $map = new StoreLocaleMap($this->storeManager, $this->scopeConfig, $this->config, new CodeValidator());
-        $this->assertSame('en', $map->extractLanguage('en-GB'));
+        $this->assertSame('en', $this->newMap()->extractLanguage('en-GB'));
     }
 
     public function testBuildsMapForActiveStores(): void
@@ -166,9 +186,28 @@ class StoreLocaleMapTest extends TestCase
             ->willReturn([$this->makeStore(1, true, 'https://uk/')]);
         $this->config->method('getHreflangExcludedStoreIds')->willReturn([]);
         $this->scopeConfig->method('getValue')->willReturn('en_GB');
-        $map = new StoreLocaleMap($this->storeManager, $this->scopeConfig, $this->config, new CodeValidator());
+        $map = $this->newMap();
         $map->getMap();
         $map->getMap();
+    }
+
+    public function testEachWebsiteGetsItsOwnMapWithinOneProcess(): void
+    {
+        // Cron generates every store view's sitemap in one process, moving from one website's
+        // store views to another's; the first website's map must not be served to the second.
+        $this->config->method('isHreflangSameWebsiteOnly')->willReturn(true);
+        $uk = $this->makeStore(1, true, 'https://uk/', 1);
+        $us = $this->makeStore(2, true, 'https://us/', 2);
+        $current = $uk;
+        $this->storeManager->method('getStore')->willReturnCallback(static function () use (&$current) {
+            return $current;
+        });
+
+        $map = $this->map([$uk, $us], [1 => 'en_GB', 2 => 'en_US']);
+
+        $this->assertSame([1], array_keys($map->getMap()));
+        $current = $us;
+        $this->assertSame([2], array_keys($map->getMap()));
     }
 
     public function testResetStateDropsTheMemoisedMapLikeReset(): void
@@ -177,7 +216,7 @@ class StoreLocaleMapTest extends TestCase
             ->willReturn([$this->makeStore(1, true, 'https://uk/')]);
         $this->config->method('getHreflangExcludedStoreIds')->willReturn([]);
         $this->scopeConfig->method('getValue')->willReturn('en_GB');
-        $map = new StoreLocaleMap($this->storeManager, $this->scopeConfig, $this->config, new CodeValidator());
+        $map = $this->newMap();
 
         $map->getMap();
         $map->_resetState();

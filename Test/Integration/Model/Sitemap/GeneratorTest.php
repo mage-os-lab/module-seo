@@ -6,22 +6,14 @@ namespace MageOS\Seo\Test\Integration\Model\Sitemap;
 
 use Magento\Catalog\Test\Fixture\Category as CategoryFixture;
 use Magento\Catalog\Test\Fixture\Product as ProductFixture;
-use Magento\Framework\App\Area;
-use Magento\Framework\App\Config\MutableScopeConfigInterface;
-use Magento\Framework\App\Filesystem\DirectoryList;
-use Magento\Framework\Filesystem;
-use Magento\Framework\Filesystem\Directory\WriteInterface;
 use Magento\Framework\ObjectManager\ConfigInterface as ObjectManagerConfig;
 use Magento\Sitemap\Model\Batch\Observer as BatchObserver;
 use Magento\Sitemap\Model\ItemProvider\Composite as CoreComposite;
 use Magento\Sitemap\Model\Observer as StandardObserver;
-use Magento\Sitemap\Model\Sitemap;
-use Magento\Store\Model\App\Emulation;
-use Magento\Store\Model\StoreManagerInterface;
 use Magento\TestFramework\Fixture\DataFixture;
 use Magento\TestFramework\Fixture\DataFixtureStorageManager;
 use Magento\TestFramework\Helper\Bootstrap;
-use MageOS\Seo\Model\Config;
+use Magento\TestFramework\Mail\Template\TransportBuilderMock;
 use MageOS\Seo\Model\Config\Source\SitemapGenerator;
 use MageOS\Seo\Test\Integration\Model\Sitemap\Fixture\RegisteredElsewhereProvider;
 use PHPUnit\Framework\TestCase;
@@ -38,14 +30,9 @@ use PHPUnit\Framework\TestCase;
  */
 class GeneratorTest extends TestCase
 {
-    private const DIRECTORY = 'media/sitemap';
+    use GeneratesSitemaps;
 
-    /**
-     * The sitemap file name the running test writes under, without `.xml`.
-     *
-     * @var string|null
-     */
-    private ?string $baseName = null;
+    private const DIRECTORY = 'media/sitemap';
 
     /**
      * Files the running test put in place itself, relative to pub/.
@@ -59,7 +46,7 @@ class GeneratorTest extends TestCase
      */
     protected function setUp(): void
     {
-        $this->baseName = 'mageos_seo_f2_' . uniqid();
+        $this->setUpSitemaps();
     }
 
     /**
@@ -69,17 +56,10 @@ class GeneratorTest extends TestCase
      */
     protected function tearDown(): void
     {
-        $pub = $this->pub();
-        if ($pub->isExist(self::DIRECTORY)) {
-            foreach ($pub->read(self::DIRECTORY) as $path) {
-                if (str_starts_with(basename($path), (string) $this->baseName)) {
-                    $pub->delete($path);
-                }
-            }
-        }
+        $this->removeGeneratedSitemaps();
         foreach ($this->placedFiles as $path) {
-            if ($pub->isExist($path)) {
-                $pub->delete($path);
+            if ($this->pub()->isExist($path)) {
+                $this->pub()->delete($path);
             }
         }
         $this->placedFiles = [];
@@ -88,6 +68,9 @@ class GeneratorTest extends TestCase
     /**
      * The exit check for F2: the same `<url>` entries as core writes for the same store view.
      *
+     * Alternates are this generator's addition, so they are taken out of its rows before comparing:
+     * what is left must be core's row exactly.
+     *
      * @return void
      */
     #[DataFixture(CategoryFixture::class, as: 'category')]
@@ -95,10 +78,13 @@ class GeneratorTest extends TestCase
     public function testTheSameUrlsAsMagentosGeneratorWrites(): void
     {
         $this->useGenerator(SitemapGenerator::MAGENTO);
-        $core = $this->urlRows($this->generate('_core'));
+        $core = $this->urlRows($this->generateFor($this->defaultStoreId(), '_core'));
 
         $this->useGenerator(SitemapGenerator::MAGEOS_SEO);
-        $ours = $this->urlRows($this->generate('_ours'));
+        $ours = array_map(
+            static fn (string $row): string => (string) preg_replace('#<xhtml:link [^>]*/>#', '', $row),
+            $this->urlRows($this->generateFor($this->defaultStoreId(), '_ours'))
+        );
 
         $productUrlKey = (string) DataFixtureStorageManager::getStorage()->get('product')->getUrlKey();
         $this->assertNotEmpty(
@@ -115,25 +101,25 @@ class GeneratorTest extends TestCase
     #[DataFixture(ProductFixture::class, ['category_ids' => ['$category.id$']], as: 'product')]
     public function testTheSitemapIsAnIndexOfOneFileSetPerType(): void
     {
-        $storeId = $this->storeId();
-        $files   = $this->generate('');
+        $storeId = $this->defaultStoreId();
+        $files   = $this->generateFor($storeId);
         $storage = DataFixtureStorageManager::getStorage();
 
         $this->assertSame(
             [
-                "{$this->baseName}-{$storeId}-pages-1.xml",
-                "{$this->baseName}-{$storeId}-categories-1.xml",
-                "{$this->baseName}-{$storeId}-products-1.xml",
+                "{$this->sitemapName}-{$storeId}-pages-1.xml",
+                "{$this->sitemapName}-{$storeId}-categories-1.xml",
+                "{$this->sitemapName}-{$storeId}-products-1.xml",
             ],
             array_keys($files)
         );
         $this->assertStringContainsString(
             (string) $storage->get('product')->getUrlKey(),
-            $files["{$this->baseName}-{$storeId}-products-1.xml"]
+            $files["{$this->sitemapName}-{$storeId}-products-1.xml"]
         );
         $this->assertStringContainsString(
             (string) $storage->get('category')->getUrlKey(),
-            $files["{$this->baseName}-{$storeId}-categories-1.xml"]
+            $files["{$this->sitemapName}-{$storeId}-categories-1.xml"]
         );
     }
 
@@ -146,7 +132,7 @@ class GeneratorTest extends TestCase
     #[DataFixture(ProductFixture::class, as: 'third')]
     public function testAFileEndsAtTheConfiguredNumberOfUrls(): void
     {
-        $files = $this->generate('');
+        $files = $this->generateFor($this->defaultStoreId());
 
         $products = array_filter(
             $files,
@@ -174,7 +160,7 @@ class GeneratorTest extends TestCase
     #[DataFixture(ProductFixture::class, as: 'third')]
     public function testNoFileGrowsPastTheConfiguredSize(): void
     {
-        $files = $this->generate('');
+        $files = $this->generateFor($this->defaultStoreId());
 
         $this->assertGreaterThan(3, \count($files), 'The size limit has to split something to prove anything.');
         foreach ($files as $name => $xml) {
@@ -195,21 +181,21 @@ class GeneratorTest extends TestCase
      */
     public function testLeftoversOfThisSitemapGoAndNothingElseDoes(): void
     {
-        $storeId   = $this->storeId();
+        $storeId   = $this->defaultStoreId();
         $leftovers = [
-            "{$this->baseName}-{$storeId}-7.xml",
-            "{$this->baseName}-{$storeId}-products-9.xml",
+            "{$this->sitemapName}-{$storeId}-7.xml",
+            "{$this->sitemapName}-{$storeId}-products-9.xml",
         ];
         $strangers = [
-            "{$this->baseName}x-{$storeId}-1.xml",
-            "{$this->baseName}-" . ($storeId + 100) . '-pages-1.xml',
-            "unrelated_{$this->baseName}.xml",
+            "{$this->sitemapName}x-{$storeId}-1.xml",
+            "{$this->sitemapName}-" . ($storeId + 100) . '-pages-1.xml',
+            "unrelated_{$this->sitemapName}.xml",
         ];
         foreach (array_merge($leftovers, $strangers) as $name) {
             $this->place($name);
         }
 
-        $this->generate('');
+        $this->generateFor($storeId);
 
         foreach ($leftovers as $name) {
             $this->assertFalse($this->pub()->isExist(self::DIRECTORY . '/' . $name), $name . ' was left behind.');
@@ -231,9 +217,9 @@ class GeneratorTest extends TestCase
         ];
         $objectManager->configure([CoreComposite::class => ['arguments' => $arguments]]);
 
-        $files = $this->generate('');
+        $files = $this->generateFor($this->defaultStoreId());
 
-        $other = "{$this->baseName}-{$this->storeId()}-other-1.xml";
+        $other = "{$this->sitemapName}-{$this->defaultStoreId()}-other-1.xml";
         $this->assertArrayHasKey($other, $files);
         $this->assertStringContainsString(RegisteredElsewhereProvider::URL, $files[$other]);
     }
@@ -247,9 +233,9 @@ class GeneratorTest extends TestCase
     {
         $this->useGenerator(SitemapGenerator::MAGENTO);
 
-        $this->generate('');
+        $this->generateFor($this->defaultStoreId());
 
-        $index = $this->pub()->readFile(self::DIRECTORY . "/{$this->baseName}.xml");
+        $index = $this->pub()->readFile(self::DIRECTORY . "/{$this->sitemapName}.xml");
         $this->assertStringContainsString('<urlset', $index);
         $this->assertStringNotContainsString('<sitemapindex', $index);
     }
@@ -257,14 +243,18 @@ class GeneratorTest extends TestCase
     /**
      * Both of core's cron jobs — standard and batch — end up in the selected generator.
      *
+     * The cron jobs catch every exception and only report them by e-mail, so an error address is
+     * configured and the captured mail is what says why a sitemap is missing.
+     *
      * @magentoConfigFixture current_store sitemap/generate/enabled 1
+     * @magentoConfigFixture current_store sitemap/generate/error_email errors@example.com
      * @return void
      */
     public function testBothOfCoresCronJobsUseTheSelectedGenerator(): void
     {
-        $sitemap = $this->sitemap('');
-        $sitemap->save();
-        $index = self::DIRECTORY . "/{$this->baseName}.xml";
+        $this->sitemapFor($this->defaultStoreId())->save();
+        $index = self::DIRECTORY . "/{$this->sitemapName}.xml";
+        $mail  = Bootstrap::getObjectManager()->get(TransportBuilderMock::class);
 
         foreach ([StandardObserver::class, BatchObserver::class] as $observer) {
             if ($this->pub()->isExist($index)) {
@@ -273,6 +263,11 @@ class GeneratorTest extends TestCase
 
             Bootstrap::getObjectManager()->create($observer)->scheduledGenerateSitemaps();
 
+            $sent = $mail->getSentMessage();
+            $this->assertNull(
+                $sent,
+                $observer . ' reported errors: ' . ($sent === null ? '' : $sent->getBodyText())
+            );
             $this->assertTrue($this->pub()->isExist($index), $observer . ' wrote no sitemap.');
             $this->assertStringContainsString(
                 '<sitemapindex',
@@ -287,106 +282,11 @@ class GeneratorTest extends TestCase
      */
     public function testTheSitemapIsSavedWithItsGenerationTime(): void
     {
-        $sitemap = $this->sitemap('');
+        $sitemap = $this->sitemapFor($this->defaultStoreId());
         $this->generateSitemap($sitemap);
 
         $this->assertNotEmpty($sitemap->getSitemapTime());
         $this->assertNotEmpty($sitemap->getId(), 'The sitemap was not saved.');
-    }
-
-    /**
-     * Generate a sitemap for the default store view and return its URL files, keyed by name.
-     *
-     * For an index, the files it lists; for core's single file, that file.
-     *
-     * @param string $suffix Added to the file name, so two generations in one test do not collide
-     * @return array<string,string>
-     */
-    private function generate(string $suffix): array
-    {
-        $sitemap = $this->sitemap($suffix);
-        $this->generateSitemap($sitemap);
-
-        $index = $this->pub()->readFile(self::DIRECTORY . '/' . $sitemap->getSitemapFilename());
-        if (!str_contains($index, '<sitemapindex')) {
-            return [(string) $sitemap->getSitemapFilename() => $index];
-        }
-
-        preg_match_all('#<loc>[^<]*/([^/<]+\.xml)</loc>#', $index, $matches);
-        $files = [];
-        foreach ($matches[1] as $name) {
-            $files[$name] = $this->pub()->readFile(self::DIRECTORY . '/' . $name);
-        }
-
-        return $files;
-    }
-
-    /**
-     * Run core's entry point under the store view's frontend, as its controller and cron do.
-     *
-     * @param Sitemap $sitemap
-     * @return void
-     */
-    private function generateSitemap(Sitemap $sitemap): void
-    {
-        $emulation = Bootstrap::getObjectManager()->get(Emulation::class);
-        $emulation->startEnvironmentEmulation($this->storeId(), Area::AREA_FRONTEND, true);
-        try {
-            $sitemap->generateXml();
-        } finally {
-            $emulation->stopEnvironmentEmulation();
-        }
-    }
-
-    /**
-     * A sitemap for the default store view in pub/media/sitemap.
-     *
-     * @param string $suffix
-     * @return Sitemap
-     */
-    private function sitemap(string $suffix): Sitemap
-    {
-        /** @var Sitemap $sitemap */
-        $sitemap = Bootstrap::getObjectManager()->create(Sitemap::class);
-        $sitemap->setData([
-            'sitemap_filename' => $this->baseName . $suffix . '.xml',
-            'sitemap_path'     => '/' . self::DIRECTORY . '/',
-            'store_id'         => $this->storeId(),
-        ]);
-
-        return $sitemap;
-    }
-
-    /**
-     * Every `<url>` row of the given files.
-     *
-     * @param array<string,string> $files
-     * @return string[]
-     */
-    private function urlRows(array $files): array
-    {
-        $rows = [];
-        foreach ($files as $xml) {
-            preg_match_all('#<url>.*?</url>#s', $xml, $matches);
-            $rows[] = $matches[0];
-        }
-
-        return array_merge([], ...$rows);
-    }
-
-    /**
-     * Select a generator for the default store view.
-     *
-     * At store scope: the setting is read for the sitemap's store view, and the test configuration
-     * merges store values when it loads, so a default-scope change would never reach that read.
-     *
-     * @param string $generator
-     * @return void
-     */
-    private function useGenerator(string $generator): void
-    {
-        Bootstrap::getObjectManager()->get(MutableScopeConfigInterface::class)
-            ->setValue(Config::XML_SITEMAP_GENERATOR, $generator, 'store', 'default');
     }
 
     /**
@@ -400,21 +300,5 @@ class GeneratorTest extends TestCase
         $path = self::DIRECTORY . '/' . $name;
         $this->pub()->writeFile($path, '<urlset/>');
         $this->placedFiles[] = $path;
-    }
-
-    /**
-     * @return WriteInterface
-     */
-    private function pub(): WriteInterface
-    {
-        return Bootstrap::getObjectManager()->get(Filesystem::class)->getDirectoryWrite(DirectoryList::PUB);
-    }
-
-    /**
-     * @return int
-     */
-    private function storeId(): int
-    {
-        return (int) Bootstrap::getObjectManager()->get(StoreManagerInterface::class)->getStore('default')->getId();
     }
 }

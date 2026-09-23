@@ -479,6 +479,11 @@
                       sortOrder="10">MageOS\Seo\Model\Sitemap\Renderer\CoreFields</item>
                 <item name="images" xsi:type="object"
                       sortOrder="20">MageOS\Seo\Model\Sitemap\Renderer\Images</item>
+                <item name="hreflang" xsi:type="object"
+                      sortOrder="30">MageOS\Seo\Model\Sitemap\Hreflang\Renderer</item>
+            </argument>
+            <argument name="enrichers" xsi:type="array">
+                <item name="hreflang" xsi:type="object">MageOS\Seo\Model\Sitemap\Hreflang\Enricher</item>
             </argument>
         </arguments>
     </type>

@@ -119,6 +119,35 @@ class UrlRewriteFetcherTest extends TestCase
         $this->assertSame([[2 => 'ueber-uns']], $this->streamed('cms-page', [2]));
     }
 
+    public function testFetchForEntitiesGivesEachEntityItsFirstPathPerStore(): void
+    {
+        $this->resource->method('getPathsForEntities')->with('product', [5, 6])->willReturn([
+            ['entity_id' => '5', 'store_id' => '1', 'request_path' => 'a'],
+            ['entity_id' => '5', 'store_id' => '1', 'request_path' => 'a-history'],
+            ['entity_id' => '5', 'store_id' => '2', 'request_path' => 'a-de'],
+            ['entity_id' => '6', 'store_id' => '1', 'request_path' => 'b'],
+        ]);
+
+        $this->assertSame(
+            [5 => [1 => 'a', 2 => 'a-de'], 6 => [1 => 'b']],
+            $this->fetcher->fetchForEntities('product', [5, 6])
+        );
+    }
+
+    public function testFetchForCmsGroupsGivesEachGroupItsBestPathPerStore(): void
+    {
+        $this->resource->method('getPathsForCmsGroups')->with(['about-us', 'contact'])->willReturn([
+            ['hreflang_group' => 'about-us', 'store_id' => '2', 'request_path' => 'ueber-uns'],
+            ['hreflang_group' => 'about-us', 'store_id' => '2', 'request_path' => 'about-us'],
+            ['hreflang_group' => 'contact', 'store_id' => '1', 'request_path' => 'contact'],
+        ]);
+
+        $this->assertSame(
+            ['about-us' => [2 => 'ueber-uns'], 'contact' => [1 => 'contact']],
+            $this->fetcher->fetchForCmsGroups(['about-us', 'contact'])
+        );
+    }
+
     public function testFetchForCmsGroupKeepsTheFirstPathPerStore(): void
     {
         $this->resource->method('getPathsForCmsGroup')->with('about-us')->willReturn([

@@ -88,6 +88,32 @@ class ConfigRepository implements ResetAfterRequestInterface
     }
 
     /**
+     * The translation groups of several CMS pages, in one query.
+     *
+     * @param int[] $pageIds
+     * @return array<int,string> page_id => group; pages in no group are absent
+     */
+    public function getHreflangGroups(array $pageIds): array
+    {
+        $pageIds = array_values(array_unique(array_map('intval', $pageIds)));
+        if ($pageIds === []) {
+            return [];
+        }
+
+        $collection = $this->collectionFactory->create();
+        $collection->addFieldToFilter('store_id', ['eq' => 0]);
+        $collection->addFieldToFilter('page_id', ['in' => $pageIds]);
+        $collection->addFieldToFilter('hreflang_group', ['neq' => '']);
+
+        $groups = [];
+        foreach ($collection as $config) {
+            $groups[(int) $config->getData('page_id')] = (string) $config->getData('hreflang_group');
+        }
+
+        return $groups;
+    }
+
+    /**
      * IDs of the CMS pages in any of the given translation groups.
      *
      * @param string[] $groups Normalised translation groups

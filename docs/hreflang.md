@@ -6,6 +6,7 @@ alternates two ways:
 | Where | What |
 |---|---|
 | Page head | `<link rel="alternate" hreflang="…">` for the current entity, one per store view it exists in |
+| `sitemap.xml` | The same alternates inline beside each URL, when the MageOS SEO sitemap generator is selected — see [sitemap.md](sitemap.md) |
 | `/hreflang-sitemap.xml` | The same relationships for the whole catalogue, plus `hreflang-sitemap-<n>.xml` chunk files when it is large |
 
 Both are built from the same data, so a page and the sitemap never disagree.
