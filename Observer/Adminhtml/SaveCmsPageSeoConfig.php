@@ -91,10 +91,10 @@ class SaveCmsPageSeoConfig implements ObserverInterface
      * A CMS page's store assignment is a list; `0` in it means "all store views", which is the
      * global row. Editing a page assigned to exactly one store view writes that store view's row.
      *
-     * @param Page|PageInterface $page
+     * @param Page $page
      * @return int
      */
-    private function storeId(Page|PageInterface $page): int
+    private function storeId(Page $page): int
     {
         /* @var Page $page */
         $stores = $page->getData('store_id');
