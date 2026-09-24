@@ -26,6 +26,12 @@ use Magento\Sitemap\Model\SitemapConfigReaderInterface;
  * that has fewer files now, or core's own `{name}-{store}-{n}.xml` from before this generator was
  * used — are deleted. Only names built from this sitemap's name, store and the registered types are
  * candidates, so another sitemap sharing the directory is never touched.
+ *
+ * Given `$onlyTypes`, it rewrites those types and keeps the rest: the index lists the other types'
+ * files already on disk, each with its own file time as `<lastmod>`, so a type that was not rebuilt
+ * keeps its date; leftovers are removed for the rewritten types only. That needs an index of this
+ * generator's to build on — without one (never generated, or last written by core's generator)
+ * every type is written.
  */
 class Writer
 {
@@ -67,11 +73,18 @@ class Writer
     private int $fileSize = 0;
 
     /**
-     * Child file names written so far, in order.
+     * Child file names written so far, in order, with their types.
      *
-     * @var string[]
+     * @var array<string,string> file name => type
      */
     private array $children = [];
+
+    /**
+     * The types being rewritten; null for all of them.
+     *
+     * @var string[]|null
+     */
+    private ?array $onlyTypes;
 
     /**
      * @param Filesystem $filesystem
@@ -79,7 +92,8 @@ class Writer
      * @param Escaper $escaper
      * @param Sitemap $sitemap The core sitemap being generated: its name, path and store
      * @param string $urlsetOpen The opening of every child file, up to and including `<urlset …>`
-     * @param string[] $types Every type a child file can have, for recognising leftovers
+     * @param string[] $types Every type a child file can have, in the order the index lists them
+     * @param string[]|null $onlyTypes Rewrite these types and keep the others' files; null for all
      */
     public function __construct(
         Filesystem                                    $filesystem,
@@ -87,10 +101,23 @@ class Writer
         private readonly Escaper                      $escaper,
         private readonly Sitemap                      $sitemap,
         private readonly string                       $urlsetOpen,
-        private readonly array                        $types
+        private readonly array                        $types,
+        ?array                                        $onlyTypes = null
     ) {
         $this->publicDirectory    = $filesystem->getDirectoryWrite(DirectoryList::PUB);
         $this->temporaryDirectory = $filesystem->getDirectoryWrite(DirectoryList::SYS_TMP);
+        $this->onlyTypes          = $onlyTypes !== null && $this->hasOwnIndex() ? $onlyTypes : null;
+    }
+
+    /**
+     * Whether rows of the type are written in this generation.
+     *
+     * @param string $type
+     * @return bool
+     */
+    public function writes(string $type): bool
+    {
+        return $this->onlyTypes === null || \in_array($type, $this->onlyTypes, true);
     }
 
     /**
@@ -139,15 +166,16 @@ class Writer
     {
         $this->closeFile();
 
-        foreach ($this->children as $child) {
+        foreach (array_keys($this->children) as $child) {
             $path = $this->filePath($child);
             $this->temporaryDirectory->renameFile($path, $path, $this->publicDirectory);
         }
 
-        $this->writeIndex();
+        $entries = $this->indexEntries();
+        $this->writeIndex($entries);
         $this->removeLeftovers();
 
-        return $this->children;
+        return array_keys($entries);
     }
 
     /**
@@ -191,16 +219,68 @@ class Writer
 
         $this->stream->write(self::URLSET_CLOSE);
         $this->stream->close();
-        $this->stream     = null;
-        $this->children[] = $this->childName();
+        $this->stream                        = null;
+        $this->children[$this->childName()] = $this->type;
     }
 
     /**
-     * Write the index listing every child, and move it into place.
+     * The files the index lists, in type order, each with its `<lastmod>`.
      *
+     * Files written now carry the time of this generation; files of a type kept from an earlier
+     * one carry their own file time.
+     *
+     * @return array<string,string> file name => lastmod
+     */
+    private function indexEntries(): array
+    {
+        $now     = date('c');
+        $entries = [];
+        foreach ($this->types as $type) {
+            if ($this->writes($type)) {
+                foreach (array_keys($this->children, $type, true) as $child) {
+                    $entries[$child] = $now;
+                }
+                continue;
+            }
+
+            foreach ($this->filesOnDisk($type) as $file) {
+                $mtime          = (int) ($this->publicDirectory->stat($this->filePath($file))['mtime'] ?? 0);
+                $entries[$file] = $mtime > 0 ? date('c', $mtime) : $now;
+            }
+        }
+
+        return $entries;
+    }
+
+    /**
+     * This sitemap's files of a type now in place, in file-number order.
+     *
+     * @param string $type
+     * @return string[]
+     */
+    private function filesOnDisk(string $type): array
+    {
+        $pattern = '/^' . preg_quote($this->baseName() . '-' . (int) $this->sitemap->getStoreId() . '-' . $type, '/')
+            . '-(\d+)\.xml$/';
+
+        $files = [];
+        foreach ($this->directoryFiles() as $name) {
+            if (preg_match($pattern, $name, $matches) === 1) {
+                $files[(int) $matches[1]] = $name;
+            }
+        }
+        ksort($files);
+
+        return array_values($files);
+    }
+
+    /**
+     * Write the index listing the given files, and move it into place.
+     *
+     * @param array<string,string> $entries file name => lastmod
      * @return void
      */
-    private function writeIndex(): void
+    private function writeIndex(array $entries): void
     {
         $path   = $this->filePath((string) $this->sitemap->getSitemapFilename());
         $stream = $this->temporaryDirectory->openFile($path);
@@ -209,8 +289,7 @@ class Writer
             . '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' . PHP_EOL
         );
 
-        $lastMod = date('c');
-        foreach ($this->children as $child) {
+        foreach ($entries as $child => $lastMod) {
             $url = $this->sitemap->getSitemapUrl((string) $this->sitemap->getSitemapPath(), $child);
             $stream->write(
                 '<sitemap><loc>' . $this->escaper->escapeUrl($url) . '</loc>'
@@ -224,28 +303,72 @@ class Writer
     }
 
     /**
-     * Delete this sitemap's child files that the new set does not contain.
+     * Delete this sitemap's child files of the written types that the new set does not contain.
+     *
+     * A full generation also removes core's own untyped `{name}-{store}-{n}.xml`; a rewrite of some
+     * types touches only theirs.
      *
      * @return void
      */
     private function removeLeftovers(): void
     {
-        $directory = rtrim((string) $this->sitemap->getSitemapPath(), '/');
-        if (!$this->publicDirectory->isExist($directory)) {
-            return;
-        }
-
-        $types   = implode('|', array_map(static fn (string $type) => preg_quote($type, '/'), $this->types));
+        $types   = $this->onlyTypes ?? $this->types;
+        $untyped = $this->onlyTypes === null ? '?' : '';
         $pattern = '/^' . preg_quote($this->baseName(), '/') . '-' . (int) $this->sitemap->getStoreId()
-            . '-(?:(?:' . $types . ')-)?\d+\.xml$/';
+            . '-(?:(?:' . implode('|', array_map(static fn (string $type) => preg_quote($type, '/'), $types))
+            . ')-)' . $untyped . '\d+\.xml$/';
 
-        foreach ($this->publicDirectory->read($directory) as $path) {
-            $slash = strrpos($path, '/');
-            $name  = $slash === false ? $path : substr($path, $slash + 1);
-            if (preg_match($pattern, $name) === 1 && !\in_array($name, $this->children, true)) {
-                $this->publicDirectory->delete($path);
+        $directory = rtrim((string) $this->sitemap->getSitemapPath(), '/');
+        foreach ($this->directoryFiles() as $name) {
+            if (preg_match($pattern, $name) === 1 && !isset($this->children[$name])) {
+                $this->publicDirectory->delete($directory . '/' . $name);
             }
         }
+    }
+
+    /**
+     * The names of the files in the sitemap's directory.
+     *
+     * @return string[]
+     */
+    private function directoryFiles(): array
+    {
+        $directory = rtrim((string) $this->sitemap->getSitemapPath(), '/');
+        if (!$this->publicDirectory->isExist($directory)) {
+            return [];
+        }
+
+        $names = [];
+        foreach ($this->publicDirectory->read($directory) as $path) {
+            $slash   = strrpos($path, '/');
+            $names[] = $slash === false ? $path : substr($path, $slash + 1);
+        }
+
+        return $names;
+    }
+
+    /**
+     * Whether the sitemap's index was written by this generator, so other types' files can be kept.
+     *
+     * Core's generator writes a single `<urlset>` under the same name, or an index of its own
+     * numbered files; either way there are no typed files to keep.
+     *
+     * @return bool
+     */
+    private function hasOwnIndex(): bool
+    {
+        $path = $this->filePath((string) $this->sitemap->getSitemapFilename());
+        if (!$this->publicDirectory->isExist($path)) {
+            return false;
+        }
+
+        $types = implode('|', array_map(static fn (string $type) => preg_quote($type, '/'), $this->types));
+
+        return preg_match(
+            '/<sitemapindex.*' . preg_quote($this->baseName() . '-' . (int) $this->sitemap->getStoreId(), '/')
+            . '-(?:' . $types . ')-\d+\.xml/s',
+            $this->publicDirectory->readFile($path)
+        ) === 1;
     }
 
     /**

@@ -13,6 +13,8 @@ use MageOS\Seo\Api\Sitemap\ItemFilterInterface;
 use MageOS\Seo\Api\Sitemap\ItemProviderInterface;
 use MageOS\Seo\Api\Sitemap\RowRendererInterface;
 use MageOS\Seo\Api\Sitemap\SitemapItemInterface;
+use MageOS\Seo\Exception\SitemapRebuildInProgressException;
+use MageOS\Seo\Model\Sitemap\GenerationLock;
 use MageOS\Seo\Model\Sitemap\Generator;
 use MageOS\Seo\Model\Sitemap\ItemProvider\Composite;
 use MageOS\Seo\Model\Sitemap\ItemProvider\CoreProviderAdapter;
@@ -196,6 +198,64 @@ class GeneratorTest extends TestCase
         $this->assertSame(['time:2026-09-23 12:00:00', 'save'], $order);
     }
 
+    public function testARebuildWritesOnlyTheTypesAskedFor(): void
+    {
+        $this->generator([
+            'page'    => $this->provider(ItemProviderInterface::TYPE_PAGES, ['a.html']),
+            'product' => $this->provider(ItemProviderInterface::TYPE_PRODUCTS, ['p.html']),
+        ])->regenerate($this->sitemap(), [ItemProviderInterface::TYPE_PRODUCTS]);
+
+        $this->assertSame([ItemProviderInterface::TYPE_PRODUCTS], $this->writerArguments['onlyTypes'] ?? null);
+        $this->assertSame(['type:products', 'row:p.html', 'finish'], $this->written);
+    }
+
+    public function testAFullGenerationWaitsForTheLockAndARebuildDoesNot(): void
+    {
+        $sitemap = $this->sitemap();
+        $lock    = $this->createMock(GenerationLock::class);
+        $lock->expects($this->exactly(2))->method('acquire')->willReturnCallback(
+            function (Sitemap $locked, int $wait) use ($sitemap): bool {
+                $this->assertSame($sitemap, $locked);
+                $this->written[] = 'wait:' . $wait;
+                return true;
+            }
+        );
+        $lock->expects($this->exactly(2))->method('release')->with($sitemap);
+        $generator = $this->generator([], generationLock: $lock);
+
+        $generator->generate($sitemap);
+        $generator->regenerate($sitemap, [ItemProviderInterface::TYPE_PAGES]);
+
+        $this->assertSame(['wait:60', 'finish', 'wait:0', 'finish'], $this->written);
+    }
+
+    public function testASitemapBeingWrittenElsewhereIsNotWrittenAndSaysSo(): void
+    {
+        $lock = $this->createMock(GenerationLock::class);
+        $lock->method('acquire')->willReturn(false);
+        $lock->expects($this->never())->method('release');
+
+        try {
+            $this->generator([], generationLock: $lock)->regenerate($this->sitemap(), ['pages']);
+            $this->fail('A sitemap being written elsewhere was written anyway.');
+        } catch (SitemapRebuildInProgressException) {
+            $this->assertSame([], $this->written);
+        }
+    }
+
+    public function testTheLockIsReleasedWhenWritingFails(): void
+    {
+        $resource = $this->createStub(SitemapResource::class);
+        $resource->method('save')->willThrowException(new \RuntimeException('database gone'));
+        $lock = $this->createMock(GenerationLock::class);
+        $lock->method('acquire')->willReturn(true);
+        $lock->expects($this->once())->method('release');
+
+        $this->expectException(\RuntimeException::class);
+
+        $this->generator([], sitemapResource: $resource, generationLock: $lock)->generate($this->sitemap());
+    }
+
     /**
      * @param array<string,object> $providers
      * @param RowRendererInterface[]|null $renderers Null: one renderer writing the item's URL
@@ -204,6 +264,7 @@ class GeneratorTest extends TestCase
      * @param LoggerInterface|null $logger
      * @param int $chunkSize
      * @param SitemapResource|null $sitemapResource
+     * @param GenerationLock|null $generationLock Null: a lock that is always free
      * @return Generator
      */
     private function generator(
@@ -213,8 +274,14 @@ class GeneratorTest extends TestCase
         array $filters = [],
         ?LoggerInterface $logger = null,
         int $chunkSize = 1000,
-        ?SitemapResource $sitemapResource = null
+        ?SitemapResource $sitemapResource = null,
+        ?GenerationLock $generationLock = null
     ): Generator {
+        if ($generationLock === null) {
+            $generationLock = $this->createStub(GenerationLock::class);
+            $generationLock->method('acquire')->willReturn(true);
+        }
+
         $composite = $this->createStub(Composite::class);
         $composite->method('getProviders')->willReturn($providers);
 
@@ -228,6 +295,10 @@ class GeneratorTest extends TestCase
         );
 
         $writer = $this->createStub(Writer::class);
+        $writer->method('writes')->willReturnCallback(function (string $type): bool {
+            $onlyTypes = $this->writerArguments['onlyTypes'] ?? null;
+            return $onlyTypes === null || \in_array($type, $onlyTypes, true);
+        });
         $writer->method('startType')->willReturnCallback(function (string $type): void {
             $this->written[] = 'type:' . $type;
         });
@@ -256,6 +327,7 @@ class GeneratorTest extends TestCase
             $dateTime,
             $logger ?? $this->createStub(LoggerInterface::class),
             $sitemapResource ?? $this->createStub(SitemapResource::class),
+            $generationLock,
             $renderers ?? [$this->urlRenderer()],
             $enrichers,
             $filters,

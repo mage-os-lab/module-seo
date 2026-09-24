@@ -5,9 +5,12 @@ declare(strict_types=1);
 namespace MageOS\Seo\Test\Unit\Model\Feed;
 
 use MageOS\Seo\Exception\FeedRebuildInProgressException;
+use MageOS\Seo\Exception\SitemapRebuildInProgressException;
 use MageOS\Seo\Model\Feed\FeedRegenerator;
 use MageOS\Seo\Model\Feed\RegenerateConsumer;
 use MageOS\Seo\Model\Feed\RegenerationRequester;
+use MageOS\Seo\Model\Sitemap\RebuildGroup;
+use MageOS\Seo\Model\Sitemap\Rebuilder as SitemapRebuilder;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
@@ -37,7 +40,65 @@ class RegenerateConsumerTest extends TestCase
         $this->requester   = $this->createMock(RegenerationRequester::class);
         $this->logger      = $this->createMock(LoggerInterface::class);
 
-        $this->consumer = new RegenerateConsumer($this->regenerator, $this->requester, $this->logger);
+        $this->consumer = $this->consumer($this->createStub(SitemapRebuilder::class));
+    }
+
+    public function testASitemapGroupRebuildsThatTypeAndNoFeed(): void
+    {
+        $rebuilder = $this->createMock(SitemapRebuilder::class);
+        $rebuilder->method('hasType')->willReturn(true);
+        $rebuilder->expects($this->once())->method('rebuild')->with('products')->willReturn([]);
+        $this->regenerator->expects($this->never())->method('regenerate');
+        $this->requester->expects($this->once())->method('acknowledge')->with('sitemap-products');
+
+        $this->consumer($rebuilder)->process('sitemap-products');
+    }
+
+    public function testAFeedGroupRebuildsNoSitemap(): void
+    {
+        $rebuilder = $this->createMock(SitemapRebuilder::class);
+        $rebuilder->expects($this->never())->method('rebuild');
+
+        $this->consumer($rebuilder)->process(FeedRegenerator::GROUP_JSONL);
+    }
+
+    public function testASitemapTypeNoProviderHasIsRejectedWithoutBuilding(): void
+    {
+        $rebuilder = $this->createMock(SitemapRebuilder::class);
+        $rebuilder->method('hasType')->willReturn(false);
+        $rebuilder->expects($this->never())->method('rebuild');
+        $this->logger->expects($this->once())->method('warning');
+        $this->requester->expects($this->never())->method('acknowledge');
+
+        $this->consumer($rebuilder)->process('sitemap-nothing-lists-this');
+    }
+
+    public function testASitemapBeingWrittenElsewherePutsTheRequestBack(): void
+    {
+        $rebuilder = $this->createStub(SitemapRebuilder::class);
+        $rebuilder->method('hasType')->willReturn(true);
+        $rebuilder->method('rebuild')->willThrowException(new SitemapRebuildInProgressException(__('being written')));
+        $this->requester->expects($this->once())->method('request')->with('sitemap-pages');
+        $this->logger->expects($this->never())->method('error');
+
+        $this->consumer($rebuilder)->process('sitemap-pages');
+    }
+
+    /**
+     * The consumer over this test's feed doubles and the given sitemap rebuilder.
+     *
+     * @param SitemapRebuilder $rebuilder
+     * @return RegenerateConsumer
+     */
+    private function consumer(SitemapRebuilder $rebuilder): RegenerateConsumer
+    {
+        return new RegenerateConsumer(
+            $this->regenerator,
+            $this->requester,
+            $this->logger,
+            $rebuilder,
+            new RebuildGroup()
+        );
     }
 
     public function testProcessAcknowledgesBeforeRegenerating(): void

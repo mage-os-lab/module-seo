@@ -12,6 +12,7 @@ use MageOS\Seo\Api\Sitemap\ItemFilterInterface;
 use MageOS\Seo\Api\Sitemap\ItemProviderInterface;
 use MageOS\Seo\Api\Sitemap\RowRendererInterface;
 use MageOS\Seo\Api\Sitemap\SitemapItemInterface;
+use MageOS\Seo\Exception\SitemapRebuildInProgressException;
 use MageOS\Seo\Model\Sitemap\ItemProvider\Composite;
 use MageOS\Seo\Model\Sitemap\ItemProvider\CoreProviderAdapterFactory;
 use Psr\Log\LoggerInterface;
@@ -28,6 +29,11 @@ use Psr\Log\LoggerInterface;
  *
  * When the files are in place the core sitemap's time is set and it is saved, as core's own
  * generator finishes — the admin grid, cron and robots.txt see an ordinary sitemap.
+ *
+ * `regenerate()` rewrites only some types, for a rebuild after a change (see Rebuilder). Either
+ * way the sitemap's GenerationLock is held while its files are written: a full generation — the
+ * admin's Generate button, core's cron — waits a while for another writer to finish; a rebuild does
+ * not wait, so the queue can put it back.
  */
 class Generator
 {
@@ -52,10 +58,12 @@ class Generator
      * @param DateTime $dateTime
      * @param LoggerInterface $logger
      * @param SitemapResource $sitemapResource
+     * @param GenerationLock $generationLock
      * @param RowRendererInterface[] $renderers In row order
      * @param ItemEnricherInterface[] $enrichers
      * @param ItemFilterInterface[] $filters
      * @param int $chunkSize Items handed to the enrichers at a time
+     * @param int $fullGenerationWait Seconds a full generation waits for another writer to finish
      */
     public function __construct(
         private readonly Composite                  $composite,
@@ -64,20 +72,85 @@ class Generator
         private readonly DateTime                   $dateTime,
         private readonly LoggerInterface            $logger,
         private readonly SitemapResource            $sitemapResource,
+        private readonly GenerationLock             $generationLock,
         private readonly array                      $renderers = [],
         private readonly array                      $enrichers = [],
         private readonly array                      $filters = [],
-        private readonly int                        $chunkSize = 1000
+        private readonly int                        $chunkSize = 1000,
+        private readonly int                        $fullGenerationWait = 60
     ) {
     }
 
     /**
-     * Write the sitemap's files and save it.
+     * Write all of the sitemap's files and save it.
      *
      * @param Sitemap $sitemap
      * @return void
+     * @throws SitemapRebuildInProgressException When another process is still writing it after the wait
      */
     public function generate(Sitemap $sitemap): void
+    {
+        $this->whileLocked($sitemap, $this->fullGenerationWait, fn () => $this->write($sitemap, null));
+    }
+
+    /**
+     * Rewrite the given types' files, keep the others', and save the sitemap.
+     *
+     * The whole sitemap is written when it has no index of this generator's yet.
+     *
+     * @param Sitemap $sitemap
+     * @param string[] $types
+     * @return void
+     * @throws SitemapRebuildInProgressException When another process is writing it
+     */
+    public function regenerate(Sitemap $sitemap, array $types): void
+    {
+        $this->whileLocked($sitemap, 0, fn () => $this->write($sitemap, $types));
+    }
+
+    /**
+     * The types this generator writes, in order.
+     *
+     * @return string[]
+     */
+    public function getTypes(): array
+    {
+        return array_keys($this->providersByType());
+    }
+
+    /**
+     * Run the write holding the sitemap's lock.
+     *
+     * @param Sitemap $sitemap
+     * @param int $waitSeconds
+     * @param callable $write
+     * @return void
+     * @throws SitemapRebuildInProgressException
+     */
+    private function whileLocked(Sitemap $sitemap, int $waitSeconds, callable $write): void
+    {
+        if (!$this->generationLock->acquire($sitemap, $waitSeconds)) {
+            throw new SitemapRebuildInProgressException(__(
+                'Sitemap "%1" is being written by another process. Try again once it has finished.',
+                $sitemap->getSitemapFilename()
+            ));
+        }
+
+        try {
+            $write();
+        } finally {
+            $this->generationLock->release($sitemap);
+        }
+    }
+
+    /**
+     * Write the sitemap's files — all types, or only the given ones — and save it.
+     *
+     * @param Sitemap $sitemap
+     * @param string[]|null $onlyTypes
+     * @return void
+     */
+    private function write(Sitemap $sitemap, ?array $onlyTypes): void
     {
         $storeId   = (int) $sitemap->getStoreId();
         $providers = $this->providersByType();
@@ -91,9 +164,13 @@ class Generator
                 self::LEADING_TYPES,
                 [ItemProviderInterface::TYPE_OTHER]
             ))),
+            'onlyTypes'  => $onlyTypes,
         ]);
 
         foreach ($providers as $type => $typeProviders) {
+            if (!$writer->writes($type)) {
+                continue;
+            }
             $writer->startType($type);
             foreach ($typeProviders as $provider) {
                 foreach ($this->chunks($provider->iterateItems($storeId)) as $chunk) {
