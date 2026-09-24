@@ -32,7 +32,7 @@ Every cross-cutting concern is built as an **extensible provider pool** — a se
 
 ### Multistore
 
-- **hreflang** — `<head>` alternate links plus a dedicated `/hreflang-sitemap.xml`, with language-only and x-default handling. Resolvers are a pool (product/category/CMS built in; vendor/blog pages plug in).
+- **hreflang** — `<head>` alternate links, and the same alternates inline in `sitemap.xml`, with language-only and x-default handling. Resolvers are a pool (product/category/CMS built in; vendor/blog pages plug in).
 
 ### Answer-engine (AEO)
 

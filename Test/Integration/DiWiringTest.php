@@ -9,7 +9,6 @@ use MageOS\Seo\Api\FaqCollectorInterface;
 use MageOS\Seo\Api\OrganisationRepositoryInterface;
 use MageOS\Seo\Model\Faq\SourcePool as FaqSourcePool;
 use MageOS\Seo\Model\Hreflang\ResolverPool as HreflangResolverPool;
-use MageOS\Seo\Model\Hreflang\SitemapGenerator as HreflangSitemapGenerator;
 use MageOS\Seo\Model\LlmsJsonl\JsonlBuilder;
 use MageOS\Seo\Model\LlmsTxt\LlmsTxtBuilder;
 use MageOS\Seo\Model\MetaTag\Compositor as MetaTagCompositor;
@@ -91,12 +90,6 @@ class DiWiringTest extends TestCase
     {
         $instance = Bootstrap::getObjectManager()->get(HreflangResolverPool::class);
         $this->assertInstanceOf(HreflangResolverPool::class, $instance);
-    }
-
-    public function testHreflangSitemapGeneratorIsInstantiableViaDi(): void
-    {
-        $instance = Bootstrap::getObjectManager()->get(HreflangSitemapGenerator::class);
-        $this->assertInstanceOf(HreflangSitemapGenerator::class, $instance);
     }
 
     public function testFaqSourcePoolIsInstantiableViaDi(): void

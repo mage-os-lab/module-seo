@@ -20,7 +20,7 @@ use MageOS\Seo\Model\ResourceModel\MetaRobotsTagFlags;
 
 /**
  * Carries MageOS_Hreflang's settings and CMS page links into this module, then switches that
- * module's output off.
+ * module's head output off.
  *
  * The rule throughout: the store keeps publishing hreflang wherever it did. MageOS_Hreflang's
  * settings are carried over only where they were in effect; a value already set in this module is
@@ -30,7 +30,7 @@ use MageOS\Seo\Model\ResourceModel\MetaRobotsTagFlags;
  * | MageOS_Hreflang                 | This module                                 |
  * |---------------------------------|---------------------------------------------|
  * | web/seo/use_hreflangs           | hreflang/enabled, per store view            |
- * | web/seo/use_sitemap_hreflangs   | hreflang/sitemap_enabled (global only)      |
+ * | web/seo/use_sitemap_hreflangs   | hreflang/sitemap_enabled, in sitemap.xml    |
  * | web/seo/hreflang (store view)   | hreflang/codes, validated as the admin does |
  * | web/seo/hreflang_xdefault_store | hreflang/xdefault_store_id, per website     |
  * | cms_page.meta_identifier        | the page's translation group                |
@@ -38,10 +38,15 @@ use MageOS\Seo\Model\ResourceModel\MetaRobotsTagFlags;
  * Its alternates were always limited to the current website, which is already this module's
  * default, so there is nothing to carry for that.
  *
- * Output is switched off last, and only when MageOS_Hreflang was on somewhere, so a failure part
- * way through leaves the store serving what it served. Switching off sets both of its flags to 0
- * globally and removes their website and store view values; nothing else of that module is
- * touched, and what was removed is reported so it can be restored by hand.
+ * Its head output is switched off last, and only when it was on somewhere, so a failure part way
+ * through leaves the store serving what it served. Switching off sets its head flag to 0 globally
+ * and removes its website and store view values; nothing else of that module is touched, and what
+ * was removed is reported so it can be restored by hand.
+ *
+ * Its sitemap flag is left as it is: the two modules cannot both write a sitemap's alternates.
+ * Where this module's generator writes the sitemap, it replaces `generateXml()`, so
+ * MageOS_Hreflang's rows are never written; where Magento's generator is selected, MageOS_Hreflang's
+ * are the only alternates the sitemap gets, and switching them off would lose them.
  *
  * Safe to run when MageOS_Hreflang was never installed: there are no values and no column.
  */
@@ -307,7 +312,7 @@ class HreflangImporter
     }
 
     /**
-     * Switch MageOS_Hreflang's head and sitemap output off.
+     * Switch MageOS_Hreflang's head output off.
      *
      * @param array<string,array<string,array<int,string|null>>> $theirs
      * @return array<int, array{path: string, scope: string, scope_id: int, value: string|null}>
@@ -315,7 +320,7 @@ class HreflangImporter
     private function switchOff(array $theirs): array
     {
         $removed = [];
-        foreach ([self::THEIR_ENABLED, self::THEIR_SITEMAP] as $path) {
+        foreach ([self::THEIR_ENABLED] as $path) {
             foreach ([ScopeInterface::SCOPE_WEBSITES, ScopeInterface::SCOPE_STORES] as $scope) {
                 foreach ($theirs[$path][$scope] ?? [] as $scopeId => $value) {
                     $this->configWriter->delete($path, $scope, $scopeId);
@@ -336,14 +341,14 @@ class HreflangImporter
     }
 
     /**
-     * Whether MageOS_Hreflang had its head or sitemap output on at any scope.
+     * Whether MageOS_Hreflang had its head output on at any scope.
      *
      * @param array<string,array<string,array<int,string|null>>> $theirs
      * @return bool
      */
     private function wasOnAnywhere(array $theirs): bool
     {
-        foreach ([self::THEIR_ENABLED, self::THEIR_SITEMAP] as $path) {
+        foreach ([self::THEIR_ENABLED] as $path) {
             foreach ($theirs[$path] ?? [] as $values) {
                 if (\in_array('1', $values, true)) {
                     return true;

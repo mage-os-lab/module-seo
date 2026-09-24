@@ -23,15 +23,13 @@ class FeedCache
      */
     public const CACHE_CONTROL = 'public, max-age=86400, s-maxage=86400';
 
-    public const TAG_LLMS             = 'MAGEOS_SEO_LLMS';
-    public const TAG_LLMS_FULL        = 'MAGEOS_SEO_LLMS_FULL';
-    public const TAG_LLMS_JSONL       = 'MAGEOS_SEO_LLMS_JSONL';
-    public const TAG_HREFLANG_SITEMAP = 'MAGEOS_SEO_HREFLANG_SITEMAP';
+    public const TAG_LLMS       = 'MAGEOS_SEO_LLMS';
+    public const TAG_LLMS_FULL  = 'MAGEOS_SEO_LLMS_FULL';
+    public const TAG_LLMS_JSONL = 'MAGEOS_SEO_LLMS_JSONL';
 
     private const GROUP_TAGS = [
-        FeedRegenerator::GROUP_LLMS     => [self::TAG_LLMS, self::TAG_LLMS_FULL],
-        FeedRegenerator::GROUP_JSONL    => [self::TAG_LLMS_JSONL],
-        FeedRegenerator::GROUP_HREFLANG => [self::TAG_HREFLANG_SITEMAP],
+        FeedRegenerator::GROUP_LLMS  => [self::TAG_LLMS, self::TAG_LLMS_FULL],
+        FeedRegenerator::GROUP_JSONL => [self::TAG_LLMS_JSONL],
     ];
 
     /**
@@ -66,6 +64,21 @@ class FeedCache
             }
         }
 
+        $this->purgeTags(array_values($tags));
+    }
+
+    /**
+     * Purge the cached responses carrying any of the tags.
+     *
+     * Also a tag no group has any more, such as a retired feed's (see
+     * Setup\Patch\Data\RemoveHreflangSitemap).
+     *
+     * @param string[] $tags
+     * @return void
+     */
+    public function purgeTags(array $tags): void
+    {
+        $tags = array_values(array_unique($tags));
         if ($tags === [] || !$this->pageCacheConfig->isEnabled()) {
             return;
         }
@@ -79,6 +92,6 @@ class FeedCache
             return;
         }
 
-        $this->fullPageCache->clean($this->cleaningMode->matchingAnyTag(), array_values($tags));
+        $this->fullPageCache->clean($this->cleaningMode->matchingAnyTag(), $tags);
     }
 }

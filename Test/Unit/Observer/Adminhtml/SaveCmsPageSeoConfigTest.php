@@ -11,14 +11,13 @@ use Magento\Framework\Message\ManagerInterface;
 use MageOS\Seo\Model\Cms\ConfigRepository;
 use MageOS\Seo\Model\Cms\HreflangGroup;
 use MageOS\Seo\Model\Cms\TranslationGroupCache;
-use MageOS\Seo\Model\Feed\FeedInvalidator;
 use MageOS\Seo\Observer\Adminhtml\SaveCmsPageSeoConfig;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
 
 /**
- * Which values reach the repository, and when the hreflang sitemap is queued. That the admin form
- * and this observer agree on the row is covered end to end by
+ * Which values reach the repository, and when the translation group's other pages are refreshed.
+ * That the admin form and this observer agree on the row is covered end to end by
  * Test/Integration/Controller/Adminhtml/SeoFieldsetPersistenceTest.
  */
 class SaveCmsPageSeoConfigTest extends TestCase
@@ -74,16 +73,14 @@ class SaveCmsPageSeoConfigTest extends TestCase
         ])));
     }
 
-    public function testChangingTheGroupRefreshesTheSitemapAndBothGroupsPages(): void
+    public function testChangingTheGroupRefreshesBothGroupsPages(): void
     {
         $repository = $this->createStub(ConfigRepository::class);
         $repository->method('getHreflangGroup')->willReturn('old-group');
-        $invalidator = $this->createMock(FeedInvalidator::class);
-        $invalidator->expects($this->once())->method('invalidateHreflangSitemap');
         $cache = $this->createMock(TranslationGroupCache::class);
         $cache->expects($this->once())->method('purge')->with(['old-group', 'new-group']);
 
-        $this->observer($repository, null, $invalidator, $cache)->execute($this->eventFor($this->page(7, [
+        $this->observer($repository, null, $cache)->execute($this->eventFor($this->page(7, [
             SaveCmsPageSeoConfig::FIELD_HREFLANG_GROUP => 'new-group',
         ])));
     }
@@ -93,12 +90,10 @@ class SaveCmsPageSeoConfigTest extends TestCase
         // Every save of the form posts the group back; only a change reaches other pages.
         $repository = $this->createStub(ConfigRepository::class);
         $repository->method('getHreflangGroup')->willReturn('about-us');
-        $invalidator = $this->createMock(FeedInvalidator::class);
-        $invalidator->expects($this->never())->method('invalidateHreflangSitemap');
         $cache = $this->createMock(TranslationGroupCache::class);
         $cache->expects($this->never())->method('purge');
 
-        $this->observer($repository, null, $invalidator, $cache)->execute($this->eventFor($this->page(7, [
+        $this->observer($repository, null, $cache)->execute($this->eventFor($this->page(7, [
             SaveCmsPageSeoConfig::FIELD_ROBOTS_META    => 'NOINDEX,FOLLOW',
             SaveCmsPageSeoConfig::FIELD_HREFLANG_GROUP => 'About-Us',
         ])));
@@ -111,10 +106,10 @@ class SaveCmsPageSeoConfigTest extends TestCase
         $messages = $this->createMock(ManagerInterface::class);
         $messages->expects($this->once())->method('addWarningMessage')
             ->with($this->stringContains('SEO settings could not be saved'));
-        $invalidator = $this->createMock(FeedInvalidator::class);
-        $invalidator->expects($this->never())->method('invalidateHreflangSitemap');
+        $cache = $this->createMock(TranslationGroupCache::class);
+        $cache->expects($this->never())->method('purge');
 
-        $this->observer($repository, $messages, $invalidator)->execute($this->eventFor($this->page(7, [
+        $this->observer($repository, $messages, $cache)->execute($this->eventFor($this->page(7, [
             SaveCmsPageSeoConfig::FIELD_HREFLANG_GROUP => 'about-us',
         ])));
     }
@@ -131,7 +126,7 @@ class SaveCmsPageSeoConfigTest extends TestCase
         $logger->expects($this->once())->method('error')
             ->with($this->stringContains('could not refresh the translation group'));
 
-        $this->observer($repository, $messages, null, $cache, $logger)->execute($this->eventFor($this->page(7, [
+        $this->observer($repository, $messages, $cache, $logger)->execute($this->eventFor($this->page(7, [
             SaveCmsPageSeoConfig::FIELD_HREFLANG_GROUP => 'about-us',
         ])));
     }
@@ -139,7 +134,6 @@ class SaveCmsPageSeoConfigTest extends TestCase
     /**
      * @param ConfigRepository $repository
      * @param ManagerInterface|null $messages
-     * @param FeedInvalidator|null $invalidator
      * @param TranslationGroupCache|null $cache
      * @param LoggerInterface|null $logger
      * @return SaveCmsPageSeoConfig
@@ -147,14 +141,12 @@ class SaveCmsPageSeoConfigTest extends TestCase
     private function observer(
         ConfigRepository $repository,
         ?ManagerInterface $messages = null,
-        ?FeedInvalidator $invalidator = null,
         ?TranslationGroupCache $cache = null,
         ?LoggerInterface $logger = null
     ): SaveCmsPageSeoConfig {
         return new SaveCmsPageSeoConfig(
             $repository,
             new HreflangGroup(),
-            $invalidator ?? $this->createStub(FeedInvalidator::class),
             $cache ?? $this->createStub(TranslationGroupCache::class),
             $messages ?? $this->createStub(ManagerInterface::class),
             $logger ?? $this->createStub(LoggerInterface::class)

@@ -64,16 +64,6 @@ class FeedInvalidator
     }
 
     /**
-     * Queue a rebuild of the hreflang sitemap files.
-     *
-     * @return void
-     */
-    public function invalidateHreflangSitemap(): void
-    {
-        $this->invalidate(FeedRegenerator::GROUP_HREFLANG);
-    }
-
-    /**
      * Queue a rebuild of the group when at least one store view can build it.
      *
      * @param string $group

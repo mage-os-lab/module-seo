@@ -43,36 +43,12 @@ class InvalidationPolicyTest extends TestCase
         $this->assertTrue($this->policy([1, 3], $config)->isGroupEnabled(FeedRegenerator::GROUP_JSONL));
     }
 
-    public function testHreflangNeedsTwoActiveStoresTheSitemapAndAStoreWithHreflang(): void
-    {
-        $enabled = $this->createStub(Config::class);
-        $enabled->method('isHreflangSitemapEnabled')->willReturn(true);
-        $enabled->method('isHreflangEnabled')->willReturn(true);
-
-        $this->assertFalse($this->policy([1], $enabled)->isGroupEnabled(FeedRegenerator::GROUP_HREFLANG));
-        $this->assertFalse(
-            $this->policy([1], $enabled, [2])->isGroupEnabled(FeedRegenerator::GROUP_HREFLANG),
-            'Inactive store views do not count.'
-        );
-        $this->assertTrue($this->policy([1, 2], $enabled)->isGroupEnabled(FeedRegenerator::GROUP_HREFLANG));
-
-        $sitemapOff = $this->createStub(Config::class);
-        $sitemapOff->method('isHreflangSitemapEnabled')->willReturn(false);
-        $sitemapOff->method('isHreflangEnabled')->willReturn(true);
-        $this->assertFalse($this->policy([1, 2], $sitemapOff)->isGroupEnabled(FeedRegenerator::GROUP_HREFLANG));
-
-        $hreflangOff = $this->createStub(Config::class);
-        $hreflangOff->method('isHreflangSitemapEnabled')->willReturn(true);
-        $hreflangOff->method('isHreflangEnabled')->willReturn(false);
-        $this->assertFalse($this->policy([1, 2], $hreflangOff)->isGroupEnabled(FeedRegenerator::GROUP_HREFLANG));
-    }
-
     public function testUnknownGroupIsNeverEnabled(): void
     {
         $this->assertFalse($this->policy([1, 2])->isGroupEnabled('unknown'));
     }
 
-    public function testProductSaveAffectsHreflangOnlyThroughUrlRelevantChanges(): void
+    public function testAProductSaveRebuildsTheProductsOnlyThroughWhatIsListed(): void
     {
         $policy = $this->policy([1, 2]);
         $loaded = ['url_key' => 'shirt', 'status' => 1, 'visibility' => 4, 'name' => 'Shirt', 'website_ids' => [1]];
@@ -89,17 +65,14 @@ class InvalidationPolicyTest extends TestCase
         ];
         foreach ($cases as $label => [$product, $expected]) {
             $this->assertSame(
-                $expected,
-                $policy->isRelevantChange(
-                    FeedRegenerator::GROUP_HREFLANG,
-                    $this->event(InvalidationPolicy::EVENT_PRODUCT_SAVE, $product)
-                ),
+                $expected ? ['products'] : [],
+                $policy->sitemapTypesAffectedBy($this->event(InvalidationPolicy::EVENT_PRODUCT_SAVE, $product)),
                 $label
             );
         }
     }
 
-    public function testCategorySaveAffectsHreflangOnlyThroughUrlRelevantChanges(): void
+    public function testACategorySaveRebuildsTheCategoriesOnlyThroughWhatIsListed(): void
     {
         $policy = $this->policy([1, 2]);
         $loaded = ['url_key' => 'shirts', 'is_active' => 1, 'name' => 'Shirts'];
@@ -112,17 +85,14 @@ class InvalidationPolicyTest extends TestCase
         ];
         foreach ($cases as $label => [$category, $expected]) {
             $this->assertSame(
-                $expected,
-                $policy->isRelevantChange(
-                    FeedRegenerator::GROUP_HREFLANG,
-                    $this->event(InvalidationPolicy::EVENT_CATEGORY_SAVE, $category)
-                ),
+                $expected ? ['categories'] : [],
+                $policy->sitemapTypesAffectedBy($this->event(InvalidationPolicy::EVENT_CATEGORY_SAVE, $category)),
                 $label
             );
         }
     }
 
-    public function testCmsPageSaveAffectsHreflangOnlyThroughUrlRelevantChanges(): void
+    public function testACmsPageSaveRebuildsThePagesOnlyThroughWhatIsListed(): void
     {
         $policy = $this->policy([1, 2]);
         $loaded = ['identifier' => 'about', 'is_active' => 1, 'store_id' => ['0'], 'title' => 'About'];
@@ -137,11 +107,8 @@ class InvalidationPolicyTest extends TestCase
         ];
         foreach ($cases as $label => [$page, $expected]) {
             $this->assertSame(
-                $expected,
-                $policy->isRelevantChange(
-                    FeedRegenerator::GROUP_HREFLANG,
-                    $this->event(InvalidationPolicy::EVENT_CMS_PAGE_SAVE, $page)
-                ),
+                $expected ? ['pages'] : [],
+                $policy->sitemapTypesAffectedBy($this->event(InvalidationPolicy::EVENT_CMS_PAGE_SAVE, $page)),
                 $label
             );
         }
@@ -160,13 +127,13 @@ class InvalidationPolicyTest extends TestCase
 
         foreach ($events as $name) {
             $this->assertTrue(
-                $policy->isRelevantChange(FeedRegenerator::GROUP_HREFLANG, $this->event($name, $unchangedProduct)),
+                $policy->isRelevantChange(FeedRegenerator::GROUP_LLMS, $this->event($name, $unchangedProduct)),
                 $name
             );
         }
         // A product save event that does not carry a product model is not second-guessed.
         $this->assertTrue($policy->isRelevantChange(
-            FeedRegenerator::GROUP_HREFLANG,
+            FeedRegenerator::GROUP_LLMS,
             $this->event(InvalidationPolicy::EVENT_PRODUCT_SAVE, new DataObject())
         ));
     }
@@ -250,16 +217,11 @@ class InvalidationPolicyTest extends TestCase
         }
     }
 
-    public function testMassAttributeUpdatesAffectJsonlAlwaysAndTheSitemapByAttribute(): void
+    public function testMassAttributeUpdatesAffectJsonlAlwaysAndLlmsNever(): void
     {
         $policy = $this->policy([1, 2]);
 
         $this->assertTrue($policy->isRelevantAttributeUpdate(FeedRegenerator::GROUP_JSONL, ['description']));
-        $this->assertTrue($policy->isRelevantAttributeUpdate(FeedRegenerator::GROUP_HREFLANG, ['status']));
-        $this->assertTrue(
-            $policy->isRelevantAttributeUpdate(FeedRegenerator::GROUP_HREFLANG, ['description', 'visibility'])
-        );
-        $this->assertFalse($policy->isRelevantAttributeUpdate(FeedRegenerator::GROUP_HREFLANG, ['description']));
         // The llms documents list categories and counts, which no attribute value changes.
         $this->assertFalse($policy->isRelevantAttributeUpdate(FeedRegenerator::GROUP_LLMS, ['status', 'url_key']));
     }

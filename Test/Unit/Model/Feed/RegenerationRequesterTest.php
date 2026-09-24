@@ -50,15 +50,15 @@ class RegenerationRequesterTest extends TestCase
         $flagManager->method('getFlagData')
             ->willReturn(self::NOW - RegenerationRequester::STALE_AFTER_SECONDS);
         $flagManager->expects($this->once())->method('saveFlag')
-            ->with('mageos_seo_feed_pending_hreflang', self::NOW);
+            ->with('mageos_seo_feed_pending_jsonl', self::NOW);
         $publisher = $this->createMock(PublisherInterface::class);
         $publisher->expects($this->once())->method('publish')
-            ->with(RegenerationRequester::TOPIC, FeedRegenerator::GROUP_HREFLANG);
+            ->with(RegenerationRequester::TOPIC, FeedRegenerator::GROUP_JSONL);
         $logger = $this->createMock(LoggerInterface::class);
         $logger->expects($this->once())->method('warning')
             ->with($this->stringContains('mageosSeoFeedRegenerate consumer'));
 
-        $this->requester($flagManager, $publisher, $logger)->request(FeedRegenerator::GROUP_HREFLANG);
+        $this->requester($flagManager, $publisher, $logger)->request(FeedRegenerator::GROUP_JSONL);
     }
 
     public function testAnUnreadablePendingFlagIsTreatedAsStale(): void
@@ -81,13 +81,13 @@ class RegenerationRequesterTest extends TestCase
         $flagManager = $this->createMock(FlagManager::class);
         $flagManager->method('getFlagData')->willReturn(null);
         $flagManager->expects($this->once())->method('saveFlag');
-        $flagManager->expects($this->once())->method('deleteFlag')->with('mageos_seo_feed_pending_hreflang');
+        $flagManager->expects($this->once())->method('deleteFlag')->with('mageos_seo_feed_pending_jsonl');
         $publisher = $this->createStub(PublisherInterface::class);
         $publisher->method('publish')->willThrowException(new \RuntimeException('queue down'));
         $logger = $this->createMock(LoggerInterface::class);
         $logger->expects($this->once())->method('error');
 
-        $this->requester($flagManager, $publisher, $logger)->request(FeedRegenerator::GROUP_HREFLANG);
+        $this->requester($flagManager, $publisher, $logger)->request(FeedRegenerator::GROUP_JSONL);
     }
 
     public function testAcknowledgeClearsThePendingFlag(): void

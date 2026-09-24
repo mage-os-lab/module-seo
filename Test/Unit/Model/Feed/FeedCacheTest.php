@@ -20,13 +20,32 @@ class FeedCacheTest extends TestCase
         $purgeCache->expects($this->once())->method('sendPurgeRequest')->with([
             '((^|,)MAGEOS_SEO_LLMS(,|$))',
             '((^|,)MAGEOS_SEO_LLMS_FULL(,|$))',
-            '((^|,)MAGEOS_SEO_HREFLANG_SITEMAP(,|$))',
+            '((^|,)MAGEOS_SEO_LLMS_JSONL(,|$))',
         ]);
         $fullPageCache = $this->createMock(FullPageCache::class);
         $fullPageCache->expects($this->never())->method('clean');
 
         $this->feedCache(true, PageCacheConfig::VARNISH, $fullPageCache, $purgeCache)
-            ->purge([FeedRegenerator::GROUP_LLMS, FeedRegenerator::GROUP_HREFLANG]);
+            ->purge([FeedRegenerator::GROUP_LLMS, FeedRegenerator::GROUP_JSONL]);
+    }
+
+    public function testATagNoGroupHasCanBePurgedByName(): void
+    {
+        // A retired feed's cached responses outlive its group (see Setup\Patch\Data\RemoveHreflangSitemap).
+        $purgeCache = $this->createMock(PurgeCache::class);
+        $purgeCache->expects($this->once())->method('sendPurgeRequest')
+            ->with(['((^|,)MAGEOS_SEO_HREFLANG_SITEMAP(,|$))']);
+
+        $this->feedCache(true, PageCacheConfig::VARNISH, $this->createStub(FullPageCache::class), $purgeCache)
+            ->purgeTags(['MAGEOS_SEO_HREFLANG_SITEMAP', 'MAGEOS_SEO_HREFLANG_SITEMAP']);
+    }
+
+    public function testNoTagsPurgeNothing(): void
+    {
+        $fullPageCache = $this->createMock(FullPageCache::class);
+        $fullPageCache->expects($this->never())->method('clean');
+
+        $this->feedCache(true, PageCacheConfig::BUILT_IN, $fullPageCache)->purgeTags([]);
     }
 
     public function testBuiltInFullPageCacheIsCleanedByTag(): void
@@ -50,7 +69,6 @@ class FeedCacheTest extends TestCase
             'MAGEOS_SEO_LLMS',
             'MAGEOS_SEO_LLMS_FULL',
             'MAGEOS_SEO_LLMS_JSONL',
-            'MAGEOS_SEO_HREFLANG_SITEMAP',
         ]);
 
         $this->feedCache(true, PageCacheConfig::BUILT_IN, $fullPageCache)

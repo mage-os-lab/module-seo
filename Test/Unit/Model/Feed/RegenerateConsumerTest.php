@@ -128,9 +128,9 @@ class RegenerateConsumerTest extends TestCase
         $this->regenerator
             ->expects($this->once())
             ->method('regenerate')
-            ->with(FeedRegenerator::GROUP_HREFLANG);
+            ->with(FeedRegenerator::GROUP_JSONL);
 
-        $this->consumer->process(FeedRegenerator::GROUP_HREFLANG);
+        $this->consumer->process(FeedRegenerator::GROUP_JSONL);
     }
 
     public function testUnknownGroupIsRejectedWithoutBuilding(): void

@@ -1,13 +1,16 @@
 # Pre-generated feeds
 
-Four documents are generated in the background and served from files:
+Three documents are generated in the background and served from files:
 
 | URL | What it is | Documented in |
 |---|---|---|
 | `/llms.txt` | Concise site summary for LLM crawlers | [llms-txt.md](llms-txt.md) |
 | `/llms-full.txt` | The extended version | [llms-txt.md](llms-txt.md) |
 | `/llms.jsonl` | One JSON-LD `Product` node per line | [llms-txt.md](llms-txt.md) |
-| `/hreflang-sitemap.xml` | Alternate URLs per store view, plus its chunk files | [hreflang.md](hreflang.md) |
+
+Hreflang alternates for the whole catalogue are in `sitemap.xml`, beside each URL — see
+[sitemap.md](sitemap.md). The dedicated `/hreflang-sitemap.xml` this module used to serve is
+retired; the path answers 404.
 
 This page covers what they have in common: how they are built, when they are rebuilt, where
 they are stored and what they cost. What each document *contains* is in the pages above.
@@ -73,11 +76,11 @@ endpoints read session state.
 
 Responses are served with `Cache-Control: public, max-age=86400, s-maxage=86400`, so
 browsers, Varnish and the built-in full page cache keep them for **24 hours**. They
-are tagged `MAGEOS_SEO_LLMS` (`/llms.txt`), `MAGEOS_SEO_LLMS_FULL` (`/llms-full.txt`),
-`MAGEOS_SEO_LLMS_JSONL` (`/llms.jsonl`) and `MAGEOS_SEO_HREFLANG_SITEMAP`
-(`/hreflang-sitemap.xml` and its chunks). After rebuilding a feed group, the consumer
-and the cron purge that group's tags, so cached copies are replaced as soon as the new
-files exist.
+are tagged `MAGEOS_SEO_LLMS` (`/llms.txt`), `MAGEOS_SEO_LLMS_FULL` (`/llms-full.txt`) and
+`MAGEOS_SEO_LLMS_JSONL` (`/llms.jsonl`). After rebuilding a feed group, the consumer and the
+cron purge that group's tags, so cached copies are replaced as soon as the new files exist.
+(The retired `/hreflang-sitemap.xml` was tagged `MAGEOS_SEO_HREFLANG_SITEMAP`; the upgrade that
+retires it purges that tag once, along with its files.)
 
 > **With the built-in full page cache**, Magento replaces the client-facing headers on every
 > cacheable page with `Pragma: no-cache` and `Cache-Control: max-age=0, must-revalidate`,
@@ -89,22 +92,17 @@ files exist.
 
 ## When a rebuild is queued
 
-| Change | `/llms.txt`, `/llms-full.txt` | `/llms.jsonl` | Hreflang sitemap |
-|---|---|---|---|
-| Product saved | new product, or its categories or websites changed (product counts) | always | new product, or `url_key`, `status`, `visibility` or websites changed |
-| Category saved | always | — | new category, or `url_key` or `is_active` changed |
-| CMS page saved | — | — | new page, or identifier, `is_active` or store views changed |
-| Store view saved | — | — | always |
-| Category moved | always | — | always |
-| Product deleted | always | always | always |
-| Category deleted | always | — | always |
-| CMS page deleted | — | — | always |
-| Store view deleted | — | — | always |
-| Store group or website deleted | — | — | always |
-| Mass attribute update | — | always | `url_key`, `status` or `visibility` among the updated attributes |
-| Mass website assignment change | always | always | always |
-| Organisation settings saved | always | — | — |
-| FAQ saved or deleted | always | — | — |
+| Change | `/llms.txt`, `/llms-full.txt` | `/llms.jsonl` |
+|---|---|---|
+| Product saved | new product, or its categories or websites changed (product counts) | always |
+| Category saved | always | — |
+| Category moved | always | — |
+| Product deleted | always | always |
+| Category deleted | always | — |
+| Mass attribute update | — | always |
+| Mass website assignment change | always | always |
+| Organisation settings saved | always | — |
+| FAQ saved or deleted | always | — |
 
 Mass actions — the admin grid's "Update attributes", mass enable/disable and mass website
 assignment, and anything else going through `Magento\Catalog\Model\Product\Action` — write
@@ -112,24 +110,16 @@ straight to the catalogue tables without saving the products, so no save event r
 They are covered separately (a plugin for attributes, the `catalog_product_to_website_change`
 event for websites).
 
-Deleting a store view also removes that store's feed directory, and queues the sitemap rebuild
-that corrects the store views left behind. That includes the deletion that leaves only one store
-view: a single store view has no alternates, so the sitemap can no longer be built — and the
-rebuild is what removes the one the survivor is still serving, rather than leaving it listing a
-store view that no longer exists.
-
-Deleting a **store group or a website** takes its store views with it in the database, without
-dispatching a `store_delete` event for any of them, so the rebuild is queued from the website's
-or group's own deletion instead. Their feed directories are removed by the next full rebuild
-(the nightly cron, or `mageos:seo:feeds:regenerate` with no `-g`), which sweeps directories
-whose store view no longer exists. Until then nothing serves them: a request resolves feeds for
-the current store view, and theirs is gone.
+Deleting a store view also removes that store's feed directory. Deleting a **store group or a
+website** takes its store views with it in the database, without dispatching a `store_delete`
+event for any of them; their feed directories are removed by the next full rebuild (the nightly
+cron, or `mageos:seo:feeds:regenerate` with no `-g`), which sweeps directories whose store view
+no longer exists. Until then nothing serves them: a request resolves feeds for the current store
+view, and theirs is gone.
 
 A feed that no store view can build is never queued: `/llms.jsonl` while it is disabled in
 every store view (the default), `/llms.txt` + `/llms-full.txt` when both are disabled
-everywhere, and the hreflang sitemap when it is disabled, hreflang is disabled in every
-store view, or fewer than two store views are active. The logic lives in
-`MageOS\Seo\Model\Feed\InvalidationPolicy`.
+everywhere. The logic lives in `MageOS\Seo\Model\Feed\InvalidationPolicy`.
 
 Changes that no event reports — native CSV imports, direct database writes, configuration
 changes — are picked up by the nightly rebuild.
@@ -145,14 +135,12 @@ next rebuild, so re-enabling it later produces a fresh build rather than an outd
 
 ## Build cost
 
-The large feeds are **streamed to their file** rather than assembled in memory:
-`/llms.jsonl` is built one product per line from a paged collection, and the hreflang
-sitemap reads its URL rewrites row by row, writing each `<url>` block as it goes. Peak
-memory is that of one page of products, not of the whole document — at 100k SKUs the
-jsonl document alone runs to tens of megabytes.
+The large feed is **streamed to its file** rather than assembled in memory: `/llms.jsonl` is
+built one product per line from a paged collection. Peak memory is that of one page of
+products, not of the whole document — at 100k SKUs the document runs to tens of megabytes.
 
-The sitemap's own economies — chunking above 50,000 URLs, and building each alternate set
-once — are described in [hreflang.md](hreflang.md).
+The XML sitemaps are streamed the same way, a page of the catalogue at a time; see
+[sitemap.md](sitemap.md).
 
 ---
 
@@ -247,7 +235,7 @@ run:
 
 ```bash
 bin/magento mageos:seo:feeds:regenerate            # every feed, every active store view
-bin/magento mageos:seo:feeds:regenerate -g llms    # one group: llms | jsonl | hreflang
+bin/magento mageos:seo:feeds:regenerate -g llms    # one group: llms | jsonl
 ```
 
 The same command rebuilds a kind of page in the XML sitemaps, `-g sitemap-products` and so on;

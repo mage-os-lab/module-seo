@@ -55,8 +55,6 @@ class NoSessionForPublicFeedsTest extends TestCase
             'llms.txt'            => ['/llms.txt'],
             'llms-full.txt'       => ['/llms-full.txt'],
             'llms.jsonl'          => ['/llms.jsonl'],
-            'sitemap index'       => ['/hreflang-sitemap.xml'],
-            'sitemap chunk'       => ['/hreflang-sitemap-2.xml'],
             'well-known document' => ['/.well-known/security.txt'],
             'well-known root'     => ['/.well-known/ucp'],
             'internal route'      => ['/mageos-seo/llms/index'],
@@ -76,8 +74,10 @@ class NoSessionForPublicFeedsTest extends TestCase
             'checkout'          => ['/checkout/cart'],
             // Near misses: a longer name that merely starts the same way is someone else's page.
             'llms-like product' => ['/llms.txt.html'],
-            'sitemap-like'      => ['/hreflang-sitemap.xml.bak'],
             'core sitemap'      => ['/sitemap.xml'],
+            // Retired: nothing serves the hreflang sitemap any more, so it is an ordinary 404.
+            'retired index'     => ['/hreflang-sitemap.xml'],
+            'retired chunk'     => ['/hreflang-sitemap-2.xml'],
         ];
     }
 

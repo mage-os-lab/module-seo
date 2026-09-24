@@ -480,7 +480,7 @@ class Config
     }
 
     /**
-     * Check if the /hreflang-sitemap.xml endpoint is enabled.
+     * Whether the MageOS SEO sitemap generator lists each URL's hreflang alternates beside it.
      *
      * @return bool
      */

@@ -134,42 +134,7 @@ class UrlRewrite extends AbstractConnectedResource
     }
 
     /**
-     * Every entity of a type, as a statement to be walked row by row.
-     *
-     * Deliberately not a collection or fetchAll(): the caller groups consecutive rows on
-     * `group_key` and yields them one group at a time, so a 100k-product catalogue never lands in
-     * memory. Ordering by the group key first is what makes that grouping correct.
-     *
-     * The group key is the entity ID, except for CMS pages in a translation group: those are one
-     * entry between them, each store view contributing its own translation.
-     *
-     * @param string $entityType One of the TYPE_* constants
-     * @param int[] $storeIds
-     * @return \Zend_Db_Statement_Interface
-     */
-    public function queryPathsForType(string $entityType, array $storeIds): \Zend_Db_Statement_Interface
-    {
-        $select = $this->canonicalSelect($entityType, ['entity_id', 'store_id', 'request_path'])
-            ->where('main_table.store_id IN (?)', $storeIds);
-
-        if ($entityType === self::TYPE_CMS_PAGE) {
-            $this->joinCmsTranslationGroup($select);
-            $select->order('group_key ASC');
-            $this->orderCmsCandidates($select);
-        } else {
-            $select->columns(['group_key' => 'main_table.entity_id'])
-                ->order('main_table.entity_id ASC');
-        }
-        $select->order('main_table.url_rewrite_id ASC');
-
-        return $this->connection()->query($select);
-    }
-
-    /**
-     * Join each CMS page's translation group, and select the key its rows are grouped on.
-     *
-     * The group lives on the page's global row. A page outside any group is a group of its own;
-     * the prefixes keep a group named like a page ID from ever meeting that page's own key.
+     * Join each CMS page's translation group, which lives on the page's global row.
      *
      * @param Select $select A CMS page canonicalSelect()
      * @return void
@@ -179,14 +144,7 @@ class UrlRewrite extends AbstractConnectedResource
         $select->joinLeft(
             ['cms_config' => $this->getTable('mageos_seo_cms_page_config')],
             'cms_config.page_id = cms_page.page_id AND cms_config.store_id = 0',
-            [
-                'group_key' => new \Zend_Db_Expr(
-                    "CASE WHEN cms_config.hreflang_group IS NULL OR cms_config.hreflang_group = ''"
-                    . " THEN CONCAT('p:', cms_page.page_id)"
-                    . " ELSE CONCAT('g:', cms_config.hreflang_group) END"
-                ),
-                'hreflang_group' => 'cms_config.hreflang_group',
-            ]
+            ['hreflang_group' => 'cms_config.hreflang_group']
         );
     }
 

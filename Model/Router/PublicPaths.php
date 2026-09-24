@@ -7,7 +7,7 @@ namespace MageOS\Seo\Model\Router;
 /**
  * The paths this module serves directly, in one place.
  *
- * Three routers own the forwarding, but they are not the only code that has to recognise these
+ * Two routers own the forwarding, but they are not the only code that has to recognise these
  * requests: a session must not be started for them, because starting one sets a session cookie and
  * makes PHP emit no-cache headers on a response meant to be shared-cached for a day. That decision
  * happens before routing, so it cannot ask the routers — hence this class, which each of them uses
@@ -23,11 +23,6 @@ class PublicPaths
         'llms-full.txt' => ['module' => 'mageos-seo', 'controller' => 'llmsfull',  'action' => 'index'],
         'llms.jsonl'    => ['module' => 'mageos-seo', 'controller' => 'llmsjsonl', 'action' => 'index'],
     ];
-
-    /**
-     * The sitemap index and its numbered chunk files.
-     */
-    public const HREFLANG_PATTERN = '#^hreflang-sitemap(?:-(\d+))?\.xml$#';
 
     /**
      * Everything under the agentic-discovery prefix.
@@ -50,7 +45,6 @@ class PublicPaths
         $path = trim($pathInfo, '/');
 
         return isset(self::LLMS_ROUTES[$path])
-            || preg_match(self::HREFLANG_PATTERN, $path) === 1
             || str_starts_with($path, self::WELL_KNOWN_PREFIX)
             // The internal controller URLs, which the canonical-path redirect sends back to the
             // paths above: they must not start a session on the way through either.

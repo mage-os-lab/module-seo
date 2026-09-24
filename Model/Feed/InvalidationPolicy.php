@@ -20,8 +20,8 @@ use MageOS\Seo\Model\Sitemap\RebuildGroup;
  * Decides whether a change can affect a feed group, so saves that cannot change a feed
  * queue no rebuild.
  *
- * - A group that no store view can build (disabled everywhere, or a hreflang sitemap with
- *   fewer than two active store views) is never queued.
+ * - A group that no store view can build (disabled everywhere; for a sitemap group, no sitemap a
+ *   change rebuilds) is never queued.
  * - Saves are checked for the fields the group's content depends on. Anything the policy
  *   does not recognise — store saves, deletions, category moves, unknown events — counts
  *   as relevant: a spare rebuild is cheap, a missed one leaves a feed stale until the
@@ -85,21 +85,6 @@ class InvalidationPolicy
     ];
 
     /**
-     * Product fields that change the product's URLs in the hreflang sitemap.
-     */
-    private const HREFLANG_PRODUCT_FIELDS = ['url_key', 'status', 'visibility'];
-
-    /**
-     * Category fields that change the category's URLs in the hreflang sitemap.
-     */
-    private const HREFLANG_CATEGORY_FIELDS = ['url_key', 'is_active'];
-
-    /**
-     * CMS page fields that change the page's URLs in the hreflang sitemap.
-     */
-    private const HREFLANG_CMS_PAGE_FIELDS = ['identifier', 'is_active', 'store_id'];
-
-    /**
      * @param StoreManagerInterface $storeManager
      * @param Config $seoConfig
      * @param RebuildableSitemaps $rebuildableSitemaps
@@ -135,18 +120,6 @@ class InvalidationPolicy
             case FeedRegenerator::GROUP_JSONL:
                 foreach ($storeIds as $storeId) {
                     if ($this->seoConfig->isLlmsJsonlEnabled($storeId)) {
-                        return true;
-                    }
-                }
-                return false;
-
-            case FeedRegenerator::GROUP_HREFLANG:
-                // Hreflang alternates need at least two store views.
-                if (\count($storeIds) < 2 || !$this->seoConfig->isHreflangSitemapEnabled()) {
-                    return false;
-                }
-                foreach ($storeIds as $storeId) {
-                    if ($this->seoConfig->isHreflangEnabled($storeId)) {
                         return true;
                     }
                 }
@@ -259,9 +232,8 @@ class InvalidationPolicy
         $entity    = $event->getData('data_object');
 
         return match ($group) {
-            FeedRegenerator::GROUP_HREFLANG => $this->affectsHreflang($eventName, $entity),
-            FeedRegenerator::GROUP_LLMS     => $this->affectsLlms($eventName, $entity),
-            default                         => true,
+            FeedRegenerator::GROUP_LLMS => $this->affectsLlms($eventName, $entity),
+            default                     => true,
         };
     }
 
@@ -280,40 +252,10 @@ class InvalidationPolicy
     {
         return match ($group) {
             // Every attribute the update can carry appears in a product's jsonl line.
-            FeedRegenerator::GROUP_JSONL    => true,
-            FeedRegenerator::GROUP_HREFLANG => array_intersect(
-                $attributeCodes,
-                self::HREFLANG_PRODUCT_FIELDS
-            ) !== [],
+            FeedRegenerator::GROUP_JSONL => true,
             // The llms documents list categories and product counts, never attribute values.
-            default                         => false,
+            default                      => false,
         };
-    }
-
-    /**
-     * Decide whether a change affects the hreflang sitemap.
-     *
-     * Known saves count only when they touch URL-relevant data; everything else is relevant.
-     *
-     * @param string $eventName
-     * @param mixed $entity
-     * @return bool
-     */
-    private function affectsHreflang(string $eventName, mixed $entity): bool
-    {
-        if ($eventName === self::EVENT_PRODUCT_SAVE && $entity instanceof Product) {
-            return $this->isNew($entity)
-                || $this->anyChanged($entity, self::HREFLANG_PRODUCT_FIELDS)
-                || $this->websitesChanged($entity);
-        }
-        if ($eventName === self::EVENT_CATEGORY_SAVE && $entity instanceof Category) {
-            return $this->isNew($entity) || $this->anyChanged($entity, self::HREFLANG_CATEGORY_FIELDS);
-        }
-        if ($eventName === self::EVENT_CMS_PAGE_SAVE && $entity instanceof Page) {
-            return $this->isNew($entity) || $this->anyChanged($entity, self::HREFLANG_CMS_PAGE_FIELDS);
-        }
-
-        return true;
     }
 
     /**

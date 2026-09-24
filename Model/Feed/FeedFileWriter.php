@@ -13,8 +13,7 @@ use Magento\Framework\Filesystem\File\WriteInterface as FileWriteInterface;
  * Content goes to a temporary file in the store's feed directory; commit() renames that over
  * the served name, so readers see the previous file or the complete new one, never a partially
  * written document, and a build that fails leaves the served file untouched. The served name is
- * chosen at commit time: the hreflang sitemap only knows whether its first chunk is the whole
- * document once the stream ends.
+ * given at commit time.
  */
 class FeedFileWriter
 {

@@ -20,12 +20,8 @@ class FeedInvalidatorTest extends TestCase
 
         $invalidator->invalidateLlms();
         $invalidator->invalidateJsonl();
-        $invalidator->invalidateHreflangSitemap();
 
-        $this->assertSame(
-            [FeedRegenerator::GROUP_LLMS, FeedRegenerator::GROUP_JSONL, FeedRegenerator::GROUP_HREFLANG],
-            $requested
-        );
+        $this->assertSame([FeedRegenerator::GROUP_LLMS, FeedRegenerator::GROUP_JSONL], $requested);
     }
 
     public function testGroupsNoStoreViewCanBuildAreNotQueued(): void
@@ -35,7 +31,6 @@ class FeedInvalidatorTest extends TestCase
 
         $invalidator->invalidateLlms();
         $invalidator->invalidateJsonl();
-        $invalidator->invalidateHreflangSitemap();
 
         $this->assertSame([FeedRegenerator::GROUP_LLMS], $requested);
     }

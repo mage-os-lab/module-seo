@@ -113,6 +113,7 @@ class HreflangImporterTest extends TestCase
 
         // MageOS_Hreflang on everywhere, this module switched off by the merchant in its favour.
         $this->set('web/seo/use_hreflangs', '1');
+        $this->set('web/seo/use_hreflangs', '1', 'websites', $websiteId);
         $this->set('web/seo/use_sitemap_hreflangs', '1', 'websites', $websiteId);
         $this->set('web/seo/hreflang', '{"_1":{"hreflang":"en-ie"},"_2":{"hreflang":"en-uk"}}', 'stores', $storeId);
         $this->set('web/seo/hreflang_xdefault_store', (string) $storeId, 'websites', $websiteId);
@@ -135,20 +136,31 @@ class HreflangImporterTest extends TestCase
         $this->assertFalse($report['sitemap_enabled']);
 
         $this->assertSame('0', $this->stored('web/seo/use_hreflangs', 'default', 0));
-        $this->assertSame('0', $this->stored('web/seo/use_sitemap_hreflangs', 'default', 0));
         $this->assertNull(
-            $this->stored('web/seo/use_sitemap_hreflangs', 'websites', $websiteId),
+            $this->stored('web/seo/use_hreflangs', 'websites', $websiteId),
             'Narrower values are removed, or they would switch it back on below the default.'
         );
         $this->assertContains(
             [
-                'path'     => 'web/seo/use_sitemap_hreflangs',
+                'path'     => 'web/seo/use_hreflangs',
                 'scope'    => 'websites',
                 'scope_id' => $websiteId,
                 'value'    => '1',
             ],
             $report['switched_off'],
             'What was removed is reported, so it can be put back.'
+        );
+
+        // Its sitemap flag stays: where this module's generator runs, its rows are never written;
+        // where Magento's runs, they are the only alternates the sitemap has.
+        $this->assertSame('1', $this->stored('web/seo/use_sitemap_hreflangs', 'websites', $websiteId));
+        $this->assertNull($this->stored('web/seo/use_sitemap_hreflangs', 'default', 0));
+        $this->assertSame(
+            [],
+            array_filter(
+                $report['switched_off'],
+                static fn (array $row): bool => $row['path'] === 'web/seo/use_sitemap_hreflangs'
+            )
         );
     }
 

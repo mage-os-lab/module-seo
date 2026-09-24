@@ -14,8 +14,8 @@ use MageOS\Seo\Model\Config;
 use Psr\Log\LoggerInterface;
 
 /**
- * File storage for pre-generated SEO feeds (llms.txt, llms-full.txt, llms.jsonl,
- * hreflang sitemap files), one directory per store view.
+ * File storage for pre-generated SEO feeds (llms.txt, llms-full.txt, llms.jsonl), one
+ * directory per store view.
  *
  * Defaults to var/mageos_seo/store_<id>/; a custom absolute directory can be
  * configured (mageos_seo_general/feeds/storage_dir) so multi-server deployments
@@ -111,9 +111,8 @@ class FeedStorage
     /**
      * Open a writer that builds one feed file for a store incrementally.
      *
-     * The served file name is given to commit(), so a caller that only learns the name at the
-     * end (the hreflang sitemap: one urlset, or numbered chunks plus an index) can stream the
-     * document out instead of holding it in memory.
+     * The document is streamed out (llms.jsonl, a line per product) instead of held in memory;
+     * the served file name is given to commit(), and the file appears only then.
      *
      * @param int $storeId
      * @throws \Magento\Framework\Exception\FileSystemException
@@ -131,45 +130,6 @@ class FeedStorage
             $this->prefix() . 'store_' . $storeId,
             self::FILE_MODE
         );
-    }
-
-    /**
-     * Copy a feed file from one store's directory to another's, replacing it atomically.
-     *
-     * Store views that share a hreflang alternate set get identical sitemap chunks; copying
-     * the finished file is cheaper than generating it again per store view.
-     *
-     * @param string $fileName
-     * @param int $fromStoreId
-     * @param int $toStoreId
-     * @throws \Magento\Framework\Exception\FileSystemException
-     * @return void
-     */
-    public function copyBetweenStores(string $fileName, int $fromStoreId, int $toStoreId): void
-    {
-        $dir = $this->getWrite();
-        $this->prepareDirectories($dir, $toStoreId);
-
-        $temporary = $this->path('.' . bin2hex(random_bytes(6)) . '.tmp', $toStoreId);
-        $target    = $this->path($fileName, $toStoreId);
-
-        try {
-            $dir->copyFile($this->path($fileName, $fromStoreId), $temporary);
-            $dir->renameFile($temporary, $target);
-        } catch (\Exception $e) {
-            try {
-                if ($dir->isExist($temporary)) {
-                    $dir->delete($temporary);
-                }
-            } catch (\Exception) { // phpcs:ignore Magento2.CodeAnalysis.EmptyBlock.DetectedCatch -- best-effort cleanup
-            }
-            throw $e;
-        }
-
-        try {
-            $dir->changePermissions($target, self::FILE_MODE);
-        } catch (\Exception) { // phpcs:ignore Magento2.CodeAnalysis.EmptyBlock.DetectedCatch -- the file is in place
-        }
     }
 
     /**
@@ -226,7 +186,7 @@ class FeedStorage
     /**
      * Delete matching feed files for one store.
      *
-     * @param string $fileNamePattern Glob pattern, e.g. "hreflang-sitemap*.xml"
+     * @param string $fileNamePattern Glob pattern, e.g. "llms*.txt"
      * @param int $storeId
      * @return void
      */
@@ -290,28 +250,6 @@ class FeedStorage
     }
 
     /**
-     * List the names of one store's feed files matching a pattern.
-     *
-     * @param string $fileNamePattern Glob pattern, e.g. "hreflang-sitemap-*.xml"
-     * @param int $storeId
-     * @return string[] File names without their directory
-     */
-    public function listForStore(string $fileNamePattern, int $storeId): array
-    {
-        try {
-            $directory = (string) $this->storeDirectory($storeId);
-            $names     = [];
-            foreach ($this->search($directory, $fileNamePattern) as $path) {
-                $names[] = substr((string) $path, \strlen($directory) + 1);
-            }
-
-            return $names;
-        } catch (\Exception) {
-            return [];
-        }
-    }
-
-    /**
      * The storage-relative directory a store view's files live in.
      *
      * With $storeId null it is the directory those store directories sit in, which is null for a
@@ -338,8 +276,8 @@ class FeedStorage
      * Magento\Framework\Filesystem\Glob, which memoises every result for the life of the
      * process, so a listing taken after this process has written or deleted files is the
      * listing from before it did. Both the queue consumer and the cron rebuild more than once
-     * per process, and a rebuild lists its own output — surplus sitemap chunks, store
-     * directories — to decide what to remove. (Glob::clearCache() would do, but it does not
+     * per process, and a rebuild lists its own output — files to delete, store directories —
+     * to decide what to remove. (Glob::clearCache() would do, but it does not
      * exist on every version this module supports, and reading the directory is no more work.)
      *
      * @param string|null $directory Storage-relative directory, or null for the storage root

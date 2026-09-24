@@ -14,9 +14,6 @@ use MageOS\Seo\Model\Feed\FeedFileWriter;
 use MageOS\Seo\Model\Feed\FeedRegenerator;
 use MageOS\Seo\Model\Feed\FeedStorage;
 use MageOS\Seo\Model\Feed\RebuildLock;
-use MageOS\Seo\Model\Hreflang\SitemapFileWriter;
-use MageOS\Seo\Model\Hreflang\SitemapGenerator;
-use MageOS\Seo\Model\Hreflang\StoreLocaleMap;
 use MageOS\Seo\Model\LlmsJsonl\JsonlBuilder;
 use MageOS\Seo\Model\LlmsTxt\LlmsTxtBuilder;
 use PHPUnit\Framework\MockObject\Stub;
@@ -51,16 +48,6 @@ class FeedRegeneratorTest extends TestCase
     private JsonlBuilder&Stub $jsonlBuilder;
 
     /**
-     * @var SitemapFileWriter&Stub
-     */
-    private SitemapFileWriter&Stub $sitemapFileWriter;
-
-    /**
-     * @var StoreLocaleMap&Stub
-     */
-    private StoreLocaleMap&Stub $storeLocaleMap;
-
-    /**
      * @var FeedStorage&Stub
      */
     private FeedStorage&Stub $feedStorage;
@@ -83,18 +70,11 @@ class FeedRegeneratorTest extends TestCase
     private ?RebuildLock $rebuildLock = null;
 
     /**
-     * Storage, sitemap and cache calls in the order they happened.
+     * Storage and cache calls in the order they happened.
      *
      * @var list<string>
      */
     private array $calls = [];
-
-    /**
-     * Chunk file names the sitemap writer reports per generated store view.
-     *
-     * @var string[]
-     */
-    private array $chunkNames = [];
 
     /**
      * Store view IDs the storage reports as having a feed directory.
@@ -110,13 +90,10 @@ class FeedRegeneratorTest extends TestCase
         $this->seoConfig         = $this->createStub(Config::class);
         $this->llmsTxtBuilder    = $this->createStub(LlmsTxtBuilder::class);
         $this->jsonlBuilder      = $this->createStub(JsonlBuilder::class);
-        $this->sitemapFileWriter = $this->createStub(SitemapFileWriter::class);
-        $this->storeLocaleMap    = $this->createStub(StoreLocaleMap::class);
         $this->feedStorage       = $this->createStub(FeedStorage::class);
         $this->feedCache         = $this->createStub(FeedCache::class);
         $this->logger            = $this->createStub(LoggerInterface::class);
         $this->calls             = [];
-        $this->chunkNames        = [];
         $this->storeDirectories  = [];
 
         $this->feedStorage->method('listStoreDirectories')->willReturnCallback(
@@ -141,25 +118,9 @@ class FeedRegeneratorTest extends TestCase
                 $this->calls[] = "delete {$storeId}/{$pattern}";
             }
         );
-        $this->feedStorage->method('copyBetweenStores')->willReturnCallback(
-            function (string $fileName, int $from, int $to): void {
-                $this->calls[] = "copy {$fileName} {$from}->{$to}";
-            }
-        );
         $this->feedCache->method('purge')->willReturnCallback(
             function (array $groups): void {
                 $this->calls[] = 'purge ' . implode(',', $groups);
-            }
-        );
-        $this->sitemapFileWriter->method('write')->willReturnCallback(
-            function (int $storeId): array {
-                $this->calls[] = "sitemap build {$storeId}";
-                return $this->chunkNames;
-            }
-        );
-        $this->sitemapFileWriter->method('writeIndex')->willReturnCallback(
-            function (int $storeId): void {
-                $this->calls[] = "sitemap index {$storeId}";
             }
         );
     }
@@ -188,9 +149,6 @@ class FeedRegeneratorTest extends TestCase
         $jsonlBuilder = $this->createMock(JsonlBuilder::class);
         $jsonlBuilder->expects($this->never())->method('stream');
         $this->jsonlBuilder = $jsonlBuilder;
-        $sitemapFileWriter = $this->createMock(SitemapFileWriter::class);
-        $sitemapFileWriter->expects($this->never())->method('write');
-        $this->sitemapFileWriter = $sitemapFileWriter;
 
         $this->regenerator()->regenerate(FeedRegenerator::GROUP_LLMS);
 
@@ -257,98 +215,6 @@ class FeedRegeneratorTest extends TestCase
         );
     }
 
-    public function testHreflangIsBuiltOncePerAlternateSetAndCopiedToTheOtherStoreViews(): void
-    {
-        // Store views sharing an alternate set get byte-identical chunks: building the whole
-        // catalogue again per store view is what made this quadratic.
-        $this->givenHreflangEligible([1, 2, 3]);
-        $this->chunkNames = ['hreflang-sitemap-1.xml', 'hreflang-sitemap-2.xml'];
-
-        $this->regenerator()->regenerate(FeedRegenerator::GROUP_HREFLANG);
-
-        $this->assertSame(
-            [
-                'sitemap build 1',
-                'copy hreflang-sitemap-1.xml 1->2',
-                'copy hreflang-sitemap-2.xml 1->2',
-                'sitemap index 2',
-                'copy hreflang-sitemap-1.xml 1->3',
-                'copy hreflang-sitemap-2.xml 1->3',
-                'sitemap index 3',
-                'purge hreflang',
-            ],
-            $this->calls
-        );
-    }
-
-    public function testASingleDocumentSetIsCopiedWholeIncludingTheIndexFile(): void
-    {
-        $this->givenHreflangEligible([1, 2]);
-        $this->chunkNames = [];
-
-        $this->regenerator()->regenerate(FeedRegenerator::GROUP_HREFLANG);
-
-        $this->assertSame(
-            ['sitemap build 1', 'copy ' . SitemapGenerator::INDEX_FILE . ' 1->2', 'purge hreflang'],
-            $this->calls
-        );
-    }
-
-    public function testStoreViewsWithDifferentAlternateSetsAreBuiltSeparately(): void
-    {
-        // Two websites with hreflang limited to their own website: different sets, no sharing.
-        $this->storeManager->method('getStores')->willReturn([$this->activeStore(1), $this->activeStore(2)]);
-        $this->storeManager->method('getStore')->willReturn($this->activeStore());
-        $this->seoConfig->method('isHreflangEnabled')->willReturn(true);
-        $this->seoConfig->method('isHreflangSitemapEnabled')->willReturn(true);
-        // The map is store-scoped and reset between emulations; each store view asks twice
-        // (eligibility, then the alternate set's signature).
-        $lookups = 0;
-        $this->storeLocaleMap->method('getMap')->willReturnCallback(
-            static function () use (&$lookups): array {
-                return ++$lookups <= 2
-                    ? [1 => ['locale' => 'en-GB'], 2 => ['locale' => 'de-DE']]
-                    : [3 => ['locale' => 'fr-FR'], 4 => ['locale' => 'nl-NL']];
-            }
-        );
-
-        $this->regenerator()->regenerate(FeedRegenerator::GROUP_HREFLANG);
-
-        $this->assertSame(['sitemap build 1', 'sitemap build 2', 'purge hreflang'], $this->calls);
-    }
-
-    public function testChunksTheNewSetNoLongerContainsAreRemovedAfterTheIndex(): void
-    {
-        $this->givenHreflangEligible([1]);
-        $this->chunkNames = ['hreflang-sitemap-1.xml'];
-        $this->feedStorage->method('listForStore')->willReturn([
-            'hreflang-sitemap-1.xml',
-            'hreflang-sitemap-2.xml',
-        ]);
-
-        $this->regenerator()->regenerate(FeedRegenerator::GROUP_HREFLANG);
-
-        $this->assertSame(
-            ['sitemap build 1', 'delete 1/hreflang-sitemap-2.xml', 'purge hreflang'],
-            $this->calls
-        );
-    }
-
-    public function testHreflangFilesAreRemovedWhenFewerThanTwoLocalesQualify(): void
-    {
-        $this->storeManager->method('getStores')->willReturn([$this->activeStore()]);
-        $this->seoConfig->method('isHreflangEnabled')->willReturn(true);
-        $this->seoConfig->method('isHreflangSitemapEnabled')->willReturn(true);
-        $this->storeLocaleMap->method('getMap')->willReturn([1 => ['only-one']]);
-        $sitemapFileWriter = $this->createMock(SitemapFileWriter::class);
-        $sitemapFileWriter->expects($this->never())->method('write');
-        $this->sitemapFileWriter = $sitemapFileWriter;
-
-        $this->regenerator()->regenerate(FeedRegenerator::GROUP_HREFLANG);
-
-        $this->assertSame(['delete 1/hreflang-sitemap*.xml', 'purge hreflang'], $this->calls);
-    }
-
     public function testRebuiltGroupIsPurgedOnceAfterEveryStore(): void
     {
         $this->storeManager->method('getStores')->willReturn([$this->activeStore(1), $this->activeStore(2)]);
@@ -378,7 +244,7 @@ class FeedRegeneratorTest extends TestCase
 
         // The store view that still exists keeps its directory; the build's own calls come first.
         $this->assertSame(
-            ['delete directory 7', 'delete directory 9', 'purge llms,jsonl,hreflang'],
+            ['delete directory 7', 'delete directory 9', 'purge llms,jsonl'],
             \array_slice($this->calls, -3)
         );
     }
@@ -388,9 +254,9 @@ class FeedRegeneratorTest extends TestCase
         $this->storeManager->method('getStores')->willReturn([]);
         $this->storeDirectories = [7];
 
-        $this->regenerator()->regenerate(FeedRegenerator::GROUP_HREFLANG);
+        $this->regenerator()->regenerate(FeedRegenerator::GROUP_JSONL);
 
-        $this->assertSame(['purge hreflang'], $this->calls);
+        $this->assertSame(['purge jsonl'], $this->calls);
     }
 
     public function testFullRebuildPurgesEveryGroup(): void
@@ -399,7 +265,7 @@ class FeedRegeneratorTest extends TestCase
 
         $this->regenerator()->regenerate();
 
-        $this->assertSame(['purge llms,jsonl,hreflang'], $this->calls);
+        $this->assertSame(['purge llms,jsonl'], $this->calls);
     }
 
     public function testPurgeFailureIsLoggedNotThrown(): void
@@ -446,7 +312,7 @@ class FeedRegeneratorTest extends TestCase
         $this->assertSame([], $this->regenerator()->regenerate(FeedRegenerator::GROUP_JSONL));
     }
 
-    public function testEmulationStoppedAndLocaleMapResetInFinallyOnThrow(): void
+    public function testEmulationIsStoppedInFinallyOnThrow(): void
     {
         $this->storeManager->method('getStores')->willReturn([$this->activeStore()]);
         $this->seoConfig->method('isLlmsTxtEnabled')->willReturn(true);
@@ -454,9 +320,6 @@ class FeedRegeneratorTest extends TestCase
         $logger = $this->createMock(LoggerInterface::class);
         $logger->expects($this->once())->method('error');
         $this->logger = $logger;
-        $storeLocaleMap = $this->createMock(StoreLocaleMap::class);
-        $storeLocaleMap->expects($this->once())->method('reset');
-        $this->storeLocaleMap = $storeLocaleMap;
         $emulation = $this->createMock(Emulation::class);
         $emulation->expects($this->once())->method('stopEnvironmentEmulation');
         $this->emulation = $emulation;
@@ -477,8 +340,6 @@ class FeedRegeneratorTest extends TestCase
             $this->seoConfig,
             $this->llmsTxtBuilder,
             $this->jsonlBuilder,
-            $this->sitemapFileWriter,
-            $this->storeLocaleMap,
             $this->feedStorage,
             $this->feedCache,
             $this->logger,
@@ -554,26 +415,8 @@ class FeedRegeneratorTest extends TestCase
         $store = $this->createStub(Store::class);
         $store->method('getIsActive')->willReturn(true);
         $store->method('getId')->willReturn($id);
-        $store->method('getBaseUrl')->willReturn('https://example.com/');
 
         return $store;
-    }
-
-    /**
-     * Active store views for which the hreflang sitemap is enabled and has two locales.
-     *
-     * @param int[] $storeIds
-     * @return void
-     */
-    private function givenHreflangEligible(array $storeIds): void
-    {
-        $this->storeManager->method('getStores')->willReturn(
-            array_map(fn (int $id): Store => $this->activeStore($id), $storeIds)
-        );
-        $this->storeManager->method('getStore')->willReturn($this->activeStore());
-        $this->seoConfig->method('isHreflangEnabled')->willReturn(true);
-        $this->seoConfig->method('isHreflangSitemapEnabled')->willReturn(true);
-        $this->storeLocaleMap->method('getMap')->willReturn([1 => ['x'], 2 => ['y']]);
     }
 
     /**

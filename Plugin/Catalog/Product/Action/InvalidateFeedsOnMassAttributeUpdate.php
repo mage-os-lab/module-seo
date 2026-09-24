@@ -59,9 +59,6 @@ class InvalidateFeedsOnMassAttributeUpdate
         if ($this->invalidationPolicy->isRelevantAttributeUpdate(FeedRegenerator::GROUP_JSONL, $attributeCodes)) {
             $this->feedInvalidator->invalidateJsonl();
         }
-        if ($this->invalidationPolicy->isRelevantAttributeUpdate(FeedRegenerator::GROUP_HREFLANG, $attributeCodes)) {
-            $this->feedInvalidator->invalidateHreflangSitemap();
-        }
         foreach ($this->invalidationPolicy->sitemapTypesAffectedByAttributeUpdate($attributeCodes) as $type) {
             $this->feedInvalidator->invalidateSitemap($type);
         }

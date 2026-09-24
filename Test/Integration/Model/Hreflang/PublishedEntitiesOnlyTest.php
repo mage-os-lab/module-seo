@@ -24,7 +24,7 @@ use PHPUnit\Framework\TestCase;
 
 /**
  * Review finding S1: the hreflang sitemap and the head alternates listed entities a visitor
- * cannot reach.
+ * cannot reach. The head and the alternates in sitemap.xml read through the same query.
  *
  * A url_rewrite row outlives the state of the thing it points at, so disabling a product,
  * deactivating a category or unpublishing a CMS page used to leave it advertised as an alternate.
@@ -81,10 +81,10 @@ class PublishedEntitiesOnlyTest extends TestCase
             $this->fetcher()->fetchForEntity(UrlRewriteResource::TYPE_PRODUCT, $productId),
             'A disabled product is not advertised as an alternate.'
         );
-        $this->assertNotContains(
+        $this->assertArrayNotHasKey(
             $productId,
-            $this->streamedEntityIds(UrlRewriteResource::TYPE_PRODUCT),
-            'And it is gone from the sitemap stream too.'
+            $this->fetcher()->fetchForEntities(UrlRewriteResource::TYPE_PRODUCT, [$productId]),
+            'Nor in sitemap.xml, whose hreflang enricher reads a chunk of entities at a time.'
         );
     }
 
@@ -180,35 +180,6 @@ class PublishedEntitiesOnlyTest extends TestCase
             [$defaultStoreId],
             array_keys($this->fetcher()->fetchForEntity(UrlRewriteResource::TYPE_CMS_PAGE, $pageId))
         );
-    }
-
-    /**
-     * Entity IDs the sitemap stream yields for a type, across the active store views.
-     *
-     * @param string $entityType
-     * @return int[]
-     */
-    private function streamedEntityIds(string $entityType): array
-    {
-        $storeIds = [];
-        foreach (Bootstrap::getObjectManager()->get(StoreManagerInterface::class)->getStores() as $store) {
-            if ($store->getIsActive()) {
-                $storeIds[] = (int) $store->getId();
-            }
-        }
-
-        // The stream yields paths per entity, not IDs, so identify entities by their paths.
-        $paths = [];
-        foreach ($this->fetcher()->streamAllForType($entityType, $storeIds) as $entityPaths) {
-            $paths[] = reset($entityPaths);
-        }
-
-        $ids = [];
-        foreach ($paths as $path) {
-            $ids[] = $path;
-        }
-
-        return $ids;
     }
 
     /**

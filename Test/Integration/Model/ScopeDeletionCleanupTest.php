@@ -29,7 +29,6 @@ use MageOS\Seo\Model\Category\ProductOverrideRepository;
 use MageOS\Seo\Model\Faq;
 use MageOS\Seo\Model\Feed\FeedRegenerator;
 use MageOS\Seo\Model\Feed\FeedStorage;
-use MageOS\Seo\Model\Hreflang\SitemapGenerator;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -161,35 +160,6 @@ class ScopeDeletionCleanupTest extends TestCase
         $this->assertNotContains(
             $storeId,
             Bootstrap::getObjectManager()->create(FeedStorage::class)->listStoreDirectories()
-        );
-    }
-
-    /**
-     * A rebuild removes the sitemap the survivors are still serving.
-     *
-     * Deleting the second-to-last store view leaves one, and a single store view has no
-     * alternates — so the sitemap the survivor is serving, which lists the store view that has
-     * just gone, has to be taken away rather than rewritten.
-     *
-     * @return void
-     */
-    #[DataFixture(StoreFixture::class, as: 'store')]
-    public function testARebuildRemovesTheSitemapOfTheStoreViewThatIsLeft(): void
-    {
-        $storeManager  = Bootstrap::getObjectManager()->get(StoreManagerInterface::class);
-        $survivingId   = (int) $storeManager->getStore('default')->getId();
-        $deletedId     = (int) $this->fixture('store')->getId();
-        $storage       = Bootstrap::getObjectManager()->create(FeedStorage::class);
-
-        $storage->write(SitemapGenerator::INDEX_FILE, $survivingId, '<urlset>two store views</urlset>');
-        $this->deleteStore($deletedId);
-
-        Bootstrap::getObjectManager()->create(FeedRegenerator::class)
-            ->regenerate(FeedRegenerator::GROUP_HREFLANG);
-
-        $this->assertNull(
-            $storage->read(SitemapGenerator::INDEX_FILE, $survivingId),
-            'A sitemap that can no longer be built is removed, not left listing a deleted store view.'
         );
     }
 

@@ -15,7 +15,7 @@ use MageOS\Seo\Model\ResourceModel\UrlRewrite as UrlRewriteResource;
  * CMS pages), are simply absent — which is exactly the correct hreflang behaviour.
  *
  * The queries themselves live in the resource model; this class turns their rows into the shape
- * the sitemap and the head links want.
+ * the head links and the sitemap's hreflang enricher want.
  */
 class UrlRewriteFetcher
 {
@@ -99,43 +99,6 @@ class UrlRewriteFetcher
         }
 
         return array_map(fn (array $keyRows): array => $this->firstPathPerStore($keyRows), $byKey);
-    }
-
-    /**
-     * Stream canonical request paths for every entity of a type, one entity at a time.
-     *
-     * One query for the whole catalogue, walked row by row and grouped on the row's group key, so
-     * the sitemap generator never holds every rewrite of every store view at once. The key is the
-     * entity itself, except for CMS pages in a translation group, which come out as one entity.
-     *
-     * @param string $entityType
-     * @param int[] $storeIds
-     * @return \Generator<int, array<int, string>> store_id => request_path, per entity
-     */
-    public function streamAllForType(string $entityType, array $storeIds): \Generator
-    {
-        if ($storeIds === []) {
-            return;
-        }
-
-        $statement = $this->urlRewriteResource->queryPathsForType($entityType, $storeIds);
-
-        $currentKey = null;
-        $rows       = [];
-
-        while ($row = $statement->fetch()) {
-            $key = (string) $row['group_key'];
-            if ($currentKey !== null && $key !== $currentKey) {
-                yield $this->firstPathPerStore($rows);
-                $rows = [];
-            }
-            $currentKey = $key;
-            $rows[]     = $row;
-        }
-
-        if ($rows !== []) {
-            yield $this->firstPathPerStore($rows);
-        }
     }
 
     /**

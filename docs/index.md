@@ -17,9 +17,9 @@ The SEO module provides structured data (JSON-LD), Open Graph meta tags, canonic
 | [Per-Category SEO](category-seo.md) | Schema template, field config, robots, ItemList per category | Admin / merchandiser |
 | [Per-Product SEO](product-seo.md) | Field overrides and robots meta per product per store | Admin / merchandiser |
 | [AI Discoverability (llms.txt)](llms-txt.md) | `/llms.txt`, `/llms-full.txt` and `/llms.jsonl` — what they contain | Admin / developer |
-| [Hreflang Alternates & Sitemap](hreflang.md) | Head alternates and `/hreflang-sitemap.xml` — what appears in them | Developer / SEO manager |
-| [XML Sitemap](sitemap.md) | The sitemap generator, its file layout, and how to extend it | Developer / SEO manager |
-| [Pre-generated Feeds](feeds.md) | The machinery behind all four: rebuilds, caching, storage, multi-server, CLI | Developer / DevOps |
+| [Hreflang Alternates & Sitemap](hreflang.md) | Head alternates and those in `sitemap.xml` — what appears in them | Developer / SEO manager |
+| [XML Sitemap](sitemap.md) | The sitemap generator, its file layout, rebuilding on change, and how to extend it | Developer / SEO manager |
+| [Pre-generated Feeds](feeds.md) | The machinery behind the three llms documents: rebuilds, caching, storage, multi-server, CLI | Developer / DevOps |
 | [Extending the Module](extending.md) | Adding providers, builders, and section content | Developer |
 
 ---
@@ -43,7 +43,7 @@ After installing and running `bin/magento setup:upgrade`:
 1. Go to **Marketing → SEO → Organisation** and fill in Name, URL, Description, Logo, and any social profiles. Without this, JSON-LD and `/llms.txt` will output empty values.
 2. Go to **Stores → Configuration → MageOS → SEO** and verify the defaults suit your store.
 3. Assign a schema template to each top-level category via **Catalog → Categories → SEO (Structured Data) tab**.
-4. Nothing to do for `/llms.txt`, `/llms-full.txt`, `/llms.jsonl` or `/hreflang-sitemap.xml`: a router serves them at those paths. Do **not** add URL rewrites for them — a rewrite fights the router (see [feeds.md](feeds.md)).
+4. Nothing to do for `/llms.txt`, `/llms-full.txt` or `/llms.jsonl`: a router serves them at those paths. Do **not** add URL rewrites for them — a rewrite fights the router (see [feeds.md](feeds.md)).
 5. Flush the cache.
 
 ---

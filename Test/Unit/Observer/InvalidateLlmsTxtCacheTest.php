@@ -10,13 +10,12 @@ use Magento\Framework\Event\ObserverInterface;
 use MageOS\Seo\Model\Feed\FeedInvalidator;
 use MageOS\Seo\Model\Feed\FeedRegenerator;
 use MageOS\Seo\Model\Feed\InvalidationPolicy;
-use MageOS\Seo\Observer\InvalidateHreflangSitemapCache;
 use MageOS\Seo\Observer\InvalidateLlmsJsonlCache;
 use MageOS\Seo\Observer\InvalidateLlmsTxtCache;
 use PHPUnit\Framework\TestCase;
 
 /**
- * The three feed invalidation observers: each asks the policy about its own feed group.
+ * The two feed invalidation observers: each asks the policy about its own feed group.
  */
 class InvalidateLlmsTxtCacheTest extends TestCase
 {
@@ -28,15 +27,6 @@ class InvalidateLlmsTxtCacheTest extends TestCase
     public function testJsonlObserverInvalidatesOnlyRelevantChanges(): void
     {
         $this->assertObserver(InvalidateLlmsJsonlCache::class, FeedRegenerator::GROUP_JSONL, 'invalidateJsonl');
-    }
-
-    public function testHreflangObserverInvalidatesOnlyRelevantChanges(): void
-    {
-        $this->assertObserver(
-            InvalidateHreflangSitemapCache::class,
-            FeedRegenerator::GROUP_HREFLANG,
-            'invalidateHreflangSitemap'
-        );
     }
 
     /**

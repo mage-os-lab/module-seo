@@ -76,7 +76,7 @@ so a rewrite would fight the router.
 ## Generation & cache
 
 These documents are pre-generated to files and served from there; a web request never builds
-one. That machinery is shared with the hreflang sitemap and is documented once, in
+one. That machinery is documented once, in
 **[feeds.md](feeds.md)**: the queue consumer and the nightly cron, what triggers a rebuild, the
 24-hour cache policy, where the files are stored (including multi-server deployments and their
 `app/etc/env.php` entry), file permissions, and the `mageos:seo:feeds:regenerate` command.

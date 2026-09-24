@@ -126,8 +126,8 @@ line) at /llms.jsonl. Off by default.</comment>
                        sortOrder="10" showInDefault="1" showInWebsite="0" showInStore="0">
                     <label>Storage Directory</label>
                     <backend_model>MageOS\Seo\Model\Config\Backend\FeedStorageDir</backend_model>
-                    <comment><![CDATA[Absolute path for pre-generated feed files (llms.txt, llms.jsonl,
-hreflang sitemap). Leave empty to use var/mageos_seo. Inside the installation only var/ may be used;
+                    <comment><![CDATA[Absolute path for pre-generated feed files (llms.txt, llms-full.txt,
+llms.jsonl). Leave empty to use var/mageos_seo. Inside the installation only var/ may be used;
 a shared mount for multi-server deployments must be listed under
 <code>mageos_seo/feed_storage_roots</code> in app/etc/env.php.]]></comment>
                 </field>
@@ -215,9 +215,10 @@ Set per website where websites serve different markets.</comment>
                 </field>
                 <field id="sitemap_enabled" translate="label comment" type="select"
                        sortOrder="50" showInDefault="1" showInWebsite="0" showInStore="0">
-                    <label>Enable /hreflang-sitemap.xml</label>
-                    <comment>Serve a dedicated hreflang sitemap at /hreflang-sitemap.xml. Submit it in
-Google Search Console alongside your main sitemap.</comment>
+                    <label>Add Hreflang Alternates to sitemap.xml</label>
+                    <comment>List each URL's alternates in the other store views beside it in the XML
+sitemaps, as Google prefers them. Applies to sitemaps written by the MageOS SEO generator
+(Catalog → XML Sitemap → Generation Settings → Generator).</comment>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                 </field>
                 <field id="same_website_only" translate="label comment" type="select"

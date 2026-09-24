@@ -7,13 +7,11 @@ namespace MageOS\Seo\Test\Integration\Model\Feed;
 use Magento\Catalog\Test\Fixture\Product as ProductFixture;
 use Magento\Store\Model\ScopeInterface;
 use Magento\Store\Model\StoreManagerInterface;
-use Magento\Store\Test\Fixture\Store as StoreFixture;
 use Magento\TestFramework\Fixture\Config;
 use Magento\TestFramework\Fixture\DataFixture;
 use Magento\TestFramework\Helper\Bootstrap;
 use MageOS\Seo\Model\Feed\FeedRegenerator;
 use MageOS\Seo\Model\Feed\FeedStorage;
-use MageOS\Seo\Model\Hreflang\SitemapGenerator;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -26,8 +24,6 @@ use PHPUnit\Framework\TestCase;
  */
 class MultiStoreFeedBuildTest extends TestCase
 {
-    private const SECOND_STORE_CODE = 'seo_hreflang_de';
-
     /**
      * Remove the feed files the tests wrote; the storage directory is not rolled back.
      *
@@ -36,39 +32,10 @@ class MultiStoreFeedBuildTest extends TestCase
     protected function tearDown(): void
     {
         foreach ($this->storeIds() as $storeId) {
-            $this->storage()->deleteForStore('hreflang-sitemap*.xml', $storeId);
             $this->storage()->deleteForStore('llms*', $storeId);
             $this->storage()->deleteForStore('.*.tmp', $storeId);
         }
         Bootstrap::getObjectManager()->removeSharedInstance(FeedStorage::class);
-    }
-
-    /**
-     * Store views sharing an alternate set get the same sitemap, built once and copied.
-     *
-     * @return void
-     */
-    #[DataFixture(StoreFixture::class, ['code' => self::SECOND_STORE_CODE], 'second_store')]
-    #[Config('general/locale/code', 'de_DE', ScopeInterface::SCOPE_STORE, self::SECOND_STORE_CODE)]
-    public function testEveryStoreViewOfAnAlternateSetGetsTheSameSitemap(): void
-    {
-        $storeIds = $this->storeIds();
-        $this->assertGreaterThanOrEqual(2, \count($storeIds), 'The alternate set needs two store views.');
-
-        Bootstrap::getObjectManager()->create(FeedRegenerator::class)
-            ->regenerate(FeedRegenerator::GROUP_HREFLANG);
-
-        $documents = [];
-        foreach ($storeIds as $storeId) {
-            $documents[$storeId] = (string) $this->storage()->read(SitemapGenerator::INDEX_FILE, $storeId);
-            $this->assertStringContainsString('<urlset', $documents[$storeId], "store {$storeId}");
-        }
-
-        // One alternate set, one document: every store view serves the same file.
-        $this->assertCount(1, array_unique($documents));
-        // And it carries both store views as alternates of each other.
-        $this->assertStringContainsString('hreflang="en-US"', reset($documents));
-        $this->assertStringContainsString('hreflang="de-DE"', reset($documents));
     }
 
     /**

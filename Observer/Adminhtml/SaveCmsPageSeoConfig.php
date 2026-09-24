@@ -12,7 +12,6 @@ use Magento\Framework\Message\ManagerInterface;
 use MageOS\Seo\Model\Cms\ConfigRepository;
 use MageOS\Seo\Model\Cms\HreflangGroup;
 use MageOS\Seo\Model\Cms\TranslationGroupCache;
-use MageOS\Seo\Model\Feed\FeedInvalidator;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -40,7 +39,6 @@ class SaveCmsPageSeoConfig implements ObserverInterface
     /**
      * @param ConfigRepository $configRepository
      * @param HreflangGroup $hreflangGroup
-     * @param FeedInvalidator $feedInvalidator
      * @param TranslationGroupCache $translationGroupCache
      * @param ManagerInterface $messageManager
      * @param LoggerInterface $logger
@@ -48,7 +46,6 @@ class SaveCmsPageSeoConfig implements ObserverInterface
     public function __construct(
         private readonly ConfigRepository      $configRepository,
         private readonly HreflangGroup         $hreflangGroup,
-        private readonly FeedInvalidator       $feedInvalidator,
         private readonly TranslationGroupCache $translationGroupCache,
         private readonly ManagerInterface      $messageManager,
         private readonly LoggerInterface       $logger
@@ -125,11 +122,12 @@ class SaveCmsPageSeoConfig implements ObserverInterface
     }
 
     /**
-     * Bring the hreflang output of both groups up to date after a page joined or left one.
+     * Bring the cached pages of both groups up to date after a page joined or left one.
      *
-     * The sitemap lists a group's pages as one entry, and every page of a group lists the others in
-     * its head. Nothing about the other pages changed, so neither the save's own sitemap
-     * invalidation nor its cache tags reach them.
+     * Every page of a group lists the others in its head. Nothing about the other pages changed,
+     * so the save's own cache tags do not reach them. (The sitemap needs nothing here: saving the
+     * group is a change to this module's CMS page settings, which queues the pages' rebuild — see
+     * Feed\InvalidationPolicy.)
      *
      * @param int $pageId
      * @param string|null $previousGroup
@@ -139,7 +137,6 @@ class SaveCmsPageSeoConfig implements ObserverInterface
     private function groupChanged(int $pageId, ?string $previousGroup, ?string $group): void
     {
         try {
-            $this->feedInvalidator->invalidateHreflangSitemap();
             $this->translationGroupCache->purge([$previousGroup, $group]);
         } catch (\Throwable $e) {
             // The settings are saved; what failed is only bringing other pages up to date, which

@@ -46,14 +46,28 @@ become public contract.
   the other translations' cached pages when a page joins, leaves or is deleted.
 - Per-CMS-page robots override, and `noarchive` with every index/follow combination.
 - Data patches carrying `MageOS_MetaRobotsTag`'s flags and `MageOS_Hreflang`'s settings and CMS
-  links into this module; the latter then switches `MageOS_Hreflang`'s output off.
-- `bin/magento mageos:seo:feeds:regenerate [-g llms|jsonl|hreflang]` rebuilds the
+  links into this module; the latter then switches `MageOS_Hreflang`'s head output off. Its
+  sitemap setting is left alone: where this module generates the sitemap, `MageOS_Hreflang`'s rows
+  are never written, and where Magento's generator is selected they are the only alternates.
+- `bin/magento mageos:seo:feeds:regenerate [-g llms|jsonl]` rebuilds the
   pre-generated feeds in the running process, for deployment scripts and manual
   rebuilds. It reports per-store-view failures and exits non-zero on any, and ends with
   `Done.`
 - Every `setup:install` / `setup:upgrade` queues a rebuild of the feeds the store
   views can build, so a fresh install (or a deployment that cleared `var/`) no
   longer serves `503` on `/llms.txt` until the nightly cron runs.
+
+### Removed
+
+- The dedicated `/hreflang-sitemap.xml` and its chunk files. The alternates are in `sitemap.xml`
+  now, beside each URL (see Added), which is where Google prefers them. The path answers 404,
+  with no redirect; a merchant who submitted it in Search Console should remove it there. The
+  upgrade deletes its files from feed storage, clears its pending rebuild and purges its cached
+  responses (`Setup\Patch\Data\RemoveHreflangSitemap`). Gone with it: the `hreflang` feed group
+  and `mageos:seo:feeds:regenerate -g hreflang`, the `MAGEOS_SEO_HREFLANG_SITEMAP` cache tag, and
+  the setting's old label — **Enable /hreflang-sitemap.xml** is now **Add Hreflang Alternates to
+  sitemap.xml**, on the same path. Entries below that mention the hreflang sitemap describe it
+  before its retirement.
 
 ### Fixed
 

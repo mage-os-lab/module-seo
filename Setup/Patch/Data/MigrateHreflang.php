@@ -9,8 +9,8 @@ use MageOS\Seo\Model\Migration\HreflangImporter;
 use Psr\Log\LoggerInterface;
 
 /**
- * Carries MageOS_Hreflang's settings and CMS page links into this module and switches its output
- * off, so a store moving over keeps the alternates it was publishing, published once.
+ * Carries MageOS_Hreflang's settings and CMS page links into this module and switches its head
+ * output off, so a store moving over keeps the alternates it was publishing, published once.
  *
  * What is carried and what is switched off is described on Model\Migration\HreflangImporter. The
  * values removed to switch MageOS_Hreflang off are written to the log, so they can be put back by

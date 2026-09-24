@@ -9,9 +9,6 @@ use Magento\Store\Model\App\Emulation;
 use Magento\Store\Model\StoreManagerInterface;
 use MageOS\Seo\Exception\FeedRebuildInProgressException;
 use MageOS\Seo\Model\Config;
-use MageOS\Seo\Model\Hreflang\SitemapFileWriter;
-use MageOS\Seo\Model\Hreflang\SitemapGenerator;
-use MageOS\Seo\Model\Hreflang\StoreLocaleMap;
 use MageOS\Seo\Model\LlmsJsonl\JsonlBuilder;
 use MageOS\Seo\Model\LlmsTxt\LlmsTxtBuilder;
 use Psr\Log\LoggerInterface;
@@ -30,17 +27,14 @@ use Psr\Log\LoggerInterface;
  */
 class FeedRegenerator
 {
-    public const GROUP_LLMS     = 'llms';
-    public const GROUP_JSONL    = 'jsonl';
-    public const GROUP_HREFLANG = 'hreflang';
+    public const GROUP_LLMS  = 'llms';
+    public const GROUP_JSONL = 'jsonl';
 
-    public const GROUPS = [self::GROUP_LLMS, self::GROUP_JSONL, self::GROUP_HREFLANG];
+    public const GROUPS = [self::GROUP_LLMS, self::GROUP_JSONL];
 
-    private const FILE_LLMS           = 'llms.txt';
-    private const FILE_LLMS_FULL      = 'llms-full.txt';
-    private const FILE_JSONL          = 'llms.jsonl';
-    private const HREFLANG_ALL_FILES  = 'hreflang-sitemap*.xml';
-    private const HREFLANG_CHUNKS     = 'hreflang-sitemap-*.xml';
+    private const FILE_LLMS      = 'llms.txt';
+    private const FILE_LLMS_FULL = 'llms-full.txt';
+    private const FILE_JSONL     = 'llms.jsonl';
 
     /**
      * @param StoreManagerInterface $storeManager
@@ -48,8 +42,6 @@ class FeedRegenerator
      * @param Config $seoConfig
      * @param LlmsTxtBuilder $llmsTxtBuilder
      * @param JsonlBuilder $jsonlBuilder
-     * @param SitemapFileWriter $sitemapFileWriter
-     * @param StoreLocaleMap $storeLocaleMap
      * @param FeedStorage $feedStorage
      * @param FeedCache $feedCache
      * @param LoggerInterface $logger
@@ -61,8 +53,6 @@ class FeedRegenerator
         private readonly Config                $seoConfig,
         private readonly LlmsTxtBuilder        $llmsTxtBuilder,
         private readonly JsonlBuilder          $jsonlBuilder,
-        private readonly SitemapFileWriter     $sitemapFileWriter,
-        private readonly StoreLocaleMap        $storeLocaleMap,
         private readonly FeedStorage           $feedStorage,
         private readonly FeedCache             $feedCache,
         private readonly LoggerInterface       $logger,
@@ -104,8 +94,6 @@ class FeedRegenerator
     private function build(?string $group): array
     {
         $failures = [];
-        // Hreflang sitemap file sets already built in this run, keyed by alternate set.
-        $builtSets = [];
         foreach ($this->storeManager->getStores() as $store) {
             if (!$store->getIsActive()) {
                 continue;
@@ -114,7 +102,7 @@ class FeedRegenerator
 
             $this->emulation->startEnvironmentEmulation($storeId, Area::AREA_FRONTEND, true);
             try {
-                $this->generateForStore($storeId, $group, $builtSets);
+                $this->generateForStore($storeId, $group);
             } catch (\Throwable $e) {
                 $failures[$storeId] = $e->getMessage();
                 $this->logger->error(
@@ -122,8 +110,6 @@ class FeedRegenerator
                     ['exception' => $e, 'group' => $group]
                 );
             } finally {
-                // The locale map memoises per store scope; reset between emulations.
-                $this->storeLocaleMap->reset();
                 $this->emulation->stopEnvironmentEmulation();
             }
         }
@@ -172,11 +158,10 @@ class FeedRegenerator
      *
      * @param int $storeId
      * @param string|null $group
-     * @param array<string,array{store_id:int,chunks:string[]}> $builtSets
      * @throws \Magento\Framework\Exception\FileSystemException
      * @return void
      */
-    private function generateForStore(int $storeId, ?string $group, array &$builtSets): void
+    private function generateForStore(int $storeId, ?string $group): void
     {
         if ($group === null || $group === self::GROUP_LLMS) {
             $this->writeOrRemove(
@@ -198,17 +183,6 @@ class FeedRegenerator
                 $this->writeStream(self::FILE_JSONL, $storeId, $this->jsonlBuilder->stream());
             } else {
                 $this->feedStorage->deleteForStore(self::FILE_JSONL, $storeId);
-            }
-        }
-
-        if ($group === null || $group === self::GROUP_HREFLANG) {
-            $eligible = $this->seoConfig->isHreflangEnabled($storeId)
-                && $this->seoConfig->isHreflangSitemapEnabled()
-                && \count($this->storeLocaleMap->getMap()) >= 2;
-            if ($eligible) {
-                $this->writeHreflangFiles($storeId, $builtSets);
-            } else {
-                $this->feedStorage->deleteForStore(self::HREFLANG_ALL_FILES, $storeId);
             }
         }
     }
@@ -255,60 +229,6 @@ class FeedRegenerator
         }
 
         $this->feedStorage->deleteForStore($fileName, $storeId);
-    }
-
-    /**
-     * Replace the store's hreflang sitemap file set without a gap in availability.
-     *
-     * The sitemap lists every store view of the alternate set, so store views sharing that set
-     * (a website, or the whole install when hreflang is not limited to one website) produce
-     * byte-identical chunk files. The first store view of a set generates them; the rest copy
-     * those files and only write their own index, which carries their base URL. That turns a
-     * build that cost "whole catalogue × store views" into one per set.
-     *
-     * Chunks land before the index, so the served index never references a chunk that does not
-     * exist; chunks the new set no longer contains (the catalogue shrank) go once it is in place.
-     *
-     * @param int $storeId
-     * @param array<string,array{store_id:int,chunks:string[]}> $builtSets
-     * @throws \Magento\Framework\Exception\FileSystemException
-     * @return void
-     */
-    private function writeHreflangFiles(int $storeId, array &$builtSets): void
-    {
-        $store   = $this->storeManager->getStore();
-        $baseUrl = (string) $store->getBaseUrl();
-        // Everything that changes the document goes in the signature. The map alone was enough
-        // while x-default was one global setting; now it is per website, two websites sharing a
-        // map can still want different x-defaults, and a copy would hand one the other's.
-        $signature = hash('sha256', (string) json_encode([
-            $this->storeLocaleMap->getMap(),
-            $this->seoConfig->getHreflangXDefaultStoreId((int) $store->getWebsiteId()),
-        ]));
-
-        if (isset($builtSets[$signature])) {
-            $built  = $builtSets[$signature];
-            $chunks = $built['chunks'];
-            foreach ($chunks as $fileName) {
-                $this->feedStorage->copyBetweenStores($fileName, $built['store_id'], $storeId);
-            }
-            if ($chunks === []) {
-                // One document, identical for every store view of the set.
-                $this->feedStorage->copyBetweenStores(SitemapGenerator::INDEX_FILE, $built['store_id'], $storeId);
-            } else {
-                $this->sitemapFileWriter->writeIndex($storeId, $baseUrl, $chunks);
-            }
-        } else {
-            $chunks = $this->sitemapFileWriter->write($storeId, $baseUrl);
-            $builtSets[$signature] = ['store_id' => $storeId, 'chunks' => $chunks];
-        }
-
-        $current = array_flip($chunks);
-        foreach ($this->feedStorage->listForStore(self::HREFLANG_CHUNKS, $storeId) as $existing) {
-            if (!isset($current[$existing])) {
-                $this->feedStorage->deleteForStore($existing, $storeId);
-            }
-        }
     }
 
     /**

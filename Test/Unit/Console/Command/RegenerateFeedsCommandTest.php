@@ -68,11 +68,11 @@ class RegenerateFeedsCommandTest extends TestCase
         );
 
         $status = $this->tester($regenerator)->execute([
-            '--group' => [FeedRegenerator::GROUP_LLMS, FeedRegenerator::GROUP_HREFLANG, FeedRegenerator::GROUP_LLMS],
+            '--group' => [FeedRegenerator::GROUP_LLMS, FeedRegenerator::GROUP_JSONL, FeedRegenerator::GROUP_LLMS],
         ]);
 
         $this->assertSame(Command::SUCCESS, $status);
-        $this->assertSame([FeedRegenerator::GROUP_LLMS, FeedRegenerator::GROUP_HREFLANG], $rebuilt);
+        $this->assertSame([FeedRegenerator::GROUP_LLMS, FeedRegenerator::GROUP_JSONL], $rebuilt);
     }
 
     public function testUnknownGroupsAreRejectedBeforeBuildingAnything(): void

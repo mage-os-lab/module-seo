@@ -16,37 +16,28 @@
     <event name="catalog_category_save_after">
         <observer name="mageos_seo_invalidate_llms_on_category_save"
                   instance="MageOS\Seo\Observer\InvalidateLlmsTxtCache"/>
-        <observer name="mageos_seo_invalidate_hreflang_sitemap_on_category_save"
-                  instance="MageOS\Seo\Observer\InvalidateHreflangSitemapCache"/>
         <observer name="mageos_seo_invalidate_sitemap_on_category_save"
                   instance="MageOS\Seo\Observer\InvalidateSitemap"/>
     </event>
 
     <!--
-        Product save: llms.jsonl always; the hreflang sitemap on URL-relevant changes;
+        Product save: llms.jsonl always; the sitemap when what it lists changes;
         llms.txt / llms-full.txt when category product counts change.
     -->
     <event name="catalog_product_save_after">
         <observer name="mageos_seo_invalidate_llms_jsonl_on_product_save"
                   instance="MageOS\Seo\Observer\InvalidateLlmsJsonlCache"/>
-        <observer name="mageos_seo_invalidate_hreflang_sitemap_on_product_save"
-                  instance="MageOS\Seo\Observer\InvalidateHreflangSitemapCache"/>
         <observer name="mageos_seo_invalidate_llms_on_product_save"
                   instance="MageOS\Seo\Observer\InvalidateLlmsTxtCache"/>
         <observer name="mageos_seo_invalidate_sitemap_on_product_save"
                   instance="MageOS\Seo\Observer\InvalidateSitemap"/>
     </event>
 
-    <!-- Hreflang sitemap: invalidate when URL-affecting data changes. -->
     <event name="cms_page_save_after">
-        <observer name="mageos_seo_invalidate_hreflang_sitemap_on_cms_save"
-                  instance="MageOS\Seo\Observer\InvalidateHreflangSitemapCache"/>
         <observer name="mageos_seo_invalidate_sitemap_on_cms_save"
                   instance="MageOS\Seo\Observer\InvalidateSitemap"/>
     </event>
     <event name="store_save_after">
-        <observer name="mageos_seo_invalidate_hreflang_sitemap_on_store_save"
-                  instance="MageOS\Seo\Observer\InvalidateHreflangSitemapCache"/>
         <observer name="mageos_seo_invalidate_sitemap_on_store_save"
                   instance="MageOS\Seo\Observer\InvalidateSitemap"/>
     </event>
@@ -108,25 +99,21 @@
     <event name="category_move">
         <observer name="mageos_seo_invalidate_llms_on_category_move"
                   instance="MageOS\Seo\Observer\InvalidateLlmsTxtCache"/>
-        <observer name="mageos_seo_invalidate_hreflang_sitemap_on_category_move"
-                  instance="MageOS\Seo\Observer\InvalidateHreflangSitemapCache"/>
         <observer name="mageos_seo_invalidate_sitemap_on_category_move"
                   instance="MageOS\Seo\Observer\InvalidateSitemap"/>
     </event>
 
     <!--
         Mass website assignment (Product\Action::updateWebsites()): no product is saved, so the
-        save observers never see it. It changes which products a store view lists (llms.jsonl),
-        their alternates (the sitemap), and the category product counts in llms.txt — core counts
-        a category's products joined to catalog_product_website for the store's website.
+        save observers never see it. It changes which products a store view lists (llms.jsonl and
+        the sitemap), and the category product counts in llms.txt — core counts a category's
+        products joined to catalog_product_website for the store's website.
         Mass attribute updates have no equivalent event; they are covered by
         MageOS\Seo\Plugin\Catalog\Product\Action\InvalidateFeedsOnMassAttributeUpdate.
     -->
     <event name="catalog_product_to_website_change">
         <observer name="mageos_seo_invalidate_llms_jsonl_on_product_website_change"
                   instance="MageOS\Seo\Observer\InvalidateLlmsJsonlCache"/>
-        <observer name="mageos_seo_invalidate_hreflang_sitemap_on_product_website_change"
-                  instance="MageOS\Seo\Observer\InvalidateHreflangSitemapCache"/>
         <observer name="mageos_seo_invalidate_llms_on_product_website_change"
                   instance="MageOS\Seo\Observer\InvalidateLlmsTxtCache"/>
         <observer name="mageos_seo_invalidate_sitemap_on_product_website_change"
@@ -135,8 +122,8 @@
 
     <!--
         A deleted store view's own feed files are no longer served by anything, so its directory
-        goes with it — post-commit, so a delete that rolls back keeps its files. The rebuild that
-        the deletion needs is queued from store_delete_before, below.
+        goes with it — post-commit, so a delete that rolls back keeps its files. The sitemap
+        rebuild the deletion needs is queued from store_delete_before, below.
     -->
     <event name="store_delete">
         <observer name="mageos_seo_remove_feed_files_on_store_delete"
@@ -144,18 +131,14 @@
     </event>
 
     <!--
-        Deleting a scope. All three run on the *_delete_before event, for two reasons: the store
-        views still exist there, and the work joins the resource's own transaction, so a delete
-        that fails rolls it back too.
-
-        "Still exist" is what makes the rebuild happen at all. The policy only queues a sitemap
-        rebuild while the sitemap can be built, which needs two active store views — and a
-        rebuild is also what *removes* a sitemap that can no longer be built. Asked afterwards,
-        deleting the second-to-last store view would queue nothing, and the survivor would carry
-        on serving a sitemap listing a store view that no longer exists. Deleting a store group
-        or a website is worse: core takes their store views with them through its own
+        Deleting a scope. All three run on the *_delete_before event, for two reasons: the work
+        joins the resource's own transaction, so a delete that fails rolls it back too; and
+        deleting a store group or a website takes its store views with it through core's own
         store.group_id / store.website_id CASCADE, a database-level delete that dispatches no
-        store_delete event at all, so afterwards there is nothing left to ask.
+        store_delete event at all, so afterwards there is nothing left to observe.
+
+        The sitemaps of the store views that remain list the deleted ones among their hreflang
+        alternates until they are rebuilt, so every type is queued.
 
         Each also clears the Organisation records of the scopes going away — the one table that
         cannot carry a foreign key. A website and a group are the last place their store views'
@@ -170,24 +153,18 @@
         documents do not change.
     -->
     <event name="website_delete_before">
-        <observer name="mageos_seo_invalidate_hreflang_sitemap_on_website_delete"
-                  instance="MageOS\Seo\Observer\InvalidateHreflangSitemapCache"/>
         <observer name="mageos_seo_invalidate_sitemap_on_website_delete"
                   instance="MageOS\Seo\Observer\InvalidateSitemap"/>
         <observer name="mageos_seo_remove_organisation_on_website_delete"
                   instance="MageOS\Seo\Observer\RemoveOrganisationOnScopeDelete"/>
     </event>
     <event name="store_group_delete_before">
-        <observer name="mageos_seo_invalidate_hreflang_sitemap_on_store_group_delete"
-                  instance="MageOS\Seo\Observer\InvalidateHreflangSitemapCache"/>
         <observer name="mageos_seo_invalidate_sitemap_on_store_group_delete"
                   instance="MageOS\Seo\Observer\InvalidateSitemap"/>
         <observer name="mageos_seo_remove_organisation_on_store_group_delete"
                   instance="MageOS\Seo\Observer\RemoveOrganisationOnScopeDelete"/>
     </event>
     <event name="store_delete_before">
-        <observer name="mageos_seo_invalidate_hreflang_sitemap_on_store_delete"
-                  instance="MageOS\Seo\Observer\InvalidateHreflangSitemapCache"/>
         <observer name="mageos_seo_invalidate_sitemap_on_store_delete"
                   instance="MageOS\Seo\Observer\InvalidateSitemap"/>
         <observer name="mageos_seo_remove_organisation_on_store_delete"
@@ -208,8 +185,6 @@
     <event name="catalog_product_delete_commit_after">
         <observer name="mageos_seo_invalidate_llms_jsonl_on_product_delete"
                   instance="MageOS\Seo\Observer\InvalidateLlmsJsonlCache"/>
-        <observer name="mageos_seo_invalidate_hreflang_sitemap_on_product_delete"
-                  instance="MageOS\Seo\Observer\InvalidateHreflangSitemapCache"/>
         <observer name="mageos_seo_invalidate_llms_on_product_delete"
                   instance="MageOS\Seo\Observer\InvalidateLlmsTxtCache"/>
         <observer name="mageos_seo_invalidate_sitemap_on_product_delete"
@@ -218,14 +193,10 @@
     <event name="catalog_category_delete_commit_after">
         <observer name="mageos_seo_invalidate_llms_on_category_delete"
                   instance="MageOS\Seo\Observer\InvalidateLlmsTxtCache"/>
-        <observer name="mageos_seo_invalidate_hreflang_sitemap_on_category_delete"
-                  instance="MageOS\Seo\Observer\InvalidateHreflangSitemapCache"/>
         <observer name="mageos_seo_invalidate_sitemap_on_category_delete"
                   instance="MageOS\Seo\Observer\InvalidateSitemap"/>
     </event>
     <event name="cms_page_delete_commit_after">
-        <observer name="mageos_seo_invalidate_hreflang_sitemap_on_cms_delete"
-                  instance="MageOS\Seo\Observer\InvalidateHreflangSitemapCache"/>
         <observer name="mageos_seo_invalidate_sitemap_on_cms_delete"
                   instance="MageOS\Seo\Observer\InvalidateSitemap"/>
         <!-- No foreign key can reach cms_page, so the configuration is cleared here. -->

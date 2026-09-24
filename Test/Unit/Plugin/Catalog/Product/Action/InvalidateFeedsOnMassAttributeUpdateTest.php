@@ -19,7 +19,6 @@ class InvalidateFeedsOnMassAttributeUpdateTest extends TestCase
     {
         $invalidator = $this->createMock(FeedInvalidator::class);
         $invalidator->expects($this->once())->method('invalidateJsonl');
-        $invalidator->expects($this->once())->method('invalidateHreflangSitemap');
         $invalidator->expects($this->once())->method('invalidateSitemap')->with('products');
         $invalidator->expects($this->never())->method('invalidateLlms');
 
@@ -38,7 +37,6 @@ class InvalidateFeedsOnMassAttributeUpdateTest extends TestCase
     {
         $invalidator = $this->createMock(FeedInvalidator::class);
         $invalidator->expects($this->once())->method('invalidateJsonl');
-        $invalidator->expects($this->never())->method('invalidateHreflangSitemap');
         $invalidator->expects($this->never())->method('invalidateSitemap');
 
         $this->plugin($invalidator)->afterUpdateAttributes(
@@ -54,7 +52,7 @@ class InvalidateFeedsOnMassAttributeUpdateTest extends TestCase
     {
         $invalidator = $this->createMock(FeedInvalidator::class);
         $invalidator->expects($this->never())->method('invalidateJsonl');
-        $invalidator->expects($this->never())->method('invalidateHreflangSitemap');
+        $invalidator->expects($this->never())->method('invalidateSitemap');
 
         $this->plugin($invalidator)->afterUpdateAttributes(
             $this->createStub(Action::class),

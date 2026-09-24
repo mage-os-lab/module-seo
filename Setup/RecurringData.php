@@ -17,6 +17,10 @@ use Psr\Log\LoggerInterface;
  * and a deployment can change what the feeds contain or clear the storage directory. The
  * queue consumer builds the feeds shortly afterwards; nothing is built inside setup itself.
  * Feeds no store view can build are skipped (see InvalidationPolicy).
+ *
+ * The XML sitemaps are not queued: they live in pub/, which a deployment does not clear, and
+ * Magento's cron regenerates them. Queueing every type on every deployment would rewrite every
+ * sitemap each time.
  */
 class RecurringData implements InstallDataInterface
 {
@@ -43,7 +47,6 @@ class RecurringData implements InstallDataInterface
         try {
             $this->feedInvalidator->invalidateLlms();
             $this->feedInvalidator->invalidateJsonl();
-            $this->feedInvalidator->invalidateHreflangSitemap();
         } catch (\Throwable $e) {
             $this->logger->error(
                 'MageOS_Seo: could not queue the SEO feed rebuild after setup: ' . $e->getMessage(),

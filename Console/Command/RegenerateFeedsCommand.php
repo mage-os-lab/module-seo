@@ -58,8 +58,8 @@ class RegenerateFeedsCommand extends Command
     {
         $this->setName('mageos:seo:feeds:regenerate')
             ->setDescription(
-                'Rebuild the SEO feeds (llms.txt, llms-full.txt, llms.jsonl, hreflang sitemap)'
-                . ' for every active store view, or a type of page in the XML sitemaps'
+                'Rebuild the SEO feeds (llms.txt, llms-full.txt, llms.jsonl) for every active store view,'
+                . ' or a type of page in the XML sitemaps'
             )
             ->addOption(
                 self::OPTION_GROUP,

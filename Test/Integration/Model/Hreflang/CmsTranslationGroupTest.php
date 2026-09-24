@@ -15,7 +15,6 @@ use Magento\TestFramework\Fixture\DataFixtureStorageManager;
 use Magento\TestFramework\Helper\Bootstrap;
 use MageOS\Seo\Model\Cms\ConfigRepository;
 use MageOS\Seo\Model\Hreflang\UrlRewriteFetcher;
-use MageOS\Seo\Model\ResourceModel\UrlRewrite as UrlRewriteResource;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -136,28 +135,6 @@ class CmsTranslationGroupTest extends TestCase
         $this->createPage([$second], $group, false);
 
         $this->assertSame($everyone, $this->fetcher()->fetchForCmsGroup($group)[$second] ?? null);
-    }
-
-    /**
-     * @return void
-     */
-    #[DataFixture(StoreFixture::class, as: 'second_store')]
-    public function testTheSitemapStreamListsAGroupAsOneEntry(): void
-    {
-        [$default, $second] = $this->storeIds();
-        $group     = $this->newGroup();
-        $en        = $this->createPage([$default], $group);
-        $de        = $this->createPage([$second], $group);
-        $ungrouped = $this->createPage([$default]);
-
-        $entries = iterator_to_array(
-            $this->fetcher()->streamAllForType(UrlRewriteResource::TYPE_CMS_PAGE, [$default, $second]),
-            false
-        );
-
-        $this->assertContains([$default => $en, $second => $de], array_map([$this, 'sortedByStore'], $entries));
-        $this->assertNotContains([$second => $de], $entries, 'A translation is not also an entry of its own.');
-        $this->assertContains([$default => $ungrouped], $entries, 'A page outside any group is its own entry.');
     }
 
     /**

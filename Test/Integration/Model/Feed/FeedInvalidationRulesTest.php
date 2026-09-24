@@ -14,6 +14,8 @@ use Magento\Cms\Api\Data\PageInterface;
 use Magento\Cms\Api\PageRepositoryInterface;
 use Magento\Cms\Model\PageFactory;
 use Magento\Framework\FlagManager;
+use Magento\Sitemap\Model\ResourceModel\Sitemap as SitemapResource;
+use Magento\Sitemap\Model\Sitemap;
 use Magento\Store\Model\ResourceModel\Store as StoreResource;
 use Magento\Store\Model\ResourceModel\Website as WebsiteResource;
 use Magento\Store\Model\ScopeInterface;
@@ -29,10 +31,16 @@ use Magento\TestFramework\Fixture\DataFixtureStorageManager;
 use Magento\TestFramework\Helper\Bootstrap;
 use MageOS\Seo\Model\Feed\FeedRegenerator;
 use MageOS\Seo\Model\Feed\FeedStorage;
+use MageOS\Seo\Model\Sitemap\RebuildableSitemaps;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Which real saves queue which feed rebuilds.
+ * Which real saves queue which feed and sitemap rebuilds.
+ *
+ * Every test but the last has a sitemap a change would rebuild, so the sitemap groups a change
+ * queues are checked alongside the feeds. Which sitemap changes count in detail is
+ * Model/Sitemap/SitemapInvalidationRulesTest's; here it is the wiring — the same saves, moves, mass
+ * actions and deletions the feeds are checked against.
  *
  * Database isolation is disabled because creating a store view is not transactional;
  * the data fixtures revert themselves and the pending flags are cleared around each check.
@@ -44,6 +52,8 @@ class FeedInvalidationRulesTest extends TestCase
 {
     private const JSONL_ENABLED = 'mageos_seo_general/llms_txt/jsonl_enabled';
 
+    private const SITEMAP_GROUPS = ['sitemap-pages', 'sitemap-categories', 'sitemap-products', 'sitemap-*'];
+
     /**
      * IDs of the CMS pages created by the running test.
      *
@@ -52,7 +62,15 @@ class FeedInvalidationRulesTest extends TestCase
     private ?array $createdPageIds = [];
 
     /**
-     * Remove the CMS pages the test created and leave no pending rebuild requests behind.
+     * The sitemap the running test made rebuildable.
+     *
+     * @var Sitemap|null
+     */
+    private ?Sitemap $sitemap = null;
+
+    /**
+     * Remove the CMS pages and the sitemap the test created and leave no pending rebuild requests
+     * behind.
      *
      * @return void
      */
@@ -68,20 +86,27 @@ class FeedInvalidationRulesTest extends TestCase
         }
         $this->createdPageIds = [];
 
+        if ($this->sitemap !== null) {
+            Bootstrap::getObjectManager()->get(SitemapResource::class)->delete($this->sitemap);
+            $this->sitemap = null;
+        }
+        $this->forgetRebuildableSitemaps();
+
         $this->clearPending();
     }
 
     /**
-     * Product saves queue llms.jsonl, and hreflang / llms only for the changes they depend on.
+     * Product saves queue llms.jsonl, and llms / the products' sitemap only for the changes they
+     * depend on.
      *
      * @return void
      */
     #[Config(self::JSONL_ENABLED, 1, ScopeInterface::SCOPE_STORE, 'default')]
-    #[DataFixture(StoreFixture::class, as: 'second_store')]
     #[DataFixture(CategoryFixture::class, as: 'category')]
     #[DataFixture(ProductFixture::class, as: 'product')]
     public function testProductSavesQueueOnlyTheFeedsTheChangeAffects(): void
     {
+        $this->aRebuildableSitemap();
         $sku        = (string) $this->fixture('product')->getSku();
         $categoryId = (int) $this->fixture('category')->getId();
 
@@ -90,7 +115,7 @@ class FeedInvalidationRulesTest extends TestCase
             fn () => $this->saveProduct($sku, ['name' => 'Renamed product'])
         );
         $this->assertQueuedBy(
-            [FeedRegenerator::GROUP_JSONL, FeedRegenerator::GROUP_HREFLANG],
+            [FeedRegenerator::GROUP_JSONL, 'sitemap-products'],
             fn () => $this->saveProduct($sku, ['url_key' => 'renamed-product-' . uniqid()])
         );
         $this->assertQueuedBy(
@@ -105,15 +130,15 @@ class FeedInvalidationRulesTest extends TestCase
      * @return void
      */
     #[Config(self::JSONL_ENABLED, 1, ScopeInterface::SCOPE_STORE, 'default')]
-    #[DataFixture(StoreFixture::class, as: 'second_store')]
     public function testANewProductQueuesEveryFeed(): void
     {
+        $this->aRebuildableSitemap();
         $productFixture = Bootstrap::getObjectManager()->get(ProductFixture::class);
         $created        = null;
 
         try {
             $this->assertQueuedBy(
-                FeedRegenerator::GROUPS,
+                [...FeedRegenerator::GROUPS, 'sitemap-products'],
                 function () use ($productFixture, &$created): void {
                     $created = $productFixture->apply();
                 }
@@ -126,14 +151,14 @@ class FeedInvalidationRulesTest extends TestCase
     }
 
     /**
-     * Category saves always queue llms, and hreflang only for URL-relevant changes.
+     * Category saves always queue llms, and the categories' sitemap only for URL-relevant changes.
      *
      * @return void
      */
-    #[DataFixture(StoreFixture::class, as: 'second_store')]
     #[DataFixture(CategoryFixture::class, as: 'category')]
     public function testCategorySavesQueueOnlyTheFeedsTheChangeAffects(): void
     {
+        $this->aRebuildableSitemap();
         $categoryId = (int) $this->fixture('category')->getId();
 
         $this->assertQueuedBy(
@@ -141,24 +166,24 @@ class FeedInvalidationRulesTest extends TestCase
             fn () => $this->saveCategory($categoryId, ['name' => 'Renamed category'])
         );
         $this->assertQueuedBy(
-            [FeedRegenerator::GROUP_LLMS, FeedRegenerator::GROUP_HREFLANG],
+            [FeedRegenerator::GROUP_LLMS, 'sitemap-categories'],
             fn () => $this->saveCategory($categoryId, ['url_key' => 'renamed-category-' . uniqid()])
         );
     }
 
     /**
-     * CMS page saves queue hreflang only for URL-relevant changes.
+     * No feed lists CMS pages; the pages' sitemap is queued only for URL-relevant changes.
      *
      * @return void
      */
-    #[DataFixture(StoreFixture::class, as: 'second_store')]
-    public function testCmsPageSavesQueueHreflangOnlyForUrlChanges(): void
+    public function testCmsPageSavesQueueThePagesSitemapOnlyForUrlChanges(): void
     {
+        $this->aRebuildableSitemap();
         $pageId = $this->createPage();
 
         $this->assertQueuedBy([], fn () => $this->savePage($pageId, ['title' => 'Renamed page']));
         $this->assertQueuedBy(
-            [FeedRegenerator::GROUP_HREFLANG],
+            ['sitemap-pages'],
             fn () => $this->savePage($pageId, ['identifier' => 'renamed-page-' . uniqid()])
         );
     }
@@ -170,16 +195,16 @@ class FeedInvalidationRulesTest extends TestCase
      * @return void
      */
     #[Config(self::JSONL_ENABLED, 1, ScopeInterface::SCOPE_STORE, 'default')]
-    #[DataFixture(StoreFixture::class, as: 'second_store')]
     #[DataFixture(CategoryFixture::class, as: 'new_parent')]
     #[DataFixture(CategoryFixture::class, as: 'category')]
-    public function testMovingACategoryQueuesLlmsAndTheHreflangSitemap(): void
+    public function testMovingACategoryQueuesLlmsAndTheCategoriesSitemap(): void
     {
+        $this->aRebuildableSitemap();
         $categoryId  = (int) $this->fixture('category')->getId();
         $newParentId = (int) $this->fixture('new_parent')->getId();
 
         $this->assertQueuedBy(
-            [FeedRegenerator::GROUP_LLMS, FeedRegenerator::GROUP_HREFLANG],
+            [FeedRegenerator::GROUP_LLMS, 'sitemap-categories'],
             static function () use ($categoryId, $newParentId): void {
                 Bootstrap::getObjectManager()->get(CategoryRepositoryInterface::class)
                     ->get($categoryId)
@@ -195,14 +220,14 @@ class FeedInvalidationRulesTest extends TestCase
      * @return void
      */
     #[Config(self::JSONL_ENABLED, 1, ScopeInterface::SCOPE_STORE, 'default')]
-    #[DataFixture(StoreFixture::class, as: 'second_store')]
     #[DataFixture(ProductFixture::class, as: 'product')]
     public function testMassAttributeUpdatesQueueTheFeedsTheAttributesAppearIn(): void
     {
+        $this->aRebuildableSitemap();
         $productId = (int) $this->fixture('product')->getId();
 
         $this->assertQueuedBy(
-            [FeedRegenerator::GROUP_JSONL, FeedRegenerator::GROUP_HREFLANG],
+            [FeedRegenerator::GROUP_JSONL, 'sitemap-products'],
             fn () => $this->massUpdateAttributes([$productId], ['status' => Status::STATUS_DISABLED])
         );
         // The llms documents list categories and product counts, which no attribute value changes.
@@ -219,57 +244,40 @@ class FeedInvalidationRulesTest extends TestCase
      * @return void
      */
     #[Config(self::JSONL_ENABLED, 1, ScopeInterface::SCOPE_STORE, 'default')]
-    #[DataFixture(StoreFixture::class, as: 'second_store')]
     #[DataFixture(ProductFixture::class, as: 'product')]
     public function testAMassWebsiteChangeQueuesEveryFeed(): void
     {
+        $this->aRebuildableSitemap();
         $productId = (int) $this->fixture('product')->getId();
         $websiteId = (int) Bootstrap::getObjectManager()->get(StoreManagerInterface::class)
             ->getStore('default')->getWebsiteId();
 
         $this->assertQueuedBy(
-            FeedRegenerator::GROUPS,
+            [...FeedRegenerator::GROUPS, 'sitemap-products'],
             fn () => Bootstrap::getObjectManager()->create(ProductAction::class)
                 ->updateWebsites([$productId], [$websiteId], 'remove')
         );
     }
 
     /**
-     * Deleting a store view changes the sitemap's alternate set, and its own feed files are
-     * no longer served by anything.
+     * Deleting a store view changes the alternates in the other store views' sitemaps, and its own
+     * feed files are no longer served by anything.
      *
      * @return void
      */
     #[DataFixture(StoreFixture::class, as: 'second_store')]
     #[DataFixture(StoreFixture::class, as: 'third_store')]
-    public function testDeletingAStoreViewQueuesTheSitemapAndRemovesItsFeedFiles(): void
+    public function testDeletingAStoreViewQueuesEverySitemapTypeAndRemovesItsFeedFiles(): void
     {
+        $this->aRebuildableSitemap();
         $storeId = (int) $this->fixture('third_store')->getId();
         $storage = Bootstrap::getObjectManager()->create(FeedStorage::class);
         $storage->write('llms.txt', $storeId, 'stale');
         $this->assertSame('stale', $storage->read('llms.txt', $storeId));
 
-        $this->assertQueuedBy([FeedRegenerator::GROUP_HREFLANG], fn () => $this->deleteStore($storeId));
+        $this->assertQueuedBy(['sitemap-*'], fn () => $this->deleteStore($storeId));
 
         $this->assertNull($storage->read('llms.txt', $storeId), 'The store directory is gone.');
-    }
-
-    /**
-     * The last deletion that makes the sitemap unbuildable still has to queue a rebuild.
-     *
-     * Deleting the second-to-last store view leaves one, and a single store view has no
-     * alternates — but the sitemap the survivor is still serving lists the store view that has
-     * just gone. The rebuild is what removes it, so it has to be queued from the deletion while
-     * the store view still counts.
-     *
-     * @return void
-     */
-    #[DataFixture(StoreFixture::class, as: 'second_store')]
-    public function testDeletingTheStoreViewThatMakesTheSitemapUnbuildableStillQueuesIt(): void
-    {
-        $storeId = (int) $this->fixture('second_store')->getId();
-
-        $this->assertQueuedBy([FeedRegenerator::GROUP_HREFLANG], fn () => $this->deleteStore($storeId));
     }
 
     /**
@@ -281,11 +289,12 @@ class FeedInvalidationRulesTest extends TestCase
     #[DataFixture(WebsiteFixture::class, as: 'website')]
     #[DataFixture(GroupFixture::class, ['website_id' => '$website.id$'], 'group')]
     #[DataFixture(StoreFixture::class, ['store_group_id' => '$group.id$'], 'store')]
-    public function testDeletingAWebsiteQueuesTheHreflangSitemap(): void
+    public function testDeletingAWebsiteQueuesEverySitemapType(): void
     {
+        $this->aRebuildableSitemap();
         $websiteId = (int) $this->fixture('website')->getId();
 
-        $this->assertQueuedBy([FeedRegenerator::GROUP_HREFLANG], fn () => $this->deleteWebsite($websiteId));
+        $this->assertQueuedBy(['sitemap-*'], fn () => $this->deleteWebsite($websiteId));
     }
 
     /**
@@ -297,13 +306,13 @@ class FeedInvalidationRulesTest extends TestCase
      * @return void
      */
     #[Config(self::JSONL_ENABLED, 1, ScopeInterface::SCOPE_STORE, 'default')]
-    #[DataFixture(StoreFixture::class, as: 'second_store')]
     public function testDeletingAProductQueuesEveryFeed(): void
     {
+        $this->aRebuildableSitemap();
         $sku = (string) $this->create(ProductFixture::class)->getSku();
 
         $this->assertQueuedBy(
-            FeedRegenerator::GROUPS,
+            [...FeedRegenerator::GROUPS, 'sitemap-products'],
             fn () => Bootstrap::getObjectManager()->get(ProductRepositoryInterface::class)->deleteById($sku)
         );
     }
@@ -313,13 +322,13 @@ class FeedInvalidationRulesTest extends TestCase
      *
      * @return void
      */
-    #[DataFixture(StoreFixture::class, as: 'second_store')]
-    public function testDeletingACategoryQueuesLlmsAndTheHreflangSitemap(): void
+    public function testDeletingACategoryQueuesLlmsAndTheCategoriesSitemap(): void
     {
+        $this->aRebuildableSitemap();
         $categoryId = (int) $this->create(CategoryFixture::class)->getId();
 
         $this->assertQueuedBy(
-            [FeedRegenerator::GROUP_LLMS, FeedRegenerator::GROUP_HREFLANG],
+            [FeedRegenerator::GROUP_LLMS, 'sitemap-categories'],
             fn () => Bootstrap::getObjectManager()->get(CategoryRepositoryInterface::class)
                 ->deleteByIdentifier($categoryId)
         );
@@ -330,20 +339,20 @@ class FeedInvalidationRulesTest extends TestCase
      *
      * @return void
      */
-    #[DataFixture(StoreFixture::class, as: 'second_store')]
-    public function testDeletingACmsPageQueuesTheHreflangSitemap(): void
+    public function testDeletingACmsPageQueuesThePagesSitemap(): void
     {
+        $this->aRebuildableSitemap();
         $pageId = $this->createPage();
 
         $this->assertQueuedBy(
-            [FeedRegenerator::GROUP_HREFLANG],
+            ['sitemap-pages'],
             fn () => Bootstrap::getObjectManager()->get(PageRepositoryInterface::class)->deleteById($pageId)
         );
     }
 
     /**
-     * With the default configuration on a single store view, llms.jsonl is disabled and the
-     * hreflang sitemap cannot be built, so a product URL change queues nothing.
+     * With the default configuration and no sitemap generated, llms.jsonl is disabled and there is
+     * no sitemap to rebuild, so a product URL change queues nothing.
      *
      * @return void
      */
@@ -356,7 +365,7 @@ class FeedInvalidationRulesTest extends TestCase
     }
 
     /**
-     * Assert exactly which feed groups a change queues.
+     * Assert exactly which feed and sitemap groups a change queues.
      *
      * @param string[] $expectedGroups
      * @param callable $change
@@ -369,7 +378,7 @@ class FeedInvalidationRulesTest extends TestCase
 
         $pending = [];
         $flags   = Bootstrap::getObjectManager()->get(FlagManager::class);
-        foreach (FeedRegenerator::GROUPS as $group) {
+        foreach ([...FeedRegenerator::GROUPS, ...self::SITEMAP_GROUPS] as $group) {
             if ($flags->getFlagData('mageos_seo_feed_pending_' . $group) !== null) {
                 $pending[] = $group;
             }
@@ -388,9 +397,42 @@ class FeedInvalidationRulesTest extends TestCase
     private function clearPending(): void
     {
         $flags = Bootstrap::getObjectManager()->get(FlagManager::class);
-        foreach (FeedRegenerator::GROUPS as $group) {
+        foreach ([...FeedRegenerator::GROUPS, ...self::SITEMAP_GROUPS] as $group) {
             $flags->deleteFlag('mageos_seo_feed_pending_' . $group);
         }
+    }
+
+    /**
+     * A sitemap for the default store view that a change would rebuild: saved with a generation
+     * time, on this module's generator (the default).
+     *
+     * @return void
+     */
+    private function aRebuildableSitemap(): void
+    {
+        $objectManager = Bootstrap::getObjectManager();
+        $sitemap       = $objectManager->create(Sitemap::class);
+        $sitemap->setData([
+            'sitemap_filename' => 'mageos_' . uniqid() . '.xml',
+            'sitemap_path'     => '/media/sitemap/',
+            'store_id'         => (int) $objectManager->get(StoreManagerInterface::class)->getStore('default')->getId(),
+            'sitemap_time'     => '2026-01-01 00:00:00',
+        ]);
+        $objectManager->get(SitemapResource::class)->save($sitemap);
+        $this->sitemap = $sitemap;
+
+        $this->forgetRebuildableSitemaps();
+    }
+
+    /**
+     * Whether any sitemap would be rebuilt is answered once per request, and every test here runs
+     * in the same one: forget the answer when the sitemaps change, as the next request would.
+     *
+     * @return void
+     */
+    private function forgetRebuildableSitemaps(): void
+    {
+        Bootstrap::getObjectManager()->get(RebuildableSitemaps::class)->_resetState();
     }
 
     /**

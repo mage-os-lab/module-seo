@@ -7,12 +7,12 @@ alternates two ways:
 |---|---|
 | Page head | `<link rel="alternate" hreflang="…">` for the current entity, one per store view it exists in |
 | `sitemap.xml` | The same alternates inline beside each URL, when the MageOS SEO sitemap generator is selected — see [sitemap.md](sitemap.md) |
-| `/hreflang-sitemap.xml` | The same relationships for the whole catalogue, plus `hreflang-sitemap-<n>.xml` chunk files when it is large |
 
 Both are built from the same data, so a page and the sitemap never disagree.
 
-How the sitemap is generated, rebuilt and stored is in [feeds.md](feeds.md) — this page is about
-what goes in it.
+How the sitemap is generated, rebuilt and stored is in [sitemap.md](sitemap.md) — this page is
+about what goes in it. The dedicated `/hreflang-sitemap.xml` earlier versions served is retired:
+see [The retired /hreflang-sitemap.xml](#the-retired-hreflang-sitemapxml).
 
 ---
 
@@ -43,9 +43,8 @@ active store view, or only those of the current website, depending on whether hr
 limited to the current website. A store view contributes only when hreflang is enabled for it
 and it has a resolvable locale.
 
-The sitemap can only be built where there are **at least two** active store views: one store
-view has nothing to be an alternate of. Where that is not the case the sitemap is not built,
-and any file already written for it is removed on the next rebuild.
+Alternates need **at least two** store views in the set: one store view has nothing to be an
+alternate of, so its pages' heads and its sitemap URLs carry none.
 
 ---
 
@@ -110,8 +109,8 @@ nothing in core says they belong together.
 
 **Hreflang Translation Group**, in the page's **Search Engine Optimization** section, says so:
 give every translation the same value, for example `about-us`. Pages sharing a group are
-alternates of one another, in the head and in the sitemap, where they are listed as one entry.
-A page without a group is linked only to itself in the other store views it is assigned to.
+alternates of one another, in the head and beside each of their URLs in the sitemap. A page
+without a group is linked only to itself in the other store views it is assigned to.
 
 In each store view, the group is represented by:
 
@@ -170,9 +169,9 @@ public function execute(\Magento\Framework\Event\Observer $observer): void
 A value that is not an array is ignored and the module's own set is used, so a broken observer
 cannot take the page head or the sitemap down with it.
 
-**Depend only on the transport.** The sitemap is built once per alternate set and copied to every
-store view sharing it (see [File layout](#file-layout)), so an observer that consulted the current
-store view would give every store view the answer computed for the first.
+**Depend only on the transport.** The sitemap is built in the background — by cron or the queue,
+emulating each store view — with no request to go by; take what you need from `region_links`,
+not from the request.
 
 Coming from `MageOS_Hreflang`, whose `mageos_hreflang_alternative_urls_after` event did the same
 job: its transport held a `code => url` map under `urls`; this one holds a list under
@@ -183,23 +182,30 @@ job: its transport held a `code => url` map under `urls`; this one holds a list 
 ## Moving from MageOS_Hreflang
 
 `setup:upgrade` carries `MageOS_Hreflang`'s settings and CMS page links over and then switches its
-output off, so the store keeps the alternates it was publishing — published once, not twice.
+head output off, so the store keeps the alternates it was publishing — published once, not twice.
 The rule throughout is that **the store keeps publishing hreflang wherever it did**:
 
 | MageOS_Hreflang | Becomes | When |
 |---|---|---|
 | **Use alternative languages meta tags** (`web/seo/use_hreflangs`) | **Enable Hreflang Tags**, per store view | Where it was on and this module's setting would be off. A store view it had off is never switched off here. |
-| **Alternative languages meta tags sitemap specification** (`web/seo/use_sitemap_hreflangs`) | **Enable /hreflang-sitemap.xml** | Where it was on anywhere and this module's is off. |
+| **Alternative languages meta tags sitemap specification** (`web/seo/use_sitemap_hreflangs`) | **Add Hreflang Alternates to sitemap.xml** | Where it was on anywhere and this module's is off. |
 | **Hreflang value** (`web/seo/hreflang`), per store view | **Hreflang Codes** | Where its tags were on, and the store view has no codes here yet. Codes are validated as the admin does: `en-uk`, for one, is dropped. |
 | **x-default store** (`web/seo/hreflang_xdefault_store`), per website | **x-default Store View**, per website | Where its output was on in that website and the store view still exists. |
 | **Hreflang association identifier** (`cms_page.meta_identifier`) | **Hreflang Translation Group** | Every page with a value and no group here yet. Values are turned into valid groups: `About Us` becomes `about-us`. |
 
 Its alternates were always limited to the current website, which is this module's default too.
 
-Then, only if it was on somewhere, its two output settings are set to **No** globally and their
-website and store view values are removed, so nothing below the global value switches it back
-on. Nothing else of that module is touched — its codes, x-default and `meta_identifier` column
-stay where they are. With its output off it can be disabled or removed at leisure.
+Then, only if it was on somewhere, its head setting is set to **No** globally and its website
+and store view values are removed, so nothing below the global value switches it back on.
+
+Its sitemap setting is left as it is, because the two modules cannot both write a sitemap's
+alternates: where this module's generator writes the sitemap, `MageOS_Hreflang`'s rows are never
+written; where **Magento** is selected as the generator, its alternates are the only ones the
+sitemap has, and switching them off would lose them.
+
+Nothing else of that module is touched — its codes, x-default and `meta_identifier` column stay
+where they are. Once the sitemaps are generated by this module, it can be disabled or removed at
+leisure.
 
 Everything the migration did, every value it could not carry, and every value it removed to
 switch the module off is written to `var/log/system.log`, prefixed `MageOS_Seo: MageOS_Hreflang
@@ -210,25 +216,18 @@ settings made in this module afterwards are indistinguishable from imported ones
 
 ---
 
-## File layout
+## The retired /hreflang-sitemap.xml
 
-Below 50,000 URLs the sitemap is a single `<urlset>` served at `/hreflang-sitemap.xml`. Above
-it, the URLs are split into `hreflang-sitemap-<n>.xml` chunk files with a sitemap index at that
-same URL. Which of the two it is only becomes clear once the stream ends, so each file is named
-as it is committed. Chunks are written before the index, and chunks the new set no longer
-contains are removed after it — the served index never points at a file that is not there.
+Earlier versions served the alternates in a sitemap of their own, `/hreflang-sitemap.xml`. Google
+prefers them inline in the sitemap it already has, so they are now written into `sitemap.xml` and
+the dedicated file is gone: the path answers 404, with no redirect.
 
-The sitemap lists every store view of an alternate set, so store views sharing a set produce
-byte-identical chunk files. Only the **first store view of a set builds them**; the rest copy
-those files and write only their own index, which carries their base URL. A rebuild that would
-otherwise cost "whole catalogue × store views" therefore costs one catalogue pass per alternate
-set — one per website when hreflang is limited to the current website, one for the whole install
-when it is not.
-
----
-
-## No URL rewrites needed
-
-A custom router serves `/hreflang-sitemap.xml` and its chunk files directly. Do **not** add
-manual URL rewrites for these paths — the internal controller URLs 301-redirect to the canonical
-paths, so a rewrite would fight the router.
+- If you submitted `/hreflang-sitemap.xml` in Search Console, remove it there; `sitemap.xml`
+  carries the same alternates.
+- The upgrade deletes its files (`hreflang-sitemap*.xml`) from every store directory in feed
+  storage, clears its pending rebuild, and purges its cached responses
+  (`Setup\Patch\Data\RemoveHreflangSitemap`). With feed storage in a host-local `var/`, only the
+  host that runs `setup:upgrade` is cleaned; the files on the others can no longer be reached and
+  can be deleted by hand.
+- `mageos:seo:feeds:regenerate -g hreflang` is gone; `-g sitemap-…` rebuilds the XML sitemaps
+  (see [sitemap.md](sitemap.md#changes-that-are-not-seen)).

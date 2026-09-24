@@ -2,8 +2,8 @@
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Cron:etc/crontab.xsd">
     <group id="default">
-        <!-- Nightly pre-generation of llms.txt / llms-full.txt / llms.jsonl and the
-             hreflang sitemap to var/mageos_seo files; controllers serve the files. -->
+        <!-- Nightly pre-generation of llms.txt / llms-full.txt / llms.jsonl to
+             var/mageos_seo files; controllers serve the files. -->
         <job name="mageos_seo_regenerate_feeds" instance="MageOS\Seo\Cron\RegenerateFeeds" method="execute">
             <schedule>30 2 * * *</schedule>
         </job>
