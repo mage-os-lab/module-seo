@@ -8,6 +8,7 @@ use MageOS\Seo\Model\Feed\FeedInvalidator;
 use MageOS\Seo\Model\Feed\FeedRegenerator;
 use MageOS\Seo\Model\Feed\InvalidationPolicy;
 use MageOS\Seo\Model\Feed\RegenerationRequester;
+use MageOS\Seo\Model\Sitemap\RebuildGroup;
 use PHPUnit\Framework\TestCase;
 
 class FeedInvalidatorTest extends TestCase
@@ -39,6 +40,18 @@ class FeedInvalidatorTest extends TestCase
         $this->assertSame([FeedRegenerator::GROUP_LLMS], $requested);
     }
 
+    public function testASitemapTypeIsQueuedAsItsGroupWhenASitemapWouldBeRebuilt(): void
+    {
+        $requested   = [];
+        $invalidator = $this->invalidator(['sitemap-products', 'sitemap-*'], $requested);
+
+        $invalidator->invalidateSitemap('products');
+        $invalidator->invalidateSitemap('*');
+        $invalidator->invalidateSitemap('pages');
+
+        $this->assertSame(['sitemap-products', 'sitemap-*'], $requested);
+    }
+
     public function testInvalidationTouchesNeitherFilesNorCaches(): void
     {
         // Served files and cached responses are left alone: FeedInvalidator depends on nothing
@@ -50,7 +63,10 @@ class FeedInvalidatorTest extends TestCase
             static fn (\ReflectionParameter $parameter): string => (string) $parameter->getType(),
             $constructor->getParameters()
         );
-        $this->assertSame([RegenerationRequester::class, InvalidationPolicy::class], $dependencies);
+        $this->assertSame(
+            [RegenerationRequester::class, InvalidationPolicy::class, RebuildGroup::class],
+            $dependencies
+        );
     }
 
     /**
@@ -73,6 +89,6 @@ class FeedInvalidatorTest extends TestCase
             static fn (string $group): bool => \in_array($group, $enabledGroups, true)
         );
 
-        return new FeedInvalidator($requester, $policy);
+        return new FeedInvalidator($requester, $policy, new RebuildGroup());
     }
 }

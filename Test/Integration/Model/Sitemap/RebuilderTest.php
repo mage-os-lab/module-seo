@@ -9,12 +9,16 @@ use Magento\Catalog\Test\Fixture\Product as ProductFixture;
 use Magento\Cms\Api\Data\PageInterface;
 use Magento\Cms\Api\PageRepositoryInterface;
 use Magento\Cms\Model\PageFactory;
+use Magento\Framework\FlagManager;
 use Magento\Framework\Lock\LockManagerInterface;
 use Magento\Sitemap\Model\Sitemap;
 use Magento\TestFramework\Fixture\DataFixture;
+use Magento\TestFramework\Fixture\DataFixtureStorageManager;
 use Magento\TestFramework\Helper\Bootstrap;
 use MageOS\Seo\Exception\SitemapRebuildInProgressException;
+use MageOS\Seo\Model\Category\ProductOverrideRepository;
 use MageOS\Seo\Model\Config\Source\SitemapGenerator;
+use MageOS\Seo\Model\Feed\RegenerateConsumer;
 use MageOS\Seo\Model\Sitemap\GenerationLock;
 use MageOS\Seo\Model\Sitemap\Generator;
 use MageOS\Seo\Model\Sitemap\Rebuilder;
@@ -199,6 +203,40 @@ class RebuilderTest extends TestCase
         $this->expectExceptionMessage('is being written by another process');
 
         $this->generateSitemap($this->sitemapFor($this->defaultStoreId()));
+    }
+
+    /**
+     * End to end: a product set NOINDEX through its override queues the products, and once the
+     * queue's consumer has run, the product is no longer in the sitemap — the other types untouched.
+     *
+     * @return void
+     */
+    #[DataFixture(ProductFixture::class, as: 'product')]
+    public function testANoindexOverrideTakesTheProductOutOnceTheQueueRuns(): void
+    {
+        $sitemap  = $this->generated();
+        $product  = DataFixtureStorageManager::getStorage()->get('product');
+        $store    = $this->defaultStoreId();
+        $products = self::DIRECTORY . "/{$this->sitemapName}-{$store}-products-1.xml";
+        $pages    = "{$this->sitemapName}-{$store}-pages-1.xml";
+        $this->assertStringContainsString((string) $product->getUrlKey(), $this->pub()->readFile($products));
+        $pagesDate = $this->index($sitemap)[$pages];
+        $flags     = Bootstrap::getObjectManager()->get(FlagManager::class);
+        $flags->deleteFlag('mageos_seo_feed_pending_sitemap-products');
+
+        sleep(1);
+        Bootstrap::getObjectManager()->get(ProductOverrideRepository::class)
+            ->save((int) $product->getId(), 0, ['robots_meta' => 'NOINDEX,FOLLOW']);
+
+        $this->assertNotNull($flags->getFlagData('mageos_seo_feed_pending_sitemap-products'), 'The change was queued.');
+        Bootstrap::getObjectManager()->get(RegenerateConsumer::class)->process('sitemap-products');
+
+        $this->assertFalse(
+            $this->pub()->isExist($products)
+            && str_contains($this->pub()->readFile($products), (string) $product->getUrlKey()),
+            'The NOINDEX product is out of the sitemap.'
+        );
+        $this->assertSame($pagesDate, $this->index($sitemap)[$pages], 'The pages were not rebuilt.');
     }
 
     /**

@@ -7,14 +7,19 @@ namespace MageOS\Seo\Test\Unit\Model\Feed;
 use Magento\Catalog\Model\Category;
 use Magento\Catalog\Model\Product;
 use Magento\Cms\Model\Page;
+use Magento\Framework\App\Config\Value as ConfigValue;
 use Magento\Framework\DataObject;
 use Magento\Framework\Event;
 use Magento\Framework\Model\AbstractModel;
 use Magento\Store\Model\Store;
 use Magento\Store\Model\StoreManagerInterface;
+use MageOS\Seo\Model\CategoryConfig;
+use MageOS\Seo\Model\CmsPageConfig;
 use MageOS\Seo\Model\Config;
 use MageOS\Seo\Model\Feed\FeedRegenerator;
 use MageOS\Seo\Model\Feed\InvalidationPolicy;
+use MageOS\Seo\Model\ProductOverride;
+use MageOS\Seo\Model\Sitemap\RebuildableSitemaps;
 use PHPUnit\Framework\TestCase;
 
 class InvalidationPolicyTest extends TestCase
@@ -275,18 +280,147 @@ class InvalidationPolicyTest extends TestCase
         ));
     }
 
+    public function testASitemapTypeIsQueuedOnlyWhileASitemapWouldBeRebuilt(): void
+    {
+        $this->assertTrue($this->policy([1])->isGroupEnabled('sitemap-products'));
+        $this->assertTrue($this->policy([1])->isGroupEnabled('sitemap-*'));
+        $this->assertFalse($this->policy([1], sitemapsExist: false)->isGroupEnabled('sitemap-products'));
+        $this->assertFalse($this->policy([1])->isGroupEnabled('not-a-group'));
+    }
+
+    public function testProductChangesRebuildTheProductsOnlyWhenWhatIsListedChanges(): void
+    {
+        $policy  = $this->policy([1]);
+        $loaded  = ['url_key' => 'a', 'status' => 1, 'name' => 'A', 'website_ids' => [1]];
+        $product = fn (array $changes, bool $isNew = false) => $this->event(
+            InvalidationPolicy::EVENT_PRODUCT_SAVE,
+            $this->model(Product::class, $isNew ? null : $loaded, $changes, $isNew)
+        );
+
+        $this->assertSame([], $policy->sitemapTypesAffectedBy($product(['name' => 'B'])), 'Not listed: a name.');
+        $this->assertSame(['products'], $policy->sitemapTypesAffectedBy($product(['url_key' => 'b'])));
+        $this->assertSame(['products'], $policy->sitemapTypesAffectedBy($product(['status' => 2])));
+        $this->assertSame(['products'], $policy->sitemapTypesAffectedBy($product(['name' => 'N'], true)));
+        $this->assertSame(['products'], $policy->sitemapTypesAffectedBy($this->event(
+            'catalog_product_delete_commit_after',
+            $this->model(Product::class, ['url_key' => 'a'], [])
+        )));
+    }
+
+    public function testCategoryAndPageChangesRebuildTheirOwnType(): void
+    {
+        $policy = $this->policy([1]);
+
+        $this->assertSame([], $policy->sitemapTypesAffectedBy($this->event(
+            InvalidationPolicy::EVENT_CATEGORY_SAVE,
+            $this->model(Category::class, ['url_key' => 'a', 'description' => 'x'], ['description' => 'y'])
+        )));
+        $this->assertSame(['categories'], $policy->sitemapTypesAffectedBy($this->event(
+            InvalidationPolicy::EVENT_CATEGORY_SAVE,
+            $this->model(Category::class, ['is_active' => 1], ['is_active' => 0])
+        )));
+        $this->assertSame([], $policy->sitemapTypesAffectedBy($this->event(
+            InvalidationPolicy::EVENT_CMS_PAGE_SAVE,
+            $this->model(Page::class, ['identifier' => 'a', 'title' => 'A'], ['title' => 'B'])
+        )));
+        $this->assertSame(['pages'], $policy->sitemapTypesAffectedBy($this->event(
+            InvalidationPolicy::EVENT_CMS_PAGE_SAVE,
+            $this->model(Page::class, ['identifier' => 'a'], ['identifier' => 'b'])
+        )));
+    }
+
+    /**
+     * The robots directive decides whether a page is listed, a CMS translation group its
+     * alternates; the other per-entity settings (titles, descriptions) are not in a sitemap.
+     */
+    public function testThisModulesSettingsRebuildTheirTypeWhenTheDirectiveOrGroupChanges(): void
+    {
+        $policy = $this->policy([1]);
+
+        $this->assertSame(['products'], $policy->sitemapTypesAffectedBy($this->event(
+            'mageos_seo_product_override_save_after',
+            $this->model(ProductOverride::class, ['robots_meta' => ''], ['robots_meta' => 'NOINDEX,FOLLOW'])
+        )));
+        $this->assertSame([], $policy->sitemapTypesAffectedBy($this->event(
+            'mageos_seo_product_override_save_after',
+            $this->model(ProductOverride::class, ['override_fields' => '{}'], ['override_fields' => '{"a":1}'])
+        )));
+        $this->assertSame(['categories'], $policy->sitemapTypesAffectedBy($this->event(
+            'mageos_seo_category_config_delete_after',
+            $this->model(CategoryConfig::class, ['robots_meta' => 'NOINDEX'], [])
+        )));
+        $this->assertSame(['pages'], $policy->sitemapTypesAffectedBy($this->event(
+            'mageos_seo_cms_page_config_save_after',
+            $this->model(CmsPageConfig::class, ['hreflang_group' => 'a'], ['hreflang_group' => 'b'])
+        )));
+    }
+
+    public function testConfigurationRebuildsEveryTypeOnlyUnderSitemapPathsAndWhenChanged(): void
+    {
+        $policy = $this->policy([1]);
+        $value  = function (string $path, bool $changed): ConfigValue {
+            $value = new class ($changed) extends ConfigValue {
+                /**
+                 * @param bool $changed
+                 */
+                public function __construct(private readonly bool $changed)
+                {
+                }
+
+                /**
+                 * @inheritdoc
+                 */
+                public function isValueChanged()
+                {
+                    return $this->changed;
+                }
+            };
+            $value->setData('path', $path);
+
+            return $value;
+        };
+
+        $this->assertSame(['*'], $policy->sitemapTypesAffectedBy(
+            $this->event('config_data_save_after', $value('web/unsecure/base_url', true))
+        ));
+        $this->assertSame(['*'], $policy->sitemapTypesAffectedBy(
+            $this->event('config_data_save_after', $value('design/search_engine_robots/default_robots', true))
+        ));
+        $this->assertSame([], $policy->sitemapTypesAffectedBy(
+            $this->event('config_data_save_after', $value('web/unsecure/base_url', false))
+        ), 'The admin saves every field of a section; an unchanged one is not a change.');
+        $this->assertSame([], $policy->sitemapTypesAffectedBy(
+            $this->event('config_data_save_after', $value('contact/email/recipient_email', true))
+        ));
+        $this->assertSame(['*'], $policy->sitemapTypesAffectedBy(
+            $this->event('config_data_delete_after', $value('sitemap/limit/max_lines', false))
+        ), 'A deleted value falls back to another: a change.');
+    }
+
+    public function testStoreChangesRebuildEveryTypeAndMassUpdatesOnlyWhatIsListed(): void
+    {
+        $policy = $this->policy([1]);
+
+        $this->assertSame(['*'], $policy->sitemapTypesAffectedBy(new Event(['name' => 'store_delete_before'])));
+        $this->assertSame(['categories'], $policy->sitemapTypesAffectedBy(new Event(['name' => 'category_move'])));
+        $this->assertSame(['products'], $policy->sitemapTypesAffectedByAttributeUpdate(['name', 'visibility']));
+        $this->assertSame([], $policy->sitemapTypesAffectedByAttributeUpdate(['name', 'description']));
+    }
+
     /**
      * Build the policy over the given store views; config defaults to a stub.
      *
      * @param int[] $activeStoreIds
      * @param Config|null $config
      * @param int[] $inactiveStoreIds
+     * @param bool $sitemapsExist Whether a sitemap would be rebuilt
      * @return InvalidationPolicy
      */
     private function policy(
         array $activeStoreIds,
         ?Config $config = null,
-        array $inactiveStoreIds = []
+        array $inactiveStoreIds = [],
+        bool $sitemapsExist = true
     ): InvalidationPolicy {
         $stores = [];
         foreach ([...$activeStoreIds, ...$inactiveStoreIds] as $storeId) {
@@ -298,7 +432,10 @@ class InvalidationPolicyTest extends TestCase
         $storeManager = $this->createStub(StoreManagerInterface::class);
         $storeManager->method('getStores')->willReturn($stores);
 
-        return new InvalidationPolicy($storeManager, $config ?? $this->createStub(Config::class));
+        $sitemaps = $this->createStub(RebuildableSitemaps::class);
+        $sitemaps->method('exist')->willReturn($sitemapsExist);
+
+        return new InvalidationPolicy($storeManager, $config ?? $this->createStub(Config::class), $sitemaps);
     }
 
     /**

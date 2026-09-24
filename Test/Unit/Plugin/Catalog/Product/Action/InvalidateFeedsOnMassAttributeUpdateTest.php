@@ -9,6 +9,7 @@ use Magento\Store\Model\StoreManagerInterface;
 use MageOS\Seo\Model\Config;
 use MageOS\Seo\Model\Feed\FeedInvalidator;
 use MageOS\Seo\Model\Feed\InvalidationPolicy;
+use MageOS\Seo\Model\Sitemap\RebuildableSitemaps;
 use MageOS\Seo\Plugin\Catalog\Product\Action\InvalidateFeedsOnMassAttributeUpdate;
 use PHPUnit\Framework\TestCase;
 
@@ -19,6 +20,7 @@ class InvalidateFeedsOnMassAttributeUpdateTest extends TestCase
         $invalidator = $this->createMock(FeedInvalidator::class);
         $invalidator->expects($this->once())->method('invalidateJsonl');
         $invalidator->expects($this->once())->method('invalidateHreflangSitemap');
+        $invalidator->expects($this->once())->method('invalidateSitemap')->with('products');
         $invalidator->expects($this->never())->method('invalidateLlms');
 
         $this->plugin($invalidator)->afterUpdateAttributes(
@@ -37,6 +39,7 @@ class InvalidateFeedsOnMassAttributeUpdateTest extends TestCase
         $invalidator = $this->createMock(FeedInvalidator::class);
         $invalidator->expects($this->once())->method('invalidateJsonl');
         $invalidator->expects($this->never())->method('invalidateHreflangSitemap');
+        $invalidator->expects($this->never())->method('invalidateSitemap');
 
         $this->plugin($invalidator)->afterUpdateAttributes(
             $this->createStub(Action::class),
@@ -89,7 +92,8 @@ class InvalidateFeedsOnMassAttributeUpdateTest extends TestCase
     {
         $policy = new InvalidationPolicy(
             $this->createStub(StoreManagerInterface::class),
-            $this->createStub(Config::class)
+            $this->createStub(Config::class),
+            $this->createStub(RebuildableSitemaps::class)
         );
 
         return new InvalidateFeedsOnMassAttributeUpdate($invalidator, $policy);

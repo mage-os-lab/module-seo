@@ -6,8 +6,8 @@ namespace MageOS\Seo\Model\Feed;
 
 use MageOS\Seo\Exception\FeedRebuildInProgressException;
 use MageOS\Seo\Exception\SitemapRebuildInProgressException;
-use MageOS\Seo\Model\Sitemap\RebuildGroup;
 use MageOS\Seo\Model\Sitemap\Rebuilder as SitemapRebuilder;
+use MageOS\Seo\Model\Sitemap\RebuildGroup;
 use Psr\Log\LoggerInterface;
 
 /**

@@ -85,8 +85,8 @@ class Generator
      * Write all of the sitemap's files and save it.
      *
      * @param Sitemap $sitemap
-     * @return void
      * @throws SitemapRebuildInProgressException When another process is still writing it after the wait
+     * @return void
      */
     public function generate(Sitemap $sitemap): void
     {
@@ -96,14 +96,14 @@ class Generator
     /**
      * Rewrite the given types' files, keep the others', and save the sitemap.
      *
-     * The whole sitemap is written when it has no index of this generator's yet.
+     * The whole sitemap is written when it has no index of this generator's yet, or for null types.
      *
      * @param Sitemap $sitemap
-     * @param string[] $types
-     * @return void
+     * @param string[]|null $types Null for every type
      * @throws SitemapRebuildInProgressException When another process is writing it
+     * @return void
      */
-    public function regenerate(Sitemap $sitemap, array $types): void
+    public function regenerate(Sitemap $sitemap, ?array $types): void
     {
         $this->whileLocked($sitemap, 0, fn () => $this->write($sitemap, $types));
     }
@@ -124,8 +124,8 @@ class Generator
      * @param Sitemap $sitemap
      * @param int $waitSeconds
      * @param callable $write
-     * @return void
      * @throws SitemapRebuildInProgressException
+     * @return void
      */
     private function whileLocked(Sitemap $sitemap, int $waitSeconds, callable $write): void
     {

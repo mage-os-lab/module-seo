@@ -8,12 +8,18 @@
         feed, and FeedInvalidator skips feeds no store view can build.
         Bridge modules (e.g. SellersSeo) that contribute to a feed call
         MageOS\Seo\Model\Feed\FeedInvalidator from their own observers.
+
+        The sitemap (mageos_seo_invalidate_sitemap_*): InvalidationPolicy::sitemapTypesAffectedBy()
+        decides which of its types a change can alter — products, categories, pages, or all of them
+        for store, scope and configuration changes — and only while a sitemap would be rebuilt.
     -->
     <event name="catalog_category_save_after">
         <observer name="mageos_seo_invalidate_llms_on_category_save"
                   instance="MageOS\Seo\Observer\InvalidateLlmsTxtCache"/>
         <observer name="mageos_seo_invalidate_hreflang_sitemap_on_category_save"
                   instance="MageOS\Seo\Observer\InvalidateHreflangSitemapCache"/>
+        <observer name="mageos_seo_invalidate_sitemap_on_category_save"
+                  instance="MageOS\Seo\Observer\InvalidateSitemap"/>
     </event>
 
     <!--
@@ -27,16 +33,69 @@
                   instance="MageOS\Seo\Observer\InvalidateHreflangSitemapCache"/>
         <observer name="mageos_seo_invalidate_llms_on_product_save"
                   instance="MageOS\Seo\Observer\InvalidateLlmsTxtCache"/>
+        <observer name="mageos_seo_invalidate_sitemap_on_product_save"
+                  instance="MageOS\Seo\Observer\InvalidateSitemap"/>
     </event>
 
     <!-- Hreflang sitemap: invalidate when URL-affecting data changes. -->
     <event name="cms_page_save_after">
         <observer name="mageos_seo_invalidate_hreflang_sitemap_on_cms_save"
                   instance="MageOS\Seo\Observer\InvalidateHreflangSitemapCache"/>
+        <observer name="mageos_seo_invalidate_sitemap_on_cms_save"
+                  instance="MageOS\Seo\Observer\InvalidateSitemap"/>
     </event>
     <event name="store_save_after">
         <observer name="mageos_seo_invalidate_hreflang_sitemap_on_store_save"
                   instance="MageOS\Seo\Observer\InvalidateHreflangSitemapCache"/>
+        <observer name="mageos_seo_invalidate_sitemap_on_store_save"
+                  instance="MageOS\Seo\Observer\InvalidateSitemap"/>
+    </event>
+
+    <!--
+        This module's own per-entity settings: a robots directive decides whether a page is in the
+        sitemap, a CMS page's translation group its alternates. Their models save under these
+        prefixes, from the admin forms and from imports and data patches alike.
+    -->
+    <event name="mageos_seo_product_override_save_after">
+        <observer name="mageos_seo_invalidate_sitemap_on_product_override_save"
+                  instance="MageOS\Seo\Observer\InvalidateSitemap"/>
+    </event>
+    <event name="mageos_seo_product_override_delete_after">
+        <observer name="mageos_seo_invalidate_sitemap_on_product_override_delete"
+                  instance="MageOS\Seo\Observer\InvalidateSitemap"/>
+    </event>
+    <event name="mageos_seo_category_config_save_after">
+        <observer name="mageos_seo_invalidate_sitemap_on_category_config_save"
+                  instance="MageOS\Seo\Observer\InvalidateSitemap"/>
+    </event>
+    <event name="mageos_seo_category_config_delete_after">
+        <observer name="mageos_seo_invalidate_sitemap_on_category_config_delete"
+                  instance="MageOS\Seo\Observer\InvalidateSitemap"/>
+    </event>
+    <event name="mageos_seo_cms_page_config_save_after">
+        <observer name="mageos_seo_invalidate_sitemap_on_cms_page_config_save"
+                  instance="MageOS\Seo\Observer\InvalidateSitemap"/>
+    </event>
+    <event name="mageos_seo_cms_page_config_delete_after">
+        <observer name="mageos_seo_invalidate_sitemap_on_cms_page_config_delete"
+                  instance="MageOS\Seo\Observer\InvalidateSitemap"/>
+    </event>
+
+    <!--
+        Configuration. Every way a value reaches the database saves its backend model — the admin's
+        configuration pages, `bin/magento config:set`, and Content → Design → Configuration, where
+        core's default robots directive lives — so these are the one hook all three share. The
+        admin saves every field of a section, changed or not; the policy counts a value only when it
+        changed, and only under the paths that can change a sitemap. Values config:set locks into
+        app/etc/env.php (its lock-env option) never reach the database, and so are not seen.
+    -->
+    <event name="config_data_save_after">
+        <observer name="mageos_seo_invalidate_sitemap_on_config_save"
+                  instance="MageOS\Seo\Observer\InvalidateSitemap"/>
+    </event>
+    <event name="config_data_delete_after">
+        <observer name="mageos_seo_invalidate_sitemap_on_config_delete"
+                  instance="MageOS\Seo\Observer\InvalidateSitemap"/>
     </event>
 
     <!--
@@ -51,6 +110,8 @@
                   instance="MageOS\Seo\Observer\InvalidateLlmsTxtCache"/>
         <observer name="mageos_seo_invalidate_hreflang_sitemap_on_category_move"
                   instance="MageOS\Seo\Observer\InvalidateHreflangSitemapCache"/>
+        <observer name="mageos_seo_invalidate_sitemap_on_category_move"
+                  instance="MageOS\Seo\Observer\InvalidateSitemap"/>
     </event>
 
     <!--
@@ -68,6 +129,8 @@
                   instance="MageOS\Seo\Observer\InvalidateHreflangSitemapCache"/>
         <observer name="mageos_seo_invalidate_llms_on_product_website_change"
                   instance="MageOS\Seo\Observer\InvalidateLlmsTxtCache"/>
+        <observer name="mageos_seo_invalidate_sitemap_on_product_website_change"
+                  instance="MageOS\Seo\Observer\InvalidateSitemap"/>
     </event>
 
     <!--
@@ -109,18 +172,24 @@
     <event name="website_delete_before">
         <observer name="mageos_seo_invalidate_hreflang_sitemap_on_website_delete"
                   instance="MageOS\Seo\Observer\InvalidateHreflangSitemapCache"/>
+        <observer name="mageos_seo_invalidate_sitemap_on_website_delete"
+                  instance="MageOS\Seo\Observer\InvalidateSitemap"/>
         <observer name="mageos_seo_remove_organisation_on_website_delete"
                   instance="MageOS\Seo\Observer\RemoveOrganisationOnScopeDelete"/>
     </event>
     <event name="store_group_delete_before">
         <observer name="mageos_seo_invalidate_hreflang_sitemap_on_store_group_delete"
                   instance="MageOS\Seo\Observer\InvalidateHreflangSitemapCache"/>
+        <observer name="mageos_seo_invalidate_sitemap_on_store_group_delete"
+                  instance="MageOS\Seo\Observer\InvalidateSitemap"/>
         <observer name="mageos_seo_remove_organisation_on_store_group_delete"
                   instance="MageOS\Seo\Observer\RemoveOrganisationOnScopeDelete"/>
     </event>
     <event name="store_delete_before">
         <observer name="mageos_seo_invalidate_hreflang_sitemap_on_store_delete"
                   instance="MageOS\Seo\Observer\InvalidateHreflangSitemapCache"/>
+        <observer name="mageos_seo_invalidate_sitemap_on_store_delete"
+                  instance="MageOS\Seo\Observer\InvalidateSitemap"/>
         <observer name="mageos_seo_remove_organisation_on_store_delete"
                   instance="MageOS\Seo\Observer\RemoveOrganisationOnScopeDelete"/>
     </event>
@@ -143,16 +212,22 @@
                   instance="MageOS\Seo\Observer\InvalidateHreflangSitemapCache"/>
         <observer name="mageos_seo_invalidate_llms_on_product_delete"
                   instance="MageOS\Seo\Observer\InvalidateLlmsTxtCache"/>
+        <observer name="mageos_seo_invalidate_sitemap_on_product_delete"
+                  instance="MageOS\Seo\Observer\InvalidateSitemap"/>
     </event>
     <event name="catalog_category_delete_commit_after">
         <observer name="mageos_seo_invalidate_llms_on_category_delete"
                   instance="MageOS\Seo\Observer\InvalidateLlmsTxtCache"/>
         <observer name="mageos_seo_invalidate_hreflang_sitemap_on_category_delete"
                   instance="MageOS\Seo\Observer\InvalidateHreflangSitemapCache"/>
+        <observer name="mageos_seo_invalidate_sitemap_on_category_delete"
+                  instance="MageOS\Seo\Observer\InvalidateSitemap"/>
     </event>
     <event name="cms_page_delete_commit_after">
         <observer name="mageos_seo_invalidate_hreflang_sitemap_on_cms_delete"
                   instance="MageOS\Seo\Observer\InvalidateHreflangSitemapCache"/>
+        <observer name="mageos_seo_invalidate_sitemap_on_cms_delete"
+                  instance="MageOS\Seo\Observer\InvalidateSitemap"/>
         <!-- No foreign key can reach cms_page, so the configuration is cleared here. -->
         <observer name="mageos_seo_remove_cms_page_config_on_delete"
                   instance="MageOS\Seo\Observer\RemoveCmsPageConfigOnDelete"/>
