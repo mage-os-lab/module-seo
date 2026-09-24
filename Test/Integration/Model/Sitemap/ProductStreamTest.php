@@ -20,7 +20,8 @@ use PHPUnit\Framework\TestCase;
 
 /**
  * ProductStream reads, a page at a time, exactly the products core's sitemap product resource model
- * reads in one go — built the same way, images included.
+ * reads in one go — with the same URL, last-modified date and images, which is all a sitemap row is
+ * built from.
  *
  * Every comparison is against core's resource model on the same installation, so it holds on every
  * version CI runs: that is what makes one query right for all of them.
@@ -84,7 +85,7 @@ class ProductStreamTest extends TestCase
                 ->getId();
             $this->assertArrayHasKey($productId, $core);
             if ($policy !== 'none') {
-                $this->assertArrayHasKey('images', $core[$productId][0], 'The fixture product has images.');
+                $this->assertNotNull($core[$productId][0]['images'], 'The fixture product has images.');
             }
             $this->assertSame($core, $ours, 'Images differ from core\'s under policy "' . $policy . '".');
         }
@@ -139,6 +140,11 @@ class ProductStreamTest extends TestCase
      * Products as comparable arrays, keyed by ID, each ID's products listed — so a product read
      * twice shows as two.
      *
+     * Only what a sitemap item is built from (AbstractEntityProvider reads `id`, `url`,
+     * `updated_at` and `images`), the images in full. The rest of core's object is not the same
+     * across versions: before 2.4.9 its per-product gallery read leaves `store_id` on every product
+     * under the "all" image policy, and from 2.4.9 it does not.
+     *
      * @param iterable<DataObject> $products
      * @return array<string,array<int,array<string,mixed>>>
      */
@@ -146,17 +152,20 @@ class ProductStreamTest extends TestCase
     {
         $result = [];
         foreach ($products as $product) {
-            $data = $product->getData();
-            if (isset($data['images'])) {
-                $images               = $data['images']->getData();
+            $images = $product->getData('images');
+            if ($images instanceof DataObject) {
+                $images               = $images->getData();
                 $images['collection'] = array_map(
                     static fn (DataObject $image): array => $image->getData(),
                     $images['collection']
                 );
-                $data['images']       = $images;
             }
-            ksort($data);
-            $result[(string) $product->getData('id')][] = $data;
+
+            $result[(string) $product->getData('id')][] = [
+                'url'        => $product->getData('url'),
+                'updated_at' => $product->getData('updated_at'),
+                'images'     => $images,
+            ];
         }
         ksort($result);
 
