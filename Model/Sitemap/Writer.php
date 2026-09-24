@@ -28,10 +28,12 @@ use Magento\Sitemap\Model\SitemapConfigReaderInterface;
  * candidates, so another sitemap sharing the directory is never touched.
  *
  * Given `$onlyTypes`, it rewrites those types and keeps the rest: the index lists the other types'
- * files already on disk, each with its own file time as `<lastmod>`, so a type that was not rebuilt
- * keeps its date; leftovers are removed for the rewritten types only. That needs an index of this
- * generator's to build on — without one (never generated, or last written by core's generator)
- * every type is written.
+ * files already on disk, and leftovers are removed for the rewritten types only. That needs an index
+ * of this generator's to build on — without one (never generated, or last written by core's
+ * generator) every type is written.
+ *
+ * Every file the index lists has its own file time as `<lastmod>`, written now or kept, so a type
+ * that was not rebuilt keeps its date.
  */
 class Writer
 {
@@ -226,30 +228,37 @@ class Writer
     /**
      * The files the index lists, in type order, each with its `<lastmod>`.
      *
-     * Files written now carry the time of this generation; files of a type kept from an earlier
-     * one carry their own file time.
+     * Every file carries its own file time once in place, whether written now or kept from an
+     * earlier generation, so its date changes only when the file does. Stamping the files written
+     * now with the time of the index instead would give a file one date now and its file time at the
+     * next rebuild that keeps it — moving it back by up to the length of this generation.
      *
      * @return array<string,string> file name => lastmod
      */
     private function indexEntries(): array
     {
-        $now     = date('c');
         $entries = [];
         foreach ($this->types as $type) {
-            if ($this->writes($type)) {
-                foreach (array_keys($this->children, $type, true) as $child) {
-                    $entries[$child] = $now;
-                }
-                continue;
-            }
-
-            foreach ($this->filesOnDisk($type) as $file) {
-                $mtime          = (int) ($this->publicDirectory->stat($this->filePath($file))['mtime'] ?? 0);
-                $entries[$file] = $mtime > 0 ? date('c', $mtime) : $now;
+            $files = $this->writes($type) ? array_keys($this->children, $type, true) : $this->filesOnDisk($type);
+            foreach ($files as $file) {
+                $entries[$file] = $this->lastModified($file);
             }
         }
 
         return $entries;
+    }
+
+    /**
+     * A file's time in place, as `<lastmod>`; the current time when the file system reports none.
+     *
+     * @param string $file
+     * @return string
+     */
+    private function lastModified(string $file): string
+    {
+        $mtime = (int) ($this->publicDirectory->stat($this->filePath($file))['mtime'] ?? 0);
+
+        return date('c', $mtime > 0 ? $mtime : time());
     }
 
     /**
