@@ -7,7 +7,6 @@ namespace MageOS\Seo\Test\Integration\Model\Sitemap;
 use Magento\Catalog\Test\Fixture\Category as CategoryFixture;
 use Magento\Catalog\Test\Fixture\Product as ProductFixture;
 use Magento\Framework\ObjectManager\ConfigInterface as ObjectManagerConfig;
-use Magento\Sitemap\Model\Batch\Observer as BatchObserver;
 use Magento\Sitemap\Model\ItemProvider\Composite as CoreComposite;
 use Magento\Sitemap\Model\Observer as StandardObserver;
 use Magento\TestFramework\Fixture\DataFixture;
@@ -241,40 +240,35 @@ class GeneratorTest extends TestCase
     }
 
     /**
-     * Both of core's cron jobs — standard and batch — end up in the selected generator.
+     * Core's cron job ends up in the selected generator.
      *
-     * The cron jobs catch every exception and only report them by e-mail, so an error address is
+     * Only the standard job, which every supported version has. With this module's generator
+     * selected, generation goes through it whatever core's Generation Method says; on 2.4.9, where
+     * core also has a batch job, that one reaches it through the same plugin, which its sitemap
+     * class inherits.
+     *
+     * The cron job catches every exception and only reports it by e-mail, so an error address is
      * configured and the captured mail is what says why a sitemap is missing.
      *
      * @magentoConfigFixture current_store sitemap/generate/enabled 1
      * @magentoConfigFixture current_store sitemap/generate/error_email errors@example.com
      * @return void
      */
-    public function testBothOfCoresCronJobsUseTheSelectedGenerator(): void
+    public function testCoresCronJobUsesTheSelectedGenerator(): void
     {
         $this->sitemapFor($this->defaultStoreId())->save();
         $index = self::DIRECTORY . "/{$this->sitemapName}.xml";
-        $mail  = Bootstrap::getObjectManager()->get(TransportBuilderMock::class);
 
-        foreach ([StandardObserver::class, BatchObserver::class] as $observer) {
-            if ($this->pub()->isExist($index)) {
-                $this->pub()->delete($index);
-            }
+        Bootstrap::getObjectManager()->create(StandardObserver::class)->scheduledGenerateSitemaps();
 
-            Bootstrap::getObjectManager()->create($observer)->scheduledGenerateSitemaps();
-
-            $sent = $mail->getSentMessage();
-            $this->assertNull(
-                $sent,
-                $observer . ' reported errors: ' . ($sent === null ? '' : $sent->getBodyText())
-            );
-            $this->assertTrue($this->pub()->isExist($index), $observer . ' wrote no sitemap.');
-            $this->assertStringContainsString(
-                '<sitemapindex',
-                $this->pub()->readFile($index),
-                $observer . ' did not go through this module\'s generator.'
-            );
-        }
+        $sent = Bootstrap::getObjectManager()->get(TransportBuilderMock::class)->getSentMessage();
+        $this->assertNull($sent, 'The cron job reported errors: ' . ($sent === null ? '' : $sent->getBodyText()));
+        $this->assertTrue($this->pub()->isExist($index), 'The cron job wrote no sitemap.');
+        $this->assertStringContainsString(
+            '<sitemapindex',
+            $this->pub()->readFile($index),
+            'The cron job did not go through this module\'s generator.'
+        );
     }
 
     /**

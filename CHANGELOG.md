@@ -18,7 +18,10 @@ become public contract.
   new **Catalog → XML Sitemap → Generation Settings → Generator** (default **MageOS SEO**;
   **Magento** leaves core's generator in charge). It lists the same URLs as core's, writes one file
   per kind of page under a `sitemap.xml` index, streams the catalogue whatever core's Generation
-  Method says, and never lets a file pass the configured size. See `docs/sitemap.md`.
+  Method says, and never lets a file pass the configured size. Products are read a page at a time
+  by its own reader (`ResourceModel\Sitemap\ProductStream`) with core's product sitemap query, on
+  every supported version; plugins on core's `prepareSelectStatement()` hook still apply. See
+  `docs/sitemap.md`.
 - Hreflang alternates inline in `sitemap.xml`, beside each URL, as the MageOS SEO generator writes
   it — the same set the page's head declares, and only where the URL is among its own alternates.
 - The MageOS SEO sitemap generator leaves out pages served NOINDEX (**Generation Settings → Leave

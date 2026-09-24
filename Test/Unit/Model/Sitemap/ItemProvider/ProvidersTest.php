@@ -11,8 +11,6 @@ use Magento\Sitemap\Model\ItemProvider\ConfigReaderInterface;
 use Magento\Sitemap\Model\ItemProvider\ItemProviderInterface as CoreItemProviderInterface;
 use Magento\Sitemap\Model\ItemProvider\ProductConfigReader;
 use Magento\Sitemap\Model\ItemProvider\StoreUrlConfigReader;
-use Magento\Sitemap\Model\ResourceModel\Catalog\Batch\Product as StreamingProductResource;
-use Magento\Sitemap\Model\ResourceModel\Catalog\Batch\ProductFactory as StreamingProductFactory;
 use Magento\Sitemap\Model\ResourceModel\Catalog\Category as CategoryResource;
 use Magento\Sitemap\Model\ResourceModel\Catalog\CategoryFactory;
 use Magento\Sitemap\Model\ResourceModel\Catalog\Product as ProductResource;
@@ -25,6 +23,7 @@ use MageOS\Seo\Model\Sitemap\ItemProvider\Category;
 use MageOS\Seo\Model\Sitemap\ItemProvider\CmsPage;
 use MageOS\Seo\Model\Sitemap\ItemProvider\Composite;
 use MageOS\Seo\Model\Sitemap\ItemProvider\Product;
+use MageOS\Seo\Model\ResourceModel\Sitemap\ProductStream;
 use MageOS\Seo\Model\Sitemap\ItemProvider\StoreUrl;
 use MageOS\Seo\Model\Sitemap\SitemapItem;
 use MageOS\Seo\Model\Sitemap\SitemapItemFactory;
@@ -95,7 +94,7 @@ class ProvidersTest extends TestCase
         $this->assertNull($item->getEntityId());
     }
 
-    public function testProductsListFromCoresStandardResourceAndStreamFromItsBatchResource(): void
+    public function testProductsListFromCoresResourceAndStreamFromProductStream(): void
     {
         $provider = $this->product(
             [new DataObject(['id' => '1', 'url' => 'listed.html'])],
@@ -174,8 +173,8 @@ class ProvidersTest extends TestCase
     }
 
     /**
-     * @param DataObject[] $listed Rows of core's standard product resource
-     * @param DataObject[] $streamed Rows of core's batch product resource
+     * @param DataObject[] $listed Rows of core's product resource
+     * @param DataObject[] $streamed Rows ProductStream yields
      * @return Product
      */
     private function product(array $listed, array $streamed): Product
@@ -185,20 +184,18 @@ class ProvidersTest extends TestCase
         $standardFactory = $this->createStub(ProductFactory::class);
         $standardFactory->method('create')->willReturn($standard);
 
-        $batch = $this->createStub(StreamingProductResource::class);
-        $batch->method('getCollection')->willReturnCallback(
+        $stream = $this->createStub(ProductStream::class);
+        $stream->method('stream')->willReturnCallback(
             static function () use ($streamed): \Generator {
                 yield from $streamed;
             }
         );
-        $batchFactory = $this->createStub(StreamingProductFactory::class);
-        $batchFactory->method('create')->willReturn($batch);
 
         return new Product(
             $this->configReader(ProductConfigReader::class),
             $this->itemFactory(),
             $standardFactory,
-            $batchFactory
+            $stream
         );
     }
 

@@ -530,7 +530,8 @@ is stored encrypted; only the public JWK is served.</comment>
                     <source_model>MageOS\Seo\Model\Config\Source\SitemapGenerator</source_model>
                     <comment><![CDATA[<strong>MageOS SEO</strong> writes each sitemap as an index with a
 file per kind of page, and can add to each URL what core's generator cannot — hreflang alternates
-among them. It streams the catalogue, so Generation Method has no effect while it is selected.
+among them. It reads the catalogue a page at a time on every version, so Generation Method has no
+effect while it is selected.
 <strong>Magento</strong> uses core's generator unchanged.]]></comment>
                 </field>
                 <field id="mageos_seo_exclude_noindex" translate="label comment" type="select" sortOrder="4"
