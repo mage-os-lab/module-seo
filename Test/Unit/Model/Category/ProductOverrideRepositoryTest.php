@@ -54,8 +54,8 @@ class ProductOverrideRepositoryTest extends TestCase
     public function testGetForProductMergesStoreRowOverGlobalAndMemoises(): void
     {
         $this->rows = [
-            ['store_id' => 0, 'override_fields' => '{"brand":"Acme","color":"Blue"}', 'robots_meta' => null],
-            ['store_id' => 2, 'override_fields' => '{"color":"Red"}', 'robots_meta' => 'NOINDEX,FOLLOW'],
+            $this->row(10, 0, '{"brand":"Acme","color":"Blue"}', null),
+            $this->row(10, 2, '{"color":"Red"}', 'NOINDEX,FOLLOW'),
         ];
 
         $repository = $this->repository();
@@ -68,6 +68,41 @@ class ProductOverrideRepositoryTest extends TestCase
         $this->assertSame('NOINDEX,FOLLOW', $first['robots_meta']);
         $this->assertCount(1, $this->filterSets, 'The second read came from the memo.');
         $this->assertSame(['in' => [0, 2]], $this->filterSets[0]['store_id']);
+    }
+
+    public function testGetForProductsMergesEachProductAsGetForProductDoes(): void
+    {
+        $this->rows = [
+            $this->row(10, 0, '{"brand":"Acme"}', 'NOINDEX'),
+            $this->row(11, 0, null, 'INDEX,FOLLOW'),
+            $this->row(10, 2, '{"color":"Red"}', ''),
+            $this->row(11, 2, null, 'NOINDEX,NOFOLLOW'),
+        ];
+
+        $result = $this->repository()->getForProducts([10, 11, 12], 2);
+
+        $this->assertSame(['brand' => 'Acme', 'color' => 'Red'], $result[10]['override_fields']);
+        $this->assertSame('NOINDEX', $result[10]['robots_meta'], 'An empty store row does not blank the global one.');
+        $this->assertSame('NOINDEX,NOFOLLOW', $result[11]['robots_meta'], 'The store row wins.');
+        $this->assertSame(['override_fields' => [], 'robots_meta' => null], $result[12], 'No rows: the empty shape.');
+        $this->assertCount(1, $this->filterSets, 'One query for all three.');
+        $this->assertSame(['in' => [10, 11, 12]], $this->filterSets[0]['product_id']);
+    }
+
+    public function testGetForProductsIsNotMemoised(): void
+    {
+        // The sitemap reads the whole catalogue through it; holding every row would undo streaming.
+        $repository = $this->repository();
+        $repository->getForProducts([10], 2);
+        $repository->getForProducts([10], 2);
+
+        $this->assertCount(2, $this->filterSets);
+    }
+
+    public function testGetForProductsWithNoIdsReadsNothing(): void
+    {
+        $this->assertSame([], $this->repository()->getForProducts([], 2));
+        $this->assertCount(0, $this->filterSets);
     }
 
     public function testAProductWithNoOverridesStillReturnsTheMergedShape(): void
@@ -140,6 +175,25 @@ class ProductOverrideRepositoryTest extends TestCase
         $this->assertNull($this->saved[0]->getData('entity_id'));
         $this->assertSame(10, $this->saved[0]->getData('product_id'));
         $this->assertSame(0, $this->saved[0]->getData('store_id'));
+    }
+
+    /**
+     * A table row. Tests list global rows before store rows, as the query's ORDER BY returns them.
+     *
+     * @param int $productId
+     * @param int $storeId
+     * @param string|null $fields
+     * @param string|null $robots
+     * @return mixed[]
+     */
+    private function row(int $productId, int $storeId, ?string $fields, ?string $robots): array
+    {
+        return [
+            'product_id'      => $productId,
+            'store_id'        => $storeId,
+            'override_fields' => $fields,
+            'robots_meta'     => $robots,
+        ];
     }
 
     /**

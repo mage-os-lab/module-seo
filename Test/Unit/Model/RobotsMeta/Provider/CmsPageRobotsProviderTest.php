@@ -41,6 +41,13 @@ class CmsPageRobotsProviderTest extends TestCase
     private array $pageConfig = [];
 
     /**
+     * The rows several pages' configuration returns, by page ID.
+     *
+     * @var array<int,mixed[]>
+     */
+    private array $pagesConfig = [];
+
+    /**
      * @var CmsPageRobotsProvider
      */
     private CmsPageRobotsProvider $provider;
@@ -53,6 +60,7 @@ class CmsPageRobotsProviderTest extends TestCase
 
         $configRepository = $this->createStub(CmsPageConfigRepository::class);
         $configRepository->method('getForPage')->willReturnCallback(fn (): array => $this->pageConfig);
+        $configRepository->method('getForPages')->willReturnCallback(fn (): array => $this->pagesConfig);
 
         $this->provider = new CmsPageRobotsProvider(
             $this->cmsPageResolver,
@@ -108,5 +116,31 @@ class CmsPageRobotsProviderTest extends TestCase
         $this->cmsPageResolver->method('resolve')->willReturn($this->createMock(PageInterface::class));
         $this->config->method('getRobotsCmsDefault')->with(1)->willReturn('');
         $this->assertNull($this->provider->getRobots(1));
+    }
+
+    /**
+     * The sitemap's question, for a chunk of pages: each gets what its own page would.
+     */
+    public function testForPagesAppliesTheSameChainToEachPage(): void
+    {
+        $this->pagesConfig = [
+            3 => ['robots_meta' => 'NOINDEX,FOLLOW'],
+            4 => ['robots_meta' => ''],
+            5 => [],
+        ];
+        $this->config->method('getRobotsCmsDefault')->willReturn('INDEX,FOLLOW');
+
+        $this->assertSame(
+            [3 => 'NOINDEX,FOLLOW', 4 => 'INDEX,FOLLOW', 5 => 'INDEX,FOLLOW'],
+            $this->provider->forPages([3, 4, 5], 1)
+        );
+    }
+
+    public function testForPagesGivesNullWhereNeitherOverrideNorDefaultSaysAnything(): void
+    {
+        $this->pagesConfig = [3 => []];
+        $this->config->method('getRobotsCmsDefault')->willReturn('');
+
+        $this->assertSame([3 => null], $this->provider->forPages([3], 1));
     }
 }

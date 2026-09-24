@@ -100,6 +100,7 @@
         <sitemap>
             <generate>
                 <mageos_seo_generator>mageos_seo</mageos_seo_generator>
+                <mageos_seo_exclude_noindex>1</mageos_seo_exclude_noindex>
             </generate>
         </sitemap>
     </default>

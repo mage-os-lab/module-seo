@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace MageOS\Seo\Model\Cms;
 
+use Magento\Framework\Data\Collection as DataCollection;
 use Magento\Framework\ObjectManager\ResetAfterRequestInterface;
 use MageOS\Seo\Model\CmsPageConfig;
 use MageOS\Seo\Model\ResourceModel\CmsPageConfig as CmsPageConfigResource;
@@ -44,31 +45,60 @@ class ConfigRepository implements ResetAfterRequestInterface
      */
     public function getForPage(int $pageId, int $storeId = 0): array
     {
-        $cacheKey = "{$pageId}_{$storeId}";
-        if (isset($this->cache[$cacheKey])) {
-            return $this->cache[$cacheKey];
+        return $this->cache["{$pageId}_{$storeId}"] ??= $this->load([$pageId], $storeId)[$pageId];
+    }
+
+    /**
+     * Load several CMS pages' configuration in one query, each chosen as getForPage() chooses.
+     *
+     * Not memoised, for the reason ProductOverrideRepository::getForProducts() gives: the sitemap
+     * reads every page through this.
+     *
+     * @param int[] $pageIds
+     * @param int $storeId Store view ID (0 = global default)
+     * @return array<int,mixed[]> page ID => row, empty when the page has none, for every ID asked for
+     */
+    public function getForPages(array $pageIds, int $storeId = 0): array
+    {
+        return $this->load($pageIds, $storeId);
+    }
+
+    /**
+     * Read the given pages' rows for a store view and choose each page's.
+     *
+     * @param int[] $pageIds
+     * @param int $storeId
+     * @return array<int,mixed[]>
+     */
+    private function load(array $pageIds, int $storeId): array
+    {
+        $pageIds = array_values(array_unique(array_map('intval', $pageIds)));
+        if ($pageIds === []) {
+            return [];
         }
 
         $collection = $this->collectionFactory->create();
-        $collection->addFieldToFilter('page_id', ['eq' => $pageId]);
+        $collection->addFieldToFilter('page_id', ['in' => $pageIds]);
         $collection->addFieldToFilter('store_id', $storeId > 0 ? ['in' => [0, $storeId]] : ['eq' => 0]);
+        // Global row first, so the rule below does not depend on the order the database returns.
+        $collection->setOrder('store_id', DataCollection::SORT_ORDER_ASC);
 
-        $row = [];
+        $rows = array_fill_keys($pageIds, []);
 
         /** @var CmsPageConfig $config */
         foreach ($collection as $config) {
             $candidate = $config->getData();
+            $pageId    = (int) ($candidate['page_id'] ?? 0);
 
-            // The store view's own row wins, whichever order the rows arrive in; a row that sets
-            // nothing does not blank out the global one.
-            if ($row === [] || ((int) ($candidate['store_id'] ?? 0) > 0 && $this->saysSomething($candidate))) {
-                $row = $candidate;
+            // The store view's own row wins; a row that sets nothing does not blank out the
+            // global one.
+            $isStoreRow = (int) ($candidate['store_id'] ?? 0) > 0;
+            if ($rows[$pageId] === [] || ($isStoreRow && $this->saysSomething($candidate))) {
+                $rows[$pageId] = $candidate;
             }
         }
 
-        $this->cache[$cacheKey] = $row;
-
-        return $row;
+        return $rows;
     }
 
     /**

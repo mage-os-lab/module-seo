@@ -533,6 +533,18 @@ file per kind of page, and can add to each URL what core's generator cannot — 
 among them. It streams the catalogue, so Generation Method has no effect while it is selected.
 <strong>Magento</strong> uses core's generator unchanged.]]></comment>
                 </field>
+                <field id="mageos_seo_exclude_noindex" translate="label comment" type="select" sortOrder="4"
+                       showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Leave Out NOINDEX Pages</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    <comment><![CDATA[A page whose robots directive is NOINDEX is not listed. The directive is
+the one the page gets from its SEO settings, else from Design → Search Engine Robots — so a store
+set to NOINDEX there has an empty sitemap. A directive another module sets while the page renders
+is not seen.]]></comment>
+                    <depends>
+                        <field id="mageos_seo_generator">mageos_seo</field>
+                    </depends>
+                </field>
             </group>
         </section>
     </system>

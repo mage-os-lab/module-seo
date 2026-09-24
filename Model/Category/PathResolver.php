@@ -6,6 +6,7 @@ namespace MageOS\Seo\Model\Category;
 
 use Magento\Catalog\Api\CategoryRepositoryInterface;
 use Magento\Catalog\Api\Data\CategoryInterface;
+use Magento\Catalog\Model\ResourceModel\Category\CollectionFactory as CategoryCollectionFactory;
 use Magento\Framework\Exception\NoSuchEntityException;
 
 /**
@@ -24,10 +25,39 @@ class PathResolver
 {
     /**
      * @param CategoryRepositoryInterface $categoryRepository
+     * @param CategoryCollectionFactory $categoryCollectionFactory
      */
     public function __construct(
-        private readonly CategoryRepositoryInterface $categoryRepository
+        private readonly CategoryRepositoryInterface $categoryRepository,
+        private readonly CategoryCollectionFactory   $categoryCollectionFactory
     ) {
+    }
+
+    /**
+     * The paths of several categories, read in one query.
+     *
+     * For the sitemap, which has only IDs and lists every category. A path is the same in every
+     * store view, so none is asked for. An ID that no longer resolves is absent from the result.
+     *
+     * @param int[] $categoryIds
+     * @return array<int,string[]> category ID => ancestor IDs from root to leaf
+     */
+    public function forCategoryIds(array $categoryIds): array
+    {
+        $categoryIds = array_values(array_unique(array_map('intval', $categoryIds)));
+        if ($categoryIds === []) {
+            return [];
+        }
+
+        $collection = $this->categoryCollectionFactory->create();
+        $collection->addFieldToFilter('entity_id', ['in' => $categoryIds]);
+
+        $paths = [];
+        foreach ($collection as $category) {
+            $paths[(int) $category->getId()] = $this->split((string) $category->getPath());
+        }
+
+        return $paths;
     }
 
     /**

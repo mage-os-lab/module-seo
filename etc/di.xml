@@ -484,6 +484,10 @@
             </argument>
             <argument name="enrichers" xsi:type="array">
                 <item name="hreflang" xsi:type="object">MageOS\Seo\Model\Sitemap\Hreflang\Enricher</item>
+                <item name="robots" xsi:type="object">MageOS\Seo\Model\Sitemap\Robots\Enricher</item>
+            </argument>
+            <argument name="filters" xsi:type="array">
+                <item name="indexable" xsi:type="object">MageOS\Seo\Model\Sitemap\Robots\IndexableFilter</item>
             </argument>
         </arguments>
     </type>

@@ -21,6 +21,10 @@ become public contract.
   Method says, and never lets a file pass the configured size. See `docs/sitemap.md`.
 - Hreflang alternates inline in `sitemap.xml`, beside each URL, as the MageOS SEO generator writes
   it — the same set the page's head declares, and only where the URL is among its own alternates.
+- The MageOS SEO sitemap generator leaves out pages served NOINDEX (**Generation Settings → Leave
+  Out NOINDEX Pages**, default Yes). The directive is the page's own — its override, the page
+  type's default, else core's Design → Search Engine Robots — so a store set to NOINDEX there gets
+  an empty sitemap.
 - Sitemap extension points (`Api\Sitemap\*`): items carry their entity and a data bag; providers
   say which file their items belong in and stream them; enrichers, filters and row renderers are
   registered on the generator. Providers registered on core's composite keep working, written
@@ -43,6 +47,11 @@ become public contract.
 - Hreflang URLs use the store view's configured scheme. They followed the current request, so
   anything built from cron or the command line — `/hreflang-sitemap.xml` included — listed an https
   store view's pages as `http://`.
+- A page's head declares hreflang alternates only when the set includes the page itself, as Google
+  requires. A store view excluded from hreflang used to list every other store view on its pages
+  but not itself; and of two CMS translations assigned to one store view, the one its group does not
+  name used to declare the other as its own-language version. Both now declare nothing. The head and
+  the sitemap apply the rule through one class, `Model\Hreflang\SelfReference`.
 - The Organisation and FAQ admin forms declare an ACL resource. Their controllers
   always did, but a UI component's data is also reachable through the generic
   `mui/index/render` endpoint, which checks the component's own `aclResource` and

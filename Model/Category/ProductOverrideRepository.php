@@ -36,36 +36,68 @@ class ProductOverrideRepository implements ResetAfterRequestInterface
      */
     public function getForProduct(int $productId, int $storeId): array
     {
-        $cacheKey = "{$productId}_{$storeId}";
-        if (isset($this->cache[$cacheKey])) {
-            return $this->cache[$cacheKey];
+        return $this->cache["{$productId}_{$storeId}"] ??= $this->load([$productId], $storeId)[$productId];
+    }
+
+    /**
+     * Load several products' overrides in one query, each merged as getForProduct() merges one.
+     *
+     * Not memoised: the sitemap reads a whole catalogue through this a chunk at a time, and keeping
+     * every product's row for the rest of the process would undo its streaming.
+     *
+     * @param int[] $productIds
+     * @param int $storeId
+     * @return array<int,mixed[]> product ID => merged overrides, for every ID asked for
+     */
+    public function getForProducts(array $productIds, int $storeId): array
+    {
+        return $this->load($productIds, $storeId);
+    }
+
+    /**
+     * Read and merge the rows of the given products for a store view.
+     *
+     * @param int[] $productIds
+     * @param int $storeId
+     * @return array<int,mixed[]>
+     */
+    private function load(array $productIds, int $storeId): array
+    {
+        $productIds = array_values(array_unique(array_map('intval', $productIds)));
+        if ($productIds === []) {
+            return [];
         }
 
+        $fields     = array_fill_keys($productIds, []);
+        $robotsMeta = array_fill_keys($productIds, null);
         $collection = $this->collectionFactory->create();
-        $collection->addFieldToFilter('product_id', ['eq' => $productId]);
+        $collection->addFieldToFilter('product_id', ['in' => $productIds]);
         $collection->addFieldToFilter('store_id', ['in' => [0, $storeId]]);
         // Global row first, store-view row second: store-specific fields win over global ones.
         $collection->setOrder('store_id', DataCollection::SORT_ORDER_ASC);
 
-        $merged    = ['override_fields' => [], 'robots_meta' => null];
-        $allFields = [];
-
         /** @var ProductOverride $override */
         foreach ($collection as $override) {
-            $fields = $override->getData('override_fields');
-            $fields = !empty($fields)
-                ? (json_decode((string) $fields, true) ?? [])
-                : [];
+            $productId = (int) $override->getData('product_id');
+            $decoded   = $override->getData('override_fields');
             // Store-specific fields win over global (store_id=0)
-            $allFields[] = $fields;
+            $fields[$productId][] = !empty($decoded) ? (json_decode((string) $decoded, true) ?? []) : [];
             if (!empty($override->getData('robots_meta'))) {
-                $merged['robots_meta'] = $override->getData('robots_meta');
+                $robotsMeta[$productId] = $override->getData('robots_meta');
             }
         }
 
-        $merged['override_fields'] = array_merge([], ...$allFields);
+        // One merge per product, of its (at most two) rows.
+        $overrideFields = array_map(static fn (array $rows): array => array_merge([], ...$rows), $fields);
 
-        $this->cache[$cacheKey] = $merged;
+        $merged = [];
+        foreach ($productIds as $productId) {
+            $merged[$productId] = [
+                'override_fields' => $overrideFields[$productId],
+                'robots_meta'     => $robotsMeta[$productId],
+            ];
+        }
+
         return $merged;
     }
 

@@ -118,4 +118,36 @@ class CmsPageResolverTest extends TestCase
         $this->resolver->_resetState();
         $this->resolver->resolve();
     }
+
+    /**
+     * The sitemap's home page: the given store view's configured page, not the current store's.
+     */
+    public function testResolveHomeReadsTheGivenStoreViewsHomePage(): void
+    {
+        $this->scopeConfig->method('getValue')
+            ->with(\Magento\Cms\Helper\Page::XML_PATH_HOME_PAGE, 'store', 3)
+            ->willReturn('startseite|1column');
+        $page = $this->createMock(PageInterface::class);
+        $this->getPageByIdentifier->method('execute')->with('startseite', 3)->willReturn($page);
+        $this->request->expects($this->never())->method('getPathInfo');
+
+        $this->assertSame($page, $this->resolver->resolveHome(3));
+    }
+
+    public function testResolveHomeIsNullWhenThePageDoesNotResolve(): void
+    {
+        $this->scopeConfig->method('getValue')->willReturn('home');
+        $this->getPageByIdentifier->method('execute')
+            ->willThrowException(new NoSuchEntityException(__('not found')));
+
+        $this->assertNull($this->resolver->resolveHome(3));
+    }
+
+    public function testResolveHomeIsNullWhenNoHomePageIsConfigured(): void
+    {
+        $this->scopeConfig->method('getValue')->willReturn(null);
+        $this->getPageByIdentifier->expects($this->never())->method('execute');
+
+        $this->assertNull($this->resolver->resolveHome(3));
+    }
 }

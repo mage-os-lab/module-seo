@@ -10,6 +10,7 @@ use MageOS\Seo\Model\Cms\ConfigRepository as CmsConfigRepository;
 use MageOS\Seo\Model\Config;
 use MageOS\Seo\Model\Hreflang\AlternateBuilder;
 use MageOS\Seo\Model\Hreflang\LinkBuilder;
+use MageOS\Seo\Model\Hreflang\SelfReference;
 use MageOS\Seo\Model\Hreflang\UrlRewriteFetcher;
 use MageOS\Seo\Model\Store\CanonicalBaseUrl;
 
@@ -47,6 +48,7 @@ class Enricher implements ItemEnricherInterface
      * @param LinkBuilder $linkBuilder
      * @param AlternateBuilder $alternateBuilder
      * @param CanonicalBaseUrl $canonicalBaseUrl
+     * @param SelfReference $selfReference
      */
     public function __construct(
         private readonly Config              $seoConfig,
@@ -54,7 +56,8 @@ class Enricher implements ItemEnricherInterface
         private readonly CmsConfigRepository $cmsConfigRepository,
         private readonly LinkBuilder         $linkBuilder,
         private readonly AlternateBuilder    $alternateBuilder,
-        private readonly CanonicalBaseUrl    $canonicalBaseUrl
+        private readonly CanonicalBaseUrl    $canonicalBaseUrl,
+        private readonly SelfReference       $selfReference
     ) {
     }
 
@@ -73,7 +76,7 @@ class Enricher implements ItemEnricherInterface
         foreach ($items as $item) {
             $links = $regionLinks[spl_object_id($item)] ?? [];
             $url   = $baseUrl . '/' . ltrim((string) $item->getUrl(), '/');
-            if (!$this->listsItself($links, $storeId, $url)) {
+            if (!$this->selfReference->includes($links, $storeId, $url)) {
                 continue;
             }
 
@@ -168,24 +171,5 @@ class Enricher implements ItemEnricherInterface
         }
 
         return $paths;
-    }
-
-    /**
-     * Whether the links include the item's own URL for its store view.
-     *
-     * @param array<int,array{hreflang:string,url:string,store_id:int}> $links
-     * @param int $storeId
-     * @param string $url
-     * @return bool
-     */
-    private function listsItself(array $links, int $storeId, string $url): bool
-    {
-        foreach ($links as $link) {
-            if ($link['store_id'] === $storeId && $link['url'] === $url) {
-                return true;
-            }
-        }
-
-        return false;
     }
 }

@@ -10,6 +10,7 @@ use MageOS\Seo\Model\Cms\ConfigRepository as CmsConfigRepository;
 use MageOS\Seo\Model\Config;
 use MageOS\Seo\Model\Hreflang\AlternateBuilder;
 use MageOS\Seo\Model\Hreflang\LinkBuilder;
+use MageOS\Seo\Model\Hreflang\SelfReference;
 use MageOS\Seo\Model\Hreflang\UrlRewriteFetcher;
 use MageOS\Seo\Model\Sitemap\Hreflang\Alternates;
 use MageOS\Seo\Model\Sitemap\Hreflang\Enricher;
@@ -199,7 +200,15 @@ class EnricherTest extends TestCase
         $baseUrl = $this->createStub(CanonicalBaseUrl::class);
         $baseUrl->method('forStore')->willReturnMap([[1, 'https://uk'], [2, 'https://de']]);
 
-        return new Enricher($config, $this->fetcher, $this->cmsConfig, $linkBuilder, $alternateBuilder, $baseUrl);
+        return new Enricher(
+            $config,
+            $this->fetcher,
+            $this->cmsConfig,
+            $linkBuilder,
+            $alternateBuilder,
+            $baseUrl,
+            new SelfReference()
+        );
     }
 
     /**

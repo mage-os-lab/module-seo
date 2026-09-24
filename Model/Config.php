@@ -34,6 +34,11 @@ class Config
     public const XML_ROBOTS_CMS_DEFAULT            = 'mageos_seo_general/robots_meta/cms_page_default';
     public const XML_ROBOTS_PAGINATED_ENABLED      = 'mageos_seo_general/robots_meta/paginated_enabled';
     public const XML_ROBOTS_PAGINATED              = 'mageos_seo_general/robots_meta/paginated_robots';
+
+    /**
+     * Core's Design → Search Engine Robots, which a page keeps when this module has no directive.
+     */
+    public const XML_ROBOTS_CORE_DEFAULT           = 'design/search_engine_robots/default_robots';
     public const XML_HREFLANG_ENABLED              = 'mageos_seo_general/hreflang/enabled';
     public const XML_HREFLANG_XDEFAULT_STORE       = 'mageos_seo_general/hreflang/xdefault_store_id';
     public const XML_HREFLANG_EXCLUDED_STORES      = 'mageos_seo_general/hreflang/excluded_store_ids';
@@ -42,6 +47,7 @@ class Config
     public const XML_HREFLANG_SAME_WEBSITE_ONLY    = 'mageos_seo_general/hreflang/same_website_only';
     public const XML_HREFLANG_CODES                = 'mageos_seo_general/hreflang/codes';
     public const XML_SITEMAP_GENERATOR             = 'sitemap/generate/mageos_seo_generator';
+    public const XML_SITEMAP_EXCLUDE_NOINDEX       = 'sitemap/generate/mageos_seo_exclude_noindex';
     public const XML_AEO_SPEAKABLE_ENABLED         = 'mageos_seo_general/aeo/speakable_enabled';
     public const XML_AEO_SPEAKABLE_SELECTORS       = 'mageos_seo_general/aeo/speakable_css_selectors';
     public const XML_AI_ROBOTS_ENABLED             = 'mageos_seo_general/ai_robots/enabled';
@@ -297,6 +303,21 @@ class Config
     }
 
     /**
+     * Core's default robots directive for a store view (Design → Search Engine Robots).
+     *
+     * @param int $storeId
+     * @return string
+     */
+    public function getRobotsCoreDefault(int $storeId): string
+    {
+        return (string) $this->scopeConfig->getValue(
+            self::XML_ROBOTS_CORE_DEFAULT,
+            ScopeInterface::SCOPE_STORE,
+            $storeId
+        );
+    }
+
+    /**
      * Check whether a dedicated robots meta is applied to paginated listing pages (?p=N, N>1).
      *
      * @param int|string|null $storeId
@@ -425,6 +446,21 @@ class Config
             ScopeInterface::SCOPE_STORE,
             $storeId
         ) === SitemapGenerator::MAGEOS_SEO;
+    }
+
+    /**
+     * Whether this module's generator leaves out pages whose robots directive is NOINDEX.
+     *
+     * @param int $storeId
+     * @return bool
+     */
+    public function isSitemapNoindexExcluded(int $storeId): bool
+    {
+        return $this->scopeConfig->isSetFlag(
+            self::XML_SITEMAP_EXCLUDE_NOINDEX,
+            ScopeInterface::SCOPE_STORE,
+            $storeId
+        );
     }
 
     /**

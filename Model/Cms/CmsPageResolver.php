@@ -62,6 +62,29 @@ class CmsPageResolver implements ResetAfterRequestInterface
     }
 
     /**
+     * The store view's home page, or null when its configured page does not resolve there.
+     *
+     * The page the store's base URL serves, found as the storefront finds it — for the sitemap,
+     * which lists that URL without a request to resolve.
+     *
+     * @param int $storeId
+     * @return \Magento\Cms\Api\Data\PageInterface|null
+     */
+    public function resolveHome(int $storeId): ?PageInterface
+    {
+        $identifier = $this->homeIdentifier($storeId);
+        if ($identifier === '') {
+            return null;
+        }
+
+        try {
+            return $this->getPageByIdentifier->execute($identifier, $storeId);
+        } catch (NoSuchEntityException) {
+            return null;
+        }
+    }
+
+    /**
      * Drop the memoised page between worker-mode requests.
      *
      * @return void
@@ -113,9 +136,21 @@ class CmsPageResolver implements ResetAfterRequestInterface
             return $identifier;
         }
 
+        return $this->homeIdentifier();
+    }
+
+    /**
+     * The configured home page identifier, its pipe-delimited layout suffix stripped.
+     *
+     * @param int|null $storeId The current store view when null
+     * @return string
+     */
+    private function homeIdentifier(?int $storeId = null): string
+    {
         $homeIdentifier = (string) $this->scopeConfig->getValue(
             \Magento\Cms\Helper\Page::XML_PATH_HOME_PAGE,
-            \Magento\Store\Model\ScopeInterface::SCOPE_STORE
+            \Magento\Store\Model\ScopeInterface::SCOPE_STORE,
+            $storeId
         );
 
         // Config value can include a pipe-delimited layout suffix, e.g. "home|2columns-left".

@@ -10,6 +10,7 @@ use Magento\Framework\Event\ObserverInterface;
 use Magento\Framework\View\Page\Config as PageConfig;
 use Magento\Store\Model\ScopeInterface;
 use Magento\Store\Model\StoreManagerInterface;
+use MageOS\Seo\Model\Config;
 use MageOS\Seo\Model\RobotsMeta\DirectiveComposer;
 use MageOS\Seo\Model\RobotsMeta\Resolver;
 
@@ -26,11 +27,6 @@ use MageOS\Seo\Model\RobotsMeta\Resolver;
  */
 class ApplyRobotsMeta implements ObserverInterface
 {
-    /**
-     * The config path core seeds the page's robots value from; see PageConfig::getRobots().
-     */
-    private const CORE_DEFAULT_ROBOTS = 'design/search_engine_robots/default_robots';
-
     /**
      * @param Resolver $resolver
      * @param PageConfig $pageConfig
@@ -62,8 +58,9 @@ class ApplyRobotsMeta implements ObserverInterface
                 return;
             }
 
+            // The path core seeds the page's robots value from; see PageConfig::getRobots().
             $coreDefault = (string) $this->scopeConfig->getValue(
-                self::CORE_DEFAULT_ROBOTS,
+                Config::XML_ROBOTS_CORE_DEFAULT,
                 ScopeInterface::SCOPE_STORE,
                 $storeId
             );

@@ -12,6 +12,8 @@ use MageOS\Seo\Model\Config;
 
 /**
  * Robots meta for category pages: per-category override, falling back to the configured default.
+ *
+ * The chain is public (forCategory()) so the sitemap asks the same question the page does.
  */
 class CategoryRobotsProvider implements RobotsMetaProviderInterface
 {
@@ -52,14 +54,29 @@ class CategoryRobotsProvider implements RobotsMetaProviderInterface
             return null;
         }
 
-        // The path is what lets a category inherit its nearest configured ancestor's settings;
-        // without it only the category's own row is read and the admin's inherited value, which
-        // it shows for exactly this category, never reaches the storefront.
-        $config = $this->categoryConfigRepository->getForCategory(
+        return $this->forCategory(
             (int) $category->getId(),
             $this->categoryPathResolver->forCategory($category),
             $storeId
         );
+    }
+
+    /**
+     * This module's directive for a category's page; null when it has none.
+     *
+     * The category's own or inherited override, else the Category Pages default. The path is what
+     * lets a category inherit its nearest configured ancestor's settings; without it only the
+     * category's own row is read and the admin's inherited value, which it shows for exactly this
+     * category, never reaches the storefront.
+     *
+     * @param int $categoryId
+     * @param string[] $categoryPath Ancestor IDs from root to leaf (PathResolver)
+     * @param int $storeId
+     * @return string|null
+     */
+    public function forCategory(int $categoryId, array $categoryPath, int $storeId): ?string
+    {
+        $config     = $this->categoryConfigRepository->getForCategory($categoryId, $categoryPath, $storeId);
         $robotsMeta = $config['robots_meta'] ?? null;
 
         if (empty($robotsMeta)) {

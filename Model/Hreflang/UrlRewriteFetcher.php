@@ -77,7 +77,7 @@ class UrlRewriteFetcher
      *
      * @param string[] $groups Normalised translation groups
      * @return array<int|string,array<int,string>> group => (store_id => request_path); PHP makes a
-     *                                            group of digits, such as "404", an integer key
+     *                                             group of digits, such as "404", an integer key
      */
     public function fetchForCmsGroups(array $groups): array
     {

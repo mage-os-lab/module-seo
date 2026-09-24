@@ -158,3 +158,6 @@ CMS page override (mageos_seo_cms_page_config.robots_meta)
 Where nothing along the chain has a value — the defaults ship empty — this module writes nothing,
 and Magento's own **Design → Search Engine Robots** setting stays in charge, as described under
 [Global defaults](#global-defaults).
+
+The XML sitemap resolves each page the same way, through the same classes, and leaves out the pages
+that come out NOINDEX — see [sitemap.md](sitemap.md#pages-left-out-noindex).

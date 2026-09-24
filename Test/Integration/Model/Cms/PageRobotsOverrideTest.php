@@ -87,6 +87,43 @@ class PageRobotsOverrideTest extends TestCase
     }
 
     /**
+     * The sitemap reads a chunk of pages at once; each must come back as it does read alone.
+     *
+     * The first page's store-view row is written before its global row, so it is the older row. A
+     * store row that sets nothing must still not hide the global row's directive, whichever order
+     * the rows come back in.
+     *
+     * @return void
+     */
+    public function testReadingSeveralPagesAgreesWithReadingEach(): void
+    {
+        $storeId = (int) Bootstrap::getObjectManager()
+            ->get(\Magento\Store\Model\StoreManagerInterface::class)
+            ->getStore('default')
+            ->getId();
+
+        $first = (int) $this->createPage()->getId();
+        $this->repository()->save($first, ['robots_meta' => ''], $storeId);
+        $this->repository()->save($first, ['robots_meta' => 'NOINDEX,FOLLOW']);
+
+        $second = (int) $this->createPage()->getId();
+        $this->repository()->save($second, ['robots_meta' => 'NOINDEX,FOLLOW']);
+        $this->repository()->save($second, ['robots_meta' => 'INDEX,NOFOLLOW'], $storeId);
+
+        $several = $this->repository()->getForPages([$first, $second, 999999], $storeId);
+
+        $this->assertSame(
+            'NOINDEX,FOLLOW',
+            $several[$first]['robots_meta'] ?? null,
+            'The empty store row is passed over.'
+        );
+        $this->assertSame('INDEX,NOFOLLOW', $several[$second]['robots_meta'] ?? null, 'The store row wins.');
+        $this->assertSame($this->repository()->getForPage($first, $storeId), $several[$first]);
+        $this->assertSame($this->repository()->getForPage($second, $storeId), $several[$second]);
+        $this->assertSame([], $several[999999]);
+    }
+
+    /**
      * @return void
      */
     public function testConfigurationIsRemovedWithItsPage(): void

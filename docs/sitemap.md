@@ -1,9 +1,9 @@
 # XML sitemap
 
 This module can generate the sitemaps you configure under **Marketing → SEO & Search → Site Map**,
-in place of Magento's own generator. It lists the same URLs Magento does, and adds what Magento's
-generator has no room for — hreflang alternates among them — through extension points any module
-can use.
+in place of Magento's own generator. It lists the same URLs Magento does, less the pages that are
+served NOINDEX, and adds what Magento's generator has no room for — hreflang alternates among them —
+through extension points any module can use.
 
 ---
 
@@ -89,6 +89,39 @@ Controlled by **Stores → Configuration → MageOS → SEO → Hreflang (Multis
 
 ---
 
+## Pages left out: NOINDEX
+
+**Stores → Configuration → Catalog → XML Sitemap → Generation Settings → Leave Out NOINDEX Pages**
+*(default Yes)*
+
+A sitemap lists the URLs a search engine should index. A page whose own robots tag says NOINDEX
+contradicts that, and Search Console reports the pair as an error — so such pages are not listed.
+
+The directive is the one the page is served with, worked out the way the page works it out (see
+[robots-meta.md](robots-meta.md)):
+
+| Page | Directive |
+|---|---|
+| Product | its override (store view, else global), else **Product Pages** default |
+| Category | its override, or the nearest ancestor's, else **Category Pages** default |
+| CMS page | its override (store view, else global), else **CMS Pages** default |
+| Home page | its CMS page's, as above |
+| URLs from other modules' providers | — |
+
+Where that gives nothing, core's **Content → Design → Configuration → Search Engine Robots**
+applies — as it does on the page. So a staging store set to NOINDEX,NOFOLLOW there gets an empty
+sitemap, with nothing to configure in this module.
+
+A page is left out when its directive has a `NOINDEX` token or is `NONE`. `NOFOLLOW` alone, or
+`NOIMAGEINDEX`, leaves it listed.
+
+**Not seen:** a directive another module sets while the page renders — `MageOS_MetaRobotsTag`'s
+per-page flags, for one, unless they have been moved into this module's overrides. The sitemap is
+built for a whole catalogue from what is stored; it cannot render each page. Set the directive here
+and both agree.
+
+---
+
 ## Extending
 
 The generator is built from parts registered in di.xml. Each is an interface in
@@ -143,6 +176,11 @@ you need for all of them at once — one query per entity type, not one per item
 
 `ItemFilterInterface::isIncluded($item, $storeId)` runs after the enrichers. An item any filter
 rejects is not written.
+
+Leaving out NOINDEX pages is built this way: an enricher files each item's directive under the
+`robots` key (`MageOS\Seo\Model\Sitemap\Robots\Enricher`, a `Robots\Directive`), and
+`Robots\IndexableFilter` rejects the ones that say NOINDEX. A filter of your own can read the same
+entry — it is there whenever the setting is on.
 
 ### Renderers — writing the row
 
