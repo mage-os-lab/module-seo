@@ -23,11 +23,15 @@ class SitemapItem extends CoreSitemapItem implements SitemapItemInterface
     /**
      * The first five as core's item documents them.
      *
+     * `$images` leads with `array` because core documents it so, and Magento's constructor check —
+     * run by `setup:di:compile` — compares the first documented type of each argument passed to the
+     * parent; anything else fails compilation. Core's own resource models pass a DataObject.
+     *
      * @param string $url
      * @param string $priority
      * @param string $changeFrequency
      * @param string|null $updatedAt
-     * @param mixed $images Core documents array|null; its resource models pass a DataObject
+     * @param array|\Magento\Framework\DataObject|null $images
      * @param string|null $entityType
      * @param int|null $entityId
      * @param array<string,object> $dataBag

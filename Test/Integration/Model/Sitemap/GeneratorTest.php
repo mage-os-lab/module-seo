@@ -148,10 +148,13 @@ class GeneratorTest extends TestCase
      * A file ends before the row that would take it past the configured size — the row measured as
      * written, so no file ever passes it.
      *
-     * The one exception is a single row larger than the limit on its own: it cannot be split, so it
-     * gets a file to itself. At a real limit (megabytes) no row comes near; at this test's it does.
+     * The limit is set a byte under what the products file measures whole, so it splits that file
+     * on any installation — a clean one holding only this test's products, or one with a catalogue
+     * of its own. A fixed limit used to pass only where other tests had left enough products behind.
      *
-     * @magentoConfigFixture default_store sitemap/limit/max_file_size 1500
+     * The one exception is a single row larger than the limit on its own: it cannot be split, so it
+     * gets a file to itself.
+     *
      * @return void
      */
     #[DataFixture(ProductFixture::class, as: 'first')]
@@ -159,11 +162,16 @@ class GeneratorTest extends TestCase
     #[DataFixture(ProductFixture::class, as: 'third')]
     public function testNoFileGrowsPastTheConfiguredSize(): void
     {
-        $files = $this->generateFor($this->defaultStoreId());
+        $whole = $this->productFiles($this->generateFor($this->defaultStoreId(), '_whole'));
+        $this->assertCount(1, $whole, 'At the default limits the products fill one file.');
+        $limit = \strlen((string) reset($whole)) - 1;
 
-        $this->assertGreaterThan(3, \count($files), 'The size limit has to split something to prove anything.');
+        $this->setStoreConfig('sitemap/limit/max_file_size', (string) $limit);
+        $files = $this->generateFor($this->defaultStoreId(), '_split');
+
+        $this->assertGreaterThan(1, \count($this->productFiles($files)), 'A byte less has to split the products.');
         foreach ($files as $name => $xml) {
-            if (\strlen($xml) > 1500) {
+            if (\strlen($xml) > $limit) {
                 $this->assertCount(
                     1,
                     $this->urlRows([$name => $xml]),
@@ -281,6 +289,21 @@ class GeneratorTest extends TestCase
 
         $this->assertNotEmpty($sitemap->getSitemapTime());
         $this->assertNotEmpty($sitemap->getId(), 'The sitemap was not saved.');
+    }
+
+    /**
+     * The products files among a sitemap's files.
+     *
+     * @param array<string,string> $files
+     * @return array<string,string>
+     */
+    private function productFiles(array $files): array
+    {
+        return array_filter(
+            $files,
+            static fn (string $name): bool => str_contains($name, '-products-'),
+            ARRAY_FILTER_USE_KEY
+        );
     }
 
     /**

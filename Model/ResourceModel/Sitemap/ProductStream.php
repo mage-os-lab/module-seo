@@ -286,7 +286,7 @@ class ProductStream extends AbstractConnectedResource
     {
         $select = $this->galleryResource->createBatchBaseSelect(
             $storeId,
-            $this->galleryReadHandler->getAttribute()->getId()
+            (int) $this->galleryReadHandler->getAttribute()->getAttributeId()
         );
         $select->where(
             'entity.' . $linkField . ' IN (?)',
