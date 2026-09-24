@@ -13,12 +13,13 @@ use Psr\Log\LoggerInterface;
 
 class RecurringDataTest extends TestCase
 {
-    public function testEverySetupRunQueuesARebuildOfEveryFeedButNoSitemap(): void
+    public function testEverySetupRunQueuesEveryFeedAndOnlyTheSitemapsThatHaveNoFile(): void
     {
         $invalidator = $this->createMock(FeedInvalidator::class);
         $invalidator->expects($this->once())->method('invalidateLlms');
         $invalidator->expects($this->once())->method('invalidateJsonl');
-        // Sitemaps live in pub/, which a deployment does not clear, and core's cron regenerates them.
+        $invalidator->expects($this->once())->method('invalidateMissingSitemaps');
+        // The rest live in pub/, which a deployment does not clear, and core's cron regenerates them.
         $invalidator->expects($this->never())->method('invalidateSitemap');
 
         (new RecurringData($invalidator, $this->createStub(LoggerInterface::class)))->install(

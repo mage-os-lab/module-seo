@@ -113,18 +113,23 @@ class RebuilderTest extends TestCase
     }
 
     /**
-     * Rebuilding keeps sitemaps current; it never writes one that has not been generated.
+     * A sitemap configured but never generated has no files to keep: a change writes it whole.
      *
      * @return void
      */
-    public function testASitemapNeverGeneratedIsLeftAlone(): void
+    #[DataFixture(ProductFixture::class, as: 'product')]
+    public function testASitemapNeverGeneratedIsWrittenWhole(): void
     {
         $sitemap = $this->sitemapFor($this->defaultStoreId());
         $sitemap->save();
 
         $this->rebuilder()->rebuild('pages');
 
-        $this->assertFalse($this->pub()->isExist(self::DIRECTORY . '/' . $sitemap->getSitemapFilename()));
+        $this->assertArrayHasKey(
+            "{$this->sitemapName}-{$this->defaultStoreId()}-products-1.xml",
+            $this->index($sitemap),
+            'Every type is written, not only the one the change was about.'
+        );
     }
 
     /**
@@ -281,20 +286,6 @@ class RebuilderTest extends TestCase
     private function rebuilder(): Rebuilder
     {
         return Bootstrap::getObjectManager()->create(Rebuilder::class);
-    }
-
-    /**
-     * The files the sitemap's index lists, each with its `<lastmod>`.
-     *
-     * @param Sitemap $sitemap
-     * @return array<string,string>
-     */
-    private function index(Sitemap $sitemap): array
-    {
-        $index = $this->pub()->readFile(self::DIRECTORY . '/' . $sitemap->getSitemapFilename());
-        preg_match_all('#<loc>[^<]*/([^/<]+\.xml)</loc><lastmod>([^<]*)</lastmod>#', $index, $matches);
-
-        return array_combine($matches[1], $matches[2]);
     }
 
     /**

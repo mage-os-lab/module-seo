@@ -14,7 +14,7 @@ namespace MageOS\Seo\Api\Sitemap;
  *
  * The request is queued on the `mageos.seo.feed.regenerate` topic and returns at once; requests for
  * the same type collapse into one until the `mageosSeoFeedRegenerate` consumer has run. Nothing is
- * queued when no sitemap would be rebuilt: one generated before, on an active store view with the
+ * queued when no sitemap would be rebuilt: a Site Map entry on an active store view with the
  * MageOS SEO generator and Rebuild on Change on.
  *
  * @api

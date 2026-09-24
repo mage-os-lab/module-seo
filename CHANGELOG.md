@@ -31,9 +31,12 @@ become public contract.
 - Sitemaps kept current between generations (**Generation Settings → Rebuild on Change**, default
   Yes): a change to what a sitemap lists — a product's URL key, status, visibility or websites, a
   category, a CMS page, a robots directive or translation group, a store view, a sitemap-related
-  setting — rewrites that kind of page in every sitemap generated before, through the feed queue,
-  leaving the other files and their dates as they were. One lock per sitemap keeps a rebuild, the
-  Generate button and Magento's cron from writing it at once. Other modules ask for their own
+  setting — rewrites that kind of page in the store view's sitemaps, through the feed queue,
+  leaving the other files and their dates as they were. A sitemap with no file — a Site Map entry
+  saved without generating it, or one whose file has gone — is written whole shortly after its
+  entry is saved and after every setup run (the `sitemaps-missing` queue group), where Magento
+  would wait for **Generate** or its own schedule, which is off by default. One lock per sitemap
+  keeps a rebuild, the Generate button and Magento's cron from writing it at once. Other modules ask for their own
   type through `Api\Sitemap\RebuildRequesterInterface`, and
   `mageos:seo:feeds:regenerate -g sitemap-{type}` (or `'sitemap-*'`) rebuilds in process. See
   `docs/sitemap.md`.

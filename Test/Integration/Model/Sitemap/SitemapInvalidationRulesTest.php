@@ -28,8 +28,9 @@ use PHPUnit\Framework\TestCase;
 /**
  * F5b: which real changes queue which sitemap rebuilds.
  *
- * A change counts when it can change what a sitemap lists; the sitemap must be one a rebuild would
- * touch — generated before, on this module's generator — or nothing is queued at all.
+ * A change counts when it can change what a sitemap lists; there must be a sitemap a rebuild would
+ * touch — a Site Map entry on an active store view with this module's generator and Rebuild on
+ * Change on, generated or not — or nothing is queued at all.
  *
  * @magentoAppArea adminhtml
  * @magentoAppIsolation enabled
@@ -39,7 +40,7 @@ class SitemapInvalidationRulesTest extends TestCase
 {
     use GeneratesSitemaps;
 
-    private const GROUPS = ['sitemap-pages', 'sitemap-categories', 'sitemap-products', 'sitemap-*'];
+    private const GROUPS = ['sitemap-pages', 'sitemap-categories', 'sitemap-products', 'sitemap-*', 'sitemaps-missing'];
 
     /**
      * @return void
@@ -176,13 +177,28 @@ class SitemapInvalidationRulesTest extends TestCase
     }
 
     /**
+     * Configured but never generated: it has no file, and a change is what writes its first one.
+     *
      * @return void
      */
     #[DataFixture(ProductFixture::class, as: 'product')]
-    public function testNothingIsQueuedWithoutASitemapToRebuild(): void
+    public function testASitemapNeverGeneratedIsQueuedLikeAnyOther(): void
     {
-        // Configured, but never generated: rebuilding never makes a first sitemap.
         $this->sitemapFor($this->defaultStoreId())->save();
+        $sku = (string) DataFixtureStorageManager::getStorage()->get('product')->getSku();
+
+        $this->assertQueuedBy(
+            ['sitemap-products'],
+            fn () => $this->saveProduct($sku, ['url_key' => 'renamed-' . uniqid()])
+        );
+    }
+
+    /**
+     * @return void
+     */
+    #[DataFixture(ProductFixture::class, as: 'product')]
+    public function testNothingIsQueuedWithoutASiteMapEntry(): void
+    {
         $sku = (string) DataFixtureStorageManager::getStorage()->get('product')->getSku();
 
         $this->assertQueuedBy([], fn () => $this->saveProduct($sku, ['url_key' => 'renamed-' . uniqid()]));
@@ -194,8 +210,11 @@ class SitemapInvalidationRulesTest extends TestCase
     #[DataFixture(ProductFixture::class, as: 'product')]
     public function testNothingIsQueuedWhenTheStoreViewHasRebuildOnChangeOff(): void
     {
-        $this->aGeneratedSitemap();
+        // Off before the entry is saved: saving it asks whether any sitemap is rebuilt on change,
+        // and the answer holds for the rest of the request, as a setting changed in the same
+        // request never is in practice.
         $this->setStoreConfig(Config::XML_SITEMAP_REBUILD_ON_CHANGE, '0');
+        $this->aGeneratedSitemap();
         $sku = (string) DataFixtureStorageManager::getStorage()->get('product')->getSku();
 
         $this->assertQueuedBy([], fn () => $this->saveProduct($sku, ['url_key' => 'renamed-' . uniqid()]));

@@ -554,8 +554,9 @@ is not seen.]]></comment>
                     <comment><![CDATA[When something the sitemap lists changes — a product's URL key, status or
 visibility, a category, a CMS page, a robots directive, a sitemap setting — that kind of page is
 rewritten in this store view's sitemaps soon after, by the <code>mageosSeoFeedRegenerate</code>
-queue consumer. Only a sitemap generated before is rebuilt: add it under Marketing → Site Map and
-generate it once. <strong>No</strong>: sitemaps change at their next generation only.]]></comment>
+queue consumer. A sitemap added under Marketing → Site Map is written shortly after it is saved,
+and one whose file has gone is written again. <strong>No</strong>: sitemaps change at their next
+generation only — and a Site Map entry you are not ready to publish stays unwritten.]]></comment>
                     <depends>
                         <field id="mageos_seo_generator">mageos_seo</field>
                     </depends>

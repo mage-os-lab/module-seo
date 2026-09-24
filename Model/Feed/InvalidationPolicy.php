@@ -126,8 +126,9 @@ class InvalidationPolicy
                 return false;
 
             default:
-                // A sitemap type: only when a sitemap would be rebuilt for it.
-                return str_starts_with($group, RebuildGroup::PREFIX) && $this->rebuildableSitemaps->exist();
+                // A sitemap type, or the sitemaps' first build: only when a sitemap would be rebuilt.
+                return (str_starts_with($group, RebuildGroup::PREFIX) || $group === RebuildGroup::MISSING)
+                    && $this->rebuildableSitemaps->exist();
         }
     }
 

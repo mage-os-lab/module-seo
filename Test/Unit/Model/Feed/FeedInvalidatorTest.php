@@ -47,6 +47,17 @@ class FeedInvalidatorTest extends TestCase
         $this->assertSame(['sitemap-products', 'sitemap-*'], $requested);
     }
 
+    public function testTheFirstBuildIsQueuedAsItsOwnGroupWhenASitemapWouldBeRebuilt(): void
+    {
+        $requested = [];
+        $this->invalidator([RebuildGroup::MISSING], $requested)->invalidateMissingSitemaps();
+        $this->assertSame([RebuildGroup::MISSING], $requested);
+
+        $requested = [];
+        $this->invalidator([], $requested)->invalidateMissingSitemaps();
+        $this->assertSame([], $requested);
+    }
+
     public function testInvalidationTouchesNeitherFilesNorCaches(): void
     {
         // Served files and cached responses are left alone: FeedInvalidator depends on nothing

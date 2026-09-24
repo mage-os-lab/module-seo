@@ -477,6 +477,10 @@
     <type name="Magento\Sitemap\Model\Sitemap">
         <plugin name="mageos_seo_use_seo_generator" type="MageOS\Seo\Plugin\Sitemap\UseSeoGenerator"/>
     </type>
+    <!-- A Site Map entry saved without a file is written by the queue shortly after. -->
+    <type name="Magento\Sitemap\Model\ResourceModel\Sitemap">
+        <plugin name="mageos_seo_queue_first_build" type="MageOS\Seo\Plugin\Sitemap\QueueFirstBuild"/>
+    </type>
     <type name="MageOS\Seo\Model\Sitemap\Generator">
         <arguments>
             <argument name="renderers" xsi:type="array">

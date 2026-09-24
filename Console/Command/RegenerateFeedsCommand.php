@@ -108,8 +108,8 @@ class RegenerateFeedsCommand extends Command
 
                 if ($this->rebuildableSitemaps->all() === []) {
                     $output->writeln(
-                        '<comment>No sitemap to rebuild: none has been generated on an active store view'
-                        . ' that uses the MageOS SEO generator. Generate one under Marketing → Site Map.</comment>'
+                        '<comment>No sitemap to rebuild: no Site Map entry is on an active store view'
+                        . ' that uses the MageOS SEO generator. Add one under Marketing → Site Map.</comment>'
                     );
                     continue;
                 }

@@ -146,6 +146,20 @@ trait GeneratesSitemaps
     }
 
     /**
+     * The files the sitemap's index lists, each with its `<lastmod>`.
+     *
+     * @param Sitemap $sitemap
+     * @return array<string,string>
+     */
+    private function index(Sitemap $sitemap): array
+    {
+        $index = $this->pub()->readFile('media/sitemap/' . $sitemap->getSitemapFilename());
+        preg_match_all('#<loc>[^<]*/([^/<]+\.xml)</loc><lastmod>([^<]*)</lastmod>#', $index, $matches);
+
+        return array_combine($matches[1], $matches[2]);
+    }
+
+    /**
      * Every `<url>` row of the given files.
      *
      * @param array<string,string> $files

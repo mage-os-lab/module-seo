@@ -20,6 +20,7 @@ use MageOS\Seo\Model\Feed\FeedRegenerator;
 use MageOS\Seo\Model\Feed\InvalidationPolicy;
 use MageOS\Seo\Model\ProductOverride;
 use MageOS\Seo\Model\Sitemap\RebuildableSitemaps;
+use MageOS\Seo\Model\Sitemap\RebuildGroup;
 use PHPUnit\Framework\TestCase;
 
 class InvalidationPolicyTest extends TestCase
@@ -248,6 +249,12 @@ class InvalidationPolicyTest extends TestCase
         $this->assertTrue($this->policy([1])->isGroupEnabled('sitemap-*'));
         $this->assertFalse($this->policy([1], sitemapsExist: false)->isGroupEnabled('sitemap-products'));
         $this->assertFalse($this->policy([1])->isGroupEnabled('not-a-group'));
+    }
+
+    public function testTheFirstBuildIsQueuedOnlyWhileASitemapWouldBeRebuilt(): void
+    {
+        $this->assertTrue($this->policy([1])->isGroupEnabled(RebuildGroup::MISSING));
+        $this->assertFalse($this->policy([1], sitemapsExist: false)->isGroupEnabled(RebuildGroup::MISSING));
     }
 
     public function testProductChangesRebuildTheProductsOnlyWhenWhatIsListedChanges(): void

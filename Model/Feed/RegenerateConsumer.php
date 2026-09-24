@@ -13,7 +13,8 @@ use Psr\Log\LoggerInterface;
 /**
  * Queue consumer that rebuilds one feed group, or one type of every sitemap, after an invalidation.
  *
- * A message is a feed group (FeedRegenerator::GROUPS) or `sitemap-{type}` (Sitemap\Rebuilder).
+ * A message is a feed group (FeedRegenerator::GROUPS), `sitemap-{type}`, or `sitemaps-missing` — the
+ * first build of the sitemaps that have no file (Sitemap\Rebuilder).
  *
  * Messages are taken serially, so one consumer process never overlaps itself. That is not the
  * same as a guarantee: `consumers_runner` can be configured to run several processes of this
@@ -40,15 +41,18 @@ class RegenerateConsumer
     }
 
     /**
-     * Rebuild the requested feed group for all stores, or the requested type of every sitemap.
+     * Rebuild the requested feed group, sitemap type, or the sitemaps that have no file.
      *
-     * @param string $group One of FeedRegenerator::GROUPS, or `sitemap-{type}`
+     * A feed group is built for all store views; a sitemap type in every sitemap a change rebuilds.
+     *
+     * @param string $group One of FeedRegenerator::GROUPS, `sitemap-{type}`, or RebuildGroup::MISSING
      * @return void
      */
     public function process(string $group): void
     {
+        $firstBuild  = $group === RebuildGroup::MISSING;
         $sitemapType = $this->rebuildGroup->typeOf($group);
-        if ($sitemapType === null && !\in_array($group, FeedRegenerator::GROUPS, true)) {
+        if (!$firstBuild && $sitemapType === null && !\in_array($group, FeedRegenerator::GROUPS, true)) {
             $this->logger->warning('MageOS_Seo: unknown feed group in regeneration queue: ' . $group);
             return;
         }
@@ -62,7 +66,9 @@ class RegenerateConsumer
         $this->regenerationRequester->acknowledge($group);
 
         try {
-            if ($sitemapType === null) {
+            if ($firstBuild) {
+                $this->sitemapRebuilder->buildMissing();
+            } elseif ($sitemapType === null) {
                 $this->feedRegenerator->regenerate($group);
             } else {
                 $this->sitemapRebuilder->rebuild($sitemapType);

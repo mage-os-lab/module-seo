@@ -54,6 +54,29 @@ class RegenerateConsumerTest extends TestCase
         $this->consumer($rebuilder)->process('sitemap-products');
     }
 
+    public function testTheFirstBuildGroupWritesTheMissingSitemapsAndNothingElse(): void
+    {
+        $rebuilder = $this->createMock(SitemapRebuilder::class);
+        $rebuilder->expects($this->once())->method('buildMissing')->willReturn([]);
+        $rebuilder->expects($this->never())->method('rebuild');
+        $this->regenerator->expects($this->never())->method('regenerate');
+        $this->requester->expects($this->once())->method('acknowledge')->with(RebuildGroup::MISSING);
+        $this->logger->expects($this->never())->method('warning');
+
+        $this->consumer($rebuilder)->process(RebuildGroup::MISSING);
+    }
+
+    public function testAFirstBuildBeingWrittenElsewherePutsTheRequestBack(): void
+    {
+        $rebuilder = $this->createStub(SitemapRebuilder::class);
+        $rebuilder->method('buildMissing')->willThrowException(new SitemapRebuildInProgressException(__('busy')));
+        $this->requester->expects($this->once())->method('request')->with(RebuildGroup::MISSING);
+        $this->regenerator->expects($this->never())->method('regenerate');
+        $this->logger->expects($this->never())->method('error');
+
+        $this->consumer($rebuilder)->process(RebuildGroup::MISSING);
+    }
+
     public function testAFeedGroupRebuildsNoSitemap(): void
     {
         $rebuilder = $this->createMock(SitemapRebuilder::class);

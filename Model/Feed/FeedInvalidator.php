@@ -44,6 +44,18 @@ class FeedInvalidator
     }
 
     /**
+     * Queue the first build of the sitemaps this module keeps current that have no file yet.
+     *
+     * Which ones is decided when the build runs, so asking when there are none costs one message.
+     *
+     * @return void
+     */
+    public function invalidateMissingSitemaps(): void
+    {
+        $this->invalidate(RebuildGroup::MISSING);
+    }
+
+    /**
      * Queue a rebuild of the llms.txt / llms-full.txt feeds.
      *
      * @return void

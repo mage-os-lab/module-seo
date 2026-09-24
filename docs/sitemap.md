@@ -165,8 +165,8 @@ date is worth.
 
 ### What it needs
 
-- **The sitemap, generated once.** Add it under Marketing → Site Map and generate it. A rebuild
-  keeps a sitemap current; it never makes the first one.
+- **A Site Map entry** for the store view, under Marketing → Site Map. It need not have been
+  generated: see [Sitemaps with no file](#sitemaps-with-no-file).
 - **The MageOS SEO generator** selected for the store view, and the store view active.
 - **The `mageosSeoFeedRegenerate` queue consumer running** — the one that rebuilds the feeds (see
   [feeds.md](feeds.md#generation--cache)). Changes are queued, and a burst of saves is one rebuild
@@ -174,6 +174,22 @@ date is worth.
   a warning in the log.
 
 **No** turns this off per store view: sitemaps then change at their next generation only.
+
+### Sitemaps with no file
+
+Magento generates a Site Map entry only when **Generate** (or **Save & Generate**) is clicked, or on
+its schedule when **Generation Settings → Enabled** is on — which it is not by default. With
+Rebuild on Change on, a sitemap whose file is not there is written whole, soon after:
+
+- **when its Site Map entry is saved** — a new entry saved with **Save**, or an existing one given
+  a new file name or path;
+- **after every `setup:install` / `setup:upgrade`** — a fresh install with entries already
+  configured, or a server whose `pub/media` did not come with the deployment;
+- **with the next change a rebuild follows**, like any other sitemap.
+
+Only sitemaps with no file are written by the first two; the rest are left as they are, so a
+deployment costs nothing when every sitemap is in place. Saving an entry you are **not ready to
+publish** writes it; turn Rebuild on Change off for its store view until you are.
 
 ### How a rebuild is written
 
@@ -203,9 +219,9 @@ bin/magento mageos:seo:feeds:regenerate -g sitemap-products    # one kind of pag
 bin/magento mageos:seo:feeds:regenerate -g 'sitemap-*'         # every kind (quote the *)
 ```
 
-The command rebuilds in its own process — no queue consumer needed — every sitemap generated
-before on an active store view with the MageOS SEO generator, whatever **Rebuild on Change** says,
-the way `indexer:reindex` runs whatever an indexer's mode. It exits non-zero if a sitemap failed or
+The command rebuilds in its own process — no queue consumer needed — every sitemap on an active
+store view with the MageOS SEO generator, whatever **Rebuild on Change** says, the way
+`indexer:reindex` runs whatever an indexer's mode; one with no file is written whole. It exits non-zero if a sitemap failed or
 was being written by another process. With no `-g` it rebuilds the feeds only, as it always has.
 
 ---

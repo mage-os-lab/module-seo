@@ -29,6 +29,13 @@ class RebuildGroup
     public const ALL_TYPES = RebuildRequesterInterface::ALL_TYPES;
 
     /**
+     * The group that writes, whole, the sitemaps that have no file yet (RebuildableSitemaps::missing()).
+     *
+     * Outside the `sitemap-{type}` names, so no provider's type can ever take it.
+     */
+    public const MISSING = 'sitemaps-missing';
+
+    /**
      * The group that rebuilds the type.
      *
      * @param string $type

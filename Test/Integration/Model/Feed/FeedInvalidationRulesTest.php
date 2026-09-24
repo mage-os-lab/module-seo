@@ -52,7 +52,17 @@ class FeedInvalidationRulesTest extends TestCase
 {
     private const JSONL_ENABLED = 'mageos_seo_general/llms_txt/jsonl_enabled';
 
-    private const SITEMAP_GROUPS = ['sitemap-pages', 'sitemap-categories', 'sitemap-products', 'sitemap-*'];
+    /**
+     * With the first build, which saving the test's sitemap entry queues: cleared around each check
+     * like the rest, and never left pending for the next test — this class does not roll back.
+     */
+    private const SITEMAP_GROUPS = [
+        'sitemap-pages',
+        'sitemap-categories',
+        'sitemap-products',
+        'sitemap-*',
+        'sitemaps-missing',
+    ];
 
     /**
      * IDs of the CMS pages created by the running test.

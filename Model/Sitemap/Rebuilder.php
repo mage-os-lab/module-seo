@@ -18,7 +18,8 @@ use Psr\Log\LoggerInterface;
  * RebuildGroup), and the consumer hands the type to `rebuild()`, which rewrites every sitemap a
  * change rebuilds. The CLI command's `rebuildOnDemand()` rewrites every sitemap that can be rebuilt,
  * Rebuild on Change or not (see RebuildableSitemaps). Only that type's files are rewritten, the
- * others kept; every type for `*`.
+ * others kept; every type for `*`, and every type of a sitemap that has no file yet.
+ * `buildMissing()` writes only the sitemaps that have none (RebuildGroup::MISSING).
  *
  * Each is written as core's cron writes it, emulating its store view's frontend. One that fails is
  * logged and the rest carry on; one being written by another process is left for the retry the
@@ -85,6 +86,21 @@ class Rebuilder
     public function rebuildOnDemand(string $type): array
     {
         return $this->rebuildEach($type, $this->rebuildableSitemaps->all());
+    }
+
+    /**
+     * A first build: write, whole, every sitemap a change rebuilds that has no file yet.
+     *
+     * The files are looked for now, not when the build was queued: one generated meanwhile — by
+     * the admin's Save & Generate, say — is left as it is.
+     *
+     * @throws SitemapRebuildInProgressException When one was being written by another process —
+     *                                           after all the others are done
+     * @return array<int,string> Error message per sitemap ID that failed
+     */
+    public function buildMissing(): array
+    {
+        return $this->rebuildEach(RebuildGroup::ALL_TYPES, $this->rebuildableSitemaps->missing());
     }
 
     /**
