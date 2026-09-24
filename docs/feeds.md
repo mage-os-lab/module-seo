@@ -134,6 +134,10 @@ store view, or fewer than two store views are active. The logic lives in
 Changes that no event reports — native CSV imports, direct database writes, configuration
 changes — are picked up by the nightly rebuild.
 
+The XML sitemaps configured under Marketing → Site Map are rebuilt on change through the same
+queue, one kind of page at a time; what queues them is in
+[sitemap.md](sitemap.md#keeping-sitemaps-current).
+
 A feed that is disabled for a store view is removed from that store's directory on the
 next rebuild, so re-enabling it later produces a fresh build rather than an outdated file.
 
@@ -245,6 +249,9 @@ run:
 bin/magento mageos:seo:feeds:regenerate            # every feed, every active store view
 bin/magento mageos:seo:feeds:regenerate -g llms    # one group: llms | jsonl | hreflang
 ```
+
+The same command rebuilds a kind of page in the XML sitemaps, `-g sitemap-products` and so on;
+see [sitemap.md](sitemap.md#changes-that-are-not-seen). With no `-g` it rebuilds the feeds only.
 
 It builds in the running process (no queue consumer needed), replaces each file in place,
 purges the rebuilt groups' cache tags, and exits non-zero if any store view failed. To

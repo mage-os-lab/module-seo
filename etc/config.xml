@@ -101,6 +101,7 @@
             <generate>
                 <mageos_seo_generator>mageos_seo</mageos_seo_generator>
                 <mageos_seo_exclude_noindex>1</mageos_seo_exclude_noindex>
+                <mageos_seo_rebuild_on_change>1</mageos_seo_rebuild_on_change>
             </generate>
         </sitemap>
     </default>

@@ -48,6 +48,7 @@ class Config
     public const XML_HREFLANG_CODES                = 'mageos_seo_general/hreflang/codes';
     public const XML_SITEMAP_GENERATOR             = 'sitemap/generate/mageos_seo_generator';
     public const XML_SITEMAP_EXCLUDE_NOINDEX       = 'sitemap/generate/mageos_seo_exclude_noindex';
+    public const XML_SITEMAP_REBUILD_ON_CHANGE     = 'sitemap/generate/mageos_seo_rebuild_on_change';
     public const XML_AEO_SPEAKABLE_ENABLED         = 'mageos_seo_general/aeo/speakable_enabled';
     public const XML_AEO_SPEAKABLE_SELECTORS       = 'mageos_seo_general/aeo/speakable_css_selectors';
     public const XML_AI_ROBOTS_ENABLED             = 'mageos_seo_general/ai_robots/enabled';
@@ -458,6 +459,21 @@ class Config
     {
         return $this->scopeConfig->isSetFlag(
             self::XML_SITEMAP_EXCLUDE_NOINDEX,
+            ScopeInterface::SCOPE_STORE,
+            $storeId
+        );
+    }
+
+    /**
+     * Whether a change to what the store view's sitemaps list rebuilds them through the queue.
+     *
+     * @param int $storeId
+     * @return bool
+     */
+    public function isSitemapRebuildOnChangeEnabled(int $storeId): bool
+    {
+        return $this->scopeConfig->isSetFlag(
+            self::XML_SITEMAP_REBUILD_ON_CHANGE,
             ScopeInterface::SCOPE_STORE,
             $storeId
         );

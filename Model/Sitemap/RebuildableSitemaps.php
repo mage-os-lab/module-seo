@@ -12,22 +12,26 @@ use Magento\Store\Model\StoreManagerInterface;
 use MageOS\Seo\Model\Config;
 
 /**
- * The sitemaps a change rebuilds: this module's to keep current.
+ * The sitemaps this module keeps current by rebuilding them.
  *
- * A sitemap configured under Marketing → Site Map qualifies when:
+ * A sitemap configured under Marketing → Site Map can be rebuilt when:
  *
  * - it has been generated before — rebuilding keeps sitemaps current, it never makes a first one;
  * - its store view is active; and
  * - its store view uses this module's generator.
  *
- * One definition for the two questions asked of it: which sitemaps to rebuild (Rebuilder), and
- * whether a change is worth queueing at all (Feed\InvalidationPolicy) — so a change is never queued
- * for sitemaps the rebuild would then skip, or skipped for ones it would rebuild.
+ * A change rebuilds those whose store view also has Rebuild on Change on. A rebuild asked for by
+ * hand (`mageos:seo:feeds:regenerate -g sitemap-…`) takes every one that can be rebuilt, as
+ * `indexer:reindex` runs whatever an indexer's mode.
+ *
+ * One definition for the questions asked of it: which sitemaps to rebuild (Rebuilder), and whether
+ * a change is worth queueing at all (Feed\InvalidationPolicy) — so a change is never queued for
+ * sitemaps the rebuild would then skip, or skipped for ones it would rebuild.
  */
 class RebuildableSitemaps implements ResetAfterRequestInterface
 {
     /**
-     * Whether any qualifies, once asked in this request.
+     * Whether a change rebuilds any, once asked in this request.
      *
      * @var bool|null
      */
@@ -46,7 +50,7 @@ class RebuildableSitemaps implements ResetAfterRequestInterface
     }
 
     /**
-     * Every sitemap that qualifies.
+     * Every sitemap that can be rebuilt, whether or not a change rebuilds it.
      *
      * @return Sitemap[]
      */
@@ -67,7 +71,22 @@ class RebuildableSitemaps implements ResetAfterRequestInterface
     }
 
     /**
-     * Whether any sitemap qualifies.
+     * The sitemaps a change rebuilds: those that can be, on a store view with Rebuild on Change on.
+     *
+     * @return Sitemap[]
+     */
+    public function onChange(): array
+    {
+        return array_values(array_filter(
+            $this->all(),
+            fn (Sitemap $sitemap): bool => $this->seoConfig->isSitemapRebuildOnChangeEnabled(
+                (int) $sitemap->getStoreId()
+            )
+        ));
+    }
+
+    /**
+     * Whether a change rebuilds any sitemap.
      *
      * Asked on every save a rebuild might follow, so it is answered once per request; a sitemap
      * generated for the first time later in the same request is caught by the nightly run.
@@ -76,7 +95,7 @@ class RebuildableSitemaps implements ResetAfterRequestInterface
      */
     public function exist(): bool
     {
-        return $this->exist ??= $this->all() !== [];
+        return $this->exist ??= $this->onChange() !== [];
     }
 
     /**
@@ -90,7 +109,7 @@ class RebuildableSitemaps implements ResetAfterRequestInterface
     }
 
     /**
-     * Whether a sitemap of the store view is this module's to rebuild.
+     * Whether a sitemap of the store view can be rebuilt by this module.
      *
      * @param int $storeId
      * @return bool

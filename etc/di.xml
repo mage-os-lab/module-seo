@@ -15,6 +15,9 @@
     <preference for="MageOS\Seo\Api\FaqRepositoryInterface"
                 type="MageOS\Seo\Model\FaqRepository"/>
 
+    <preference for="MageOS\Seo\Api\Sitemap\RebuildRequesterInterface"
+                type="MageOS\Seo\Model\Sitemap\RebuildRequester"/>
+
     <!-- ═══════════════════════════════════════════════════════════════════
          FAQ SOURCE POOL — bridges add sources (product-attribute, 3rd-party) here
          ═══════════════════════════════════════════════════════════════════ -->
@@ -432,12 +435,14 @@
         </arguments>
     </type>
     <!--
-        Every registered command is instantiated when bin/magento starts; the proxy keeps the
-        feed builders (and their dependencies) from loading unless this command runs.
+        Every registered command is instantiated when bin/magento starts; the proxies keep the
+        feed builders and the sitemap generator (and their dependencies) from loading unless this
+        command runs.
     -->
     <type name="MageOS\Seo\Console\Command\RegenerateFeedsCommand">
         <arguments>
             <argument name="feedRegenerator" xsi:type="object">MageOS\Seo\Model\Feed\FeedRegenerator\Proxy</argument>
+            <argument name="sitemapRebuilder" xsi:type="object">MageOS\Seo\Model\Sitemap\Rebuilder\Proxy</argument>
         </arguments>
     </type>
 

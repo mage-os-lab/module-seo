@@ -28,6 +28,15 @@ become public contract.
   Out NOINDEX Pages**, default Yes). The directive is the page's own — its override, the page
   type's default, else core's Design → Search Engine Robots — so a store set to NOINDEX there gets
   an empty sitemap.
+- Sitemaps kept current between generations (**Generation Settings → Rebuild on Change**, default
+  Yes): a change to what a sitemap lists — a product's URL key, status, visibility or websites, a
+  category, a CMS page, a robots directive or translation group, a store view, a sitemap-related
+  setting — rewrites that kind of page in every sitemap generated before, through the feed queue,
+  leaving the other files and their dates as they were. One lock per sitemap keeps a rebuild, the
+  Generate button and Magento's cron from writing it at once. Other modules ask for their own
+  type through `Api\Sitemap\RebuildRequesterInterface`, and
+  `mageos:seo:feeds:regenerate -g sitemap-{type}` (or `'sitemap-*'`) rebuilds in process. See
+  `docs/sitemap.md`.
 - Sitemap extension points (`Api\Sitemap\*`): items carry their entity and a data bag; providers
   say which file their items belong in and stream them; enrichers, filters and row renderers are
   registered on the generator. Providers registered on core's composite keep working, written
@@ -40,7 +49,8 @@ become public contract.
   links into this module; the latter then switches `MageOS_Hreflang`'s output off.
 - `bin/magento mageos:seo:feeds:regenerate [-g llms|jsonl|hreflang]` rebuilds the
   pre-generated feeds in the running process, for deployment scripts and manual
-  rebuilds. It reports per-store-view failures and exits non-zero on any.
+  rebuilds. It reports per-store-view failures and exits non-zero on any, and ends with
+  `Done.`
 - Every `setup:install` / `setup:upgrade` queues a rebuild of the feeds the store
   views can build, so a fresh install (or a deployment that cleared `var/`) no
   longer serves `503` on `/llms.txt` until the nightly cron runs.

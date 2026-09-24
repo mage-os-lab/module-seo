@@ -17,6 +17,7 @@ use Magento\TestFramework\Fixture\DataFixtureStorageManager;
 use Magento\TestFramework\Helper\Bootstrap;
 use MageOS\Seo\Exception\SitemapRebuildInProgressException;
 use MageOS\Seo\Model\Category\ProductOverrideRepository;
+use MageOS\Seo\Model\Config;
 use MageOS\Seo\Model\Config\Source\SitemapGenerator;
 use MageOS\Seo\Model\Feed\RegenerateConsumer;
 use MageOS\Seo\Model\Sitemap\GenerationLock;
@@ -237,6 +238,28 @@ class RebuilderTest extends TestCase
             'The NOINDEX product is out of the sitemap.'
         );
         $this->assertSame($pagesDate, $this->index($sitemap)[$pages], 'The pages were not rebuilt.');
+    }
+
+    /**
+     * Rebuild on Change off: a change leaves the store view's sitemap to its next generation, and a
+     * rebuild asked for by hand — the CLI command's — still rewrites it.
+     *
+     * @return void
+     */
+    #[DataFixture(ProductFixture::class, as: 'product')]
+    public function testWithRebuildOnChangeOffAChangeLeavesTheSitemapAndADemandRebuildsIt(): void
+    {
+        $sitemap = $this->generated();
+        $pages   = self::DIRECTORY . "/{$this->sitemapName}-{$this->defaultStoreId()}-pages-1.xml";
+        $this->setStoreConfig(Config::XML_SITEMAP_REBUILD_ON_CHANGE, '0');
+        $identifier = $this->newPage();
+
+        $this->rebuilder()->rebuild('pages');
+        $this->assertStringNotContainsString($identifier, $this->pub()->readFile($pages), 'A change rebuilt it.');
+
+        $this->rebuilder()->rebuildOnDemand('pages');
+        $this->assertStringContainsString($identifier, $this->pub()->readFile($pages), 'Asked for, it is rebuilt.');
+        $this->assertArrayHasKey(basename($pages), $this->index($sitemap));
     }
 
     /**

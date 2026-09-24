@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace MageOS\Seo\Model\Sitemap;
 
+use MageOS\Seo\Api\Sitemap\RebuildRequesterInterface;
+
 /**
  * The queue group that rebuilds one type of every sitemap: `sitemap-{type}`.
  *
@@ -24,7 +26,7 @@ class RebuildGroup
      * The type that stands for every type. It cannot be a provider's: types are lower-case
      * letters, digits and hyphens (see Generator).
      */
-    public const ALL_TYPES = '*';
+    public const ALL_TYPES = RebuildRequesterInterface::ALL_TYPES;
 
     /**
      * The group that rebuilds the type.

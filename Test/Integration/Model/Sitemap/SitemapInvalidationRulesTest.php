@@ -18,9 +18,11 @@ use Magento\Framework\FlagManager;
 use Magento\TestFramework\Fixture\DataFixture;
 use Magento\TestFramework\Fixture\DataFixtureStorageManager;
 use Magento\TestFramework\Helper\Bootstrap;
+use MageOS\Seo\Api\Sitemap\RebuildRequesterInterface;
 use MageOS\Seo\Model\Category\ConfigRepository as CategoryConfigRepository;
 use MageOS\Seo\Model\Category\ProductOverrideRepository;
 use MageOS\Seo\Model\Cms\ConfigRepository as CmsConfigRepository;
+use MageOS\Seo\Model\Config;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -184,6 +186,44 @@ class SitemapInvalidationRulesTest extends TestCase
         $sku = (string) DataFixtureStorageManager::getStorage()->get('product')->getSku();
 
         $this->assertQueuedBy([], fn () => $this->saveProduct($sku, ['url_key' => 'renamed-' . uniqid()]));
+    }
+
+    /**
+     * @return void
+     */
+    #[DataFixture(ProductFixture::class, as: 'product')]
+    public function testNothingIsQueuedWhenTheStoreViewHasRebuildOnChangeOff(): void
+    {
+        $this->aGeneratedSitemap();
+        $this->setStoreConfig(Config::XML_SITEMAP_REBUILD_ON_CHANGE, '0');
+        $sku = (string) DataFixtureStorageManager::getStorage()->get('product')->getSku();
+
+        $this->assertQueuedBy([], fn () => $this->saveProduct($sku, ['url_key' => 'renamed-' . uniqid()]));
+    }
+
+    /**
+     * Another module asks through the public interface: its type is queued like this module's own,
+     * and a type no provider has is refused before anything is queued.
+     *
+     * @return void
+     */
+    public function testAnotherModuleRequestsATypeThroughThePublicInterface(): void
+    {
+        $this->aGeneratedSitemap();
+        $requester = Bootstrap::getObjectManager()->get(RebuildRequesterInterface::class);
+
+        $this->assertQueuedBy(['sitemap-products'], fn () => $requester->request('products'));
+        $this->assertQueuedBy(['sitemap-*'], fn () => $requester->request(RebuildRequesterInterface::ALL_TYPES));
+
+        try {
+            $requester->request('no-such-type');
+            $this->fail('A type no provider has was accepted.');
+        } catch (\InvalidArgumentException) {
+            $this->assertNull(
+                Bootstrap::getObjectManager()->get(FlagManager::class)
+                    ->getFlagData('mageos_seo_feed_pending_sitemap-no-such-type')
+            );
+        }
     }
 
     /**

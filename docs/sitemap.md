@@ -137,6 +137,77 @@ and both agree.
 
 ---
 
+## Keeping sitemaps current
+
+**Stores → Configuration → Catalog → XML Sitemap → Generation Settings → Rebuild on Change**
+*(default Yes)*
+
+Magento regenerates sitemaps on its schedule — once a day at most. In between, a product taken
+offline stays listed and a new one is missing. With this setting on, a change to what a sitemap
+lists rewrites that kind of page in the store view's sitemaps soon after — the products, the
+categories or the pages — and leaves the other files as they are.
+
+| Change | Rewritten |
+|---|---|
+| Product added or deleted; its URL key, status, visibility or websites changed — saved, or through Update Attributes and the other mass actions | products |
+| Category added, deleted or moved; its URL key or **Enable Category** changed | categories |
+| CMS page added or deleted; its URL key, **Enable Page** or store views changed | pages |
+| A product's, category's or CMS page's robots directive in this module's SEO settings; a CMS page's translation group | that kind |
+| A store view saved or deleted, or a website or store deleted | every kind |
+| A setting changed under Catalog → XML Sitemap, General → Web, Catalog → Catalog → Search Engine Optimization, General → General → Locale Options, Content → Design → Configuration → Search Engine Robots, or this module's hreflang and robots settings | every kind |
+
+Anything else — a name, a description, a price, an image — does not change which URLs are listed.
+The `<lastmod>` dates and images catch up at the next generation, as they do with Magento's own
+generator: rewriting every product file for every catalogue edit would cost more than a day-old
+date is worth.
+
+### What it needs
+
+- **The sitemap, generated once.** Add it under Marketing → Site Map and generate it. A rebuild
+  keeps a sitemap current; it never makes the first one.
+- **The MageOS SEO generator** selected for the store view, and the store view active.
+- **The `mageosSeoFeedRegenerate` queue consumer running** — the one that rebuilds the feeds (see
+  [feeds.md](feeds.md#generation--cache)). Changes are queued, and a burst of saves is one rebuild
+  per kind of page. A rebuild the consumer has not picked up within an hour is queued again, with
+  a warning in the log.
+
+**No** turns this off per store view: sitemaps then change at their next generation only.
+
+### How a rebuild is written
+
+Only the files of that kind are written; the index lists them and the other kinds' files already
+in place. Each file in the index has its own file time as `<lastmod>`, so a file that was not
+rewritten keeps its date.
+
+A sitemap is written by one process at a time. A rebuild that finds the sitemap being written —
+by the **Generate** button, Magento's cron, or another rebuild — goes back on the queue and runs
+after. The **Generate** button and the cron wait up to 60 seconds for a rebuild in progress, then
+report that the sitemap is being written by another process. The wait is the `fullGenerationWait`
+argument of `MageOS\Seo\Model\Sitemap\Generator` in di.xml.
+
+### Changes that are not seen
+
+A rebuild follows Magento's own save events, so a change made around them is not seen:
+
+- `bin/magento config:set --lock-env` or `--lock-config`, which write to `env.php` / `config.php`;
+- configuration written through `Magento\Framework\App\Config\Storage\WriterInterface` — data
+  patches, and any module that saves its settings that way;
+- product imports (Magento's own among them) and anything else that writes to the database directly.
+
+They reach the sitemap at its next generation, or rebuild it now:
+
+```bash
+bin/magento mageos:seo:feeds:regenerate -g sitemap-products    # one kind of page
+bin/magento mageos:seo:feeds:regenerate -g 'sitemap-*'         # every kind (quote the *)
+```
+
+The command rebuilds in its own process — no queue consumer needed — every sitemap generated
+before on an active store view with the MageOS SEO generator, whatever **Rebuild on Change** says,
+the way `indexer:reindex` runs whatever an indexer's mode. It exits non-zero if a sitemap failed or
+was being written by another process. With no `-g` it rebuilds the feeds only, as it always has.
+
+---
+
 ## Extending
 
 The generator is built from parts registered in di.xml. Each is an interface in
@@ -221,6 +292,33 @@ they are also a worked example.
     </arguments>
 </type>
 ```
+
+### Rebuilding your type when your content changes
+
+This module watches products, categories, CMS pages and its own settings. What your provider lists
+it cannot see, so ask for a rebuild yourself, through `MageOS\Seo\Api\Sitemap\RebuildRequesterInterface`:
+
+```php
+public function __construct(
+    private readonly \MageOS\Seo\Api\Sitemap\RebuildRequesterInterface $sitemapRebuild
+) {
+}
+
+public function execute(\Magento\Framework\Event\Observer $observer): void
+{
+    // A post was published, unpublished, deleted, or its URL changed.
+    $this->sitemapRebuild->request('blog-posts');
+}
+```
+
+- Ask when an item your provider lists is added or removed, or its URL changes — not on every
+  save. A rebuild rewrites every file of the type.
+- The request is queued and returns at once; requests for one type collapse into one until the
+  consumer runs. Nothing is queued when no sitemap would be rebuilt (see
+  [What it needs](#what-it-needs)).
+- `RebuildRequesterInterface::ALL_TYPES` asks for every type, for a change that can alter every URL.
+- A type no registered provider has throws `\InvalidArgumentException`, so a misspelt type fails
+  where it is written instead of being dropped, with only a log line, by the consumer.
 
 ### Not supported
 

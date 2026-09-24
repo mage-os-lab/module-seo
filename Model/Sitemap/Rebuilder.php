@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace MageOS\Seo\Model\Sitemap;
 
 use Magento\Framework\App\Area;
+use Magento\Sitemap\Model\Sitemap;
 use Magento\Store\Model\App\Emulation;
 use MageOS\Seo\Exception\SitemapRebuildInProgressException;
 use Psr\Log\LoggerInterface;
@@ -14,8 +15,10 @@ use Psr\Log\LoggerInterface;
  *
  * Reached from the feed queue: a change to products, categories or pages queues `sitemap-{type}`,
  * a change that can alter every URL (a store view, the configuration) queues `sitemap-*` (see
- * RebuildGroup), and the consumer hands the type here. Every sitemap RebuildableSitemaps names is
- * rewritten — that type's files only, the others kept; every type for `*`.
+ * RebuildGroup), and the consumer hands the type to `rebuild()`, which rewrites every sitemap a
+ * change rebuilds. The CLI command's `rebuildOnDemand()` rewrites every sitemap that can be rebuilt,
+ * Rebuild on Change or not (see RebuildableSitemaps). Only that type's files are rewritten, the
+ * others kept; every type for `*`.
  *
  * Each is written as core's cron writes it, emulating its store view's frontend. One that fails is
  * logged and the rest carry on; one being written by another process is left for the retry the
@@ -45,11 +48,21 @@ class Rebuilder
      */
     public function hasType(string $type): bool
     {
-        return $type === RebuildGroup::ALL_TYPES || \in_array($type, $this->generator->getTypes(), true);
+        return $type === RebuildGroup::ALL_TYPES || \in_array($type, $this->types(), true);
     }
 
     /**
-     * Rewrite the type — every type for `*` — in every sitemap that qualifies.
+     * The types the generator writes, in order.
+     *
+     * @return string[]
+     */
+    public function types(): array
+    {
+        return $this->generator->getTypes();
+    }
+
+    /**
+     * After a change: rewrite the type — every type for `*` — in every sitemap a change rebuilds.
      *
      * @param string $type A type the generator writes, or RebuildGroup::ALL_TYPES
      * @throws SitemapRebuildInProgressException When one was being written by another process —
@@ -58,11 +71,37 @@ class Rebuilder
      */
     public function rebuild(string $type): array
     {
+        return $this->rebuildEach($type, $this->rebuildableSitemaps->onChange());
+    }
+
+    /**
+     * Asked for by hand: rewrite the type in every sitemap that can be rebuilt, Rebuild on Change or not.
+     *
+     * @param string $type A type the generator writes, or RebuildGroup::ALL_TYPES
+     * @throws SitemapRebuildInProgressException When one was being written by another process —
+     *                                           after all the others are done
+     * @return array<int,string> Error message per sitemap ID that failed
+     */
+    public function rebuildOnDemand(string $type): array
+    {
+        return $this->rebuildEach($type, $this->rebuildableSitemaps->all());
+    }
+
+    /**
+     * Rewrite the type in each of the sitemaps.
+     *
+     * @param string $type
+     * @param Sitemap[] $sitemaps
+     * @throws SitemapRebuildInProgressException
+     * @return array<int,string> Error message per sitemap ID that failed
+     */
+    private function rebuildEach(string $type, array $sitemaps): array
+    {
         $types    = $type === RebuildGroup::ALL_TYPES ? null : [$type];
         $failures = [];
         $busy     = [];
 
-        foreach ($this->rebuildableSitemaps->all() as $sitemap) {
+        foreach ($sitemaps as $sitemap) {
             $this->emulation->startEnvironmentEmulation((int) $sitemap->getStoreId(), Area::AREA_FRONTEND, true);
             try {
                 $this->generator->regenerate($sitemap, $types);
