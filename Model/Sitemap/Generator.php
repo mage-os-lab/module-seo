@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace MageOS\Seo\Model\Sitemap;
 
 use Magento\Framework\Stdlib\DateTime\DateTime;
+use Magento\Sitemap\Model\ResourceModel\Sitemap as SitemapResource;
 use Magento\Sitemap\Model\Sitemap;
 use MageOS\Seo\Api\Sitemap\ItemEnricherInterface;
 use MageOS\Seo\Api\Sitemap\ItemFilterInterface;
@@ -50,6 +51,7 @@ class Generator
      * @param WriterFactory $writerFactory
      * @param DateTime $dateTime
      * @param LoggerInterface $logger
+     * @param SitemapResource $sitemapResource
      * @param RowRendererInterface[] $renderers In row order
      * @param ItemEnricherInterface[] $enrichers
      * @param ItemFilterInterface[] $filters
@@ -61,6 +63,7 @@ class Generator
         private readonly WriterFactory              $writerFactory,
         private readonly DateTime                   $dateTime,
         private readonly LoggerInterface            $logger,
+        private readonly SitemapResource            $sitemapResource,
         private readonly array                      $renderers = [],
         private readonly array                      $enrichers = [],
         private readonly array                      $filters = [],
@@ -102,7 +105,8 @@ class Generator
         $writer->finish();
 
         $sitemap->setSitemapTime($this->dateTime->gmtDate('Y-m-d H:i:s'));
-        $sitemap->save();
+        // What $sitemap->save() does; sitemaps have no repository to save them through.
+        $this->sitemapResource->save($sitemap);
     }
 
     /**

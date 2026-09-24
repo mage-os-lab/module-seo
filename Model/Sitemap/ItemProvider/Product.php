@@ -50,7 +50,7 @@ class Product extends AbstractEntityProvider
     {
         return $stream
             ? $this->productStream->stream($storeId)
-            : $this->productFactory->create()->getCollection($storeId);
+            : $this->coreRows($this->productFactory->create()->getCollection($storeId));
     }
 
     /**

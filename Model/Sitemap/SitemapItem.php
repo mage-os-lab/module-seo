@@ -23,15 +23,15 @@ class SitemapItem extends CoreSitemapItem implements SitemapItemInterface
     /**
      * The first five as core's item documents them.
      *
-     * `$images` leads with `array` because core documents it so, and Magento's constructor check —
+     * `$images` leads with an array because core documents it so, and Magento's constructor check —
      * run by `setup:di:compile` — compares the first documented type of each argument passed to the
-     * parent; anything else fails compilation. Core's own resource models pass a DataObject.
+     * parent; anything else fails compilation. What core's own resource models pass is a DataObject.
      *
      * @param string $url
      * @param string $priority
      * @param string $changeFrequency
      * @param string|null $updatedAt
-     * @param array|\Magento\Framework\DataObject|null $images
+     * @param mixed[]|\Magento\Framework\DataObject|null $images
      * @param string|null $entityType
      * @param int|null $entityId
      * @param array<string,object> $dataBag
@@ -46,7 +46,11 @@ class SitemapItem extends CoreSitemapItem implements SitemapItemInterface
         private readonly ?int $entityId = null,
         array $dataBag = []
     ) {
-        parent::__construct($url, $priority, $changeFrequency, $updatedAt, $images);
+        // Core documents array|null, and its own resource models pass a DataObject — which its own
+        // row writer reads as one. Handed on as given.
+        /** @var mixed $coreImages */
+        $coreImages = $images;
+        parent::__construct($url, $priority, $changeFrequency, $updatedAt, $coreImages);
         $this->setDataBag($dataBag);
     }
 

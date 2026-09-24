@@ -6,6 +6,7 @@ namespace MageOS\Seo\Test\Unit\Model\Sitemap;
 
 use Magento\Framework\Stdlib\DateTime\DateTime;
 use Magento\Sitemap\Model\ItemProvider\ItemProviderInterface as CoreItemProviderInterface;
+use Magento\Sitemap\Model\ResourceModel\Sitemap as SitemapResource;
 use Magento\Sitemap\Model\Sitemap;
 use MageOS\Seo\Api\Sitemap\ItemEnricherInterface;
 use MageOS\Seo\Api\Sitemap\ItemFilterInterface;
@@ -172,7 +173,7 @@ class GeneratorTest extends TestCase
     public function testTheSitemapIsSavedWithItsGenerationTimeOnceTheFilesAreWritten(): void
     {
         $order   = [];
-        $sitemap = $this->createMock(Sitemap::class);
+        $sitemap = $this->createStub(Sitemap::class);
         $sitemap->method('__call')->willReturnCallback(
             function (string $method, array $arguments) use (&$order) {
                 if ($method === 'setSitemapTime') {
@@ -182,14 +183,15 @@ class GeneratorTest extends TestCase
                 return $method === 'getStoreId' ? 1 : null;
             }
         );
-        $sitemap->expects($this->once())->method('save')->willReturnCallback(
-            static function () use (&$order, $sitemap) {
+        $resource = $this->createMock(SitemapResource::class);
+        $resource->expects($this->once())->method('save')->with($sitemap)->willReturnCallback(
+            static function () use (&$order, $resource) {
                 $order[] = 'save';
-                return $sitemap;
+                return $resource;
             }
         );
 
-        $this->generator([])->generate($sitemap);
+        $this->generator([], sitemapResource: $resource)->generate($sitemap);
 
         $this->assertSame(['time:2026-09-23 12:00:00', 'save'], $order);
     }
@@ -201,6 +203,7 @@ class GeneratorTest extends TestCase
      * @param ItemFilterInterface[] $filters
      * @param LoggerInterface|null $logger
      * @param int $chunkSize
+     * @param SitemapResource|null $sitemapResource
      * @return Generator
      */
     private function generator(
@@ -209,7 +212,8 @@ class GeneratorTest extends TestCase
         array $enrichers = [],
         array $filters = [],
         ?LoggerInterface $logger = null,
-        int $chunkSize = 1000
+        int $chunkSize = 1000,
+        ?SitemapResource $sitemapResource = null
     ): Generator {
         $composite = $this->createStub(Composite::class);
         $composite->method('getProviders')->willReturn($providers);
@@ -251,6 +255,7 @@ class GeneratorTest extends TestCase
             $writerFactory,
             $dateTime,
             $logger ?? $this->createStub(LoggerInterface::class),
+            $sitemapResource ?? $this->createStub(SitemapResource::class),
             $renderers ?? [$this->urlRenderer()],
             $enrichers,
             $filters,

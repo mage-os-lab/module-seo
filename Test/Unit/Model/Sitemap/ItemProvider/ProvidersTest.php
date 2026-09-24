@@ -67,6 +67,14 @@ class ProvidersTest extends TestCase
         $this->assertSame([], iterator_to_array($this->category(false)->iterateItems(99), false));
     }
 
+    public function testAnAnswerCoreNeverGivesIsAnErrorNotAnEmptyList(): void
+    {
+        // Core documents array|bool; true would mean core had changed.
+        $this->expectException(\UnexpectedValueException::class);
+
+        $this->category(true)->getItems(1);
+    }
+
     public function testEachProviderSaysWhereItsItemsAreFiled(): void
     {
         $this->assertSame(ItemProviderInterface::TYPE_CATEGORIES, $this->category([])->getType());
@@ -138,10 +146,10 @@ class ProvidersTest extends TestCase
     }
 
     /**
-     * @param DataObject[]|false $rows
+     * @param DataObject[]|bool $rows As core's resource model documents it
      * @return Category
      */
-    private function category(array|false $rows): Category
+    private function category(array|bool $rows): Category
     {
         $resource = $this->createStub(CategoryResource::class);
         $resource->method('getCollection')->willReturn($rows);

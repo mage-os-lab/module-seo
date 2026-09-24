@@ -292,6 +292,23 @@ class GeneratorTest extends TestCase
     }
 
     /**
+     * The sitemap is saved through core's resource model, which runs the model's own checks as
+     * `$sitemap->save()` would: core's `Sitemap::beforeSave()` still refuses a bad file name.
+     *
+     * @return void
+     */
+    public function testTheSitemapsOwnChecksStillRunWhenItIsSaved(): void
+    {
+        $sitemap = $this->sitemapFor($this->defaultStoreId());
+        $sitemap->setSitemapFilename($this->sitemapName . ' x.xml');
+
+        $this->expectException(\Magento\Framework\Exception\LocalizedException::class);
+        $this->expectExceptionMessage('Please use only letters');
+
+        $this->generateSitemap($sitemap);
+    }
+
+    /**
      * The products files among a sitemap's files.
      *
      * @param array<string,string> $files

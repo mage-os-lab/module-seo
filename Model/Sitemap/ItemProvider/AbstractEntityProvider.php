@@ -58,6 +58,30 @@ abstract class AbstractEntityProvider implements ItemProviderInterface
     abstract protected function rows(int $storeId, bool $stream): iterable|false;
 
     /**
+     * What one of core's sitemap resource models returned, as the rows it means.
+     *
+     * They document `array|bool`: the rows, or false when the store view — or its root category —
+     * does not exist. They never return true or anything else; if one does, core has changed and
+     * that is worth hearing about, not reading as an empty list.
+     *
+     * @param mixed $rows
+     * @return iterable<DataObject>|false
+     * @throws \UnexpectedValueException
+     */
+    protected function coreRows(mixed $rows): iterable|false
+    {
+        if ($rows === false || is_iterable($rows)) {
+            return $rows;
+        }
+
+        throw new \UnexpectedValueException(sprintf(
+            '%s: a core sitemap resource model returned %s, where rows or false were expected.',
+            static::class,
+            get_debug_type($rows)
+        ));
+    }
+
+    /**
      * The entity type of every item this provider lists.
      *
      * @return string One of SitemapItemInterface::ENTITY_*

@@ -40,7 +40,7 @@ class Category extends AbstractEntityProvider
      */
     protected function rows(int $storeId, bool $stream): iterable|false
     {
-        return $this->categoryFactory->create()->getCollection($storeId);
+        return $this->coreRows($this->categoryFactory->create()->getCollection($storeId));
     }
 
     /**

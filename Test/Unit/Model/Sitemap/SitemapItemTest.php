@@ -72,13 +72,19 @@ class SitemapItemTest extends TestCase
     {
         $this->expectException(\InvalidArgumentException::class);
 
-        (new SitemapItem('a.html', '0.5', 'daily'))->setDataBag(['robots' => 'NOINDEX']);
+        // Not a valid bag, on purpose: extensions call this, and the check at run time is what refuses it.
+        /** @var mixed $bag */
+        $bag = ['robots' => 'NOINDEX'];
+        (new SitemapItem('a.html', '0.5', 'daily'))->setDataBag($bag);
     }
 
     public function testAnEntryWithoutAnExtensionCodeIsRefused(): void
     {
         $this->expectException(\InvalidArgumentException::class);
 
-        (new SitemapItem('a.html', '0.5', 'daily'))->setDataBag([new DataObject()]);
+        // Not a valid bag, on purpose: extensions call this, and the check at run time is what refuses it.
+        /** @var mixed $bag */
+        $bag = [new DataObject()];
+        (new SitemapItem('a.html', '0.5', 'daily'))->setDataBag($bag);
     }
 }

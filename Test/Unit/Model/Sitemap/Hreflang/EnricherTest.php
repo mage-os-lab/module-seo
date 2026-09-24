@@ -55,6 +55,7 @@ class EnricherTest extends TestCase
             static fn (string $type, array $ids): array => match ($type) {
                 'product'  => [1 => [1 => 'a.html', 2 => 'de/a.html'], 2 => [1 => 'b.html', 2 => 'de/b.html']],
                 'category' => [7 => [1 => 'shirts.html', 2 => 'de/hemden.html']],
+                default    => throw new \UnexpectedValueException('Not fetched by entity: ' . $type),
             }
         );
 

@@ -47,9 +47,10 @@ class RenderersTest extends TestCase
 
     public function testFieldsWithoutAValueAreLeftOut(): void
     {
+        // Core's config readers answer an empty string for a setting with no value.
         $this->assertSame(
             '<loc>https://shop.test/a.html</loc>',
-            $this->coreFields()->render(new SitemapItem('a.html', null, null), 1)
+            $this->coreFields()->render(new SitemapItem('a.html', '', ''), 1)
         );
     }
 
