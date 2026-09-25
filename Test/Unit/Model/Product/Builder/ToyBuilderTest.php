@@ -109,7 +109,7 @@ class ToyBuilderTest extends TestCase
         $this->product->method('getData')->willReturnCallback(
             static fn (string $key) => $key === 'batteries_required' ? 'yes' : null
         );
-        $schema = $this->builder->build($this->product, ['batteriesRequired'], [], []);
+        $schema = $this->builder->build($this->product, ['batteriesRequired'], []);
 
         $this->assertArrayNotHasKey('batteriesRequired', $schema);
         $entry = $this->findAdditionalProperty($schema, 'batteriesRequired');
@@ -122,7 +122,7 @@ class ToyBuilderTest extends TestCase
         $this->product->method('getData')->willReturnCallback(
             static fn (string $key) => $key === 'safety_warning' ? 'Choking hazard' : null
         );
-        $schema = $this->builder->build($this->product, ['warning'], [], []);
+        $schema = $this->builder->build($this->product, ['warning'], []);
 
         $entry = $this->findAdditionalProperty($schema, 'safetyWarning');
         $this->assertNotNull($entry);
@@ -135,7 +135,7 @@ class ToyBuilderTest extends TestCase
             static fn (string $key) => $key === 'min_age' ? '3' : null
         );
         $this->product->method('getAttributeText')->willReturn(false);
-        $schema = $this->builder->build($this->product, ['suggestedAge'], [], []);
+        $schema = $this->builder->build($this->product, ['suggestedAge'], []);
 
         $this->assertSame('PeopleAudience', $schema['audience']['@type']);
         $this->assertSame(3.0, $schema['audience']['suggestedMinAge']);
@@ -150,7 +150,7 @@ class ToyBuilderTest extends TestCase
                 default    => null,
             }
         );
-        $schema = $this->builder->build($this->product, ['material', 'color'], [], []);
+        $schema = $this->builder->build($this->product, ['material', 'color'], []);
         $this->assertSame('Plastic', $schema['material']);
         $this->assertSame('Red', $schema['color']);
     }

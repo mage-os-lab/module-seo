@@ -70,7 +70,7 @@ class SchemaBuilderPoolTest extends TestCase
     {
         $emptyPool = new SchemaBuilderPool([]);
         $product   = $this->createMock(\Magento\Catalog\Api\Data\ProductInterface::class);
-        $result    = $emptyPool->build('NonExistent', $product, [], [], []);
+        $result    = $emptyPool->build('NonExistent', $product, [], []);
         $this->assertSame([], $result);
     }
 

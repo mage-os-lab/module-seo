@@ -26,15 +26,13 @@ class SchemaBuilderPool
      * @param \Magento\Catalog\Api\Data\ProductInterface $product
      * @param string[] $enabledFields
      * @param mixed[] $overrides
-     * @param mixed[] $variantData
      * @return mixed[]
      */
     public function build(
         string           $templateCode,
         ProductInterface $product,
         array            $enabledFields,
-        array            $overrides,
-        array            $variantData
+        array            $overrides
     ): array {
         $builder = $this->builders[$templateCode] ?? $this->builders['GenericProduct'] ?? null;
 
@@ -42,7 +40,7 @@ class SchemaBuilderPool
             return [];
         }
 
-        return $builder->build($product, $enabledFields, $overrides, $variantData);
+        return $builder->build($product, $enabledFields, $overrides);
     }
 
     /**

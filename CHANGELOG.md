@@ -71,6 +71,14 @@ become public contract.
   the setting's old label — **Enable /hreflang-sitemap.xml** is now **Add Hreflang Alternates to
   sitemap.xml**, on the same path. Entries below that mention the hreflang sitemap describe it
   before its retirement.
+- The `variant_slug_data` request parameter and everything that read it. No module in this
+  package or in Magento sets it, so it never changed the output. **Breaking for custom
+  templates:** `Api\ProductSchemaBuilderInterface::build()` and `SchemaBuilderPool::build()` no
+  longer take `$variantData`, and `AbstractBuilder::buildBase()` takes only the product. A builder
+  written against 1.1.0 that still requires the fourth parameter no longer matches the interface,
+  a fatal error when the class loads: drop it, or give it a default (`array $variantData = []`) to
+  load against both versions. Extra arguments passed to the pool or to `buildBase()` are ignored.
+  The product title, meta and JSON-LD providers no longer depend on the request.
 
 ### Fixed
 
@@ -274,7 +282,7 @@ become public contract.
   FAQ delete actions go through POST with form-key validation; FAQ save
   validates required fields server-side.
 - The PageTitle compositor is now wired into page rendering via an observer;
-  built-in providers only act when an explicit title exists (variant title or
+  built-in providers only act when an explicit title exists (such as a product's
   meta_title) so core behaviour is unchanged by default.
 - Current product/category resolution goes through a single
   `Model\Catalog\CurrentEntity` shim instead of injecting the deprecated

@@ -88,7 +88,7 @@ class SoftwareBuilderTest extends TestCase
 
     public function testBuildReturnsProductAndSoftwareApplicationMultiType(): void
     {
-        $schema = $this->builder->build($this->product, [], [], []);
+        $schema = $this->builder->build($this->product, [], []);
         $this->assertSame(['Product', 'SoftwareApplication'], $schema['@type']);
     }
 
@@ -105,7 +105,6 @@ class SoftwareBuilderTest extends TestCase
         $schema = $this->builder->build(
             $this->product,
             ['operatingSystem', 'softwareVersion', 'applicationCategory'],
-            [],
             []
         );
         $this->assertSame('Windows', $schema['operatingSystem']);
@@ -118,7 +117,7 @@ class SoftwareBuilderTest extends TestCase
         $this->product->method('getData')->willReturnCallback(
             static fn (string $key) => $key === 'barcode' ? '5901234123457' : null
         );
-        $schema = $this->builder->build($this->product, ['gtin13'], [], []);
+        $schema = $this->builder->build($this->product, ['gtin13'], []);
         $this->assertSame('5901234123457', $schema['gtin13']);
     }
 
@@ -127,7 +126,7 @@ class SoftwareBuilderTest extends TestCase
         $this->product->method('getData')->willReturnCallback(
             static fn (string $key) => $key === 'barcode' ? '5901234123450' : null
         );
-        $schema = $this->builder->build($this->product, ['gtin13'], [], []);
+        $schema = $this->builder->build($this->product, ['gtin13'], []);
         $this->assertArrayNotHasKey('gtin13', $schema);
     }
 }

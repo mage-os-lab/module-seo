@@ -94,13 +94,13 @@ class StationeryBuilderTest extends TestCase
 
     public function testBuildReturnsPlainProductType(): void
     {
-        $schema = $this->builder->build($this->product, [], [], []);
+        $schema = $this->builder->build($this->product, [], []);
         $this->assertSame('Product', $schema['@type']);
     }
 
     public function testOfferNodeShape(): void
     {
-        $schema = $this->builder->build($this->product, [], [], []);
+        $schema = $this->builder->build($this->product, [], []);
         $this->assertSame('Offer', $schema['offers']['@type']);
         $this->assertSame('6.50', $schema['offers']['price']);
         $this->assertSame('GBP', $schema['offers']['priceCurrency']);
@@ -115,20 +115,20 @@ class StationeryBuilderTest extends TestCase
                 default    => null,
             }
         );
-        $schema = $this->builder->build($this->product, ['material', 'pattern'], [], []);
+        $schema = $this->builder->build($this->product, ['material', 'pattern'], []);
         $this->assertSame('Recycled Paper', $schema['material']);
         $this->assertSame('Dotted', $schema['pattern']);
     }
 
     public function testValidGtinFromOverrideIsEmitted(): void
     {
-        $schema = $this->builder->build($this->product, ['gtin13'], ['gtin13' => '5901234123457'], []);
+        $schema = $this->builder->build($this->product, ['gtin13'], ['gtin13' => '5901234123457']);
         $this->assertSame('5901234123457', $schema['gtin13']);
     }
 
     public function testInvalidGtinFromOverrideIsOmitted(): void
     {
-        $schema = $this->builder->build($this->product, ['gtin13'], ['gtin13' => '5901234123450'], []);
+        $schema = $this->builder->build($this->product, ['gtin13'], ['gtin13' => '5901234123450']);
         $this->assertArrayNotHasKey('gtin13', $schema);
     }
 
@@ -137,7 +137,7 @@ class StationeryBuilderTest extends TestCase
         $this->product->method('getData')->willReturnCallback(
             static fn (string $key) => $key === 'barcode' ? '5901234123457' : null
         );
-        $schema = $this->builder->build($this->product, ['gtin13'], [], []);
+        $schema = $this->builder->build($this->product, ['gtin13'], []);
         $this->assertSame('5901234123457', $schema['gtin13']);
     }
 
@@ -146,7 +146,7 @@ class StationeryBuilderTest extends TestCase
         $this->product->method('getData')->willReturnCallback(
             static fn (string $key) => $key === 'barcode' ? '5901234123450' : null
         );
-        $schema = $this->builder->build($this->product, ['gtin13'], [], []);
+        $schema = $this->builder->build($this->product, ['gtin13'], []);
         $this->assertArrayNotHasKey('gtin13', $schema);
     }
 }

@@ -88,7 +88,7 @@ class ArtAndCraftBuilderTest extends TestCase
 
     public function testBuildReturnsProductAndVisualArtworkMultiType(): void
     {
-        $schema = $this->builder->build($this->product, [], [], []);
+        $schema = $this->builder->build($this->product, [], []);
         $this->assertSame(['Product', 'VisualArtwork'], $schema['@type']);
     }
 
@@ -101,7 +101,7 @@ class ArtAndCraftBuilderTest extends TestCase
                 default           => null,
             }
         );
-        $schema = $this->builder->build($this->product, ['artMedium', 'artworkSurface'], [], []);
+        $schema = $this->builder->build($this->product, ['artMedium', 'artworkSurface'], []);
         $this->assertSame('Oil', $schema['artMedium']);
         $this->assertSame('Canvas', $schema['artworkSurface']);
     }
@@ -115,14 +115,14 @@ class ArtAndCraftBuilderTest extends TestCase
                 default  => null,
             }
         );
-        $schema = $this->builder->build($this->product, ['width', 'height'], [], []);
+        $schema = $this->builder->build($this->product, ['width', 'height'], []);
         $this->assertSame('40cm', $schema['width']);
         $this->assertSame('60cm', $schema['height']);
     }
 
     public function testCreatorFromOverrideIsApplied(): void
     {
-        $schema = $this->builder->build($this->product, ['creator'], ['creator' => 'Local Artist'], []);
+        $schema = $this->builder->build($this->product, ['creator'], ['creator' => 'Local Artist']);
         $this->assertSame('Local Artist', $schema['creator']);
     }
 }

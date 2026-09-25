@@ -88,7 +88,7 @@ class CosmeticsBuilderTest extends TestCase
 
     public function testBuildReturnsPlainProductType(): void
     {
-        $schema = $this->builder->build($this->product, [], [], []);
+        $schema = $this->builder->build($this->product, [], []);
         $this->assertSame('Product', $schema['@type']);
     }
 
@@ -101,7 +101,7 @@ class CosmeticsBuilderTest extends TestCase
                 default => null,
             }
         );
-        $schema = $this->builder->build($this->product, ['color', 'scent'], [], []);
+        $schema = $this->builder->build($this->product, ['color', 'scent'], []);
         $this->assertSame('Rose Red', $schema['color']);
         $this->assertSame('Vanilla', $schema['scent']);
     }
@@ -111,7 +111,7 @@ class CosmeticsBuilderTest extends TestCase
         $this->product->method('getData')->willReturnCallback(
             static fn (string $key) => $key === 'gender' ? 'Female' : null
         );
-        $schema = $this->builder->build($this->product, ['gender'], [], []);
+        $schema = $this->builder->build($this->product, ['gender'], []);
         $this->assertSame('PeopleAudience', $schema['audience']['@type']);
         $this->assertSame('Female', $schema['audience']['suggestedGender']);
     }
@@ -121,7 +121,7 @@ class CosmeticsBuilderTest extends TestCase
         $this->product->method('getData')->willReturnCallback(
             static fn (string $key) => $key === 'barcode' ? '5901234123450' : null
         );
-        $schema = $this->builder->build($this->product, ['gtin13'], [], []);
+        $schema = $this->builder->build($this->product, ['gtin13'], []);
         $this->assertArrayNotHasKey('gtin13', $schema);
     }
 }

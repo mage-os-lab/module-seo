@@ -19,8 +19,6 @@ use MageOS\Seo\Service\CurrencyService;
 abstract class AbstractBuilder implements ProductSchemaBuilderInterface
 {
     // Standard availability URIs (canonical values live on AvailabilityResolver).
-    // Bridge modules can supply any schema.org availability URI (e.g. PreOrder)
-    // via $variantData['_availability'].
     protected const AVAILABILITY_IN_STOCK  = AvailabilityResolver::IN_STOCK;
     protected const AVAILABILITY_OUT       = AvailabilityResolver::OUT_OF_STOCK;
     protected const AVAILABILITY_BACKORDER = AvailabilityResolver::BACKORDER;
@@ -81,21 +79,15 @@ abstract class AbstractBuilder implements ProductSchemaBuilderInterface
      * Subclasses call this and then add their template-specific fields.
      *
      * @param \Magento\Catalog\Api\Data\ProductInterface $product
-     * @param mixed[] $variantData
      * @return mixed[]
      */
-    protected function buildBase(ProductInterface $product, array $variantData): array
+    protected function buildBase(ProductInterface $product): array
     {
         /** @var \Magento\Catalog\Model\Product $product */
         $store      = $this->storeManager->getStore();
         $productUrl = $product->getProductUrl();
 
-        // Offers: use variant URL if a variant is active
-        $offersUrl = !empty($variantData['_canonical_url'])
-            ? $variantData['_canonical_url']
-            : $productUrl;
-
-        $price    = $this->resolvePrice($product, $variantData);
+        $price    = $this->resolvePrice($product);
         $currency = $this->currencyService->getCurrentCurrencyCode();
 
         $schema = [
@@ -107,10 +99,10 @@ abstract class AbstractBuilder implements ProductSchemaBuilderInterface
             'sku'      => $product->getSku(),
             'offers'   => [
                 '@type'            => 'Offer',
-                'url'              => $offersUrl,
+                'url'              => $productUrl,
                 'price'            => $price,
                 'priceCurrency'    => $currency,
-                'availability'     => $this->resolveAvailability($product, $variantData),
+                'availability'     => $this->resolveAvailability($product),
             ],
         ];
 
@@ -137,7 +129,7 @@ abstract class AbstractBuilder implements ProductSchemaBuilderInterface
         $storeId = (int) $store->getId();
 
         // AggregateOffer for products that expose a price range (e.g. configurable).
-        $priceRange = $this->resolvePriceRange($product, $variantData);
+        $priceRange = $this->resolvePriceRange($product);
         if ($priceRange !== null) {
             $schema['offers'] = $this->buildAggregateOffer($schema['offers'], $priceRange);
         }
@@ -162,18 +154,14 @@ abstract class AbstractBuilder implements ProductSchemaBuilderInterface
     /**
      * Resolve a low/high price range for products that have one (configurable), or null.
      *
-     * Returns null for single-variant requests and any product whose final price does not expose a
-     * usable minimal/maximal range, so the standard single Offer is kept.
+     * Returns null for any product whose final price does not expose a usable minimal/maximal
+     * range, so the standard single Offer is kept.
      *
      * @param \Magento\Catalog\Api\Data\ProductInterface $product
-     * @param mixed[] $variantData
      * @return array{low: float, high: float}|null
      */
-    protected function resolvePriceRange(ProductInterface $product, array $variantData): ?array
+    protected function resolvePriceRange(ProductInterface $product): ?array
     {
-        if (!empty($variantData)) {
-            return null;
-        }
         if ($product->getTypeId() !== 'configurable') {
             return null;
         }
@@ -237,40 +225,29 @@ abstract class AbstractBuilder implements ProductSchemaBuilderInterface
     }
 
     /**
-     * Resolve the scalar price value, preferring active variant price.
+     * Resolve the scalar price value: the product's final price, in the display currency.
      *
      * @param \Magento\Catalog\Api\Data\ProductInterface $product
-     * @param mixed[] $variantData
      * @return string
      */
-    protected function resolvePrice(ProductInterface $product, array $variantData): string
+    protected function resolvePrice(ProductInterface $product): string
     {
         /** @var \Magento\Catalog\Model\Product $product */
-        $baseAmount = !empty($variantData['_price'])
-            ? (float) $variantData['_price']
-            : (float) $product->getPriceInfo()->getPrice('final_price')->getValue();
+        $baseAmount = (float) $product->getPriceInfo()->getPrice('final_price')->getValue();
 
-        // PriceInfo amounts (and bridge-supplied _price values) are base currency;
-        // convert so the amount matches the display currency code emitted with it.
+        // PriceInfo amounts are base currency; convert so the amount matches the display
+        // currency code emitted with it.
         return number_format($this->currencyService->convertFromBase($baseAmount), 2, '.', '');
     }
 
     /**
-     * Resolve schema.org availability URI.
-     *
-     * Variant data wins (bridge modules supply per-variant availability);
-     * otherwise MSI salability for the current website via AvailabilityResolver.
+     * Resolve schema.org availability URI: MSI salability for the current website.
      *
      * @param \Magento\Catalog\Api\Data\ProductInterface $product
-     * @param mixed[] $variantData
      * @return string
      */
-    protected function resolveAvailability(ProductInterface $product, array $variantData): string
+    protected function resolveAvailability(ProductInterface $product): string
     {
-        if (!empty($variantData['_availability'])) {
-            return $variantData['_availability'];
-        }
-
         return $this->availabilityResolver->resolve($product);
     }
 

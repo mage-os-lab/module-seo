@@ -46,10 +46,9 @@ class JewelryBuilder extends AbstractBuilder
     public function build(
         ProductInterface $product,
         array            $enabledFields,
-        array            $overrides,
-        array            $variantData
+        array            $overrides
     ): array {
-        $schema = $this->buildBase($product, $variantData);
+        $schema = $this->buildBase($product);
 
         if (\in_array('brand', $enabledFields, true)) {
             $brand = $overrides['brand'] ?? $this->attr($product, 'manufacturer') ?: $this->attr($product, 'brand');
@@ -73,7 +72,7 @@ class JewelryBuilder extends AbstractBuilder
         }
 
         if (\in_array('color', $enabledFields, true)) {
-            $color = $overrides['color'] ?? $variantData['color'] ?? $this->attr($product, 'color');
+            $color = $overrides['color'] ?? $this->attr($product, 'color');
             if ($color !== '') {
                 $schema['color'] = $color;
             }
@@ -81,7 +80,6 @@ class JewelryBuilder extends AbstractBuilder
 
         if (\in_array('size', $enabledFields, true)) {
             $size = $overrides['size']
-                ?? $variantData['size']
                 ?? $this->attr($product, 'ring_size')
                 ?: $this->attr($product, 'size');
             if ($size !== '') {

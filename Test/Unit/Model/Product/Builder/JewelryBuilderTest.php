@@ -88,7 +88,7 @@ class JewelryBuilderTest extends TestCase
 
     public function testBuildReturnsPlainProductType(): void
     {
-        $schema = $this->builder->build($this->product, [], [], []);
+        $schema = $this->builder->build($this->product, [], []);
         $this->assertSame('Product', $schema['@type']);
     }
 
@@ -97,13 +97,16 @@ class JewelryBuilderTest extends TestCase
         $this->product->method('getData')->willReturnCallback(
             static fn (string $key) => $key === 'metal' ? 'Sterling Silver' : null
         );
-        $schema = $this->builder->build($this->product, ['material'], [], []);
+        $schema = $this->builder->build($this->product, ['material'], []);
         $this->assertSame('Sterling Silver', $schema['material']);
     }
 
-    public function testSizeFromVariantDataPreferredOverAttribute(): void
+    public function testSizeFromRingSizeAttribute(): void
     {
-        $schema = $this->builder->build($this->product, ['size'], [], ['size' => 'M']);
+        $this->product->method('getData')->willReturnCallback(
+            static fn (string $key) => $key === 'ring_size' ? 'M' : null
+        );
+        $schema = $this->builder->build($this->product, ['size'], []);
         $this->assertSame('M', $schema['size']);
     }
 
@@ -112,7 +115,7 @@ class JewelryBuilderTest extends TestCase
         $this->product->method('getData')->willReturnCallback(
             static fn (string $key) => $key === 'barcode' ? '5901234123450' : null
         );
-        $schema = $this->builder->build($this->product, ['gtin13'], [], []);
+        $schema = $this->builder->build($this->product, ['gtin13'], []);
         $this->assertArrayNotHasKey('gtin13', $schema);
     }
 }

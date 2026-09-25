@@ -42,9 +42,9 @@ class LocalExperienceBuilder extends AbstractBuilder
     /**
      * @inheritdoc
      */
-    public function build(ProductInterface $product, array $enabledFields, array $overrides, array $variantData): array
+    public function build(ProductInterface $product, array $enabledFields, array $overrides): array
     {
-        $schema = $this->buildBase($product, $variantData);
+        $schema = $this->buildBase($product);
 
         if (\in_array('availabilityStarts', $enabledFields, true)) {
             $starts = $overrides['availabilityStarts'] ?? $this->attr($product, 'availability_starts');

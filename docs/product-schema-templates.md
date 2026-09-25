@@ -44,7 +44,7 @@ Every template builds on `AbstractBuilder::buildBase()`, which always outputs:
   - `availability` (InStock / OutOfStock from the stock registry)
   - `itemCondition` (NewCondition)
   - `priceValidUntil` (N months from today, configured at Stores → Configuration → SEO)
-  - `url` (variant-specific URL when a product variant URL is active)
+  - `url` (the product URL)
 
 Template-specific fields are layered on top of this base.
 
@@ -52,7 +52,7 @@ Template-specific fields are layered on top of this base.
 
 ## Optional fields
 
-Each template exposes a set of optional fields that can be enabled per category. When a field is enabled, the builder reads its value from the corresponding Magento product attribute (or variant data). When a field is not enabled, it is omitted from the schema entirely — Google penalises poorly-populated fields, so it is better to omit than to output empty values.
+Each template exposes a set of optional fields that can be enabled per category. When a field is enabled, the builder reads its value from the corresponding Magento product attribute. When a field is not enabled, it is omitted from the schema entirely — Google penalises poorly-populated fields, so it is better to omit than to output empty values.
 
 Examples by template:
 
@@ -72,9 +72,8 @@ To enable optional fields for a category, open the category in admin, go to the 
 When a builder reads a field, it follows this priority order:
 
 1. **Override value** — a hard-coded value set in the category or product override JSON (wins over everything)
-2. **Variant data** — attribute values for the active product variant (`color`, `size`)
-3. **Product attribute** — the product's actual Magento attribute value
-4. **Omit** — if none of the above yield a non-empty value, the field is not output
+2. **Product attribute** — the product's actual Magento attribute value
+3. **Omit** — if neither yields a non-empty value, the field is not output
 
 For `select` / `dropdown` attributes, the builder resolves the label text rather than the option ID, which is correct for schema.org text fields.
 

@@ -43,9 +43,9 @@ class ElectronicsSimpleBuilder extends AbstractBuilder
     /**
      * @inheritdoc
      */
-    public function build(ProductInterface $product, array $enabledFields, array $overrides, array $variantData): array
+    public function build(ProductInterface $product, array $enabledFields, array $overrides): array
     {
-        $schema = $this->buildBase($product, $variantData);
+        $schema = $this->buildBase($product);
 
         if (\in_array('brand', $enabledFields, true)) {
             $brand = $overrides['brand'] ?? $this->attr($product, 'manufacturer') ?: $this->attr($product, 'brand');
@@ -66,9 +66,6 @@ class ElectronicsSimpleBuilder extends AbstractBuilder
                         break;
                     }
                 }
-            }
-            if ($gtin === '' && isset($variantData['gtin13'])) {
-                $gtin = (string) $variantData['gtin13'];
             }
             if ($gtin !== '') {
                 $schema = $this->applyGtin($schema, (string) $gtin);
@@ -95,9 +92,6 @@ class ElectronicsSimpleBuilder extends AbstractBuilder
                         break;
                     }
                 }
-            }
-            if ($value === '' && isset($variantData[$field])) {
-                $value = (string) $variantData[$field];
             }
             if ($value !== '') {
                 $schema[$field] = $value;

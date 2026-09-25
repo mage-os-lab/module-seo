@@ -150,7 +150,7 @@ class ApparelBuilderTest extends TestCase
     {
         // "Apparel" is not a schema.org type; apparel items are plain Products.
         $this->withInStock();
-        $schema = $this->builder->build($this->product, [], [], []);
+        $schema = $this->builder->build($this->product, [], []);
         $this->assertSame('Product', $schema['@type']);
     }
 
@@ -163,7 +163,7 @@ class ApparelBuilderTest extends TestCase
         $this->product->method('getAttributeText')->willReturnCallback(
             fn (string $key) => $key === 'manufacturer' ? 'Nike' : false
         );
-        $schema = $this->builder->build($this->product, ['brand'], [], []);
+        $schema = $this->builder->build($this->product, ['brand'], []);
         $this->assertSame('Brand', $schema['brand']['@type']);
         $this->assertSame('Nike', $schema['brand']['name']);
     }
@@ -171,7 +171,7 @@ class ApparelBuilderTest extends TestCase
     public function testBuildBrandNotIncludedWhenFieldNotEnabled(): void
     {
         $this->withInStock();
-        $schema = $this->builder->build($this->product, [], [], []);
+        $schema = $this->builder->build($this->product, [], []);
         $this->assertArrayNotHasKey('brand', $schema);
     }
 
@@ -184,22 +184,21 @@ class ApparelBuilderTest extends TestCase
         $this->product->method('getAttributeText')->willReturnCallback(
             fn (string $key) => $key === 'color' ? 'Blue' : false
         );
-        $schema = $this->builder->build($this->product, ['color'], [], []);
+        $schema = $this->builder->build($this->product, ['color'], []);
         $this->assertSame('Blue', $schema['color']);
-    }
-
-    public function testBuildColorFromVariantDataPreferredOverAttribute(): void
-    {
-        $this->withInStock();
-        $schema = $this->builder->build($this->product, ['color'], [], ['color' => 'Red']);
-        $this->assertSame('Red', $schema['color']);
     }
 
     public function testBuildColorNotAddedToOffersNode(): void
     {
         // schema.org defines color on Product, not on Offer.
         $this->withInStock();
-        $schema = $this->builder->build($this->product, ['color'], [], ['color' => 'Green']);
+        $this->product->method('getData')->willReturnCallback(
+            fn (string $key) => $key === 'color' ? 'Green' : null
+        );
+        $this->product->method('getAttributeText')->willReturnCallback(
+            fn (string $key) => $key === 'color' ? 'Green' : false
+        );
+        $schema = $this->builder->build($this->product, ['color'], []);
         $this->assertSame('Green', $schema['color']);
         $this->assertArrayNotHasKey('color', $schema['offers']);
     }
@@ -207,16 +206,28 @@ class ApparelBuilderTest extends TestCase
     public function testBuildColorNotIncludedWhenFieldNotEnabled(): void
     {
         $this->withInStock();
-        $schema = $this->builder->build($this->product, [], [], ['color' => 'Blue']);
+        $this->product->method('getData')->willReturnCallback(
+            fn (string $key) => $key === 'color' ? 'Blue' : null
+        );
+        $this->product->method('getAttributeText')->willReturnCallback(
+            fn (string $key) => $key === 'color' ? 'Blue' : false
+        );
+        $schema = $this->builder->build($this->product, [], []);
         $this->assertArrayNotHasKey('color', $schema);
     }
 
-    public function testBuildSizeFromVariantDataWhenEnabled(): void
+    public function testBuildSizeNotAddedToOffersNode(): void
     {
-        $this->withInStock();
-        $schema = $this->builder->build($this->product, ['size'], [], ['size' => 'XL']);
-        $this->assertSame('XL', $schema['size']);
         // schema.org defines size on Product, not on Offer.
+        $this->withInStock();
+        $this->product->method('getData')->willReturnCallback(
+            fn (string $key) => $key === 'size' ? 'XL' : null
+        );
+        $this->product->method('getAttributeText')->willReturnCallback(
+            fn (string $key) => $key === 'size' ? 'XL' : false
+        );
+        $schema = $this->builder->build($this->product, ['size'], []);
+        $this->assertSame('XL', $schema['size']);
         $this->assertArrayNotHasKey('size', $schema['offers']);
     }
 
@@ -229,14 +240,20 @@ class ApparelBuilderTest extends TestCase
         $this->product->method('getAttributeText')->willReturnCallback(
             fn (string $key) => $key === 'size' ? 'M' : false
         );
-        $schema = $this->builder->build($this->product, ['size'], [], []);
+        $schema = $this->builder->build($this->product, ['size'], []);
         $this->assertSame('M', $schema['size']);
     }
 
     public function testBuildSizeNotIncludedWhenFieldNotEnabled(): void
     {
         $this->withInStock();
-        $schema = $this->builder->build($this->product, [], [], ['size' => 'L']);
+        $this->product->method('getData')->willReturnCallback(
+            fn (string $key) => $key === 'size' ? 'L' : null
+        );
+        $this->product->method('getAttributeText')->willReturnCallback(
+            fn (string $key) => $key === 'size' ? 'L' : false
+        );
+        $schema = $this->builder->build($this->product, [], []);
         $this->assertArrayNotHasKey('size', $schema);
     }
 
@@ -249,7 +266,7 @@ class ApparelBuilderTest extends TestCase
         $this->product->method('getAttributeText')->willReturnCallback(
             fn (string $key) => $key === 'material' ? 'Cotton' : false
         );
-        $schema = $this->builder->build($this->product, ['material'], [], []);
+        $schema = $this->builder->build($this->product, ['material'], []);
         $this->assertSame('Cotton', $schema['material']);
     }
 
@@ -262,7 +279,7 @@ class ApparelBuilderTest extends TestCase
         $this->product->method('getAttributeText')->willReturnCallback(
             fn (string $key) => $key === 'gender' ? 'Male' : false
         );
-        $schema = $this->builder->build($this->product, ['gender'], [], []);
+        $schema = $this->builder->build($this->product, ['gender'], []);
         $this->assertArrayHasKey('audience', $schema);
         $this->assertSame('PeopleAudience', $schema['audience']['@type']);
         $this->assertSame('Male', $schema['audience']['suggestedGender']);
@@ -271,7 +288,7 @@ class ApparelBuilderTest extends TestCase
     public function testBuildGenderNotIncludedWhenFieldNotEnabled(): void
     {
         $this->withInStock();
-        $schema = $this->builder->build($this->product, [], [], []);
+        $schema = $this->builder->build($this->product, [], []);
         $this->assertArrayNotHasKey('audience', $schema);
     }
 
@@ -284,7 +301,7 @@ class ApparelBuilderTest extends TestCase
         $this->product->method('getAttributeText')->willReturnCallback(
             fn (string $key) => $key === 'pattern' ? 'Striped' : false
         );
-        $schema = $this->builder->build($this->product, ['pattern'], [], []);
+        $schema = $this->builder->build($this->product, ['pattern'], []);
         $this->assertSame('Striped', $schema['pattern']);
     }
 
@@ -296,7 +313,7 @@ class ApparelBuilderTest extends TestCase
         $this->product->method('getData')->willReturnCallback(
             fn (string $key) => $key === 'country_of_origin' ? 'GB' : null
         );
-        $schema = $this->builder->build($this->product, ['countryOfOrigin'], [], []);
+        $schema = $this->builder->build($this->product, ['countryOfOrigin'], []);
         $this->assertSame('GB', $schema['countryOfOrigin']);
     }
 
@@ -317,7 +334,6 @@ class ApparelBuilderTest extends TestCase
         $schema = $this->builder->build(
             $this->product,
             ['brand', 'color', 'size', 'material', 'gender', 'pattern'],
-            [],
             []
         );
 
@@ -332,7 +348,7 @@ class ApparelBuilderTest extends TestCase
     public function testBuildGtin13FromOverrideWhenEnabled(): void
     {
         $this->withInStock();
-        $schema = $this->builder->build($this->product, ['gtin13'], ['gtin13' => '5901234123457'], []);
+        $schema = $this->builder->build($this->product, ['gtin13'], ['gtin13' => '5901234123457']);
         $this->assertSame('5901234123457', $schema['gtin13']);
     }
 
@@ -345,7 +361,7 @@ class ApparelBuilderTest extends TestCase
         $this->product->method('getAttributeText')->willReturnCallback(
             fn (string $key) => $key === 'colour' ? 'Purple' : false
         );
-        $schema = $this->builder->build($this->product, ['color'], [], []);
+        $schema = $this->builder->build($this->product, ['color'], []);
         $this->assertSame('Purple', $schema['color']);
     }
 }

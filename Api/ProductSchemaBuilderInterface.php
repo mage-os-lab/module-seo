@@ -38,18 +38,15 @@ interface ProductSchemaBuilderInterface
      *
      * $enabledFields  — optional field codes the category editor has switched on.
      * $overrides      — per-category or per-product hard-coded field values.
-     * $variantData    — decoded variant slug data array (empty when no variant URL active).
      *
      * @param \Magento\Catalog\Api\Data\ProductInterface $product
      * @param string[] $enabledFields
      * @param mixed[] $overrides
-     * @param mixed[] $variantData
      * @return mixed[]
      */
     public function build(
         ProductInterface $product,
         array $enabledFields,
-        array $overrides,
-        array $variantData
+        array $overrides
     ): array;
 }

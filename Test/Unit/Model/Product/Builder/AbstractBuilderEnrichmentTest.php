@@ -151,7 +151,7 @@ class AbstractBuilderEnrichmentTest extends TestCase
         $this->useSimplePrice();
         $this->seoConfig->method('isAggregateRatingEnabled')->willReturn(false);
         $builder = $this->makeBuilder(['shippingDetails' => ['@type' => 'OfferShippingDetails']]);
-        $schema  = $builder->build($this->product, [], [], []);
+        $schema  = $builder->build($this->product, [], []);
         $this->assertArrayHasKey('shippingDetails', $schema['offers']);
     }
 
@@ -160,7 +160,7 @@ class AbstractBuilderEnrichmentTest extends TestCase
         $this->useSimplePrice();
         $this->seoConfig->method('isAggregateRatingEnabled')->willReturn(false);
         $builder = $this->makeBuilder(['itemCondition' => 'https://schema.org/UsedCondition']);
-        $schema  = $builder->build($this->product, [], [], []);
+        $schema  = $builder->build($this->product, [], []);
         $this->assertSame('https://schema.org/UsedCondition', $schema['offers']['itemCondition']);
     }
 
@@ -169,7 +169,7 @@ class AbstractBuilderEnrichmentTest extends TestCase
         $this->useSimplePrice();
         $this->seoConfig->method('isAggregateRatingEnabled')->willReturn(true);
         $builder = $this->makeBuilder([], ['ratingValue' => '4.5', 'reviewCount' => '17']);
-        $schema  = $builder->build($this->product, [], [], []);
+        $schema  = $builder->build($this->product, [], []);
         $this->assertArrayHasKey('aggregateRating', $schema);
         $this->assertSame('AggregateRating', $schema['aggregateRating']['@type']);
         $this->assertSame('4.5', $schema['aggregateRating']['ratingValue']);
@@ -180,7 +180,7 @@ class AbstractBuilderEnrichmentTest extends TestCase
         $this->useSimplePrice();
         $this->seoConfig->method('isAggregateRatingEnabled')->willReturn(false);
         $builder = $this->makeBuilder([], ['ratingValue' => '4.5', 'reviewCount' => '17']);
-        $schema  = $builder->build($this->product, [], [], []);
+        $schema  = $builder->build($this->product, [], []);
         $this->assertArrayNotHasKey('aggregateRating', $schema);
     }
 
@@ -189,7 +189,7 @@ class AbstractBuilderEnrichmentTest extends TestCase
         $this->useSimplePrice();
         $this->seoConfig->method('isAggregateRatingEnabled')->willReturn(true);
         $builder = $this->makeBuilder([], null);
-        $schema  = $builder->build($this->product, [], [], []);
+        $schema  = $builder->build($this->product, [], []);
         $this->assertArrayNotHasKey('aggregateRating', $schema);
     }
 
@@ -198,7 +198,7 @@ class AbstractBuilderEnrichmentTest extends TestCase
         $this->useSimplePrice();
         $this->seoConfig->method('isAggregateRatingEnabled')->willReturn(false);
         $this->product->method('getTypeId')->willReturn('simple');
-        $schema = $this->makeBuilder()->build($this->product, [], [], []);
+        $schema = $this->makeBuilder()->build($this->product, [], []);
         $this->assertSame('Offer', $schema['offers']['@type']);
         $this->assertArrayHasKey('price', $schema['offers']);
     }
@@ -209,21 +209,12 @@ class AbstractBuilderEnrichmentTest extends TestCase
         $this->seoConfig->method('isAggregateRatingEnabled')->willReturn(false);
         $this->product->method('getTypeId')->willReturn('configurable');
 
-        $schema = $this->makeBuilder()->build($this->product, [], [], []);
+        $schema = $this->makeBuilder()->build($this->product, [], []);
 
         $this->assertSame('AggregateOffer', $schema['offers']['@type']);
         $this->assertSame('10.00', $schema['offers']['lowPrice']);
         $this->assertSame('50.00', $schema['offers']['highPrice']);
         $this->assertArrayNotHasKey('price', $schema['offers']);
-    }
-
-    public function testConfigurableWithVariantDataKeepsSingleOffer(): void
-    {
-        $this->useSimplePrice();
-        $this->seoConfig->method('isAggregateRatingEnabled')->willReturn(false);
-        $this->product->method('getTypeId')->willReturn('configurable');
-        $schema = $this->makeBuilder()->build($this->product, [], [], ['_price' => '19.99']);
-        $this->assertSame('Offer', $schema['offers']['@type']);
     }
 
     private function makeAmount(float $value): object

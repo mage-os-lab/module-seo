@@ -48,10 +48,9 @@ class ApparelBuilder extends AbstractBuilder
     public function build(
         ProductInterface $product,
         array            $enabledFields,
-        array            $overrides,
-        array            $variantData
+        array            $overrides
     ): array {
-        $schema = $this->buildBase($product, $variantData);
+        $schema = $this->buildBase($product);
 
         if (\in_array('brand', $enabledFields, true)) {
             $brand = $overrides['brand'] ?? $this->attr($product, 'manufacturer') ?: $this->attr($product, 'brand');
@@ -67,12 +66,10 @@ class ApparelBuilder extends AbstractBuilder
             }
         }
 
-        // Color — prefer active variant, then attribute. Product-level only:
-        // schema.org defines color/size on Product, not on Offer.
+        // Color — override, then attribute. Product-level only: schema.org defines
+        // color/size on Product, not on Offer.
         if (\in_array('color', $enabledFields, true)) {
             $color = $overrides['color']
-                ?? $variantData['color']
-                ?? $variantData['colour']
                 ?? $this->attr($product, 'color')
                 ?: $this->attr($product, 'colour');
             if ($color !== '') {
@@ -80,10 +77,9 @@ class ApparelBuilder extends AbstractBuilder
             }
         }
 
-        // Size — prefer active variant
+        // Size — override, then attribute.
         if (\in_array('size', $enabledFields, true)) {
             $size = $overrides['size']
-                ?? $variantData['size']
                 ?? $this->attr($product, 'size');
             if ($size !== '') {
                 $schema['size'] = $size;

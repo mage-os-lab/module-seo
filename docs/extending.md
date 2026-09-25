@@ -135,13 +135,9 @@ class VehicleBuilder extends AbstractBuilder
         ];
     }
 
-    public function build(
-        ProductInterface $product,
-        array $enabledFields,
-        array $overrides,
-        array $variantData
-    ): array {
-        $schema = $this->buildBase($product, $variantData);
+    public function build(ProductInterface $product, array $enabledFields, array $overrides): array
+    {
+        $schema = $this->buildBase($product);
 
         if (\in_array('vehicleModelDate', $enabledFields)) {
             $year = $this->attr($product, 'model_year');
