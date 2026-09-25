@@ -23,6 +23,8 @@ use PHPUnit\Framework\TestCase;
 
 class ApparelBuilderTest extends TestCase
 {
+    use OfferBuilders;
+
     /**
      * @var StoreManagerInterface&MockObject
      */
@@ -109,12 +111,16 @@ class ApparelBuilderTest extends TestCase
 
         $this->builder = new ApparelBuilder(
             $this->storeManager,
-            $this->currencyService,
-            $this->availabilityResolver,
             $this->imageHelper,
             $this->seoConfig,
-            $this->dateTime,
-            new OfferEnricherPool(),
+            $this->offerBuilder(
+                $this->storeManager,
+                $this->currencyService,
+                $this->availabilityResolver,
+                $this->seoConfig,
+                $this->dateTime,
+                new OfferEnricherPool()
+            ),
             new AggregateRatingResolver(),
             new GtinValidator()
         );

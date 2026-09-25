@@ -14,6 +14,17 @@ become public contract.
 
 ### Added
 
+- Configurable products are described as a `ProductGroup` of their variants, per Google's
+  product-variant guidance, when they have up to **Most Variants per Configurable Product**
+  (`has_variant_max`, default 50) sellable children: `productGroupID`, `variesBy`, and one
+  `Product` per child with its own offer — the offers move off the group. What a variant varies by
+  comes from the product's own configurable attributes, no map: codes naming one of Google's six
+  (`color`, `size`, `material`, `pattern`, `suggested_gender`, `suggested_age`) are written as that
+  property and listed in `variesBy`; any other becomes an `additionalProperty`. Each variant's
+  offer URL is the product URL with `?{attribute_code}={option_id}`, which Luma's swatches
+  preselect; `Api\ProductVariantUrlResolverInterface` (`@api`) replaces the rule. With the
+  template's GTIN field enabled, each variant carries its own GTIN, loaded in one query from
+  `gtin13`, `gtin`, `barcode` or `ean`. See `docs/structured-data.md#configurable-products`.
 - A sitemap generator for the sitemaps configured under Marketing → Site Map, selected by the
   new **Catalog → XML Sitemap → Generation Settings → Generator** (default **MageOS SEO**;
   **Magento** leaves core's generator in charge). It lists the same URLs as core's, writes one file
@@ -79,8 +90,24 @@ become public contract.
   a fatal error when the class loads: drop it, or give it a default (`array $variantData = []`) to
   load against both versions. Extra arguments passed to the pool or to `buildBase()` are ignored.
   The product title, meta and JSON-LD providers no longer depend on the request.
+- `AbstractBuilder`'s offer code, moved to `Model\Product\OfferBuilder` so variants use the same
+  one. **Breaking for custom templates** that declare a constructor or call these: the constructor
+  now takes `StoreManagerInterface`, `ImageHelper`, `Config`, `OfferBuilder`,
+  `AggregateRatingResolver`, `GtinValidator` (the currency, availability, date and offer-enricher
+  arguments are gone), and `resolvePrice()`, `resolveAvailability()`, `getPriceValidUntil()`,
+  `resolvePriceRange()`, `buildAggregateOffer()` and the `AVAILABILITY_*` constants are removed. A
+  template that extends AbstractBuilder without a constructor of its own is unaffected. To change
+  offers, register an `OfferEnricherInterface` or plug in to `OfferBuilder::build()`.
 
 ### Fixed
+
+- Configurable products get their `AggregateOffer` on the product page. The range was read from
+  core's `FinalPrice::getMinimalPrice()`/`getMaximalPrice()`, which read `minimal_price` data only a
+  collection load sets — 0 on a product page — so every configurable showed one `Offer` at its
+  lowest price. It is now read from the sellable children's own final prices. Children sharing one
+  price keep a single `Offer`.
+- `has_variant_max` at 0 read as 50, and the admin refused 0. 0 now means every configurable gets
+  the `AggregateOffer`.
 
 - Hreflang URLs use the store view's configured scheme. They followed the current request, so
   anything built from cron or the command line — `/hreflang-sitemap.xml` included — listed an https
@@ -233,6 +260,11 @@ become public contract.
 
 ### Changed
 
+- **hasVariant Max Entries** is now **Most Variants per Configurable Product** (same path,
+  `mageos_seo_general/structured_data/has_variant_max`): a configurable with more sellable
+  children than this gets one `AggregateOffer` over their whole price range instead of a variant
+  list cut short.
+- The module requires `magento/module-configurable-product`, which every distribution ships.
 - With the MageOS SEO sitemap generator selected — the default — `sitemap.xml` is always a sitemap
   index, listing `{name}-{store}-pages-1.xml`, `-categories-`, `-products-` and so on. Search
   engines need only the one URL they already have. Files core's generator wrote for the same

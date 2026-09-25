@@ -156,7 +156,9 @@ class VehicleBuilder extends AbstractBuilder
 ```
 
 Rules to follow:
-- Always call `$this->buildBase()` first — it provides the base product node with offers, images, and description.
+- Always call `$this->buildBase()` first — it provides the base product node with offers, images, and description. The offer comes from `Model\Product\OfferBuilder`, the one place offers are built; to change every offer, register an `OfferEnricherInterface` or plug in to `OfferBuilder::build()` rather than editing the node here.
+- Don't handle configurable products yourself: after your builder runs, `Model\Product\Variant\ProductGroupBuilder` turns a configurable's node into a ProductGroup of its variants, for every template (see [structured-data.md](structured-data.md#configurable-products)).
+- If your builder declares its own constructor, pass AbstractBuilder's arguments through: `StoreManagerInterface`, `ImageHelper`, `Config`, `OfferBuilder`, `AggregateRatingResolver`, `GtinValidator`.
 - Check `\in_array($fieldCode, $enabledFields)` before reading optional attributes.
 - Always call `$this->applyOverrides($schema, $overrides)` as the last step — it ensures category and product overrides win over template defaults.
 - Use `$this->attr($product, 'attribute_code')` to read product attributes — it handles select/dropdown label resolution automatically.

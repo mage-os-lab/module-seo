@@ -24,11 +24,14 @@ use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Verifies the Offer enrichment, AggregateRating and AggregateOffer behaviour added to
- * AbstractBuilder::buildBase(), exercised through the concrete GenericProductBuilder.
+ * What AbstractBuilder::buildBase() adds around the template's own fields — the offer from the
+ * offer builder and the AggregateRating — exercised through the concrete GenericProductBuilder.
+ * The offer itself is covered by OfferBuilderTest.
  */
 class AbstractBuilderEnrichmentTest extends TestCase
 {
+    use OfferBuilders;
+
     /**
      * @var StoreManagerInterface&MockObject
      */
@@ -68,47 +71,11 @@ class AbstractBuilderEnrichmentTest extends TestCase
         $this->product->method('getId')->willReturn(42);
         $this->product->method('getProductUrl')->willReturn('https://example.com/test-widget');
         $this->seoConfig->method('getPriceValidUntilMonths')->willReturn(12);
-    }
 
-    private function useSimplePrice(): void
-    {
         $finalPrice = $this->createMock(PriceInterface::class);
         $finalPrice->method('getValue')->willReturn(29.99);
         $priceInfo = $this->createMock(PriceInfoInterface::class);
         $priceInfo->method('getPrice')->with('final_price')->willReturn($finalPrice);
-        $this->product->method('getPriceInfo')->willReturn($priceInfo);
-    }
-
-    private function useRangePrice(float $low, float $high): void
-    {
-        // A range-aware price object. PriceInfoInterface::getPrice() has no return type, so a plain
-        // anonymous object with the methods AbstractBuilder::resolvePriceRange() probes is sufficient.
-        $rangePrice = new class ($low, $this->makeAmount($low), $this->makeAmount($high)) {
-            public function __construct(
-                private readonly float $value,
-                private readonly object $min,
-                private readonly object $max
-            ) {
-            }
-
-            public function getValue(): float
-            {
-                return $this->value;
-            }
-
-            public function getMinimalPrice(): object
-            {
-                return $this->min;
-            }
-
-            public function getMaximalPrice(): object
-            {
-                return $this->max;
-            }
-        };
-
-        $priceInfo = $this->createMock(PriceInfoInterface::class);
-        $priceInfo->method('getPrice')->with('final_price')->willReturn($rangePrice);
         $this->product->method('getPriceInfo')->willReturn($priceInfo);
     }
 
@@ -135,38 +102,34 @@ class AbstractBuilderEnrichmentTest extends TestCase
 
         return new GenericProductBuilder(
             $this->storeManager,
-            $currencyService,
-            $this->availabilityResolver,
             $imageHelper,
             $this->seoConfig,
-            $this->createMock(DateTime::class),
-            new OfferEnricherPool([$enricher]),
+            $this->offerBuilder(
+                $this->storeManager,
+                $currencyService,
+                $this->availabilityResolver,
+                $this->seoConfig,
+                $this->createMock(DateTime::class),
+                new OfferEnricherPool([$enricher])
+            ),
             new AggregateRatingResolver([$ratingProvider]),
             new GtinValidator()
         );
     }
 
-    public function testOfferEnrichmentIsMergedIntoOffers(): void
+    public function testTheNodeCarriesTheOfferTheOfferBuilderMade(): void
     {
-        $this->useSimplePrice();
         $this->seoConfig->method('isAggregateRatingEnabled')->willReturn(false);
         $builder = $this->makeBuilder(['shippingDetails' => ['@type' => 'OfferShippingDetails']]);
         $schema  = $builder->build($this->product, [], []);
-        $this->assertArrayHasKey('shippingDetails', $schema['offers']);
-    }
 
-    public function testEnricherCanOverrideItemCondition(): void
-    {
-        $this->useSimplePrice();
-        $this->seoConfig->method('isAggregateRatingEnabled')->willReturn(false);
-        $builder = $this->makeBuilder(['itemCondition' => 'https://schema.org/UsedCondition']);
-        $schema  = $builder->build($this->product, [], []);
-        $this->assertSame('https://schema.org/UsedCondition', $schema['offers']['itemCondition']);
+        $this->assertSame('Offer', $schema['offers']['@type']);
+        $this->assertSame('https://example.com/test-widget', $schema['offers']['url']);
+        $this->assertSame(['@type' => 'OfferShippingDetails'], $schema['offers']['shippingDetails']);
     }
 
     public function testAggregateRatingAddedWhenEnabledAndAvailable(): void
     {
-        $this->useSimplePrice();
         $this->seoConfig->method('isAggregateRatingEnabled')->willReturn(true);
         $builder = $this->makeBuilder([], ['ratingValue' => '4.5', 'reviewCount' => '17']);
         $schema  = $builder->build($this->product, [], []);
@@ -177,7 +140,6 @@ class AbstractBuilderEnrichmentTest extends TestCase
 
     public function testAggregateRatingNotAddedWhenDisabled(): void
     {
-        $this->useSimplePrice();
         $this->seoConfig->method('isAggregateRatingEnabled')->willReturn(false);
         $builder = $this->makeBuilder([], ['ratingValue' => '4.5', 'reviewCount' => '17']);
         $schema  = $builder->build($this->product, [], []);
@@ -186,48 +148,9 @@ class AbstractBuilderEnrichmentTest extends TestCase
 
     public function testAggregateRatingNotAddedWhenResolverReturnsNull(): void
     {
-        $this->useSimplePrice();
         $this->seoConfig->method('isAggregateRatingEnabled')->willReturn(true);
         $builder = $this->makeBuilder([], null);
         $schema  = $builder->build($this->product, [], []);
         $this->assertArrayNotHasKey('aggregateRating', $schema);
-    }
-
-    public function testSimpleProductKeepsSingleOffer(): void
-    {
-        $this->useSimplePrice();
-        $this->seoConfig->method('isAggregateRatingEnabled')->willReturn(false);
-        $this->product->method('getTypeId')->willReturn('simple');
-        $schema = $this->makeBuilder()->build($this->product, [], []);
-        $this->assertSame('Offer', $schema['offers']['@type']);
-        $this->assertArrayHasKey('price', $schema['offers']);
-    }
-
-    public function testConfigurableProductProducesAggregateOffer(): void
-    {
-        $this->useRangePrice(10.0, 50.0);
-        $this->seoConfig->method('isAggregateRatingEnabled')->willReturn(false);
-        $this->product->method('getTypeId')->willReturn('configurable');
-
-        $schema = $this->makeBuilder()->build($this->product, [], []);
-
-        $this->assertSame('AggregateOffer', $schema['offers']['@type']);
-        $this->assertSame('10.00', $schema['offers']['lowPrice']);
-        $this->assertSame('50.00', $schema['offers']['highPrice']);
-        $this->assertArrayNotHasKey('price', $schema['offers']);
-    }
-
-    private function makeAmount(float $value): object
-    {
-        return new class ($value) {
-            public function __construct(private readonly float $value)
-            {
-            }
-
-            public function getValue(): float
-            {
-                return $this->value;
-            }
-        };
     }
 }

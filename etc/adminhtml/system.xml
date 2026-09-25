@@ -53,10 +53,9 @@ Default: GenericProduct.</comment>
                 </field>
                 <field id="has_variant_max" translate="label comment" type="text"
                        sortOrder="50" showInDefault="1" showInWebsite="0" showInStore="0">
-                    <label>hasVariant Max Entries</label>
-                    <comment>Maximum variant nodes to include in a product's hasVariant array.
-Recommended: 50.</comment>
-                    <validate>validate-digits validate-greater-than-zero</validate>
+                    <label>Most Variants per Configurable Product</label>
+                    <comment>A configurable product with up to this many sellable children is described as a ProductGroup, each child a variant with its own offer. One with more is a single Product with an AggregateOffer over its whole price range, rather than a list cut short. 0 describes every configurable that way. Each variant costs a salability check on an uncached product page. Default: 50.</comment>
+                    <validate>validate-digits</validate>
                 </field>
                 <field id="price_valid_until_months" translate="label comment" type="text"
                        sortOrder="60" showInDefault="1" showInWebsite="1" showInStore="1">

@@ -13,6 +13,7 @@ use MageOS\Seo\Model\Category\ProductOverrideRepository;
 use MageOS\Seo\Model\Config;
 use MageOS\Seo\Model\Product\SchemaBuilderPool;
 use MageOS\Seo\Model\Product\SchemaRegistry;
+use MageOS\Seo\Model\Product\Variant\ProductGroupBuilder;
 
 class ProductSchemaProvider implements StructuredDataProviderInterface
 {
@@ -25,6 +26,7 @@ class ProductSchemaProvider implements StructuredDataProviderInterface
      * @param StoreManagerInterface $storeManager
      * @param Config $seoConfig
      * @param CategoryPathResolver $categoryPathResolver
+     * @param ProductGroupBuilder $productGroupBuilder
      */
     public function __construct(
         private readonly CurrentEntity             $currentEntity,
@@ -34,7 +36,8 @@ class ProductSchemaProvider implements StructuredDataProviderInterface
         private readonly ProductOverrideRepository $productOverrideRepository,
         private readonly StoreManagerInterface     $storeManager,
         private readonly Config                    $seoConfig,
-        private readonly CategoryPathResolver      $categoryPathResolver
+        private readonly CategoryPathResolver      $categoryPathResolver,
+        private readonly ProductGroupBuilder       $productGroupBuilder
     ) {
     }
 
@@ -96,6 +99,10 @@ class ProductSchemaProvider implements StructuredDataProviderInterface
         if (empty($schema)) {
             return [];
         }
+
+        // After the template, so what varies can come off the group whatever the template set:
+        // a configurable within has_variant_max becomes a ProductGroup of its variants.
+        $schema = $this->productGroupBuilder->build($schema, $product, $enabledFields);
 
         // Store in the registry. The compositor reads the final registry state after every
         // provider has run, so another module's provider can still adjust the node.

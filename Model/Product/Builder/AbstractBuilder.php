@@ -6,23 +6,15 @@ namespace MageOS\Seo\Model\Product\Builder;
 
 use Magento\Catalog\Api\Data\ProductInterface;
 use Magento\Catalog\Helper\Image as ImageHelper;
-use Magento\Framework\Stdlib\DateTime\DateTime;
 use Magento\Store\Model\StoreManagerInterface;
 use MageOS\Seo\Api\ProductSchemaBuilderInterface;
 use MageOS\Seo\Model\Config;
-use MageOS\Seo\Model\Product\AvailabilityResolver;
 use MageOS\Seo\Model\Product\GtinValidator;
-use MageOS\Seo\Model\Product\OfferEnricher\Pool as OfferEnricherPool;
+use MageOS\Seo\Model\Product\OfferBuilder;
 use MageOS\Seo\Model\Review\AggregateRatingResolver;
-use MageOS\Seo\Service\CurrencyService;
 
 abstract class AbstractBuilder implements ProductSchemaBuilderInterface
 {
-    // Standard availability URIs (canonical values live on AvailabilityResolver).
-    protected const AVAILABILITY_IN_STOCK  = AvailabilityResolver::IN_STOCK;
-    protected const AVAILABILITY_OUT       = AvailabilityResolver::OUT_OF_STOCK;
-    protected const AVAILABILITY_BACKORDER = AvailabilityResolver::BACKORDER;
-
     /**
      * All collaborators are required: Magento's ObjectManager passes the default value
      * for optional constructor parameters unless di.xml configures them per consumer,
@@ -30,25 +22,19 @@ abstract class AbstractBuilder implements ProductSchemaBuilderInterface
      * and provider registered in di.xml.
      *
      * @param StoreManagerInterface $storeManager
-     * @param CurrencyService $currencyService
-     * @param AvailabilityResolver $availabilityResolver
      * @param ImageHelper $imageHelper
      * @param Config $seoConfig
-     * @param DateTime $dateTime
-     * @param OfferEnricherPool $offerEnricherPool
+     * @param OfferBuilder $offerBuilder
      * @param AggregateRatingResolver $aggregateRatingResolver
      * @param GtinValidator $gtinValidator
      */
     public function __construct(
-        protected readonly StoreManagerInterface  $storeManager,
-        protected readonly CurrencyService        $currencyService,
-        protected readonly AvailabilityResolver   $availabilityResolver,
-        protected readonly ImageHelper            $imageHelper,
-        protected readonly Config                 $seoConfig,
-        protected readonly DateTime               $dateTime,
-        protected readonly OfferEnricherPool      $offerEnricherPool,
+        protected readonly StoreManagerInterface   $storeManager,
+        protected readonly ImageHelper             $imageHelper,
+        protected readonly Config                  $seoConfig,
+        protected readonly OfferBuilder            $offerBuilder,
         protected readonly AggregateRatingResolver $aggregateRatingResolver,
-        protected readonly GtinValidator          $gtinValidator
+        protected readonly GtinValidator           $gtinValidator
     ) {
     }
 
@@ -65,12 +51,7 @@ abstract class AbstractBuilder implements ProductSchemaBuilderInterface
      */
     protected function applyGtin(array $schema, string $value): array
     {
-        $property = $this->gtinValidator->resolveProperty($value);
-        if ($property !== null) {
-            $schema[$property] = (string) $this->gtinValidator->normalize($value);
-        }
-
-        return $schema;
+        return array_merge($schema, $this->gtinValidator->toProperties($value));
     }
 
     /**
@@ -87,9 +68,6 @@ abstract class AbstractBuilder implements ProductSchemaBuilderInterface
         $store      = $this->storeManager->getStore();
         $productUrl = $product->getProductUrl();
 
-        $price    = $this->resolvePrice($product);
-        $currency = $this->currencyService->getCurrentCurrencyCode();
-
         $schema = [
             '@context' => 'https://schema.org',
             '@type'    => $this->getSchemaType(),
@@ -97,21 +75,9 @@ abstract class AbstractBuilder implements ProductSchemaBuilderInterface
             'name'     => $product->getName(),
             'url'      => $productUrl,
             'sku'      => $product->getSku(),
-            'offers'   => [
-                '@type'            => 'Offer',
-                'url'              => $productUrl,
-                'price'            => $price,
-                'priceCurrency'    => $currency,
-                'availability'     => $this->resolveAvailability($product),
-            ],
+            // An Offer, or an AggregateOffer for a configurable priced across a range.
+            'offers'   => $this->offerBuilder->build($product, $productUrl),
         ];
-
-        // itemCondition is deliberately NOT hardcoded here: ItemConditionEnricher adds
-        // it from configuration, so used-goods stores can change or clear it.
-        $priceValidUntil = $this->getPriceValidUntil($product);
-        if ($priceValidUntil !== null && $priceValidUntil !== '') {
-            $schema['offers']['priceValidUntil'] = $priceValidUntil;
-        }
 
         // Description
         $rawDesc = (string) $product->getShortDescription() ?: (string) $product->getDescription();
@@ -128,18 +94,6 @@ abstract class AbstractBuilder implements ProductSchemaBuilderInterface
 
         $storeId = (int) $store->getId();
 
-        // AggregateOffer for products that expose a price range (e.g. configurable).
-        $priceRange = $this->resolvePriceRange($product);
-        if ($priceRange !== null) {
-            $schema['offers'] = $this->buildAggregateOffer($schema['offers'], $priceRange);
-        }
-
-        // Offer enrichment: shipping, returns, item condition, … (pluggable pool).
-        $offerAdditions = $this->offerEnricherPool->enrich($product, $storeId);
-        if (!empty($offerAdditions)) {
-            $schema['offers'] = array_merge($schema['offers'], $offerAdditions);
-        }
-
         // Product-level AggregateRating from the (pluggable) rating provider pool.
         if ($this->seoConfig->isAggregateRatingEnabled($storeId)) {
             $rating = $this->aggregateRatingResolver->resolve((int) $product->getId(), $storeId);
@@ -149,65 +103,6 @@ abstract class AbstractBuilder implements ProductSchemaBuilderInterface
         }
 
         return $schema;
-    }
-
-    /**
-     * Resolve a low/high price range for products that have one (configurable), or null.
-     *
-     * Returns null for any product whose final price does not expose a usable minimal/maximal
-     * range, so the standard single Offer is kept.
-     *
-     * @param \Magento\Catalog\Api\Data\ProductInterface $product
-     * @return array{low: float, high: float}|null
-     */
-    protected function resolvePriceRange(ProductInterface $product): ?array
-    {
-        if ($product->getTypeId() !== 'configurable') {
-            return null;
-        }
-
-        try {
-            /** @var \Magento\Catalog\Model\Product $product */
-            $finalPrice = $product->getPriceInfo()->getPrice('final_price');
-            if (!method_exists($finalPrice, 'getMinimalPrice') || !method_exists($finalPrice, 'getMaximalPrice')) {
-                return null;
-            }
-            $min = (float) $finalPrice->getMinimalPrice()->getValue();
-            $max = (float) $finalPrice->getMaximalPrice()->getValue();
-        } catch (\Throwable) {
-            return null;
-        }
-
-        if ($min <= 0.0 || $max <= 0.0 || $min >= $max) {
-            return null;
-        }
-
-        // PriceInfo amounts are base currency; convert so lowPrice/highPrice match
-        // the display currency code emitted alongside them.
-        return [
-            'low'  => $this->currencyService->convertFromBase($min),
-            'high' => $this->currencyService->convertFromBase($max),
-        ];
-    }
-
-    /**
-     * Convert a single Offer node into an AggregateOffer with low/high price.
-     *
-     * Preserves currency, availability, url and any other Offer fields; replaces the scalar price
-     * with lowPrice/highPrice.
-     *
-     * @param mixed[] $offer
-     * @param float[] $range
-     * @return mixed[]
-     */
-    protected function buildAggregateOffer(array $offer, array $range): array
-    {
-        $offer['@type'] = 'AggregateOffer';
-        unset($offer['price']);
-        $offer['lowPrice']  = number_format($range['low'], 2, '.', '');
-        $offer['highPrice'] = number_format($range['high'], 2, '.', '');
-
-        return $offer;
     }
 
     /**
@@ -222,33 +117,6 @@ abstract class AbstractBuilder implements ProductSchemaBuilderInterface
     protected function getSchemaType(): string|array
     {
         return 'Product';
-    }
-
-    /**
-     * Resolve the scalar price value: the product's final price, in the display currency.
-     *
-     * @param \Magento\Catalog\Api\Data\ProductInterface $product
-     * @return string
-     */
-    protected function resolvePrice(ProductInterface $product): string
-    {
-        /** @var \Magento\Catalog\Model\Product $product */
-        $baseAmount = (float) $product->getPriceInfo()->getPrice('final_price')->getValue();
-
-        // PriceInfo amounts are base currency; convert so the amount matches the display
-        // currency code emitted with it.
-        return number_format($this->currencyService->convertFromBase($baseAmount), 2, '.', '');
-    }
-
-    /**
-     * Resolve schema.org availability URI: MSI salability for the current website.
-     *
-     * @param \Magento\Catalog\Api\Data\ProductInterface $product
-     * @return string
-     */
-    protected function resolveAvailability(ProductInterface $product): string
-    {
-        return $this->availabilityResolver->resolve($product);
     }
 
     /**
@@ -324,36 +192,6 @@ abstract class AbstractBuilder implements ProductSchemaBuilderInterface
         ];
 
         return $schema;
-    }
-
-    /**
-     * Resolve priceValidUntil
-     *
-     * Resolve priceValidUntil: the real special-price end date when one is active,
-     * otherwise a synthetic "today + N months" window (omitted when N is 0).
-     *
-     * @param \Magento\Catalog\Api\Data\ProductInterface $product
-     * @return string|null ISO 8601 date string (Y-m-d), or null to omit the property
-     */
-    protected function getPriceValidUntil(ProductInterface $product): ?string
-    {
-        /** @var \Magento\Catalog\Model\Product $product */
-        $specialTo = substr((string) $product->getData('special_to_date'), 0, 10);
-        $today     = $this->dateTime->date('Y-m-d');
-        if ($specialTo !== '' && $specialTo >= $today) {
-            return $specialTo;
-        }
-
-        $storeId = (int) $this->storeManager->getStore()->getId();
-        $months  = $this->seoConfig->getPriceValidUntilMonths($storeId);
-        if ($months <= 0) {
-            // Merchants set 0 to omit the synthetic date rather than promise
-            // a price validity that has no basis in real pricing data.
-            return null;
-        }
-
-        // Store-timezone-aware (Stdlib DateTime::date applies the store offset).
-        return $this->dateTime->date('Y-m-d', "+{$months} months");
     }
 
     /**

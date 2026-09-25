@@ -6,7 +6,6 @@ namespace MageOS\Seo\Test\Integration\Controller;
 
 use Magento\Catalog\Test\Fixture\Product as ProductFixture;
 use Magento\TestFramework\Fixture\DataFixture;
-use Magento\TestFramework\Fixture\DataFixtureStorageManager;
 use Magento\TestFramework\TestCase\AbstractController;
 
 /**
@@ -20,6 +19,8 @@ use Magento\TestFramework\TestCase\AbstractController;
  */
 class SimpleProductOutputTest extends AbstractController
 {
+    use ProductPageOutput;
+
     private const SKU = 'mageos-seo-simple-output';
 
     /**
@@ -32,13 +33,11 @@ class SimpleProductOutputTest extends AbstractController
     )]
     public function testTheProductNodeTitleAndMetaTagsAreUnchanged(): void
     {
-        $body = $this->productPage();
+        $body = $this->productPage('product');
         $url  = 'http://localhost/index.php/' . self::SKU . '.html';
 
-        $node = $this->productNode($body);
-        // A date some months ahead of today: its shape is pinned, not its value.
-        $this->assertMatchesRegularExpression('/^\d{4}-\d{2}-\d{2}$/', $node['offers']['priceValidUntil'] ?? '');
-        unset($node['offers']['priceValidUntil']);
+        $node           = $this->productNode($body);
+        $node['offers'] = $this->withoutPriceValidUntil($node['offers'] ?? []);
 
         $this->assertSame(
             [
@@ -87,45 +86,6 @@ class SimpleProductOutputTest extends AbstractController
             $this->metaTags($body),
             'Meta tags'
         );
-    }
-
-    /**
-     * Render the fixture product's page and return its HTML.
-     *
-     * @return string
-     */
-    private function productPage(): string
-    {
-        $productId = (int) DataFixtureStorageManager::getStorage()->get('product')->getId();
-
-        $this->dispatch('catalog/product/view/id/' . $productId);
-
-        return (string) $this->getResponse()->getBody();
-    }
-
-    /**
-     * The JSON-LD node describing the product.
-     *
-     * The static-content version in asset URLs differs from one deployment to the next, so it is
-     * replaced by a fixed token.
-     *
-     * @param string $body
-     * @return array<string,mixed>
-     */
-    private function productNode(string $body): array
-    {
-        $body = (string) preg_replace('#/static/version\d+/#', '/static/VERSION/', $body);
-        preg_match_all('#<script type="application/ld\+json">(.*?)</script>#s', $body, $matches);
-        foreach ($matches[1] as $json) {
-            $decoded = json_decode($json, true);
-            foreach (\is_array($decoded) && array_is_list($decoded) ? $decoded : [$decoded] as $node) {
-                if (\is_array($node) && \in_array('Product', (array) ($node['@type'] ?? []), true)) {
-                    return $node;
-                }
-            }
-        }
-
-        return [];
     }
 
     /**

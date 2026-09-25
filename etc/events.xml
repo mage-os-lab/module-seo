@@ -6,7 +6,7 @@
         (the served files stay in place until the consumer replaces them). Each observer
         asks MageOS\Seo\Model\Feed\InvalidationPolicy whether the change can affect its
         feed, and FeedInvalidator skips feeds no store view can build.
-        Bridge modules (e.g. SellersSeo) that contribute to a feed call
+        Bridge modules that contribute to a feed call
         MageOS\Seo\Model\Feed\FeedInvalidator from their own observers.
 
         The sitemap (mageos_seo_invalidate_sitemap_*): InvalidationPolicy::sitemapTypesAffectedBy()

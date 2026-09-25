@@ -23,6 +23,8 @@ use PHPUnit\Framework\TestCase;
 
 class FoodBuilderTest extends TestCase
 {
+    use OfferBuilders;
+
     /**
      * @var Product&MockObject
      */
@@ -70,12 +72,16 @@ class FoodBuilderTest extends TestCase
 
         $this->builder = new FoodBuilder(
             $storeManager,
-            $currencyService,
-            $this->availabilityResolver,
             $imageHelper,
             $seoConfig,
-            $this->createMock(DateTime::class),
-            new OfferEnricherPool(),
+            $this->offerBuilder(
+                $storeManager,
+                $currencyService,
+                $this->availabilityResolver,
+                $seoConfig,
+                $this->createMock(DateTime::class),
+                new OfferEnricherPool()
+            ),
             new AggregateRatingResolver(),
             new GtinValidator()
         );

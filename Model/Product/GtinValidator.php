@@ -21,6 +21,22 @@ class GtinValidator
     ];
 
     /**
+     * Return the schema.org property for a raw GTIN value, ready to merge into a node.
+     *
+     * `['gtin13' => '5901234123457']` for a valid value — the property matching its length, the
+     * bare digits as the value — or `[]` when it does not validate, so it is left out.
+     *
+     * @param string $value
+     * @return array<string, string>
+     */
+    public function toProperties(string $value): array
+    {
+        $property = $this->resolveProperty($value);
+
+        return $property === null ? [] : [$property => (string) $this->normalize($value)];
+    }
+
+    /**
      * Return the schema.org property name for a raw GTIN value, or null when invalid.
      *
      * @param string $value

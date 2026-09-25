@@ -32,7 +32,7 @@ class ArtAndCraftBuilder extends AbstractBuilder
         return [
             'artMedium'      => 'Art Medium (oil, watercolour, etc.)',
             'artworkSurface' => 'Surface / Support (canvas, paper, etc.)',
-            'creator'        => 'Creator (overridden by SellersSeo bridge)',
+            'creator'        => 'Creator (set as an override)',
             'width'          => 'Width',
             'height'         => 'Height',
             'depth'          => 'Depth',
@@ -93,8 +93,7 @@ class ArtAndCraftBuilder extends AbstractBuilder
             }
         }
 
-        // creator — expected to be populated by SellersSeo bridge via overrides
-        // but we handle a fallback here if set manually
+        // creator — only from the category or product override; no attribute holds it
         if (\in_array('creator', $enabledFields, true) && !empty($overrides['creator'])) {
             $schema['creator'] = $overrides['creator'];
         }

@@ -30,7 +30,7 @@ class LocalExperienceBuilder extends AbstractBuilder
     public function getAvailableFields(): array
     {
         return [
-            'organizer'           => 'Organiser (overridden by SellersSeo bridge)',
+            'organizer'           => 'Organiser (set as an override)',
             'availabilityStarts'  => 'Availability Starts (YYYY-MM-DD)',
             'availabilityEnds'    => 'Availability Ends (YYYY-MM-DD)',
             'location'            => 'Location / Venue',
@@ -78,7 +78,7 @@ class LocalExperienceBuilder extends AbstractBuilder
             }
         }
 
-        // organizer — expected from SellersSeo bridge via overrides
+        // organizer — only from the category or product override; no attribute holds it
         if (\in_array('organizer', $enabledFields, true) && !empty($overrides['organizer'])) {
             $organizer = $overrides['organizer'];
             $schema = $this->addAdditionalProperty(

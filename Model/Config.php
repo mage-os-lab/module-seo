@@ -156,18 +156,22 @@ class Config
     }
 
     /**
-     * Return the maximum number of hasVariant offers to render per product.
+     * Return how many sellable children a configurable may have and still be a ProductGroup.
+     *
+     * One with more is described as a Product with an AggregateOffer. 0 turns variants off:
+     * every configurable gets the AggregateOffer. Unset reads as the default, 50.
      *
      * @param int|string|null $storeId
      * @return int
      */
     public function getHasVariantMax(int|string|null $storeId = null): int
     {
-        return max(1, (int) ($this->scopeConfig->getValue(
-            self::XML_SD_HAS_VARIANT_MAX,
-            ScopeInterface::SCOPE_STORE,
-            $storeId
-        ) ?: 50));
+        $value = $this->scopeConfig->getValue(self::XML_SD_HAS_VARIANT_MAX, ScopeInterface::SCOPE_STORE, $storeId);
+        if ($value === null || $value === '') {
+            return 50;
+        }
+
+        return max(0, (int) $value);
     }
 
     /**

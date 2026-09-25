@@ -14,6 +14,7 @@
         "magento/module-catalog": "*",
         "magento/module-cms": "*",
         "magento/module-config": "*",
+        "magento/module-configurable-product": "*",
         "magento/module-directory": "*",
         "magento/module-inventory-configuration-api": "*",
         "magento/module-inventory-sales-api": "*",

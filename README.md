@@ -20,7 +20,7 @@ Every cross-cutting concern is built as an **extensible provider pool** — a se
 
 - Organization, WebSite, BreadcrumbList, CollectionPage, and per-product schemas output as `<script type="application/ld+json">` in `<head>`, all cross-referenced by a shared `@id`.
 - **16 product schema templates** — GenericProduct, Food, Apparel, Jewelry, HomeDecor, Book, Software, Toy, HealthProduct, Cosmetics, Pet, ArtAndCraft, ElectronicsSimple, Tool, Stationery, LocalExperience.
-- **AggregateOffer** (lowPrice/highPrice) for configurable products.
+- **Configurable products as a ProductGroup** — each sellable child a variant with its own offer, `variesBy` from the product's own configurable attributes, variant URLs that preselect the options; above a configurable limit, one **AggregateOffer** (lowPrice/highPrice) over the children's prices.
 - **Aggregate ratings** — a priority pool with a native Magento reviews provider built in; review vendors (Yotpo, Trustpilot, …) plug in a higher-priority provider.
 - **Merchant policies** — shipping details, return policy, and item condition merged into product offers via an offer-enricher pool (required for Google Merchant free listings).
 
@@ -104,7 +104,7 @@ Without a Name and URL saved, the Organization node in JSON-LD will render with 
 | Group | Key settings | Default |
 | --- | --- | --- |
 | Open Graph Tags | Enable OG/Twitter tags | Yes |
-| Structured Data (JSON-LD) | Master switch, default product template, ItemList toggle & max, hasVariant max, priceValidUntil months, aggregate rating | Yes / GenericProduct |
+| Structured Data (JSON-LD) | Master switch, default product template, ItemList toggle & max, most variants per configurable product, priceValidUntil months, aggregate rating | Yes / GenericProduct |
 | AI Discoverability | `/llms.txt`, `/llms-full.txt`, `/llms.jsonl` | Yes / Yes / **No** |
 | Robots Meta | Product / category / **CMS** defaults, pagination policy | *(empty — Magento default applies)* |
 | Hreflang | Enable, language-only, sitemap | Yes |
@@ -228,7 +228,8 @@ Every cross-cutting concern is a provider pool wired via `di.xml`, so another mo
 | Product schema builders | `ProductSchemaBuilderInterface` | by template code |
 | Robots meta providers | `RobotsMetaProviderInterface` | first-wins by sortOrder |
 | Aggregate rating providers | `AggregateRatingProviderInterface` | highest-priority non-null |
-| Offer enrichers | `OfferEnricherInterface` | collect-all (merged into offers) |
+| Offer enrichers | `OfferEnricherInterface` | collect-all (merged into every product and variant offer) |
+| Variant URLs | `ProductVariantUrlResolverInterface` | one (di.xml preference) |
 | Hreflang resolvers | `HreflangResolverInterface` | collect-all |
 | Article / Event data providers | `ArticleDataProviderInterface` / `EventDataProviderInterface` | collect-all |
 | FAQ source providers | `FaqSourceProviderInterface` | collect-all |

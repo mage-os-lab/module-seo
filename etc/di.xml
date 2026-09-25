@@ -18,6 +18,11 @@
     <preference for="MageOS\Seo\Api\Sitemap\RebuildRequesterInterface"
                 type="MageOS\Seo\Model\Sitemap\RebuildRequester"/>
 
+    <!-- A configurable's variant URLs: ?{attribute_code}={option_id}, which Luma's swatches preselect.
+         Prefer your own when a theme reads something else or variants have pages of their own. -->
+    <preference for="MageOS\Seo\Api\ProductVariantUrlResolverInterface"
+                type="MageOS\Seo\Model\Product\Variant\QueryStringUrlResolver"/>
+
     <!-- ═══════════════════════════════════════════════════════════════════
          FAQ SOURCE POOL — bridges add sources (product-attribute, 3rd-party) here
          ═══════════════════════════════════════════════════════════════════ -->
@@ -129,13 +134,10 @@
                       xsi:type="object">MageOS\Seo\Model\StructuredData\Provider\SpeakableProvider</item>
 
                 <!--
-                    Bridge module providers are registered here by their own di.xml files.
-                    DO NOT add MageOS_SellersSeo or MageOS_ProductVariantUrlSeo
-                    providers here — they self-register via their own module di.xml.
-
-                    Example (from MageOS_SellersSeo/etc/di.xml):
+                    Other modules register their providers from their own di.xml, not here.
+                    Example (from a marketplace module's di.xml):
                     <item name="vendorProfile"
-                          xsi:type="object">MageOS\SellersSeo\Model\Provider\VendorProfile</item>
+                          xsi:type="object">YourVendor\Module\Model\Provider\VendorProfile</item>
                 -->
             </argument>
         </arguments>
@@ -272,7 +274,7 @@
 
     <!-- ═══════════════════════════════════════════════════════════════════
          LLMS.TXT SECTION PROVIDERS
-         SellersSeo registers VendorSectionProvider here via its own di.xml.
+         Other modules add sections from their own di.xml.
          ═══════════════════════════════════════════════════════════════════ -->
 
     <!-- llms.jsonl line providers — bridge modules append catalog lines (e.g. vendor LocalBusiness) -->
@@ -295,9 +297,9 @@
                       xsi:type="object">MageOS\Seo\Model\LlmsTxt\FaqLlmsSectionProvider</item>
                 <!--
                     Bridge modules register their section providers here.
-                    Example (from MageOS_SellersSeo/etc/di.xml):
+                    Example (from a marketplace module's di.xml):
                     <item name="vendors"
-                          xsi:type="object">MageOS\SellersSeo\Model\LlmsTxt\VendorSectionProvider</item>
+                          xsi:type="object">YourVendor\Module\Model\LlmsTxt\VendorSectionProvider</item>
                 -->
             </argument>
         </arguments>
@@ -305,7 +307,8 @@
 
     <!-- ═══════════════════════════════════════════════════════════════════
          PRODUCT OFFER ENRICHERS + AGGREGATE RATING POOL
-         Consumed by AbstractBuilder::buildBase(). Bridge modules add their own
+         Offer enrichers are consumed by Model\Product\OfferBuilder (every product and variant
+         offer), rating providers by AbstractBuilder::buildBase(). Bridge modules add their own
          OfferEnricherInterface / AggregateRatingProviderInterface via di.xml.
          ═══════════════════════════════════════════════════════════════════ -->
 

@@ -8,8 +8,8 @@ use Magento\Framework\ObjectManager\ResetAfterRequestInterface;
 
 /**
  * Request-scoped registry that holds the product schema node being assembled
- * for the current page. Allows the variant enricher (ProductVariantUrlSeo bridge)
- * to mutate the base node in-place without producing a duplicate Product schema.
+ * for the current page. Another module's structured-data provider can adjust the
+ * node in place here without producing a duplicate Product schema.
  */
 class SchemaRegistry implements ResetAfterRequestInterface
 {
@@ -40,7 +40,7 @@ class SchemaRegistry implements ResetAfterRequestInterface
     /**
      * Merge additional fields into the stored product schema node.
      *
-     * Used by the variant enricher to overlay variant-specific values.
+     * For a provider that overlays values on the node.
      *
      * @param mixed[] $fields
      * @return void

@@ -46,6 +46,8 @@ Every template builds on `AbstractBuilder::buildBase()`, which always outputs:
   - `priceValidUntil` (N months from today, configured at Stores → Configuration → SEO)
   - `url` (the product URL)
 
+A configurable product's node is then turned into a `ProductGroup` of its variants, each with its own offer — or, with more sellable children than the configured maximum, keeps one `AggregateOffer` over their price range. This happens after the template, for every template; see [structured-data.md](structured-data.md#configurable-products).
+
 Template-specific fields are layered on top of this base.
 
 ---

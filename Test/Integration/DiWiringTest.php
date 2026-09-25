@@ -15,8 +15,10 @@ use MageOS\Seo\Model\MetaTag\Compositor as MetaTagCompositor;
 use MageOS\Seo\Model\PageTitle\Compositor as PageTitleCompositor;
 use MageOS\Seo\Model\Product\Builder\AbstractBuilder;
 use MageOS\Seo\Model\Product\Builder\GenericProductBuilder;
+use MageOS\Seo\Model\Product\OfferBuilder;
 use MageOS\Seo\Model\Product\OfferEnricher\Pool as OfferEnricherPool;
 use MageOS\Seo\Model\Product\SchemaBuilderPool;
+use MageOS\Seo\Model\Product\Variant\ProductGroupBuilder;
 use MageOS\Seo\Model\Review\AggregateRatingResolver;
 use MageOS\Seo\Model\RobotsMeta\Resolver as RobotsMetaResolver;
 use MageOS\Seo\Model\StructuredData\Compositor as StructuredDataCompositor;
@@ -123,18 +125,20 @@ class DiWiringTest extends TestCase
      * Guards against optional-constructor-argument regressions: the ObjectManager passes
      * the default for optional args unless di.xml configures them per consumer, so a
      * builder whose pool argument is optional silently loses every configured enricher.
-     * This asserts the DI-built builder actually holds the di.xml-configured pools.
+     * This asserts the DI-built builder actually holds the di.xml-configured pools — the
+     * enrichers through the offer builder, which a configurable's variants share.
      */
     public function testDiBuiltProductBuilderReceivesConfiguredEnrichersAndRatingProviders(): void
     {
         $builder = Bootstrap::getObjectManager()->get(GenericProductBuilder::class);
 
-        $pool = (new \ReflectionProperty(AbstractBuilder::class, 'offerEnricherPool'))->getValue($builder);
-        $this->assertInstanceOf(OfferEnricherPool::class, $pool);
-        $enrichers = (new \ReflectionProperty(OfferEnricherPool::class, 'enrichers'))->getValue($pool);
-        $this->assertArrayHasKey('itemCondition', $enrichers);
-        $this->assertArrayHasKey('returnPolicy', $enrichers);
-        $this->assertArrayHasKey('shippingDetails', $enrichers);
+        $this->assertConfiguredEnrichers(
+            (new \ReflectionProperty(AbstractBuilder::class, 'offerBuilder'))->getValue($builder)
+        );
+        $this->assertConfiguredEnrichers(
+            (new \ReflectionProperty(ProductGroupBuilder::class, 'offerBuilder'))
+                ->getValue(Bootstrap::getObjectManager()->get(ProductGroupBuilder::class))
+        );
 
         $resolver = (new \ReflectionProperty(AbstractBuilder::class, 'aggregateRatingResolver'))
             ->getValue($builder);
@@ -142,5 +146,22 @@ class DiWiringTest extends TestCase
         $providers = (new \ReflectionProperty(AggregateRatingResolver::class, 'providers'))
             ->getValue($resolver);
         $this->assertArrayHasKey('native', $providers);
+    }
+
+    /**
+     * Assert an offer builder holds the offer enrichers di.xml configures.
+     *
+     * @param mixed $offerBuilder
+     * @return void
+     */
+    private function assertConfiguredEnrichers(mixed $offerBuilder): void
+    {
+        $this->assertInstanceOf(OfferBuilder::class, $offerBuilder);
+        $pool = (new \ReflectionProperty(OfferBuilder::class, 'offerEnricherPool'))->getValue($offerBuilder);
+        $this->assertInstanceOf(OfferEnricherPool::class, $pool);
+        $enrichers = (new \ReflectionProperty(OfferEnricherPool::class, 'enrichers'))->getValue($pool);
+        $this->assertArrayHasKey('itemCondition', $enrichers);
+        $this->assertArrayHasKey('returnPolicy', $enrichers);
+        $this->assertArrayHasKey('shippingDetails', $enrichers);
     }
 }

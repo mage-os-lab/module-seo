@@ -94,7 +94,7 @@ All paths live under `mageos_seo_general/`:
 | `mageos_seo_general/structured_data/default_product_template` | GenericProduct | Fallback template |
 | `mageos_seo_general/structured_data/category_item_list_enabled` | 1 | ItemList on category pages |
 | `mageos_seo_general/structured_data/category_item_list_max` | 36 | Max items in ItemList |
-| `mageos_seo_general/structured_data/has_variant_max` | 50 | Max hasVariant entries (global only) |
+| `mageos_seo_general/structured_data/has_variant_max` | 50 | Most sellable children a configurable product may have and still be a ProductGroup of its variants; more gets one AggregateOffer (0 = always the AggregateOffer). Global only. See [structured-data.md](structured-data.md#configurable-products) |
 | `mageos_seo_general/structured_data/price_valid_until_months` | 12 | Months ahead for priceValidUntil when no special-price end date applies (0 = omit) |
 | `mageos_seo_general/feeds/storage_dir` | *(empty)* | Where the pre-generated feeds are written; empty = `var/mageos_seo`. Restricted: inside the installation only `var/`, and anywhere else only under a root declared in `app/etc/env.php` as `mageos_seo/feed_storage_roots` — see [feeds.md](feeds.md#storing-the-feeds-outside-var-multi-server) |
 | `mageos_seo_general/llms_txt/enabled` | 1 | Serve /llms.txt |

@@ -10,7 +10,7 @@ The module outputs JSON-LD `<script type="application/ld+json">` blocks in the `
 |---|---|
 | All pages | Organization, WebSite (with SearchAction), BreadcrumbList |
 | Category page | CollectionPage, ItemList (if enabled) |
-| Product page | Product (or sub-type), via the template system |
+| Product page | Product (or sub-type), via the template system; a ProductGroup of its variants for a configurable product (see [Configurable products](#configurable-products)) |
 | CMS pages | WebPage |
 
 The Organization and WebSite nodes appear on every page because they are site-wide identity data. The BreadcrumbList node is built from the breadcrumb block already rendered on the page, so it costs nothing extra.
@@ -53,13 +53,78 @@ Bridge modules add their own providers by registering them in their own `di.xml`
 
 ## Product schema registry
 
-The product schema node is assembled in two stages, separated to allow bridge modules to enrich it without producing duplicate nodes:
+The product schema node is assembled in stages, so another module can adjust it without producing a duplicate node:
 
-1. `ProductSchemaProvider` builds the base product schema using the configured template builder and stores it in `SchemaRegistry`.
-2. After this, `ProductVariantUrlSeo`'s enricher runs and mutates the schema in the registry — adding variant price/availability, updating the canonical URL, and appending `hasVariant` entries.
-3. The compositor serialises whatever is in the registry as a single node.
+1. `ProductSchemaProvider` builds the node with the category's template builder, turns a configurable product's node into a ProductGroup of its variants (below), and stores the result in `SchemaRegistry`.
+2. Any provider that runs after it can change the node in the registry (`merge()`, `mergeNested()`).
+3. The compositor serialises whatever is in the registry as a single node, after every provider has run.
 
-This means the product JSON-LD block always contains exactly one Product node, regardless of how many providers contributed to it.
+This means the product JSON-LD block always contains exactly one product node, regardless of how many providers contributed to it.
+
+---
+
+## Configurable products
+
+A configurable product is described the way Google's [product variant guidance](https://developers.google.com/search/docs/appearance/structured-data/product-variants) asks, from the children the storefront sells: core's `ConfigurableOptionsProviderInterface`, after its filters (enabled children, and in-stock ones unless out-of-stock products are displayed).
+
+**Up to `has_variant_max` sellable children** (Stores → Configuration → MageOS → SEO → Structured Data → *Most Variants per Configurable Product*, default 50) — a `ProductGroup`:
+
+```json
+{
+  "@type": "ProductGroup",
+  "@id": "https://example.com/tee.html#product",
+  "name": "Tee",
+  "url": "https://example.com/tee.html",
+  "sku": "TEE",
+  "productGroupID": "TEE",
+  "variesBy": ["https://schema.org/size"],
+  "hasVariant": [
+    {
+      "@type": "Product",
+      "name": "Tee S",
+      "sku": "TEE-S",
+      "gtin13": "4006381333931",
+      "image": "https://example.com/media/catalog/product/t/e/tee-s.jpg",
+      "size": "S",
+      "additionalProperty": [{ "@type": "PropertyValue", "name": "Fit", "value": "Regular" }],
+      "offers": {
+        "@type": "Offer",
+        "url": "https://example.com/tee.html?size=167&fit=201",
+        "price": "10.00",
+        "priceCurrency": "USD",
+        "availability": "https://schema.org/InStock"
+      }
+    }
+  ]
+}
+```
+
+- **The group** keeps what the template built — name, description, images, brand, aggregate rating — with `ProductGroup` in `Product`'s place (beside a template's own type: `["ProductGroup", "Book"]`), `productGroupID` set to the SKU, and **no `offers`**: Google wants offers on the variants only. A property the variants differ by is taken off the group, where a template may have set it from the parent product.
+- **Each variant** is a `Product` with its name, SKU, its first gallery image (else the group's), what it varies by, and its own offer. The offer comes from the same `Model\Product\OfferBuilder` as every other product's — price, availability, `priceValidUntil`, and every registered offer enricher.
+- **GTIN.** When the category enables its template's GTIN field (`gtin13`), each variant carries its own GTIN, read in one load from the first non-empty of the `gtin13`, `gtin`, `barcode` and `ean` attributes and validated like every GTIN the module writes — one that fails its check digit is left out.
+
+**What a variant varies by** comes from the product's own configurable attributes; there is no attribute map to maintain. Google's `variesBy` accepts six properties only, so:
+
+| Configurable attribute code | Written on the variant as | In `variesBy` |
+|---|---|---|
+| `color`, `size`, `material`, `pattern` | that property: `"size": "S"` | yes |
+| `suggested_gender` (or `suggestedGender`) | `audience.suggestedGender` on a `PeopleAudience` | yes |
+| `suggested_age` (or `suggestedAge`), option labels that are numbers | `audience.suggestedAge` as a `QuantitativeValue` in years | yes |
+| `suggested_age` with labels that are not numbers ("Adult") | an `additionalProperty` — a `QuantitativeValue` can't hold them | no |
+| any other code — `gender`, `fit`, `shoe_width`, … | an `additionalProperty`: the attribute's store label and the option's | no |
+
+Codes are matched case- and underscore-insensitively. Values are the options' store-view labels.
+
+**Variant URLs** are the product's URL with `?{attribute_code}={option_id}` for each configurable attribute — Google's single-page pattern. The page keeps one canonical URL, and Luma's swatch renderer preselects the options the query names. A theme whose option widget reads something else (Luma's dropdown-only widget reads the URL hash), or a store that gives variants pages of their own, replaces the rule with a preference for `MageOS\Seo\Api\ProductVariantUrlResolverInterface`:
+
+```xml
+<preference for="MageOS\Seo\Api\ProductVariantUrlResolverInterface"
+            type="YourVendor\Module\Model\VariantUrlResolver"/>
+```
+
+**More sellable children than `has_variant_max`, or the setting at 0** — one `Product` whose offer is an `AggregateOffer` from the lowest child's price to the highest, rather than a variant list cut short that would misstate what the store sells. Children that all share one price keep a single `Offer`.
+
+Why a limit at all: Google sets none. Each variant adds an offer to the page — and a salability check on a product page that isn't cached — so the setting bounds page weight and build time for configurables with very many children.
 
 ---
 

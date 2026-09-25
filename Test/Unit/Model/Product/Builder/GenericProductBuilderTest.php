@@ -23,6 +23,8 @@ use PHPUnit\Framework\TestCase;
 
 class GenericProductBuilderTest extends TestCase
 {
+    use OfferBuilders;
+
     /**
      * @var StoreManagerInterface&MockObject
      */
@@ -113,12 +115,16 @@ class GenericProductBuilderTest extends TestCase
 
         $this->builder = new GenericProductBuilder(
             $this->storeManager,
-            $this->currencyService,
-            $this->availabilityResolver,
             $this->imageHelper,
             $this->seoConfig,
-            $this->dateTime,
-            new OfferEnricherPool(),
+            $this->offerBuilder(
+                $this->storeManager,
+                $this->currencyService,
+                $this->availabilityResolver,
+                $this->seoConfig,
+                $this->dateTime,
+                new OfferEnricherPool()
+            ),
             new AggregateRatingResolver(),
             new GtinValidator()
         );
@@ -432,14 +438,19 @@ class GenericProductBuilderTest extends TestCase
     {
         $this->availabilityResolver->method('resolve')->willReturn(AvailabilityResolver::IN_STOCK);
         $this->dateTime->method('date')->willReturn('2026-07-10');
-        $builder = new GenericProductBuilder(
+        $seoConfig = $this->makeConfigWithMonths(0);
+        $builder   = new GenericProductBuilder(
             $this->storeManager,
-            $this->currencyService,
-            $this->availabilityResolver,
             $this->imageHelper,
-            $this->makeConfigWithMonths(0),
-            $this->dateTime,
-            new OfferEnricherPool(),
+            $seoConfig,
+            $this->offerBuilder(
+                $this->storeManager,
+                $this->currencyService,
+                $this->availabilityResolver,
+                $seoConfig,
+                $this->dateTime,
+                new OfferEnricherPool()
+            ),
             new AggregateRatingResolver(),
             new GtinValidator()
         );
