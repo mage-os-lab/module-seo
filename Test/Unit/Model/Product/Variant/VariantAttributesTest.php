@@ -110,7 +110,7 @@ class VariantAttributesTest extends TestCase
     /**
      * @param string $code
      * @param string $label
-     * @param array<string, string> $options Option ID => label
+     * @param array<int|string, string> $options Option ID => label
      * @return Attribute
      */
     private function eavAttribute(string $code, string $label, array $options): Attribute

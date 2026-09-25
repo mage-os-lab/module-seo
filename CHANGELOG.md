@@ -17,7 +17,8 @@ become public contract.
 - Configurable products are described as a `ProductGroup` of their variants, per Google's
   product-variant guidance, when they have up to **Most Variants per Configurable Product**
   (`has_variant_max`, default 50) sellable children: `productGroupID`, `variesBy`, and one
-  `Product` per child with its own offer — the offers move off the group. What a variant varies by
+  `Product` per child with its own offer and the group's description — the offers move off the
+  group. What a variant varies by
   comes from the product's own configurable attributes, no map: codes naming one of Google's six
   (`color`, `size`, `material`, `pattern`, `suggested_gender`, `suggested_age`) are written as that
   property and listed in `variesBy`; any other becomes an `additionalProperty`. Each variant's

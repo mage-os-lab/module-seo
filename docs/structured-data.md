@@ -76,6 +76,7 @@ A configurable product is described the way Google's [product variant guidance](
   "name": "Tee",
   "url": "https://example.com/tee.html",
   "sku": "TEE",
+  "description": "A soft cotton tee.",
   "productGroupID": "TEE",
   "variesBy": ["https://schema.org/size"],
   "hasVariant": [
@@ -84,6 +85,7 @@ A configurable product is described the way Google's [product variant guidance](
       "name": "Tee S",
       "sku": "TEE-S",
       "gtin13": "4006381333931",
+      "description": "A soft cotton tee.",
       "image": "https://example.com/media/catalog/product/t/e/tee-s.jpg",
       "size": "S",
       "additionalProperty": [{ "@type": "PropertyValue", "name": "Fit", "value": "Regular" }],
@@ -100,7 +102,7 @@ A configurable product is described the way Google's [product variant guidance](
 ```
 
 - **The group** keeps what the template built — name, description, images, brand, aggregate rating — with `ProductGroup` in `Product`'s place (beside a template's own type: `["ProductGroup", "Book"]`), `productGroupID` set to the SKU, and **no `offers`**: Google wants offers on the variants only. A property the variants differ by is taken off the group, where a template may have set it from the parent product.
-- **Each variant** is a `Product` with its name, SKU, its first gallery image (else the group's), what it varies by, and its own offer. The offer comes from the same `Model\Product\OfferBuilder` as every other product's — price, availability, `priceValidUntil`, and every registered offer enricher.
+- **Each variant** is a `Product` with its name, SKU, the group's description (children rarely have their own, and it is the text the page shows), its first gallery image (else the group's), what it varies by, and its own offer. The offer comes from the same `Model\Product\OfferBuilder` as every other product's — price, availability, `priceValidUntil`, and every registered offer enricher.
 - **GTIN.** When the category enables its template's GTIN field (`gtin13`), each variant carries its own GTIN, read in one load from the first non-empty of the `gtin13`, `gtin`, `barcode` and `ean` attributes and validated like every GTIN the module writes — one that fails its check digit is left out.
 
 **What a variant varies by** comes from the product's own configurable attributes; there is no attribute map to maintain. Google's `variesBy` accepts six properties only, so:

@@ -22,8 +22,8 @@ use MageOS\Seo\Model\Product\OfferBuilder;
  *    the variants. What varies is taken off the group, where a template may have set it from the
  *    parent product.
  *  - one `Product` per variant: its name, SKU, GTIN (when the template's GTIN field is enabled),
- *    image (its own, else the group's), what it varies by, and its offer from the one offer
- *    builder at the URL `Api\ProductVariantUrlResolverInterface` gives it.
+ *    the group's description, image (its own, else the group's), what it varies by, and its
+ *    offer from the one offer builder at the URL `Api\ProductVariantUrlResolverInterface` gives it.
  *
  * More sellable children than `has_variant_max`, or the setting at 0, leaves the node as the
  * template built it: one Product with an AggregateOffer over the whole price range, rather than a
@@ -75,7 +75,8 @@ class ProductGroupBuilder
         $gtins      = \in_array(self::GTIN_FIELD, $enabledFields, true)
             ? $this->gtinReader->read($product, $variants)
             : [];
-        $groupImage = $this->firstImage($schema['image'] ?? null);
+        $groupImage       = $this->firstImage($schema['image'] ?? null);
+        $groupDescription = \is_string($schema['description'] ?? null) ? $schema['description'] : null;
 
         $nodes = [];
         foreach ($variants as $variant) {
@@ -84,7 +85,8 @@ class ProductGroupBuilder
                 $variant,
                 $attributes,
                 $gtins[(int) $variant->getId()] ?? '',
-                $groupImage
+                $groupImage,
+                $groupDescription
             );
         }
 
@@ -158,6 +160,7 @@ class ProductGroupBuilder
      * @param VariantAttribute[] $attributes
      * @param string $gtin The variant's raw GTIN, '' for none
      * @param string|null $groupImage
+     * @param string|null $groupDescription
      * @return mixed[]
      */
     private function variant(
@@ -165,7 +168,8 @@ class ProductGroupBuilder
         ProductInterface $variant,
         array $attributes,
         string $gtin,
-        ?string $groupImage
+        ?string $groupImage,
+        ?string $groupDescription
     ): array {
         $node = [
             '@type' => 'Product',
@@ -174,6 +178,12 @@ class ProductGroupBuilder
         ];
         if ($gtin !== '') {
             $node = array_merge($node, $this->gtinValidator->toProperties($gtin));
+        }
+
+        // The group's: children rarely have a description of their own (core's children don't
+        // even load it), and the group's is what the page shows. Merchant listings expect one.
+        if ($groupDescription !== null && $groupDescription !== '') {
+            $node['description'] = $groupDescription;
         }
 
         $image = $this->variantImage($variant) ?? $groupImage;
@@ -272,7 +282,8 @@ class ProductGroupBuilder
     private function variantImage(ProductInterface $variant): ?string
     {
         /** @var \Magento\Catalog\Model\Product $variant */
-        foreach ($variant->getMediaGalleryImages() as $image) {
+        $gallery = $variant->getMediaGalleryImages();
+        foreach ($gallery as $image) {
             $url = (string) $image->getUrl();
             if ($url !== '') {
                 return $url;

@@ -141,6 +141,25 @@ class ProductGroupBuilderTest extends TestCase
         $this->assertSame(['ProductGroup', 'Book'], $group['@type']);
     }
 
+    public function testEachVariantCarriesTheGroupsDescription(): void
+    {
+        $node = self::NODE + ['description' => 'A soft cotton tee.'];
+
+        $group = $this->builder([$this->variant(7, 'TEE-1', []), $this->variant(8, 'TEE-2', [])], [])
+            ->build($node, $this->product(), []);
+
+        $this->assertSame('A soft cotton tee.', $group['description']);
+        $this->assertSame('A soft cotton tee.', $group['hasVariant'][0]['description']);
+        $this->assertSame('A soft cotton tee.', $group['hasVariant'][1]['description']);
+    }
+
+    public function testAGroupWithoutADescriptionGivesItsVariantsNone(): void
+    {
+        $group = $this->builder([$this->variant(7, 'TEE-1', [])], [])->build(self::NODE, $this->product(), []);
+
+        $this->assertArrayNotHasKey('description', $group['hasVariant'][0]);
+    }
+
     public function testAVariantWithImagesOfItsOwnUsesTheFirst(): void
     {
         $variant = $this->variant(7, 'TEE-RED', [], ['https://example.com/red.jpg', 'https://example.com/red-2.jpg']);
@@ -243,7 +262,7 @@ class ProductGroupBuilderTest extends TestCase
      * @param string $code
      * @param string $label
      * @param string|null $property
-     * @param array<string, string> $options
+     * @param array<int|string, string> $options
      * @return VariantAttribute
      */
     private function attribute(string $code, string $label, ?string $property, array $options): VariantAttribute
