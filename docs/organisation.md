@@ -19,13 +19,53 @@ The form supports standard Magento store-scope switching: select a website or st
 | Name | Organisation display name | Used in JSON-LD `name`, WebSite `name`, and `/llms.txt` header. Falls back to store name in `/llms.txt` if blank. |
 | URL | Canonical site URL | Used as the `@id` anchor for all linked schema nodes (e.g. `https://example.com/#organization`). Include `https://`, no trailing slash. |
 | Description | Short tagline | Shown in JSON-LD `description` and at the top of `/llms.txt`. |
-| Organisation type | Schema.org `@type` | Options: Organization, Corporation, LocalBusiness, NGO, etc. Most stores should use `Organization`. |
+| Organisation type | Schema.org `@type` | `Organization`, `Corporation`, `LocalBusiness`, `NGO`, `EducationalOrganization`, `GovernmentOrganization`. Most stores should use `Organization`; a business customers visit in person should use `LocalBusiness`. |
 | Logo | Image for the Organization `logo` node | Can use the current theme logo (from Design config) or a custom upload. |
 | Logo width / height | Pixel dimensions of the logo | Both required for a valid Organization schema. |
 | Social profiles | Social profile URLs | Added as the `sameAs` array. One URL per row. |
 | Contact type | `contactType` for the ContactPoint node | e.g. `customer support`, `sales` |
 | Contact email | `email` for the ContactPoint node | |
 | Available language | `availableLanguage` for the ContactPoint node | e.g. `English` |
+| Local presence | Address, telephone, email, latitude/longitude, price range | See [Local presence](#local-presence). |
+
+---
+
+## Local presence
+
+The **Local Presence** fields go on the `Organization` node only where schema.org allows them on
+its type:
+
+| Field | Organization, Corporation, NGO, … | LocalBusiness |
+|---|---|---|
+| Address (`address`, a PostalAddress) | ✓ | ✓ |
+| Telephone, email | ✓ | ✓ |
+| Latitude / longitude (`geo`) | — | ✓ |
+| Price range (`priceRange`) | — | ✓ |
+
+schema.org gives a plain Organization no `geo` (a Place property) and no `priceRange` (a
+LocalBusiness property), and Google's guidance sends physical businesses to LocalBusiness. So
+coordinates and a price range filled in for a non-local type are kept in the record but not
+published.
+
+**A LocalBusiness subtype set in code.** The admin offers `LocalBusiness`. A module that stores a
+more specific subtype (`Store`, `Restaurant`, …) through `OrganisationInterface::setOrgType()`
+adds it to the list of local business types from its own `di.xml`, so `geo` and `priceRange` apply
+to it too:
+
+```xml
+<type name="MageOS\Seo\Model\StructuredData\Provider\OrganisationProvider">
+    <arguments>
+        <argument name="localBusinessTypes" xsi:type="array">
+            <item name="Store" xsi:type="string">Store</item>
+        </argument>
+    </arguments>
+</type>
+```
+
+**Renamed types.** Earlier versions offered `EducationalOrg` and `GovernmentOrg`, which are not
+schema.org types. The data patch `RenameOrganisationTypes` renames stored records to
+`EducationalOrganization` and `GovernmentOrganization` on `setup:upgrade`, and reverting it
+renames them back.
 
 ---
 

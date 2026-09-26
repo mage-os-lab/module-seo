@@ -144,6 +144,20 @@
     </type>
 
     <!--
+        The Organisation types that are LocalBusiness types, and so take geo and priceRange
+        (schema.org gives a plain Organization neither). The admin offers LocalBusiness; a module
+        that stores a subtype adds it from its own di.xml:
+            <item name="Store" xsi:type="string">Store</item>
+    -->
+    <type name="MageOS\Seo\Model\StructuredData\Provider\OrganisationProvider">
+        <arguments>
+            <argument name="localBusinessTypes" xsi:type="array">
+                <item name="LocalBusiness" xsi:type="string">LocalBusiness</item>
+            </argument>
+        </arguments>
+    </type>
+
+    <!--
         Pages that manage their own breadcrumb schema can be excluded by layout
         handle. Bridge modules append handles via their own di.xml:
 

@@ -264,7 +264,7 @@
                 <label translate="true">Street Address</label>
                 <dataType>text</dataType>
                 <notice translate="true"
-                >Set Organisation Type to a LocalBusiness subtype (e.g. Store) for address/geo to apply.</notice>
+                >Address, telephone and email apply to every organisation type; latitude, longitude and price range only to a local business (Organisation Type: Local Business).</notice>
             </settings>
         </field>
         <field name="address_locality" sortOrder="20" formElement="input">
@@ -321,7 +321,7 @@
             <settings>
                 <label translate="true">Price Range</label>
                 <dataType>text</dataType>
-                <notice translate="true">e.g. ££ or $$.</notice>
+                <notice translate="true">e.g. ££ or $$. Local business only.</notice>
             </settings>
         </field>
     </fieldset>

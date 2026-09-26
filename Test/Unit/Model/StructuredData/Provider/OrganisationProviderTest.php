@@ -43,11 +43,48 @@ class OrganisationProviderTest extends TestCase
         $this->storeManager->method('getStore')->willReturn($store);
         $this->storeManager->method('getWebsite')->willReturn($website);
 
-        $this->provider = new OrganisationProvider(
+        $this->provider = $this->providerWith(['LocalBusiness' => 'LocalBusiness']);
+    }
+
+    /**
+     * A provider with the given local business types; setUp() uses di.xml's default.
+     *
+     * @param array<string, string> $localBusinessTypes
+     * @return OrganisationProvider
+     */
+    private function providerWith(array $localBusinessTypes): OrganisationProvider
+    {
+        return new OrganisationProvider(
             $this->repository,
             $this->storeManager,
-            new OrganisationId($this->repository, $this->storeManager)
+            new OrganisationId($this->repository, $this->storeManager),
+            $localBusinessTypes
         );
+    }
+
+    /**
+     * An organisation of the given type with every local presence field filled in.
+     *
+     * @param string $orgType
+     * @return OrganisationInterface&MockObject
+     */
+    private function withLocalPresence(string $orgType): OrganisationInterface&MockObject
+    {
+        $org = $this->acmeOrg(['org_type' => $orgType]);
+        $org->method('getAddress')->willReturn([
+            'street_address'   => '14 The Square',
+            'address_locality' => 'Shrewsbury',
+            'address_region'   => 'Shropshire',
+            'postal_code'      => 'SY1 1AA',
+            'address_country'  => 'GB',
+        ]);
+        $org->method('getLatitude')->willReturn('52.7081');
+        $org->method('getLongitude')->willReturn('-2.7549');
+        $org->method('getTelephone')->willReturn('+44 1743 000000');
+        $org->method('getEmail')->willReturn('hello@acme.com');
+        $org->method('getPriceRange')->willReturn('££');
+
+        return $org;
     }
 
     /**
@@ -271,24 +308,49 @@ class OrganisationProviderTest extends TestCase
         $this->assertSame(['https://facebook.com/acme'], $schemas[1 - 1]['sameAs'] ?? $schemas[0]['sameAs']);
     }
 
-    public function testLocalPresenceFieldsEmittedWhenPopulated(): void
+    public function testAnOrganizationGetsAddressTelephoneAndEmailButNotGeoOrPriceRange(): void
     {
-        $org = $this->acmeOrg(['org_type' => 'Store']);
-        $org->method('getAddress')->willReturn([
-            'street_address'   => '14 The Square',
-            'address_locality' => 'Shrewsbury',
-            'address_region'   => 'Shropshire',
-            'postal_code'      => 'SY1 1AA',
-            'address_country'  => 'GB',
-        ]);
-        $org->method('getLatitude')->willReturn('52.7081');
-        $org->method('getLongitude')->willReturn('-2.7549');
-        $org->method('getTelephone')->willReturn('+44 1743 000000');
-        $org->method('getEmail')->willReturn('hello@acme.com');
-        $org->method('getPriceRange')->willReturn('££');
-        $this->repository->method('getForScope')->willReturn($org);
+        // schema.org gives Organization address, telephone and email; geo comes from Place and
+        // priceRange from LocalBusiness.
+        $this->repository->method('getForScope')->willReturn($this->withLocalPresence('Organization'));
 
         $node = $this->provider->getSchemas()[0];
+
+        $this->assertSame('14 The Square', $node['address']['streetAddress']);
+        $this->assertSame('+44 1743 000000', $node['telephone']);
+        $this->assertSame('hello@acme.com', $node['email']);
+        $this->assertArrayNotHasKey('geo', $node);
+        $this->assertArrayNotHasKey('priceRange', $node);
+    }
+
+    public function testALocalBusinessGetsGeoAndPriceRange(): void
+    {
+        $this->repository->method('getForScope')->willReturn($this->withLocalPresence('LocalBusiness'));
+
+        $node = $this->provider->getSchemas()[0];
+
+        $this->assertSame('GeoCoordinates', $node['geo']['@type']);
+        $this->assertSame('££', $node['priceRange']);
+        $this->assertSame('14 The Square', $node['address']['streetAddress']);
+    }
+
+    public function testASubtypeNotInTheListGetsNeither(): void
+    {
+        $this->repository->method('getForScope')->willReturn($this->withLocalPresence('Store'));
+
+        $node = $this->provider->getSchemas()[0];
+
+        $this->assertArrayNotHasKey('geo', $node);
+        $this->assertArrayNotHasKey('priceRange', $node);
+        $this->assertSame('14 The Square', $node['address']['streetAddress']);
+    }
+
+    public function testASubtypeInTheListGetsGeoAndPriceRange(): void
+    {
+        // The escape hatch: code that stores a LocalBusiness subtype adds it to the list in di.xml.
+        $this->repository->method('getForScope')->willReturn($this->withLocalPresence('Store'));
+
+        $node = $this->providerWith(['LocalBusiness' => 'LocalBusiness', 'Store' => 'Store'])->getSchemas()[0];
 
         $this->assertSame('Store', $node['@type']);
         $this->assertSame('PostalAddress', $node['address']['@type']);

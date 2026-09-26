@@ -43,4 +43,20 @@ class Organisation extends AbstractConnectedResource
             $model->isObjectNew(false);
         }
     }
+
+    /**
+     * Rename an organisation type in every stored row.
+     *
+     * @param string $from
+     * @param string $to
+     * @return int The number of rows changed
+     */
+    public function renameOrgType(string $from, string $to): int
+    {
+        return $this->connection()->update(
+            $this->getMainTable(),
+            ['org_type' => $to],
+            ['org_type = ?' => $from]
+        );
+    }
 }

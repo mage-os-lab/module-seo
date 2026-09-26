@@ -102,6 +102,16 @@ become public contract.
 
 ### Fixed
 
+- The Organization node carries `geo` and `priceRange` only on a local business type. schema.org
+  gives a plain Organization neither (they come from Place and LocalBusiness); `address`,
+  `telephone` and `email` stay on every type. Local business types are `LocalBusiness` by default,
+  and a module that stores a subtype adds it to `localBusinessTypes` on
+  `Model\StructuredData\Provider\OrganisationProvider` in its di.xml. The admin notice that
+  promised this now says it.
+- The organisation types **Educational Organization** and **Government Organization** were emitted
+  as `EducationalOrg` and `GovernmentOrg`, which are not schema.org types. They are now
+  `EducationalOrganization` and `GovernmentOrganization`, and the data patch
+  `RenameOrganisationTypes` renames stored records (revertible).
 - Speakable is carried by the page's own node — the CMS page's WebPage, the category's
   CollectionPage, the blog post's BlogPosting, and on product pages a WebPage for the product whose
   `mainEntity` is the product node — instead of an anonymous WebPage node, with no `@id` or `url`,

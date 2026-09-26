@@ -15,11 +15,16 @@ class OrganisationProvider implements StructuredDataProviderInterface
      * @param OrganisationRepositoryInterface $organisationRepository
      * @param StoreManagerInterface $storeManager
      * @param OrganisationId $organisationId
+     * @param array<string,string> $localBusinessTypes The @type values that are LocalBusiness types
+     *                                                 and so take geo and priceRange; di.xml sets
+     *                                                 LocalBusiness, and a module that stores a
+     *                                                 subtype (Store, Restaurant…) adds it there
      */
     public function __construct(
         private readonly OrganisationRepositoryInterface $organisationRepository,
         private readonly StoreManagerInterface           $storeManager,
-        private readonly OrganisationId                  $organisationId
+        private readonly OrganisationId                  $organisationId,
+        private readonly array                           $localBusinessTypes = []
     ) {
     }
 
@@ -87,7 +92,8 @@ class OrganisationProvider implements StructuredDataProviderInterface
             );
         }
 
-        // LocalBusiness presence fields (emitted when populated; @type comes from org_type).
+        // Address, telephone and email on every type; geo and price range on a LocalBusiness type
+        // only (@type comes from org_type).
         $orgSchema = $this->addLocalPresence($orgSchema, $org);
 
         // WebSite with SearchAction
@@ -112,7 +118,12 @@ class OrganisationProvider implements StructuredDataProviderInterface
     }
 
     /**
-     * Append LocalBusiness presence fields (address, geo, contact, price range) when populated.
+     * Append the local presence fields that are populated and valid on the node's type.
+     *
+     * Address, telephone and email are Organization properties, valid on every type. Geo and price
+     * range are not: schema.org gives geo to Place and priceRange to LocalBusiness (which is both
+     * an Organization and a Place), and Google points physical businesses to LocalBusiness
+     * subtypes. So those two go on a type in $localBusinessTypes only.
      *
      * @param array<string,mixed> $orgSchema
      * @param \MageOS\Seo\Api\Data\OrganisationInterface $org
@@ -138,9 +149,11 @@ class OrganisationProvider implements StructuredDataProviderInterface
             $orgSchema['address'] = $postal;
         }
 
+        $isLocalBusiness = \in_array($org->getOrgType(), $this->localBusinessTypes, true);
+
         $latitude  = $org->getLatitude();
         $longitude = $org->getLongitude();
-        if ($latitude !== '' && $longitude !== '') {
+        if ($isLocalBusiness && $latitude !== '' && $longitude !== '') {
             $orgSchema['geo'] = [
                 '@type'     => 'GeoCoordinates',
                 'latitude'  => $latitude,
@@ -154,7 +167,7 @@ class OrganisationProvider implements StructuredDataProviderInterface
         if ($org->getEmail() !== '') {
             $orgSchema['email'] = $org->getEmail();
         }
-        if ($org->getPriceRange() !== '') {
+        if ($isLocalBusiness && $org->getPriceRange() !== '') {
             $orgSchema['priceRange'] = $org->getPriceRange();
         }
 

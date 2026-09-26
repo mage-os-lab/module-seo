@@ -37,7 +37,7 @@ Every cross-cutting concern is built as an **extensible provider pool** — a se
 ### Answer-engine (AEO)
 
 - **FAQ subsystem** — managed FAQ records with a theme-agnostic `<details>` renderer, a Magento **Widget**, a native **Page Builder** content type, and a request-scoped collector that keeps FAQPage JSON-LD in parity with visible content. FAQ blocks carry cache identities, so FPC pages are purged automatically when a FAQ changes.
-- **LocalBusiness** — address/geo/contact/price-range fields on the Organisation record.
+- **LocalBusiness** — address, telephone and email on every organisation type; geo coordinates and price range for local businesses.
 - **Article / Event / Speakable** — bridge pools (empty by default) fed by blog/event modules, plus a configurable Speakable selector set.
 
 ### Generative / agentic (GEO)
