@@ -4,22 +4,23 @@ declare(strict_types=1);
 
 namespace MageOS\Seo\Model\StructuredData\Provider;
 
-use Magento\Framework\View\Layout;
-use Magento\Store\Model\StoreManagerInterface;
 use MageOS\Seo\Api\StructuredDataProviderInterface;
 use MageOS\Seo\Model\Cms\CmsPageResolver;
 
+/**
+ * The WebPage node for a CMS page, the home page included.
+ *
+ * Its `url` and `@id` are CmsPageResolver::currentUrl(): the store base URL on the home page (so
+ * `{base}/#webpage`, beside the WebSite's `{base}/#website`), the base URL plus the identifier on
+ * every other CMS page.
+ */
 class CmsPageSchemaProvider implements StructuredDataProviderInterface
 {
     /**
      * @param CmsPageResolver $cmsPageResolver
-     * @param StoreManagerInterface $storeManager
-     * @param Layout $layout
      */
     public function __construct(
-        private readonly CmsPageResolver $cmsPageResolver,
-        private readonly StoreManagerInterface   $storeManager,
-        private readonly Layout                  $layout,
+        private readonly CmsPageResolver $cmsPageResolver
     ) {
     }
 
@@ -42,13 +43,11 @@ class CmsPageSchemaProvider implements StructuredDataProviderInterface
                 return [];
             }
 
-            $baseUrl = rtrim((string) $this->storeManager->getStore()->getBaseUrl(), '/');
-            $url     = $baseUrl . '/' . ltrim((string) $page->getIdentifier(), '/');
-            $type    = $this->isHomepage() ? 'AboutPage' : 'WebPage';
+            $url = $this->cmsPageResolver->currentUrl();
 
             $schema = [
                 '@context' => 'https://schema.org',
-                '@type'    => $type,
+                '@type'    => 'WebPage',
                 '@id'      => $url . '#webpage',
                 'name'     => (string) $page->getTitle(),
                 'url'      => $url,
@@ -68,15 +67,5 @@ class CmsPageSchemaProvider implements StructuredDataProviderInterface
         } catch (\Exception) {
             return [];
         }
-    }
-
-    /**
-     * Check if the current page is the homepage.
-     *
-     * @return bool
-     */
-    private function isHomepage(): bool
-    {
-        return \in_array('cms_index_index', $this->layout->getUpdate()->getHandles(), true);
     }
 }

@@ -102,6 +102,18 @@ become public contract.
 
 ### Fixed
 
+- The home page is described at the store base URL. Its `og:url`, WebPage `url` and `@id` were
+  `/{identifier}` (`/home`) while its canonical was `/`, and the schema could type it `AboutPage`;
+  it is now a `WebPage` at `{base}/`, `@id` `{base}/#webpage`, throughout. The canonical, `og:url`,
+  the WebPage node and hreflang take the URL from one place, `CmsPageResolver::currentUrl()`.
+- The home page is recognised as core's router recognises it: the request's path is empty. The
+  `cms_index_index` handle used for it before also matches `/cms` and `/cms/index/index`, which
+  claimed the canonical `/` — pointing at a different page when **Default Web URL** serves
+  something other than the CMS home page there.
+- A home page set by page ID (a numeric `web/default/cms_home_page`, e.g. through `config:set`) got
+  no CMS markup on `/`, and the sitemap's NOINDEX check could not read its robots directive. The
+  home page is now loaded as core loads it (`Model\Cms\HomePageLoader`): by identifier, or by page ID
+  when the value is numeric.
 - Configurable products get their `AggregateOffer` on the product page. The range was read from
   core's `FinalPrice::getMinimalPrice()`/`getMaximalPrice()`, which read `minimal_price` data only a
   collection load sets — 0 on a product page — so every configurable showed one `Offer` at its

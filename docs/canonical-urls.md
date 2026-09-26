@@ -28,7 +28,8 @@ This service is the single authoritative place for canonical manipulation across
 | Home page | `Block\Canonical` (fallback) | Store base URL |
 | CMS page | `Block\Canonical` (fallback) | Store base URL + page identifier |
 
-The fallback block only renders on the home page and `cms_page_view`, and only when no other
+The fallback block only renders on CMS pages — those carrying the `cms_page_view` handle, which
+core adds to the home page and every CMS page — and only when no other
 canonical asset is already present (detected by asset content type). It deliberately stays off
 search, cart, checkout and account pages — canonicalising those URLs would legitimise duplicate
 URLs instead of consolidating them — and never derives URLs from the request Host header.
@@ -73,10 +74,24 @@ With the manager, the first one is removed before the second is added, so only o
 
 ## CMS pages
 
-Magento core does not emit canonicals for CMS pages, so `Block\Canonical` covers them: it
-resolves the current page via `CmsPageResolver` and builds the canonical from the store base URL
-plus the page identifier (the home page canonicalises to the bare base URL). This does not
+Magento core does not emit canonicals for CMS pages, so `Block\Canonical` covers them with
+`CmsPageResolver::currentUrl()` — the same URL the page's `og:url` and WebPage node carry: the
+store base URL plus the page identifier, and the bare base URL on the home page. This does not
 interact with `CanonicalUrlManager`.
+
+**The home page** is recognised as core's router recognises it: the request's path is empty
+(`Framework\App\Router\Base::parseRequest()` routes an empty path to `web/default/front`, after
+the store code has been trimmed from it). Whichever CMS page **Stores → Configuration → General →
+Web → Default Pages → CMS Home Page** (`web/default/cms_home_page`) names is loaded as core loads
+it — by identifier, or by page ID when the value is numeric — and canonicalises to the base URL.
+What the module does not treat as the home page:
+
+- `/cms/index/index` (or `/cms`): the same action and content at another URL — it gets no
+  canonical from this block.
+- `/home`, or any page's own identifier: routing that path is core's business, and the module
+  follows whatever core serves there.
+- `/` when **Default Web URL** (`web/default/front`) points somewhere other than `cms`: `/` then
+  serves no CMS page, and this block stays off it.
 
 ---
 

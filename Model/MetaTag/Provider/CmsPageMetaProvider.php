@@ -46,8 +46,9 @@ class CmsPageMetaProvider implements MetaTagProviderInterface
                 return [];
             }
 
+            // The base URL still prefixes a relative og:image; og:url is the page's own URL.
             $baseUrl = rtrim((string) $this->storeManager->getStore()->getBaseUrl(), '/');
-            $url     = $baseUrl . '/' . ltrim((string) $page->getIdentifier(), '/');
+            $url     = $this->cmsPageResolver->currentUrl();
 
             $tags = [
                 ['property' => 'og:type',  'content' => 'website'],

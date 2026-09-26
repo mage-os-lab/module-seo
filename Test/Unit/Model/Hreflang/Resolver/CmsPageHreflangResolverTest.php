@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace MageOS\Seo\Test\Unit\Model\Hreflang\Resolver;
 
 use Magento\Cms\Api\Data\PageInterface;
-use Magento\Framework\App\Request\Http;
 use Magento\Store\Api\Data\StoreInterface;
 use Magento\Store\Model\StoreManagerInterface;
 use MageOS\Seo\Model\Cms\CmsPageResolver;
@@ -23,11 +22,6 @@ class CmsPageHreflangResolverTest extends TestCase
      * @var CmsPageResolver&MockObject
      */
     private CmsPageResolver&MockObject $cmsPageResolver;
-
-    /**
-     * @var Http&MockObject
-     */
-    private Http&MockObject $request;
 
     /**
      * @var LinkBuilder&MockObject
@@ -52,7 +46,6 @@ class CmsPageHreflangResolverTest extends TestCase
     protected function setUp(): void
     {
         $this->cmsPageResolver     = $this->createMock(CmsPageResolver::class);
-        $this->request             = $this->createMock(Http::class);
         $this->linkBuilder         = $this->createMock(LinkBuilder::class);
         $this->cmsConfigRepository = $this->createMock(ConfigRepository::class);
         $this->urlRewriteFetcher   = $this->createMock(UrlRewriteFetcher::class);
@@ -64,7 +57,6 @@ class CmsPageHreflangResolverTest extends TestCase
 
         $this->resolver = new CmsPageHreflangResolver(
             $this->cmsPageResolver,
-            $this->request,
             $this->linkBuilder,
             $this->cmsConfigRepository,
             $this->urlRewriteFetcher,
@@ -80,7 +72,7 @@ class CmsPageHreflangResolverTest extends TestCase
 
     public function testHomePageUsesTheHomeLinks(): void
     {
-        $this->request->method('getPathInfo')->willReturn('/');
+        $this->cmsPageResolver->method('isHomePage')->willReturn(true);
         $links = [
             ['hreflang' => 'en-GB', 'url' => 'https://uk/', 'store_id' => 1],
             ['hreflang' => 'de-DE', 'url' => 'https://de/', 'store_id' => 2],
@@ -140,7 +132,7 @@ class CmsPageHreflangResolverTest extends TestCase
 
     public function testReturnsEmptyWhenCmsPageNotResolved(): void
     {
-        $this->request->method('getPathInfo')->willReturn('/missing');
+        $this->cmsPageResolver->method('isHomePage')->willReturn(false);
         $this->cmsPageResolver->method('resolve')->willReturn(null);
         $this->assertSame([], $this->resolver->getLinks());
     }
@@ -153,7 +145,7 @@ class CmsPageHreflangResolverTest extends TestCase
      */
     private function givenPage(int $pageId): void
     {
-        $this->request->method('getPathInfo')->willReturn('/about-us');
+        $this->cmsPageResolver->method('isHomePage')->willReturn(false);
         $page = $this->createStub(PageInterface::class);
         $page->method('getId')->willReturn($pageId);
         $this->cmsPageResolver->method('resolve')->willReturn($page);

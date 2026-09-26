@@ -11,7 +11,7 @@ The module outputs JSON-LD `<script type="application/ld+json">` blocks in the `
 | All pages | Organization, WebSite (with SearchAction), BreadcrumbList |
 | Category page | CollectionPage, ItemList (if enabled) |
 | Product page | Product (or sub-type), via the template system; a ProductGroup of its variants for a configurable product (see [Configurable products](#configurable-products)) |
-| CMS pages | WebPage |
+| CMS pages, the home page included | WebPage, `@id` `{url}#webpage` — the home page's URL is the store base URL (see [canonical-urls.md](canonical-urls.md#cms-pages)) |
 
 The Organization and WebSite nodes appear on every page because they are site-wide identity data. The BreadcrumbList node is built from the breadcrumb block already rendered on the page, so it costs nothing extra.
 
@@ -45,7 +45,7 @@ Built-in providers, in order:
 | `BreadcrumbListProvider` | `*` | BreadcrumbList (reads layout breadcrumbs block) |
 | `CategorySchemaProvider` | `catalog_category_view` | CollectionPage + optional ItemList |
 | `ProductSchemaProvider` | `catalog_product_view` | Dispatches to template builder pool |
-| `CmsPageSchemaProvider` | CMS handles | WebPage node |
+| `CmsPageSchemaProvider` | `cms_page_view` (every CMS page and the home page) | WebPage node at `CmsPageResolver::currentUrl()` |
 
 Bridge modules add their own providers by registering them in their own `di.xml` — the Seo module is never modified.
 

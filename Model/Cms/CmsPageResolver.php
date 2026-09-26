@@ -7,7 +7,6 @@ namespace MageOS\Seo\Model\Cms;
 use Magento\Cms\Api\Data\PageInterface;
 use Magento\Cms\Api\GetPageByIdentifierInterface;
 use Magento\Cms\Api\PageRepositoryInterface;
-use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\App\RequestInterface;
 use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Framework\ObjectManager\ResetAfterRequestInterface;
@@ -26,15 +25,54 @@ class CmsPageResolver implements ResetAfterRequestInterface
      * @param RequestInterface $request
      * @param GetPageByIdentifierInterface $getPageByIdentifier
      * @param StoreManagerInterface $storeManager
-     * @param ScopeConfigInterface $scopeConfig
+     * @param HomePageLoader $homePageLoader
      */
     public function __construct(
         private readonly PageRepositoryInterface      $pageRepository,
         private readonly RequestInterface             $request,
         private readonly GetPageByIdentifierInterface $getPageByIdentifier,
         private readonly StoreManagerInterface        $storeManager,
-        private readonly ScopeConfigInterface         $scopeConfig,
+        private readonly HomePageLoader               $homePageLoader,
     ) {
+    }
+
+    /**
+     * Whether the current request is for the store view's home page: its path is empty.
+     *
+     * The test core's router itself makes (`Framework\App\Router\Base::parseRequest()` routes an
+     * empty path to `web/default/front`), after `Store\App\Request\PathInfoProcessor` has trimmed
+     * the store code. Not the `cms_index_index` handle: `/cms/index/index` runs that action at
+     * another URL, and with `web/default/front` changed `/` doesn't run it at all. Not the page's
+     * identifier either: `/home` is core's to route.
+     *
+     * @return bool
+     */
+    public function isHomePage(): bool
+    {
+        /** @var \Magento\Framework\App\Request\Http $request */
+        $request = $this->request;
+
+        return trim((string) $request->getPathInfo(), '/') === '';
+    }
+
+    /**
+     * The current CMS page's URL, or an empty string when the request is not for one.
+     *
+     * The store base URL on the home page, whichever page the store view names as home; the base
+     * URL plus the page's identifier on every other CMS page.
+     *
+     * @return string
+     */
+    public function currentUrl(): string
+    {
+        $page = $this->resolve();
+        if ($page === null) {
+            return '';
+        }
+
+        $baseUrl = rtrim((string) $this->storeManager->getStore()->getBaseUrl(), '/') . '/';
+
+        return $this->isHomePage() ? $baseUrl : $baseUrl . ltrim((string) $page->getIdentifier(), '/');
     }
 
     /**
@@ -64,24 +102,15 @@ class CmsPageResolver implements ResetAfterRequestInterface
     /**
      * The store view's home page, or null when its configured page does not resolve there.
      *
-     * The page the store's base URL serves, found as the storefront finds it — for the sitemap,
-     * which lists that URL without a request to resolve.
+     * The page the store's base URL serves, loaded as core's home page action loads it — for the
+     * sitemap, which lists that URL without a request to resolve.
      *
      * @param int $storeId
      * @return \Magento\Cms\Api\Data\PageInterface|null
      */
     public function resolveHome(int $storeId): ?PageInterface
     {
-        $identifier = $this->homeIdentifier($storeId);
-        if ($identifier === '') {
-            return null;
-        }
-
-        try {
-            return $this->getPageByIdentifier->execute($identifier, $storeId);
-        } catch (NoSuchEntityException) {
-            return null;
-        }
+        return $this->homePageLoader->load($storeId);
     }
 
     /**
@@ -108,52 +137,24 @@ class CmsPageResolver implements ResetAfterRequestInterface
             return $this->pageRepository->getById($pageId);
         }
 
-        $identifier = $this->resolveIdentifier();
-        if ($identifier === '') {
-            return null;
+        $storeId = (int) $this->storeManager->getStore()->getId();
+        if ($this->isHomePage()) {
+            return $this->homePageLoader->load($storeId);
         }
 
-        return $this->getPageByIdentifier->execute(
-            $identifier,
-            (int) $this->storeManager->getStore()->getId()
-        );
+        return $this->getPageByIdentifier->execute($this->resolveIdentifier(), $storeId);
     }
 
     /**
-     * Resolve the CMS page identifier from the request.
-     *
-     * The request path, or the configured home identifier when the path is empty
-     * (its pipe-delimited layout suffix stripped).
+     * Resolve the CMS page identifier from the request: its path.
      *
      * @return string
      */
     private function resolveIdentifier(): string
     {
         /** @var \Magento\Framework\App\Request\Http $request */
-        $request    = $this->request;
-        $identifier = trim($request->getPathInfo(), '/');
-        if ($identifier !== '') {
-            return $identifier;
-        }
+        $request = $this->request;
 
-        return $this->homeIdentifier();
-    }
-
-    /**
-     * The configured home page identifier, its pipe-delimited layout suffix stripped.
-     *
-     * @param int|null $storeId The current store view when null
-     * @return string
-     */
-    private function homeIdentifier(?int $storeId = null): string
-    {
-        $homeIdentifier = (string) $this->scopeConfig->getValue(
-            \Magento\Cms\Helper\Page::XML_PATH_HOME_PAGE,
-            \Magento\Store\Model\ScopeInterface::SCOPE_STORE,
-            $storeId
-        );
-
-        // Config value can include a pipe-delimited layout suffix, e.g. "home|2columns-left".
-        return explode('|', $homeIdentifier)[0];
+        return trim((string) $request->getPathInfo(), '/');
     }
 }

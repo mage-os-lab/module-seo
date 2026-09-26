@@ -13,13 +13,16 @@
     // Faq/Repository and Review/NativeAggregateRatingProvider joined that list
     // when their queries moved onto collections: their tests now double a
     // generated CollectionFactory, so they carry the magento-generated group
-    // excluded below and cannot run here.
+    // excluded below and cannot run here. Cms/HomePageLoader is the same case:
+    // it loads the home page with core's own call, through the generated
+    // PageFactory — kept to that one call so CmsPageResolver stays in this run.
     "source": {
         "directories": ["Model", "Observer", "Service"],
         "excludes": [
             "ResourceModel",
             "Catalog/CurrentEntity.php",
             "Category",
+            "Cms/HomePageLoader.php",
             "Config/Source/LogoSource.php",
             "Config/Source/OrgType.php",
             "Faq/Repository.php",

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace MageOS\Seo\Model\Hreflang\Resolver;
 
-use Magento\Framework\App\RequestInterface;
 use Magento\Store\Model\StoreManagerInterface;
 use MageOS\Seo\Api\HreflangResolverInterface;
 use MageOS\Seo\Model\Cms\CmsPageResolver;
@@ -17,8 +16,9 @@ use MageOS\Seo\Model\Hreflang\UrlRewriteFetcher;
  * Hreflang alternates for CMS pages, including the home page.
  *
  * The home page has no usable URL rewrite (it is served at the store root), so each store's base URL
- * is used directly. Other CMS pages resolve through their cms-page URL rewrites: those of every page
- * in the page's translation group when it has one, else the page's own in the other store views.
+ * is used directly; it is recognised as CmsPageResolver::isHomePage() says, by an empty path. Other
+ * CMS pages resolve through their cms-page URL rewrites: those of every page in the page's
+ * translation group when it has one, else the page's own in the other store views.
  *
  * A page in a group declares the group only when it is the group's page for the current store view.
  * Two translations assigned to one store view is a mistake the group settles by page ID; the page
@@ -28,7 +28,6 @@ class CmsPageHreflangResolver implements HreflangResolverInterface
 {
     /**
      * @param CmsPageResolver $cmsPageResolver
-     * @param RequestInterface $request
      * @param LinkBuilder $linkBuilder
      * @param ConfigRepository $cmsConfigRepository
      * @param UrlRewriteFetcher $urlRewriteFetcher
@@ -37,7 +36,6 @@ class CmsPageHreflangResolver implements HreflangResolverInterface
      */
     public function __construct(
         private readonly CmsPageResolver       $cmsPageResolver,
-        private readonly RequestInterface      $request,
         private readonly LinkBuilder           $linkBuilder,
         private readonly ConfigRepository      $cmsConfigRepository,
         private readonly UrlRewriteFetcher     $urlRewriteFetcher,
@@ -59,7 +57,7 @@ class CmsPageHreflangResolver implements HreflangResolverInterface
      */
     public function getLinks(): array
     {
-        if ($this->isHomePage()) {
+        if ($this->cmsPageResolver->isHomePage()) {
             return $this->linkBuilder->buildHome();
         }
 
@@ -99,17 +97,5 @@ class CmsPageHreflangResolver implements HreflangResolverInterface
         }
 
         return '';
-    }
-
-    /**
-     * Whether the current request is the store home page.
-     *
-     * @return bool
-     */
-    private function isHomePage(): bool
-    {
-        /** @var \Magento\Framework\App\Request\Http $request */
-        $request = $this->request;
-        return trim($request->getPathInfo(), '/') === '';
     }
 }
