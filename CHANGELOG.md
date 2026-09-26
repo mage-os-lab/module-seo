@@ -102,6 +102,11 @@ become public contract.
 
 ### Fixed
 
+- Speakable is carried by the page's own node — the CMS page's WebPage, the category's
+  CollectionPage, the blog post's BlogPosting, and on product pages a WebPage for the product whose
+  `mainEntity` is the product node — instead of an anonymous WebPage node, with no `@id` or `url`,
+  on every page (so CMS pages had two WebPage nodes). Pages with no page node of their own no
+  longer carry it. Built once, by `Model\StructuredData\SpeakableSpecification`.
 - The home page is described at the store base URL. Its `og:url`, WebPage `url` and `@id` were
   `/{identifier}` (`/home`) while its canonical was `/`, and the schema could type it `AboutPage`;
   it is now a `WebPage` at `{base}/`, `@id` `{base}/#webpage`, throughout. The canonical, `og:url`,

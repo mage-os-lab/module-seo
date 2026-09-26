@@ -235,8 +235,7 @@ only when separate websites really are language/region variants of the same cont
                 <field id="speakable_enabled" translate="label comment" type="select"
                        sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Enable Speakable Schema</label>
-                    <comment>Emit Speakable structured data marking page sections for voice/audio
-assistants. Off by default.</comment>
+                    <comment>Mark page sections for text-to-speech. The speakable property goes on the node describing the page: a CMS page's WebPage, a category's CollectionPage, a blog post's BlogPosting, and on product pages a WebPage whose main entity is the product. Google uses it only in beta, for news content in U.S. English. Off by default.</comment>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                 </field>
                 <field id="speakable_css_selectors" translate="label comment" type="textarea"

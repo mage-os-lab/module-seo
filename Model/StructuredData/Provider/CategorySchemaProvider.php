@@ -6,17 +6,21 @@ namespace MageOS\Seo\Model\StructuredData\Provider;
 
 use Magento\Catalog\Model\Layer\Resolver as LayerResolver;
 use MageOS\Seo\Api\StructuredDataProviderInterface;
+use MageOS\Seo\Model\StructuredData\SpeakableSpecification;
 
 class CategorySchemaProvider implements StructuredDataProviderInterface
 {
     /**
      * The category configuration, the request and the SEO config left with the ItemList node
-     * when it moved to Block\ItemListJsonLd; this provider now emits CollectionPage only.
+     * when it moved to Block\ItemListJsonLd; this provider now emits CollectionPage only. With
+     * Speakable on, the CollectionPage carries the page's SpeakableSpecification.
      *
      * @param LayerResolver $layerResolver
+     * @param SpeakableSpecification $speakable
      */
     public function __construct(
-        private readonly LayerResolver $layerResolver
+        private readonly LayerResolver          $layerResolver,
+        private readonly SpeakableSpecification $speakable
     ) {
     }
 
@@ -57,6 +61,11 @@ class CategorySchemaProvider implements StructuredDataProviderInterface
             $description = (string) $category->getDescription();
             if ($description !== '') {
                 $collectionPage['description'] = $this->cleanDescription($description);
+            }
+
+            $speakable = $this->speakable->get();
+            if ($speakable !== null) {
+                $collectionPage['speakable'] = $speakable;
             }
 
             $schemas[] = $collectionPage;

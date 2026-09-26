@@ -4,57 +4,76 @@ declare(strict_types=1);
 
 namespace MageOS\Seo\Test\Unit\Model\StructuredData\Provider;
 
-use MageOS\Seo\Model\Config;
+use Magento\Catalog\Model\Product;
+use MageOS\Seo\Model\Catalog\CurrentEntity;
 use MageOS\Seo\Model\StructuredData\Provider\SpeakableProvider;
-use PHPUnit\Framework\MockObject\MockObject;
+use MageOS\Seo\Model\StructuredData\SpeakableSpecification;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * A product page's WebPage node for the speakable spec: the product can't carry it, so the page
+ * gets a node of its own whose mainEntity is the product.
+ */
 class SpeakableProviderTest extends TestCase
 {
+    private const SPEC = ['@type' => 'SpeakableSpecification', 'cssSelector' => ['.page-title']];
+
+    public function testHandlesProductPagesOnly(): void
+    {
+        // Every other page type's own node carries the spec.
+        $this->assertSame(['catalog_product_view'], $this->provider(self::SPEC, $this->product())->getHandles());
+    }
+
+    public function testNothingWhenSpeakableIsOff(): void
+    {
+        $this->assertSame([], $this->provider(null, $this->product())->getSchemas());
+    }
+
+    public function testNothingWithoutAProduct(): void
+    {
+        $this->assertSame([], $this->provider(self::SPEC, null)->getSchemas());
+    }
+
+    public function testTheProductPagesWebPageNode(): void
+    {
+        $this->assertSame(
+            [[
+                '@context'   => 'https://schema.org',
+                '@type'      => 'WebPage',
+                '@id'        => 'https://example.com/tee.html#webpage',
+                'url'        => 'https://example.com/tee.html',
+                'name'       => 'Tee',
+                'mainEntity' => ['@id' => 'https://example.com/tee.html#product'],
+                'speakable'  => self::SPEC,
+            ]],
+            $this->provider(self::SPEC, $this->product())->getSchemas()
+        );
+    }
+
     /**
-     * @var Config&MockObject
+     * @param array<string, mixed>|null $spec
+     * @param Product|null $product
+     * @return SpeakableProvider
      */
-    private Config&MockObject $config;
+    private function provider(?array $spec, ?Product $product): SpeakableProvider
+    {
+        $speakable = $this->createStub(SpeakableSpecification::class);
+        $speakable->method('get')->willReturn($spec);
+        $currentEntity = $this->createStub(CurrentEntity::class);
+        $currentEntity->method('getProduct')->willReturn($product);
+
+        return new SpeakableProvider($currentEntity, $speakable);
+    }
 
     /**
-     * @var SpeakableProvider
+     * @return Product
      */
-    private SpeakableProvider $provider;
-
-    protected function setUp(): void
+    private function product(): Product
     {
-        $this->config   = $this->createMock(Config::class);
-        $this->provider = new SpeakableProvider($this->config);
-    }
+        $product = $this->createStub(Product::class);
+        $product->method('getProductUrl')->willReturn('https://example.com/tee.html');
+        $product->method('getName')->willReturn('Tee');
 
-    public function testHandlesEveryPage(): void
-    {
-        $this->assertSame(['*'], $this->provider->getHandles());
-    }
-
-    public function testReturnsNothingWhenDisabled(): void
-    {
-        $this->config->method('isSpeakableEnabled')->willReturn(false);
-        $this->assertSame([], $this->provider->getSchemas());
-    }
-
-    public function testReturnsNothingWhenNoSelectors(): void
-    {
-        $this->config->method('isSpeakableEnabled')->willReturn(true);
-        $this->config->method('getSpeakableCssSelectors')->willReturn([]);
-        $this->assertSame([], $this->provider->getSchemas());
-    }
-
-    public function testEmitsSpeakableSpecificationWhenEnabled(): void
-    {
-        $this->config->method('isSpeakableEnabled')->willReturn(true);
-        $this->config->method('getSpeakableCssSelectors')->willReturn(['.page-title', '.description']);
-
-        $schemas = $this->provider->getSchemas();
-
-        $this->assertCount(1, $schemas);
-        $this->assertSame('WebPage', $schemas[0]['@type']);
-        $this->assertSame('SpeakableSpecification', $schemas[0]['speakable']['@type']);
-        $this->assertSame(['.page-title', '.description'], $schemas[0]['speakable']['cssSelector']);
+        return $product;
     }
 }

@@ -46,6 +46,7 @@ Built-in providers, in order:
 | `CategorySchemaProvider` | `catalog_category_view` | CollectionPage + optional ItemList |
 | `ProductSchemaProvider` | `catalog_product_view` | Dispatches to template builder pool |
 | `CmsPageSchemaProvider` | `cms_page_view` (every CMS page and the home page) | WebPage node at `CmsPageResolver::currentUrl()` |
+| `SpeakableProvider` | `catalog_product_view` | With Speakable on: the product page's WebPage, carrying `speakable` (see [Speakable](#speakable)) |
 
 Bridge modules add their own providers by registering them in their own `di.xml` — the Seo module is never modified.
 
@@ -127,6 +128,35 @@ Codes are matched case- and underscore-insensitively. Values are the options' st
 **More sellable children than `has_variant_max`, or the setting at 0** — one `Product` whose offer is an `AggregateOffer` from the lowest child's price to the highest, rather than a variant list cut short that would misstate what the store sells. Children that all share one price keep a single `Offer`.
 
 Why a limit at all: Google sets none. Each variant adds an offer to the page — and a salability check on a product page that isn't cached — so the setting bounds page weight and build time for configurables with very many children.
+
+---
+
+## Speakable
+
+**Stores → Configuration → MageOS → SEO → Answer Engine Optimization (AEO) → Enable Speakable Schema** (off by default) marks page sections for text-to-speech, with the CSS selectors in **Speakable CSS Selectors** (defaults: `.page-title`, `.product.attribute.overview`, `.category-description`).
+
+The `speakable` property sits on the node that describes the page — Google: *"Speakable is used by the Article or Webpage object"* — built once by `Model\StructuredData\SpeakableSpecification`:
+
+| Page | Node carrying `speakable` |
+|---|---|
+| CMS page, home page included | its `WebPage`, `{url}#webpage` |
+| Category | its `CollectionPage`, `{url}#collectionpage` |
+| Blog post (from a bridge's article data) | its `BlogPosting`, `{url}#article` |
+| Product | a `WebPage` for the page, `{url}#webpage`, whose `mainEntity` is the product node `{url}#product` — `speakable` isn't a Product property |
+| Anything else (search, contact, account…) | none — there is no page node to carry it |
+
+```json
+{
+  "@type": "WebPage",
+  "@id": "https://example.com/tee.html#webpage",
+  "url": "https://example.com/tee.html",
+  "name": "Tee",
+  "mainEntity": { "@id": "https://example.com/tee.html#product" },
+  "speakable": { "@type": "SpeakableSpecification", "cssSelector": [".page-title", ".product.attribute.overview"] }
+}
+```
+
+Only `cssSelector` is emitted: Google takes `cssSelector` or `xPath`, never both. Google's own use of speakable is narrow — beta, users in the U.S. with Google Home devices set to English, news content read aloud by Google Assistant — which is why the setting is off by default.
 
 ---
 

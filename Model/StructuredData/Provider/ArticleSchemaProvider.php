@@ -10,13 +10,15 @@ use MageOS\Seo\Api\ArticleDataProviderInterface;
 use MageOS\Seo\Api\StructuredDataProviderInterface;
 use MageOS\Seo\Model\Pool\HandleMatcher;
 use MageOS\Seo\Model\StructuredData\OrganisationId;
+use MageOS\Seo\Model\StructuredData\SpeakableSpecification;
 
 /**
  * Emits BlogPosting structured data from bridge-supplied article data.
  *
  * Iterates the registered ArticleDataProviderInterface pool (empty by default) and emits a node for
  * the first provider that has an article for the current page. Author and publisher both reference
- * the shared Organisation @id.
+ * the shared Organisation @id. With Speakable on, the BlogPosting carries the page's
+ * SpeakableSpecification — Google's primary use of it.
  */
 class ArticleSchemaProvider implements StructuredDataProviderInterface
 {
@@ -25,14 +27,16 @@ class ArticleSchemaProvider implements StructuredDataProviderInterface
      * @param StoreManagerInterface $storeManager
      * @param OrganisationId $organisationId
      * @param HandleMatcher $handleMatcher
+     * @param SpeakableSpecification $speakable
      * @param array<mixed> $dataProviders
      */
     public function __construct(
-        private readonly LayoutInterface                $layout,
-        private readonly StoreManagerInterface $storeManager,
-        private readonly OrganisationId        $organisationId,
-        private readonly HandleMatcher         $handleMatcher,
-        private readonly array                 $dataProviders = []
+        private readonly LayoutInterface        $layout,
+        private readonly StoreManagerInterface  $storeManager,
+        private readonly OrganisationId         $organisationId,
+        private readonly HandleMatcher          $handleMatcher,
+        private readonly SpeakableSpecification $speakable,
+        private readonly array                  $dataProviders = []
     ) {
     }
 
@@ -97,6 +101,11 @@ class ArticleSchemaProvider implements StructuredDataProviderInterface
         }
         if (!empty($article['keywords'])) {
             $node['keywords'] = $article['keywords'];
+        }
+
+        $speakable = $this->speakable->get();
+        if ($speakable !== null) {
+            $node['speakable'] = $speakable;
         }
 
         return $node;

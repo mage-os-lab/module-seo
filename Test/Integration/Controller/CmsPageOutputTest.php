@@ -203,8 +203,6 @@ class CmsPageOutputTest extends AbstractController
     /**
      * The JSON-LD node describing the page: the one whose @id ends in #webpage.
      *
-     * The speakable provider adds a WebPage node of its own, without an @id, on every page.
-     *
      * @param string $body
      * @return array<string,mixed>
      */
