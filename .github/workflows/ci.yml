@@ -41,7 +41,7 @@ jobs:
 
   infection:
     name: Mutation testing
-    if: github.event_name == 'pull_request'
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v7
