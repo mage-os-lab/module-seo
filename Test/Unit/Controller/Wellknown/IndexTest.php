@@ -12,6 +12,7 @@ use MageOS\Seo\Api\WellKnownEndpointInterface;
 use MageOS\Seo\Controller\Wellknown\Index;
 use MageOS\Seo\Model\Feed\CanonicalPathRedirect;
 use MageOS\Seo\Model\WellKnown\EndpointPool;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
 
@@ -19,6 +20,7 @@ use Psr\Log\LoggerInterface;
  * Review finding S6: /.well-known/ answered every URL variant that reached it, while the feeds
  * collapse theirs onto the canonical path.
  */
+#[Group('magento-generated')]
 class IndexTest extends TestCase
 {
     /**
