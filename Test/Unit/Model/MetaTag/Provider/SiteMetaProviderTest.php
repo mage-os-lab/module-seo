@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace MageOS\Seo\Test\Unit\Model\MetaTag\Provider;
 
-use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Store\Api\Data\StoreInterface;
 use Magento\Store\Api\Data\WebsiteInterface;
 use Magento\Store\Model\StoreManagerInterface;
@@ -33,11 +32,6 @@ class SiteMetaProviderTest extends TestCase
     private OrganisationRepositoryInterface&MockObject $repository;
 
     /**
-     * @var ScopeConfigInterface&MockObject
-     */
-    private ScopeConfigInterface&MockObject $scopeConfig;
-
-    /**
      * @var StoreInterface&MockObject
      */
     private StoreInterface&MockObject $store;
@@ -52,7 +46,6 @@ class SiteMetaProviderTest extends TestCase
         $this->config       = $this->createMock(Config::class);
         $this->storeManager = $this->createMock(StoreManagerInterface::class);
         $this->repository   = $this->createMock(OrganisationRepositoryInterface::class);
-        $this->scopeConfig  = $this->createMock(ScopeConfigInterface::class);
 
         $this->store = $this->createMock(StoreInterface::class);
         $this->store->method('getId')->willReturn(1);
@@ -65,8 +58,7 @@ class SiteMetaProviderTest extends TestCase
         $this->provider = new SiteMetaProvider(
             $this->config,
             $this->storeManager,
-            $this->repository,
-            $this->scopeConfig
+            $this->repository
         );
     }
 
@@ -92,7 +84,7 @@ class SiteMetaProviderTest extends TestCase
     {
         $this->config->method('isOgTagsEnabled')->willReturn(true);
         $this->withOrgName('Acme Ltd');
-        $this->scopeConfig->method('getValue')->willReturn('en_GB');
+        $this->config->method('getLocaleCode')->willReturn('en_GB');
 
         $tags = $this->provider->getMetaTags();
 
@@ -105,7 +97,7 @@ class SiteMetaProviderTest extends TestCase
     {
         $this->config->method('isOgTagsEnabled')->willReturn(true);
         $this->withOrgName('');
-        $this->scopeConfig->method('getValue')->willReturn('en_GB');
+        $this->config->method('getLocaleCode')->willReturn('en_GB');
 
         $tags = $this->provider->getMetaTags();
 
@@ -116,7 +108,7 @@ class SiteMetaProviderTest extends TestCase
     {
         $this->config->method('isOgTagsEnabled')->willReturn(true);
         $this->withOrgName('Acme Ltd');
-        $this->scopeConfig->method('getValue')->willReturn(null);
+        $this->config->method('getLocaleCode')->willReturn('');
 
         $tags       = $this->provider->getMetaTags();
         $properties = array_column($tags, 'property');
@@ -128,7 +120,7 @@ class SiteMetaProviderTest extends TestCase
     {
         $this->config->method('isOgTagsEnabled')->willReturn(true);
         $this->withOrgName('Acme Ltd');
-        $this->scopeConfig->method('getValue')->willReturn('en_GB');
+        $this->config->method('getLocaleCode')->willReturn('en_GB');
 
         $names = array_column($this->provider->getMetaTags(), 'name');
 

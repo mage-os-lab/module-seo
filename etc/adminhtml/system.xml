@@ -116,6 +116,14 @@ at /llms-full.txt.</comment>
 line) at /llms.jsonl. Off by default.</comment>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                 </field>
+                <field id="faq_groups" translate="label comment" type="multiselect"
+                       sortOrder="40" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>FAQ Groups</label>
+                    <comment>FAQ groups whose questions appear in /llms.txt (the first 5) and /llms-full.txt
+(all), in this order. Select none to leave FAQs out.</comment>
+                    <source_model>MageOS\Seo\Model\Config\Source\FaqGroups</source_model>
+                    <can_be_empty>1</can_be_empty>
+                </field>
             </group>
 
             <group id="feeds" translate="label" type="text" sortOrder="35"

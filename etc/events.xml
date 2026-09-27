@@ -77,14 +77,20 @@
         configuration pages, `bin/magento config:set`, and Content → Design → Configuration, where
         core's default robots directive lives — so these are the one hook all three share. The
         admin saves every field of a section, changed or not; the policy counts a value only when it
-        changed, and only under the paths that can change a sitemap. Values config:set locks into
-        app/etc/env.php (its lock-env option) never reach the database, and so are not seen.
+        changed, and only under the paths that can change the feed: for the sitemap, what it lists;
+        for llms.txt / llms-full.txt, what they show (locale, AI contact, llms settings, URLs).
+        Values config:set locks into app/etc/env.php (its lock-env option) never reach the database,
+        and so are not seen.
     -->
     <event name="config_data_save_after">
+        <observer name="mageos_seo_invalidate_llms_on_config_save"
+                  instance="MageOS\Seo\Observer\InvalidateLlmsTxtCache"/>
         <observer name="mageos_seo_invalidate_sitemap_on_config_save"
                   instance="MageOS\Seo\Observer\InvalidateSitemap"/>
     </event>
     <event name="config_data_delete_after">
+        <observer name="mageos_seo_invalidate_llms_on_config_delete"
+                  instance="MageOS\Seo\Observer\InvalidateLlmsTxtCache"/>
         <observer name="mageos_seo_invalidate_sitemap_on_config_delete"
                   instance="MageOS\Seo\Observer\InvalidateSitemap"/>
     </event>

@@ -28,6 +28,7 @@ class Config
     public const XML_LLMS_ENABLED                  = 'mageos_seo_general/llms_txt/enabled';
     public const XML_LLMS_FULL_ENABLED             = 'mageos_seo_general/llms_txt/full_enabled';
     public const XML_LLMS_JSONL_ENABLED            = 'mageos_seo_general/llms_txt/jsonl_enabled';
+    public const XML_LLMS_FAQ_GROUPS               = 'mageos_seo_general/llms_txt/faq_groups';
     public const XML_FEEDS_STORAGE_DIR             = 'mageos_seo_general/feeds/storage_dir';
     public const XML_ROBOTS_PRODUCT_DEFAULT        = 'mageos_seo_general/robots_meta/product_default';
     public const XML_ROBOTS_CATEGORY_DEFAULT       = 'mageos_seo_general/robots_meta/category_default';
@@ -39,6 +40,11 @@ class Config
      * Core's Design → Search Engine Robots, which a page keeps when this module has no directive.
      */
     public const XML_ROBOTS_CORE_DEFAULT           = 'design/search_engine_robots/default_robots';
+
+    /**
+     * Core's General → Locale Options → Locale (Directory\Helper\Data::XML_PATH_DEFAULT_LOCALE).
+     */
+    public const XML_LOCALE_CODE                   = 'general/locale/code';
     public const XML_HREFLANG_ENABLED              = 'mageos_seo_general/hreflang/enabled';
     public const XML_HREFLANG_XDEFAULT_STORE       = 'mageos_seo_general/hreflang/xdefault_store_id';
     public const XML_HREFLANG_EXCLUDED_STORES      = 'mageos_seo_general/hreflang/excluded_store_ids';
@@ -250,6 +256,28 @@ class Config
     }
 
     /**
+     * Return the FAQ groups whose questions go into /llms.txt and /llms-full.txt, in order.
+     *
+     * None selected is an empty list: the documents then carry no FAQ section.
+     *
+     * @param int $storeId
+     * @return string[]
+     */
+    public function getLlmsFaqGroups(int $storeId): array
+    {
+        $raw = (string) $this->scopeConfig->getValue(
+            self::XML_LLMS_FAQ_GROUPS,
+            ScopeInterface::SCOPE_STORE,
+            $storeId
+        );
+
+        return array_values(array_filter(
+            array_map('trim', explode(',', $raw)),
+            static fn (string $group): bool => $group !== ''
+        ));
+    }
+
+    /**
      * Absolute directory for pre-generated feed files, or '' for the default (var/mageos_seo).
      *
      * Scaled deployments point this at a mount shared between the web hosts and the
@@ -408,6 +436,25 @@ class Config
             array_map('trim', explode(',', $raw)),
             static fn (string $code): bool => $code !== ''
         ));
+    }
+
+    /**
+     * Return a store view's locale code (e.g. en_GB), or '' when none is configured.
+     *
+     * The one place this module reads a store view's locale: hreflang, og:locale and the llms
+     * documents all take it from here. It is configuration, not a property of the store: Store has
+     * no locale of its own.
+     *
+     * @param int $storeId
+     * @return string
+     */
+    public function getLocaleCode(int $storeId): string
+    {
+        return (string) $this->scopeConfig->getValue(
+            self::XML_LOCALE_CODE,
+            ScopeInterface::SCOPE_STORE,
+            $storeId
+        );
     }
 
     /**

@@ -31,8 +31,6 @@ class UcpConfig
     public const XML_SECURITY_TXT_EXPIRES  = 'mageos_seo_ucp/security_txt/expires';
     public const XML_SECURITY_TXT_POLICY   = 'mageos_seo_ucp/security_txt/policy_url';
 
-    public const XML_SUPPORT_EMAIL         = 'trans_email/ident_support/email';
-
     /**
      * @var array<string, string>
      */
@@ -219,16 +217,6 @@ class UcpConfig
     public function getSecurityPolicyUrl(): string
     {
         return $this->value(self::XML_SECURITY_TXT_POLICY);
-    }
-
-    /**
-     * Store support email address (transactional support identity).
-     *
-     * @return string
-     */
-    public function getSupportEmail(): string
-    {
-        return $this->value(self::XML_SUPPORT_EMAIL);
     }
 
     /**

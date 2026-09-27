@@ -105,7 +105,7 @@ Without a Name and URL saved, the Organization node in JSON-LD will render with 
 | --- | --- | --- |
 | Open Graph Tags | Enable OG/Twitter tags | Yes |
 | Structured Data (JSON-LD) | Master switch, default product template, ItemList toggle & max, most variants per configurable product, priceValidUntil months, aggregate rating | Yes / GenericProduct |
-| AI Discoverability | `/llms.txt`, `/llms-full.txt`, `/llms.jsonl` | Yes / Yes / **No** |
+| AI Discoverability | `/llms.txt`, `/llms-full.txt`, `/llms.jsonl`, FAQ groups in the llms documents | Yes / Yes / **No** / `global` |
 | Robots Meta | Product / category / **CMS** defaults, pagination policy | *(empty — Magento default applies)* |
 | Hreflang | Enable, language-only, sitemap | Yes |
 | Answer Engine (AEO) | Speakable toggle + CSS selectors | No |
@@ -148,14 +148,16 @@ Manage FAQs under **Marketing > SEO > FAQ Manager**. Each FAQ set has an identif
 
 Both render the same theme-agnostic `<details>/<summary>` markup (no JS) and feed a single request-scoped collector, so the emitted `FAQPage` JSON-LD always matches the visible questions — even under full-page / block cache.
 
+The groups selected under **AI Discoverability → FAQ Groups** (default `global`) also go into `/llms.txt` and `/llms-full.txt` — see [docs/llms-txt.md](docs/llms-txt.md#faq-section).
+
 ---
 
 ## AI discoverability
 
 | URL | Content | Default |
 | --- | --- | --- |
-| `/llms.txt` | Concise: org name, description, base URL, locale, schema types, AI contact | On |
-| `/llms-full.txt` | Extended: the above plus social profiles, full category tree, FAQ section | On |
+| `/llms.txt` | Concise: org name, description, base URL, locale, schema types, the first 5 FAQs of the selected groups, AI contact | On |
+| `/llms-full.txt` | Extended: the above plus social profiles, full category tree, every FAQ of the selected groups | On |
 | `/llms.jsonl` | NDJSON, one compact JSON-LD `Product` node per line | Off |
 | `robots.txt` additions | Per-user-agent Allow/Disallow for known AI crawlers | Off |
 

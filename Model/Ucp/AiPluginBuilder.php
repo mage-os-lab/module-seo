@@ -4,19 +4,25 @@ declare(strict_types=1);
 
 namespace MageOS\Seo\Model\Ucp;
 
+use MageOS\Seo\Model\Organisation\ContactEmail;
+
 /**
  * Builds the /.well-known/ai-plugin.json manifest (OpenAI plugin discovery format).
  *
  * Data is sourced from UCP config and store identity; the OpenAPI url points at Magento's
- * built-in REST schema endpoint, so no new API surface is introduced.
+ * built-in REST schema endpoint, so no new API surface is introduced. `contact_email` is the
+ * contact /llms.txt publishes (Organisation\ContactEmail), and '' when there is none: the manifest
+ * format requires the key.
  */
 class AiPluginBuilder
 {
     /**
      * @param UcpConfig $config
+     * @param ContactEmail $contactEmail
      */
     public function __construct(
-        private readonly UcpConfig $config
+        private readonly UcpConfig    $config,
+        private readonly ContactEmail $contactEmail
     ) {
     }
 
@@ -42,7 +48,7 @@ class AiPluginBuilder
                 'url'                  => $baseUrl . '/rest/all/schema?services=catalogProductRepositoryV1',
                 'is_user_authenticated' => false,
             ],
-            'contact_email'  => $this->config->getSupportEmail(),
+            'contact_email'  => $this->contactEmail->get(),
             'legal_info_url' => $this->config->getAiPluginLegalUrl(),
         ];
     }

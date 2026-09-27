@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace MageOS\Seo\Model\MetaTag\Provider;
 
-use Magento\Framework\App\Config\ScopeConfigInterface;
-use Magento\Store\Model\ScopeInterface;
 use Magento\Store\Model\StoreManagerInterface;
 use MageOS\Seo\Api\MetaTagProviderInterface;
 use MageOS\Seo\Api\OrganisationRepositoryInterface;
@@ -25,13 +23,11 @@ class SiteMetaProvider implements MetaTagProviderInterface
      * @param Config $seoConfig
      * @param StoreManagerInterface $storeManager
      * @param OrganisationRepositoryInterface $organisationRepository
-     * @param ScopeConfigInterface $scopeConfig
      */
     public function __construct(
         private readonly Config                          $seoConfig,
         private readonly StoreManagerInterface           $storeManager,
-        private readonly OrganisationRepositoryInterface $organisationRepository,
-        private readonly ScopeConfigInterface            $scopeConfig
+        private readonly OrganisationRepositoryInterface $organisationRepository
     ) {
     }
 
@@ -58,11 +54,7 @@ class SiteMetaProvider implements MetaTagProviderInterface
         $org       = $this->organisationRepository->getForScope($storeId, $websiteId);
 
         $siteName = $org->getName() ?: (string) $store->getName();
-        $locale   = (string) $this->scopeConfig->getValue(
-            'general/locale/code',
-            ScopeInterface::SCOPE_STORE,
-            $storeId
-        );
+        $locale   = $this->seoConfig->getLocaleCode($storeId);
 
         $tags = [];
         if ($siteName !== '') {

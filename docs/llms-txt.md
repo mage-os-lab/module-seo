@@ -8,8 +8,8 @@ The module serves two plain-text documents at well-known URLs so LLM crawlers an
 
 | URL | Content | Config toggle |
 |---|---|---|
-| `/llms.txt` | Concise: org name, description, base URL, locale, available schema types, AI contact email | Stores → Configuration → MageOS → SEO → Enable /llms.txt |
-| `/llms-full.txt` | Extended: everything in the concise version plus social profiles, full category tree with product counts, full template list | Stores → Configuration → MageOS → SEO → Enable /llms-full.txt |
+| `/llms.txt` | Concise: org name, description, base URL, locale, available schema types, the first 5 FAQs, AI contact email | Stores → Configuration → MageOS SEO → SEO → Enable /llms.txt |
+| `/llms-full.txt` | Extended: everything in the concise version plus social profiles, full category tree with product counts, full template list, every FAQ | Stores → Configuration → MageOS SEO → SEO → Enable /llms-full.txt |
 
 Both return `404` when their respective config toggle is off.
 
@@ -37,9 +37,18 @@ store's catalogue. It is **off by default** — turn it on per store view with
 ## Schema types available on this site
 GenericProduct, Food, Apparel, ...
 
+## Frequently Asked Questions
+
+**Do you ship worldwide?**
+Yes, to every country in the EU and the UK.
+
 ## AI Contact
-support@example.com
+ai@example.com
 ```
+
+The `> Locale:` line is left out when the store view has no locale configured, the FAQ section when
+the selected groups have no questions, and the AI contact when there is none (see
+[Data sources](#data-sources)).
 
 ---
 
@@ -48,6 +57,7 @@ support@example.com
 Everything in `/llms.txt`, plus:
 
 - Social profile URLs (from Organisation → Social profiles)
+- Every FAQ of the selected groups, not just the first 5
 - A full schema type list (Organization, WebSite, CollectionPage, BreadcrumbList, ItemList, Product, FoodProduct, Apparel, ...)
 - A full template-to-label list
 - The complete category tree with product counts and URLs, indented by depth:
@@ -84,7 +94,10 @@ one. That machinery is documented once, in
 Worth knowing here: a rebuild of `/llms.txt` and `/llms-full.txt` is queued when the Organisation
 settings or a FAQ change, when a category changes, and when a product is created, deleted or has
 its category or website assignments changed — because the category tree carries product counts.
-Product edits that change nothing in these documents do not queue one.
+Product edits that change nothing in these documents do not queue one. A configuration change
+queues one when it changes something the documents show: the locale, the Customer Support email,
+these documents' own settings (including FAQ Groups), the base URLs (`web/`) or the category URL
+suffix (`catalog/seo/`).
 
 ---
 
@@ -95,10 +108,59 @@ Both documents draw data from:
 | Data | Source |
 |---|---|
 | Organisation name, description, URL, social profiles | Organisation record (store-scoped, same fallback as JSON-LD) |
-| Locale | `StoreManagerInterface::getStore()->getLocaleCode()` |
+| Locale | The store view's **General → Locale Options → Locale** (`general/locale/code`) |
 | Schema template list | `SchemaBuilderPool::getAvailableTemplates()` |
 | Category tree | Live `catalog_category_entity` collection, active categories only, level > 1 |
-| AI contact email | `trans_email/ident_support/email` system config |
+| FAQs | The groups selected under **FAQ Groups** (see [FAQ section](#faq-section)) |
+| AI contact email | See [AI contact](#ai-contact) |
+
+### AI contact
+
+The address published for automated queries, here and as `contact_email` in
+`/.well-known/ai-plugin.json`, is the first of:
+
+1. the Organisation's **Contact Email** (Marketing → SEO → Organisation), the same address the
+   `Organization` JSON-LD publishes as its `contactPoint`;
+2. the store's **Customer Support** email (Stores → Configuration → General → Store Email
+   Addresses), **unless it is still the value Magento ships**. Every installation starts with
+   `support@example.com` there, and publishing that placeholder would tell agents to write to an
+   address nobody reads. The shipped value is read from the installed modules' `config.xml`
+   defaults, so a distribution that ships a different placeholder is recognised too;
+3. none: the `## AI Contact` section is left out, and `contact_email` is `""` (ai-plugin.json
+   requires the key).
+
+`MageOS\Seo\Model\Organisation\ContactEmail` makes this choice for both documents. To publish a
+different address, set the Organisation's Contact Email.
+
+### FAQ section
+
+The FAQs come from the groups selected under **Stores → Configuration → MageOS SEO → SEO → AI
+Discoverability (llms.txt) → FAQ Groups**, per store view:
+
+- the default is `global`, so a group of that name is included without configuring anything;
+- the list offers every group identifier in use, plus `global`;
+- groups are read in the order the setting stores them — the list's alphabetical order when saved
+  from the admin, the given order with `bin/magento config:set` — and each group's questions in their
+  own sort order;
+- `/llms.txt` carries the first 5 questions across all selected groups, `/llms-full.txt` all of them;
+- select none to leave FAQs out; a group with no active questions for the store view adds nothing.
+
+Why not every group: a group is usually placed on one page through the FAQ widget or Page Builder —
+a product's sizing questions, a returns page — and llms.txt is a summary of the whole site. Pick the
+groups that answer site-wide questions.
+
+To build the section some other way, replace the `faq` section provider in your module's `di.xml`
+with your own `SectionProviderInterface` implementation (see below):
+
+```xml
+<type name="MageOS\Seo\Model\LlmsTxt\LlmsTxtBuilder">
+    <arguments>
+        <argument name="sectionProviders" xsi:type="array">
+            <item name="faq" xsi:type="object">MyModule\Model\LlmsTxt\FaqSectionProvider</item>
+        </argument>
+    </arguments>
+</type>
+```
 
 ---
 

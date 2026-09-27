@@ -327,27 +327,7 @@ class InvalidationPolicyTest extends TestCase
     public function testConfigurationRebuildsEveryTypeOnlyUnderSitemapPathsAndWhenChanged(): void
     {
         $policy = $this->policy([1]);
-        $value  = function (string $path, bool $changed): ConfigValue {
-            $value = new class ($changed) extends ConfigValue {
-                /**
-                 * @param bool $changed
-                 */
-                public function __construct(private readonly bool $changed)
-                {
-                }
-
-                /**
-                 * @inheritdoc
-                 */
-                public function isValueChanged()
-                {
-                    return $this->changed;
-                }
-            };
-            $value->setData('path', $path);
-
-            return $value;
-        };
+        $value  = fn (string $path, bool $changed): ConfigValue => $this->configValue($path, $changed);
 
         $this->assertSame(['*'], $policy->sitemapTypesAffectedBy(
             $this->event('config_data_save_after', $value('web/unsecure/base_url', true))
@@ -364,6 +344,35 @@ class InvalidationPolicyTest extends TestCase
         $this->assertSame(['*'], $policy->sitemapTypesAffectedBy(
             $this->event('config_data_delete_after', $value('sitemap/limit/max_lines', false))
         ), 'A deleted value falls back to another: a change.');
+    }
+
+    public function testConfigurationAffectsLlmsOnlyUnderThePathsItShowsAndWhenChanged(): void
+    {
+        $policy   = $this->policy([1]);
+        $relevant = fn (string $eventName, string $path, bool $changed): bool => $policy->isRelevantChange(
+            FeedRegenerator::GROUP_LLMS,
+            $this->event($eventName, $this->configValue($path, $changed))
+        );
+
+        foreach ([
+            'general/locale/code',
+            'trans_email/ident_support/email',
+            'mageos_seo_general/llms_txt/faq_groups',
+            'web/unsecure/base_url',
+            'catalog/seo/category_url_suffix',
+        ] as $path) {
+            $this->assertTrue($relevant('config_data_save_after', $path, true), $path);
+        }
+        $this->assertFalse(
+            $relevant('config_data_save_after', 'general/locale/code', false),
+            'The admin saves every field of a section; an unchanged one is not a change.'
+        );
+        $this->assertFalse($relevant('config_data_save_after', 'contact/email/recipient_email', true));
+        $this->assertFalse($relevant('config_data_save_after', 'trans_email/ident_sales/email', true));
+        $this->assertTrue(
+            $relevant('config_data_delete_after', 'general/locale/code', false),
+            'A deleted value falls back to another: a change.'
+        );
     }
 
     public function testStoreChangesRebuildEveryTypeAndMassUpdatesOnlyWhatIsListed(): void
@@ -441,5 +450,35 @@ class InvalidationPolicyTest extends TestCase
     private function event(string $name, object $entity): Event
     {
         return new Event(['name' => $name, 'data_object' => $entity]);
+    }
+
+    /**
+     * A configuration value at a path, reporting whether the save changed it.
+     *
+     * @param string $path
+     * @param bool $changed
+     * @return ConfigValue
+     */
+    private function configValue(string $path, bool $changed): ConfigValue
+    {
+        $value = new class ($changed) extends ConfigValue {
+            /**
+             * @param bool $changed
+             */
+            public function __construct(private readonly bool $changed)
+            {
+            }
+
+            /**
+             * @inheritdoc
+             */
+            public function isValueChanged()
+            {
+                return $this->changed;
+            }
+        };
+        $value->setData('path', $path);
+
+        return $value;
     }
 }

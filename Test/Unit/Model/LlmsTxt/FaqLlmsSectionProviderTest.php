@@ -6,50 +6,43 @@ namespace MageOS\Seo\Test\Unit\Model\LlmsTxt;
 
 use Magento\Store\Api\Data\StoreInterface;
 use Magento\Store\Model\StoreManagerInterface;
+use MageOS\Seo\Model\Config;
 use MageOS\Seo\Model\Faq\SourcePool;
 use MageOS\Seo\Model\LlmsTxt\FaqLlmsSectionProvider;
-use PHPUnit\Framework\MockObject\MockObject;
+use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
 
 class FaqLlmsSectionProviderTest extends TestCase
 {
     /**
-     * @var SourcePool&MockObject
+     * @var SourcePool&Stub
      */
-    private SourcePool&MockObject $sourcePool;
-
-    /**
-     * @var FaqLlmsSectionProvider
-     */
-    private FaqLlmsSectionProvider $provider;
+    private SourcePool&Stub $sourcePool;
 
     protected function setUp(): void
     {
-        $this->sourcePool = $this->createMock(SourcePool::class);
-
-        $storeManager = $this->createMock(StoreManagerInterface::class);
-        $store        = $this->createMock(StoreInterface::class);
-        $store->method('getId')->willReturn(1);
-        $storeManager->method('getStore')->willReturn($store);
-
-        $this->provider = new FaqLlmsSectionProvider($this->sourcePool, $storeManager);
+        $this->sourcePool = $this->createStub(SourcePool::class);
     }
 
-    public function testEmptyWhenNoGlobalFaqs(): void
+    public function testEmptyWhenTheGroupsHaveNoFaqs(): void
     {
         $this->sourcePool->method('getFaqs')->willReturn([]);
-        $this->assertSame('', $this->provider->getConciseSection());
-        $this->assertSame('', $this->provider->getFullSection());
+        $provider = $this->provider(['global']);
+
+        $this->assertSame('', $provider->getConciseSection());
+        $this->assertSame('', $provider->getFullSection());
     }
 
     public function testFullSectionRendersAllFaqsAsMarkdown(): void
     {
-        $this->sourcePool->method('getFaqs')->with('global', 1)->willReturn([
-            ['question' => 'Q1', 'answer' => 'A1'],
-            ['question' => 'Q2', 'answer' => 'A2'],
+        $this->sourcePool->method('getFaqs')->willReturnMap([
+            ['global', 1, [
+                ['question' => 'Q1', 'answer' => 'A1'],
+                ['question' => 'Q2', 'answer' => 'A2'],
+            ]],
         ]);
 
-        $section = $this->provider->getFullSection();
+        $section = $this->provider(['global'])->getFullSection();
 
         $this->assertStringContainsString('## Frequently Asked Questions', $section);
         $this->assertStringContainsString('**Q1**', $section);
@@ -65,9 +58,75 @@ class FaqLlmsSectionProviderTest extends TestCase
         }
         $this->sourcePool->method('getFaqs')->willReturn($faqs);
 
-        $section = $this->provider->getConciseSection();
+        $section = $this->provider(['global'])->getConciseSection();
 
         $this->assertStringContainsString('**Q5**', $section);
         $this->assertStringNotContainsString('**Q6**', $section);
+    }
+
+    public function testTheGroupsFollowTheConfiguredOrder(): void
+    {
+        $this->sourcePool->method('getFaqs')->willReturnMap([
+            ['shipping', 1, [['question' => 'Shipping Q', 'answer' => 'A']]],
+            ['global', 1, [['question' => 'Global Q', 'answer' => 'A']]],
+        ]);
+
+        $section = $this->provider(['shipping', 'global'])->getFullSection();
+
+        $this->assertLessThan(
+            strpos($section, '**Global Q**'),
+            strpos($section, '**Shipping Q**')
+        );
+    }
+
+    public function testTheConciseLimitAppliesAcrossGroups(): void
+    {
+        $this->sourcePool->method('getFaqs')->willReturnMap([
+            ['global', 1, [
+                ['question' => 'G1', 'answer' => 'A'],
+                ['question' => 'G2', 'answer' => 'A'],
+                ['question' => 'G3', 'answer' => 'A'],
+            ]],
+            ['shipping', 1, [
+                ['question' => 'S1', 'answer' => 'A'],
+                ['question' => 'S2', 'answer' => 'A'],
+                ['question' => 'S3', 'answer' => 'A'],
+            ]],
+        ]);
+
+        $section = $this->provider(['global', 'shipping'])->getConciseSection();
+
+        $this->assertStringContainsString('**S2**', $section);
+        $this->assertStringNotContainsString('**S3**', $section);
+    }
+
+    public function testNoGroupsSelectedIsNoSection(): void
+    {
+        $sourcePool = $this->createMock(SourcePool::class);
+        $sourcePool->expects($this->never())->method('getFaqs');
+        $provider = $this->provider([], $sourcePool);
+
+        $this->assertSame('', $provider->getConciseSection());
+        $this->assertSame('', $provider->getFullSection());
+    }
+
+    /**
+     * The provider for store view 1, with the given FAQ groups configured.
+     *
+     * @param string[] $groups
+     * @param SourcePool|null $sourcePool the test's stub when null
+     * @return FaqLlmsSectionProvider
+     */
+    private function provider(array $groups, ?SourcePool $sourcePool = null): FaqLlmsSectionProvider
+    {
+        $store = $this->createStub(StoreInterface::class);
+        $store->method('getId')->willReturn(1);
+        $storeManager = $this->createStub(StoreManagerInterface::class);
+        $storeManager->method('getStore')->willReturn($store);
+
+        $config = $this->createStub(Config::class);
+        $config->method('getLlmsFaqGroups')->willReturnMap([[1, $groups]]);
+
+        return new FaqLlmsSectionProvider($sourcePool ?? $this->sourcePool, $storeManager, $config);
     }
 }

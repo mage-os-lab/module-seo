@@ -4,9 +4,7 @@ declare(strict_types=1);
 
 namespace MageOS\Seo\Model\Hreflang;
 
-use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\ObjectManager\ResetAfterRequestInterface;
-use Magento\Store\Model\ScopeInterface;
 use Magento\Store\Model\Store;
 use Magento\Store\Model\StoreManagerInterface;
 use MageOS\Seo\Model\Config;
@@ -39,14 +37,12 @@ class StoreLocaleMap implements ResetAfterRequestInterface
 
     /**
      * @param StoreManagerInterface $storeManager
-     * @param ScopeConfigInterface $scopeConfig
      * @param Config $seoConfig
      * @param CodeValidator $codeValidator
      * @param CanonicalBaseUrl $canonicalBaseUrl
      */
     public function __construct(
         private readonly StoreManagerInterface $storeManager,
-        private readonly ScopeConfigInterface  $scopeConfig,
         private readonly Config                $seoConfig,
         private readonly CodeValidator         $codeValidator,
         private readonly CanonicalBaseUrl      $canonicalBaseUrl
@@ -136,11 +132,7 @@ class StoreLocaleMap implements ResetAfterRequestInterface
             return $configured;
         }
 
-        $localeCode = (string) $this->scopeConfig->getValue(
-            'general/locale/code',
-            ScopeInterface::SCOPE_STORE,
-            $storeId
-        );
+        $localeCode = $this->seoConfig->getLocaleCode($storeId);
 
         return $localeCode === '' ? [] : [$this->codeValidator->normalise($localeCode)];
     }

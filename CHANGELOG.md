@@ -71,8 +71,15 @@ become public contract.
 - Every `setup:install` / `setup:upgrade` queues a rebuild of the feeds the store
   views can build, so a fresh install (or a deployment that cleared `var/`) no
   longer serves `503` on `/llms.txt` until the nightly cron runs.
+- **AI Discoverability → FAQ Groups** (`mageos_seo_general/llms_txt/faq_groups`, per store view,
+  default `global`): which FAQ groups `/llms.txt` (the first 5 questions) and `/llms-full.txt`
+  (all) include, in order. Selecting none leaves FAQs out. Only a group named `global` was read
+  before, which only the FAQ form's field notice said. See `docs/llms-txt.md#faq-section`.
 
 ### Removed
+
+- `Model\Ucp\UcpConfig::getSupportEmail()` and `UcpConfig::XML_SUPPORT_EMAIL`. ai-plugin.json's
+  contact comes from `Model\Organisation\ContactEmail` (see Fixed).
 
 - The dedicated `/hreflang-sitemap.xml` and its chunk files. The alternates are in `sitemap.xml`
   now, beside each URL (see Added), which is where Google prefers them. The path answers 404,
@@ -102,6 +109,19 @@ become public contract.
 
 ### Fixed
 
+- `/llms.txt` and `/llms-full.txt` printed an empty `> Locale:` line: the store view's locale was
+  read from `Store::getLocaleCode()`, which does not exist and fell through to empty data. It is
+  now **General → Locale Options → Locale** for the store view, and the line is left out when there
+  is none.
+- The AI contact in `/llms.txt`, `/llms-full.txt` and `/.well-known/ai-plugin.json` was the store's
+  Customer Support email, which Magento ships as `support@example.com` — so an unconfigured store
+  published a placeholder. It is now the Organisation's Contact Email; else the Customer Support
+  email unless it is still the shipped value; else none (the section is left out, `contact_email`
+  is `""`). One class, `Model\Organisation\ContactEmail`, decides it for all three.
+- A configuration change to something `/llms.txt` and `/llms-full.txt` show — the locale, the
+  Customer Support email, their own settings, the base URLs (`web/`), the category URL suffix
+  (`catalog/seo/`) — reached them only with the nightly rebuild. It now queues one, when the value
+  changed.
 - The Organization node carries `geo` and `priceRange` only on a local business type. schema.org
   gives a plain Organization neither (they come from Place and LocalBusiness); `address`,
   `telephone` and `email` stay on every type. Local business types are `LocalBusiness` by default,
@@ -288,6 +308,12 @@ become public contract.
 
 ### Changed
 
+- A store view's locale is read in one place, `Model\Config::getLocaleCode()`, by hreflang,
+  `og:locale` and the llms documents. Constructors changed with it: `Hreflang\StoreLocaleMap` and
+  `MetaTag\Provider\SiteMetaProvider` no longer take `ScopeConfigInterface`; `LlmsTxtBuilder` takes
+  `Config` and `Organisation\ContactEmail` before `$sectionProviders`; `Ucp\AiPluginBuilder` takes
+  `ContactEmail`; `LlmsTxt\FaqLlmsSectionProvider` takes `Config`. Code that builds them through
+  the object manager or di.xml by name is unaffected.
 - **hasVariant Max Entries** is now **Most Variants per Configurable Product** (same path,
   `mageos_seo_general/structured_data/has_variant_max`): a configurable with more sellable
   children than this gets one `AggregateOffer` over their whole price range instead of a variant

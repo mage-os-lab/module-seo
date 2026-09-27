@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace MageOS\Seo\Test\Unit\Model\Hreflang;
 
-use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Store\Model\Store;
 use Magento\Store\Model\StoreManagerInterface;
 use MageOS\Seo\Model\Config;
@@ -22,11 +21,6 @@ class StoreLocaleMapTest extends TestCase
     private StoreManagerInterface&MockObject $storeManager;
 
     /**
-     * @var ScopeConfigInterface&MockObject
-     */
-    private ScopeConfigInterface&MockObject $scopeConfig;
-
-    /**
      * @var Config&MockObject
      */
     private Config&MockObject $config;
@@ -34,7 +28,6 @@ class StoreLocaleMapTest extends TestCase
     protected function setUp(): void
     {
         $this->storeManager = $this->createMock(StoreManagerInterface::class);
-        $this->scopeConfig  = $this->createMock(ScopeConfigInterface::class);
         $this->config       = $this->createMock(Config::class);
     }
 
@@ -61,8 +54,8 @@ class StoreLocaleMapTest extends TestCase
         $this->config->method('getHreflangCodes')->willReturnCallback(
             static fn (int $storeId): array => $codes[$storeId] ?? []
         );
-        $this->scopeConfig->method('getValue')->willReturnCallback(
-            static fn (string $path, string $scope, $scopeId) => $locales[(int) $scopeId] ?? ''
+        $this->config->method('getLocaleCode')->willReturnCallback(
+            static fn (int $storeId): string => $locales[$storeId] ?? ''
         );
         return $this->newMap();
     }
@@ -81,7 +74,6 @@ class StoreLocaleMapTest extends TestCase
 
         return new StoreLocaleMap(
             $this->storeManager,
-            $this->scopeConfig,
             $this->config,
             new CodeValidator(),
             $canonicalBaseUrl
@@ -185,7 +177,7 @@ class StoreLocaleMapTest extends TestCase
         $this->storeManager->expects($this->once())->method('getStores')
             ->willReturn([$this->makeStore(1, true, 'https://uk/')]);
         $this->config->method('getHreflangExcludedStoreIds')->willReturn([]);
-        $this->scopeConfig->method('getValue')->willReturn('en_GB');
+        $this->config->method('getLocaleCode')->willReturn('en_GB');
         $map = $this->newMap();
         $map->getMap();
         $map->getMap();
@@ -215,7 +207,7 @@ class StoreLocaleMapTest extends TestCase
         $this->storeManager->expects($this->exactly(2))->method('getStores')
             ->willReturn([$this->makeStore(1, true, 'https://uk/')]);
         $this->config->method('getHreflangExcludedStoreIds')->willReturn([]);
-        $this->scopeConfig->method('getValue')->willReturn('en_GB');
+        $this->config->method('getLocaleCode')->willReturn('en_GB');
         $map = $this->newMap();
 
         $map->getMap();

@@ -103,6 +103,7 @@ retires it purges that tag once, along with its files.)
 | Mass website assignment change | always | always |
 | Organisation settings saved | always | — |
 | FAQ saved or deleted | always | — |
+| Configuration saved: locale, Customer Support email, the llms settings (`mageos_seo_general/llms_txt/`), `web/`, `catalog/seo/` | when the value changes | — |
 
 Mass actions — the admin grid's "Update attributes", mass enable/disable and mass website
 assignment, and anything else going through `Magento\Catalog\Model\Product\Action` — write

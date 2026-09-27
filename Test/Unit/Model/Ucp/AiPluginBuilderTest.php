@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace MageOS\Seo\Test\Unit\Model\Ucp;
 
+use MageOS\Seo\Model\Organisation\ContactEmail;
 use MageOS\Seo\Model\Ucp\AiPluginBuilder;
 use MageOS\Seo\Model\Ucp\UcpConfig;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -17,9 +18,10 @@ class AiPluginBuilderTest extends TestCase
     protected function setUp(): void
     {
         $this->config = $this->createMock(UcpConfig::class);
-        $this->builder = new AiPluginBuilder($this->config);
+        $contactEmail = $this->createStub(ContactEmail::class);
+        $contactEmail->method('get')->willReturn('help@shop.test');
+        $this->builder = new AiPluginBuilder($this->config, $contactEmail);
         $this->config->method('getBaseUrl')->willReturn('https://shop.test');
-        $this->config->method('getSupportEmail')->willReturn('help@shop.test');
         $this->config->method('getAiPluginLegalUrl')->willReturn('https://shop.test/legal');
     }
 

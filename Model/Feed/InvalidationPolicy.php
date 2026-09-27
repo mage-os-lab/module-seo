@@ -85,6 +85,27 @@ class InvalidationPolicy
     ];
 
     /**
+     * Configuration that can change what /llms.txt and /llms-full.txt show.
+     *
+     * - general/locale/: the `> Locale:` line;
+     * - trans_email/ident_support/: the AI contact, when the Organisation has none
+     *   (Organisation\ContactEmail);
+     * - mageos_seo_general/llms_txt/: whether each document is written, and the FAQ groups;
+     * - web/: the base URL every link in the documents starts with;
+     * - catalog/seo/: the category URL suffix in the category tree.
+     *
+     * The Organisation and the FAQs are saved through this module's admin, which queues the
+     * rebuild itself.
+     */
+    private const LLMS_CONFIG_PREFIXES = [
+        'general/locale/',
+        'trans_email/ident_support/',
+        'mageos_seo_general/llms_txt/',
+        'web/',
+        'catalog/seo/',
+    ];
+
+    /**
      * @param StoreManagerInterface $storeManager
      * @param Config $seoConfig
      * @param RebuildableSitemaps $rebuildableSitemaps
@@ -167,8 +188,7 @@ class InvalidationPolicy
                 : [];
         }
         if ($entity instanceof ConfigValue) {
-            return $this->isSitemapConfig((string) $entity->getData('path'))
-                && (str_ends_with($eventName, '_delete_after') || $entity->isValueChanged())
+            return $this->isChangedConfigUnder($eventName, $entity, self::SITEMAP_CONFIG_PREFIXES)
                 ? [RebuildGroup::ALL_TYPES]
                 : [];
         }
@@ -204,16 +224,22 @@ class InvalidationPolicy
     }
 
     /**
-     * Whether a configuration path can change what a sitemap lists.
+     * Whether a configuration save or delete changed a value under one of the path prefixes.
      *
-     * @param string $path
+     * The admin saves every field of a section whether it changed or not, so a save counts only
+     * when the value differs from the stored one; a deletion always counts.
+     *
+     * @param string $eventName
+     * @param ConfigValue $value
+     * @param string[] $prefixes
      * @return bool
      */
-    private function isSitemapConfig(string $path): bool
+    private function isChangedConfigUnder(string $eventName, ConfigValue $value, array $prefixes): bool
     {
-        foreach (self::SITEMAP_CONFIG_PREFIXES as $prefix) {
+        $path = (string) $value->getData('path');
+        foreach ($prefixes as $prefix) {
             if (str_starts_with($path, $prefix)) {
-                return true;
+                return str_ends_with($eventName, '_delete_after') || $value->isValueChanged();
             }
         }
 
@@ -267,6 +293,8 @@ class InvalidationPolicy
      * new product, changed category assignments and changed website assignments — but not for
      * attribute values, which the documents never show.
      *
+     * Configuration matters when a value the documents show changed (LLMS_CONFIG_PREFIXES).
+     *
      * @param string $eventName
      * @param mixed $entity
      * @return bool
@@ -278,6 +306,9 @@ class InvalidationPolicy
             return $this->isNew($entity)
                 || (bool) $entity->getData('is_changed_categories')
                 || $this->websitesChanged($entity);
+        }
+        if ($entity instanceof ConfigValue) {
+            return $this->isChangedConfigUnder($eventName, $entity, self::LLMS_CONFIG_PREFIXES);
         }
 
         return true;

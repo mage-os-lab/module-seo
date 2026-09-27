@@ -117,6 +117,24 @@ class FaqRepositoryTest extends TestCase
         $this->assertSame(['Alpha', 'Bravo', 'Charlie'], $questions);
     }
 
+    public function testIdentifiersAreListedOnceEachAndSorted(): void
+    {
+        $this->repository->save($this->newFaq('zz-returns', 'Q1', 'A'));
+        $this->repository->save($this->newFaq('zz-returns', 'Q2', 'A'));
+        $inactive = $this->newFaq('zz-delivery', 'Q3', 'A');
+        $inactive->setIsActive(false);
+        $this->repository->save($inactive);
+
+        $identifiers = $this->readRepository->getIdentifiers();
+
+        $this->assertSame(1, \count(array_keys($identifiers, 'zz-returns', true)));
+        $this->assertContains('zz-delivery', $identifiers, 'A group whose entries are all inactive is still a group.');
+        $this->assertSame(array_values(array_unique($identifiers)), $identifiers);
+        $sorted = $identifiers;
+        sort($sorted, SORT_STRING);
+        $this->assertSame($sorted, $identifiers);
+    }
+
     /**
      * @param FaqInterface $faq
      * @param int $sortOrder

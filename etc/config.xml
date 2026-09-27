@@ -28,6 +28,7 @@
                 <enabled>1</enabled>
                 <full_enabled>1</full_enabled>
                 <jsonl_enabled>0</jsonl_enabled>
+                <faq_groups>global</faq_groups>
             </llms_txt>
             <feeds>
                 <!-- empty = var/mageos_seo; multi-host deployments set a shared mount -->

@@ -9,7 +9,7 @@ use MageOS\Seo\Model\Faq as FaqModel;
 use MageOS\Seo\Model\ResourceModel\Faq\CollectionFactory;
 
 /**
- * Read access to FAQ entries by group identifier.
+ * Read access to FAQ entries by group identifier, and to the identifiers in use.
  *
  * Returns global (store 0) and store-specific rows for the identifier, ordered by sort order.
  */
@@ -21,6 +21,25 @@ class Repository
     public function __construct(
         private readonly CollectionFactory $collectionFactory
     ) {
+    }
+
+    /**
+     * Return every FAQ group identifier in use, once each and sorted, across stores and states.
+     *
+     * A collection always selects the ID column, so a DISTINCT select would not collapse the rows;
+     * they are deduplicated here instead. The FAQ table is small, and this serves admin option lists.
+     *
+     * @return string[]
+     */
+    public function getIdentifiers(): array
+    {
+        $collection = $this->collectionFactory->create();
+        $collection->addFieldToSelect('identifier');
+
+        $identifiers = array_values(array_unique(array_map('strval', $collection->getColumnValues('identifier'))));
+        sort($identifiers, SORT_STRING);
+
+        return $identifiers;
     }
 
     /**
