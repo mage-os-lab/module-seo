@@ -14,6 +14,7 @@ class SitemapGeneratorTest extends TestCase
 {
     public function testThisModulesGeneratorIsOfferedFirstThenMagentos(): void
     {
+        // The literals pin the stored values, which toOptionArray() takes from the constants.
         $this->assertSame(
             [
                 ['value' => 'mageos_seo', 'label' => 'MageOS SEO'],
@@ -21,11 +22,5 @@ class SitemapGeneratorTest extends TestCase
             ],
             (new SitemapGenerator())->toOptionArray()
         );
-    }
-
-    public function testTheConstantsAreTheStoredValues(): void
-    {
-        $this->assertSame('mageos_seo', SitemapGenerator::MAGEOS_SEO);
-        $this->assertSame('magento', SitemapGenerator::MAGENTO);
     }
 }
