@@ -6,6 +6,7 @@ namespace MageOS\Seo\Service;
 
 use Magento\Directory\Model\Currency;
 use Magento\Framework\Locale\FormatInterface;
+use \Magento\Framework\Locale\Resolver;
 use Magento\Store\Model\Store;
 use Magento\Store\Model\StoreManagerInterface;
 
@@ -21,9 +22,11 @@ class CurrencyService
      * Service constructor
      *
      * @param StoreManagerInterface $storeManager
+     * @param Resolver $locale
      */
     public function __construct(
-        private readonly StoreManagerInterface $storeManager
+        private readonly StoreManagerInterface $storeManager,
+        private readonly Resolver $locale
     ) {
     }
 
@@ -131,8 +134,11 @@ class CurrencyService
             );
         } catch (\Exception) {
             // Graceful fallback — symbol + 2 decimal places
-            $symbol = $includeSymbol ? $this->getCurrentCurrencySymbol($storeId) : '';
-            return $symbol . number_format($amount, 2);
+            return $this->currencyFormatter(
+                $amount,
+                $includeSymbol,
+                $this->getCurrentCurrencySymbol($storeId)
+            );
         }
     }
 
@@ -160,8 +166,11 @@ class CurrencyService
                 false
             );
         } catch (\Exception) {
-            $symbol = $includeSymbol ? $this->getBaseCurrencySymbol($storeId) : '';
-            return $symbol . number_format($amount, 2);
+            return $this->currencyFormatter(
+                $amount,
+                $includeSymbol,
+                $this->getBaseCurrencySymbol($storeId)
+            );
         }
     }
 
@@ -202,5 +211,30 @@ class CurrencyService
             : $this->storeManager->getStore();
 
         return $store;
+    }
+
+    /**
+     * currency / number formatter
+     *
+     * @param float $amount
+     * @param boolean $includeSymbol
+     * @param string $code
+     * @return string
+     */
+    private function currencyFormatter(
+        float $amount,
+        bool $includeSymbol = true,
+        string $code = ''
+    ): string
+    {
+        $localeString = $this->locale->getLocale();
+        if ($code !== '' && $includeSymbol) {
+            $fmt = new \NumberFormatter( $localeString, \NumberFormatter::CURRENCY );
+            return $fmt->formatCurrency($amount, $code);
+        } else {
+            // 
+            $fmt = new \NumberFormatter( $localeString, \NumberFormatter::DECIMAL );
+            return $fmt->format($amount);
+        }
     }
 }
