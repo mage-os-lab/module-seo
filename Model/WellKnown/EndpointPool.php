@@ -9,7 +9,7 @@ use MageOS\Seo\Api\WellKnownEndpointInterface;
 /**
  * Registry of /.well-known/ endpoints, keyed by path segment.
  *
- * Built-ins (ucp, ai-plugin.json, security.txt) are wired in etc/di.xml; bridge modules add their
+ * Built-ins (ucp, security.txt) are wired in etc/di.xml; bridge modules add their
  * own endpoints by appending to the "endpoints" argument from their di.xml.
  */
 class EndpointPool

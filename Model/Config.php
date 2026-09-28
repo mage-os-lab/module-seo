@@ -32,6 +32,7 @@ class Config
     public const XML_ROBOTS_PRODUCT_DEFAULT        = 'mageos_seo_general/robots_meta/product_default';
     public const XML_ROBOTS_CATEGORY_DEFAULT       = 'mageos_seo_general/robots_meta/category_default';
     public const XML_ROBOTS_CMS_DEFAULT            = 'mageos_seo_general/robots_meta/cms_page_default';
+    public const XML_ROBOTS_SEARCH_DEFAULT         = 'mageos_seo_general/robots_meta/search_default';
     public const XML_ROBOTS_PAGINATED_ENABLED      = 'mageos_seo_general/robots_meta/paginated_enabled';
     public const XML_ROBOTS_PAGINATED              = 'mageos_seo_general/robots_meta/paginated_robots';
 
@@ -314,6 +315,24 @@ class Config
     {
         return (string) $this->scopeConfig->getValue(
             self::XML_ROBOTS_CMS_DEFAULT,
+            ScopeInterface::SCOPE_STORE,
+            $storeId
+        );
+    }
+
+    /**
+     * Return the default robots meta value for search result pages (quick and advanced search).
+     *
+     * Empty means no opinion: core's Design → Search Engine Robots applies, as for the other
+     * page-type defaults.
+     *
+     * @param int|string|null $storeId
+     * @return string
+     */
+    public function getRobotsSearchDefault(int|string|null $storeId = null): string
+    {
+        return (string) $this->scopeConfig->getValue(
+            self::XML_ROBOTS_SEARCH_DEFAULT,
             ScopeInterface::SCOPE_STORE,
             $storeId
         );

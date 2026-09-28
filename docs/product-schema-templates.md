@@ -73,7 +73,7 @@ To enable optional fields for a category, open the category in admin, go to the 
 
 When a builder reads a field, it follows this priority order:
 
-1. **Override value** — a hard-coded value set in the category or product override JSON (wins over everything)
+1. **Override value** — a hard-coded value set in the category or product override JSON (wins over everything). An override turns its field on even when the category hasn't enabled it, and the value is built in the field's shape — a `brand` override is a `Brand` node, not a string.
 2. **Product attribute** — the product's actual Magento attribute value
 3. **Omit** — if neither yields a non-empty value, the field is not output
 

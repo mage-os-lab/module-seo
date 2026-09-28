@@ -62,7 +62,7 @@ Example — force all products in a handmade jewelry category to use a specific 
 }
 ```
 
-Keys are schema property names. Values override the corresponding property in the final schema node. Useful when a product attribute is absent or inconsistently populated across your catalogue.
+Keys are schema property names. Useful when a product attribute is absent or inconsistently populated across your catalogue. A key that is one of the template's own fields turns that field on and is built in the field's shape (a `brand` becomes a `Brand` node); any other key is set on the node as given. See [product-seo.md](product-seo.md#field-value-overrides-json) for the details.
 
 ---
 

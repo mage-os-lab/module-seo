@@ -71,10 +71,20 @@ become public contract.
 - Every `setup:install` / `setup:upgrade` queues a rebuild of the feeds the store
   views can build, so a fresh install (or a deployment that cleared `var/`) no
   longer serves `503` on `/llms.txt` until the nightly cron runs.
+- **Robots Meta Defaults → Search Results Pages Default** (`mageos_seo_general/robots_meta/search_default`,
+  per store view, empty by default so core's Design → Search Engine Robots decides, like the product,
+  category and CMS defaults): the robots meta for quick and advanced search results
+  (`RobotsMeta\Provider\SearchResultsRobotsProvider`). `docs/robots-meta.md` explains `NOINDEX,FOLLOW`
+  here against a robots.txt `Disallow`, and why not both.
 - **AI Discoverability → FAQ Groups** (`mageos_seo_general/llms_txt/faq_groups`, per store view,
   default `global`): which FAQ groups `/llms.txt` (the first 5 questions) and `/llms-full.txt`
   (all) include, in order. Selecting none leaves FAQs out. Only a group named `global` was read
   before, which only the FAQ form's field notice said. See `docs/llms-txt.md#faq-section`.
+- `Api\UcpServiceProviderInterface` and `Model\Ucp\ServicePool`: a module that serves a UCP service
+  declares each transport binding in `/.well-known/ucp` from its own di.xml. Every service and
+  capability entry is checked against the UCP 2026-08-25 business schema (`Model\Ucp\EntryValidator`),
+  including the namespace binding of its `schema` URL. An entry that fails is logged with its
+  provider and the reasons, and left out. See `docs/ucp.md`.
 
 ### Removed
 
@@ -84,6 +94,31 @@ become public contract.
   the value was read as at least 1 month. Values already saved stay in `core_config_data`, unread.
 - `Model\Ucp\UcpConfig::getSupportEmail()` and `UcpConfig::XML_SUPPORT_EMAIL`. ai-plugin.json's
   contact comes from `Model\Organisation\ContactEmail` (see Fixed).
+- **SEO Agentic Commerce (UCP) → Advertised Capabilities**, the five toggles
+  (`mageos_seo_ucp/capabilities/{catalog,cart,checkout,identity_linking,order_management}`), and
+  **UCP Profile → Merchant ID** (`mageos_seo_ucp/general/merchant_id`). With them go
+  `UcpConfig::getEnabledCapabilities()`, `getMerchantId()`, `getDomainHost()` and
+  `UcpConfig::XML_UCP_MERCHANT_ID`.
+  - The toggles declared UCP capabilities that nothing in the store implements.
+  - UCP has no merchant member.
+
+  Values already saved stay in `core_config_data`, unread.
+- `/.well-known/ai-plugin.json` and its settings. It now answers 404.
+  - **Settings removed:** **SEO Agentic Commerce (UCP) → AI Plugin Manifest**
+    (`mageos_seo_ucp/ai_plugin/{enabled,description,legal_url}`) and **Merchant Name**
+    (`mageos_seo_ucp/general/merchant_name`), which only the manifest read.
+  - **Code removed:** `Model\Ucp\AiPluginBuilder`, `Model\WellKnown\Endpoint\AiPluginEndpoint`,
+    `UcpConfig::isAiPluginEnabled()`, `getMerchantName()`, `getBaseUrl()`,
+    `getAiPluginDescription()`, `getAiPluginLegalUrl()` and their constants.
+    `Ucp\UcpConfig`'s constructor no longer takes `StoreManagerInterface`.
+  - **Why:** it made two false claims.
+    - It was the manifest of OpenAI's ChatGPT plugins beta, which OpenAI ended in March–April 2024.
+      OpenAI's plugins today are packages from its plugin directory, not a manifest a site hosts.
+    - Its `auth: none` pointed agents at `catalogProductRepositoryV1`, whose methods need the admin
+      ACL `Magento_Catalog::products`. Without core's Allow Anonymous Guest Access, an agent got a
+      schema with no operations and a 401.
+  - `/llms.txt`'s AI contact is unchanged. Saved values stay in `core_config_data`, unread.
+  - Other entries in this release that mention ai-plugin.json describe it before its removal.
 
 - The dedicated `/hreflang-sitemap.xml` and its chunk files. The alternates are in `sitemap.xml`
   now, beside each URL (see Added), which is where Google prefers them. The path answers 404,
@@ -113,6 +148,54 @@ become public contract.
 
 ### Fixed
 
+- `/.well-known/ucp` did not follow UCP.
+  - **Before:**
+    - it served `$schema` (`https://json-schema.org`, which is not a schema), `version`,
+      `merchant`, `transports`, and a `capabilities` map of `enabled` flags, none of which the
+      spec defines;
+    - it declared `dev.ucp.shopping`, and one capability per admin toggle, that nothing in the
+      store served.
+  - **Now:**
+    - it is a UCP 2026-08-25 business profile: `{"ucp": {"version", "services", "capabilities",
+      "payment_handlers"}}`, plus `keys`;
+    - it declares only what an installed module registers, so out of the box it declares nothing.
+  - **Signing key:**
+    - it moves from `signing_keys` to `keys`;
+    - a stored key carrying any private member (`d`, `p`, `q`, `dp`, `dq`, `qi`, `oth` or `k`, not
+      only `d`) refuses the profile;
+    - a stored key the schema would reject is logged and left out.
+
+  See `docs/ucp.md`.
+- The FAQ widget's questions showed no open/close triangle on Luma and Blank: Magento's LESS reset
+  sets `summary { display: block; }`, which hides a `<summary>`'s marker. A module
+  `_module.less` restores `display: list-item` (and a pointer cursor) on
+  `.mageos-seo-faq__question`. Hyvä is unaffected.
+- On Luma, a product page's BreadcrumbList took its category from the category the visitor had last
+  browsed (core's session fallback), so the page cache served the first visitor's trail to
+  everyone, on a URL whose visible trail is Home › Product. The category is now used only when the
+  URL carries it; otherwise the trail is Home › Product. `BreadcrumbListProvider`'s constructor
+  takes the request.
+- The X (Twitter) card was `summary_large_image` on every page, including those with no image (a
+  category without one, most CMS pages) and pages with nothing to share (cart, checkout). The card
+  is now decided after every provider's tags are collected: `summary_large_image` with an
+  `og:image`, `summary` without, none without an `og:title`. `twitter:title`,
+  `twitter:description` and `twitter:image` repeat the Open Graph values. A `twitter:*` tag a
+  provider sets itself is kept. `docs/og-tags.md` said no `twitter:card` was output, and now
+  describes this.
+- A Field Value Override for one of a template's own fields undid what the template built from it:
+  `AbstractBuilder::applyOverrides()` wrote every override onto the node as given, after the template
+  had used it. So a `brand` override (the docs' own example) replaced the `Brand` node with a
+  string, a Book's `author` and `publisher` became strings, and `gender`, ages, `warning`,
+  `batteriesRequired`, `organizer` and the like appeared a second time as top-level properties
+  `Product` does not have. Now an override for a template's own field turns that field on
+  (`SchemaBuilderPool`) and the template alone applies it; `applyOverrides()` sets only keys the
+  template does not list. **Breaking for custom templates** that relied on `applyOverrides()` to
+  set their own fields: read `$overrides[$field]` for them, as the built-in templates do — see
+  `docs/extending.md`.
+- Apparel's **Weight** and Toy's **Number of Players** were offered as fields but never built. Weight
+  is read as Generic reads it (override, else `weight` / `rs_weight`); the player count goes into
+  `additionalProperty` (override, else `player_count`), as `Product` has no such property.
+- ArtAndCraft's `creator` is a `Person` node, not text.
 - A product with a `special_to_date` but no special price published that date as its offer's
   `priceValidUntil`. It now needs a special price with a value (see Changed).
 - `/llms.txt` and `/llms-full.txt` printed an empty `> Locale:` line: the store view's locale was
@@ -313,6 +396,12 @@ become public contract.
 
 ### Changed
 
+- `Api\UcpCapabilityProviderInterface::getCapabilityData()` returns **one** capability entry
+  (`version`, `schema`, …). It is listed under `getCapabilityKey()` along with any other provider's
+  entries for that name, where before it was merged into the manifest as given. Constructors
+  changed with it:
+  - `Ucp\CapabilityPool` takes `EntryValidator` and `LoggerInterface` before `$providers`;
+  - `Ucp\ProfileBuilder` takes `ServicePool` and `LoggerInterface`.
 - An offer's `priceValidUntil` is a special price's end date and nothing else: published when the
   product has a special price and its `special_to_date` is today or later in store time
   (inclusive). The synthetic date, "today plus N months", is gone — it promised a validity nothing

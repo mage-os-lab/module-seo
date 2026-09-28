@@ -147,7 +147,16 @@ abstract class AbstractBuilder implements ProductSchemaBuilderInterface
     }
 
     /**
-     * Apply overrides to a schema node. Override keys map directly to top-level schema properties.
+     * Apply the overrides the template does not handle itself to a schema node.
+     *
+     * Two kinds of key:
+     * - one of the template's own fields (getAvailableFields()) is skipped: the template has already
+     *   built it from the override, in its own shape — a Brand node, a PeopleAudience, an
+     *   additionalProperty entry. Setting the raw value here would replace that node with a string,
+     *   or add a property Product does not have (SchemaBuilderPool turns an overridden field on, so
+     *   the template does build it);
+     * - any other key is set on the node as given: the way to set a schema.org property the
+     *   template does not know. GTIN keys are validated first, like attribute values.
      *
      * @param mixed[] $schema
      * @param mixed[] $overrides
@@ -155,8 +164,9 @@ abstract class AbstractBuilder implements ProductSchemaBuilderInterface
      */
     protected function applyOverrides(array $schema, array $overrides): array
     {
+        $templateFields = $this->getAvailableFields();
         foreach ($overrides as $key => $value) {
-            if ($value === null || $value === '') {
+            if ($value === null || $value === '' || \array_key_exists($key, $templateFields)) {
                 continue;
             }
             // GTIN overrides go through validation like attribute values, so a raw

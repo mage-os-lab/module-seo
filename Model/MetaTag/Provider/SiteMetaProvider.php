@@ -10,12 +10,11 @@ use MageOS\Seo\Api\OrganisationRepositoryInterface;
 use MageOS\Seo\Model\Config;
 
 /**
- * Site-level Open Graph and Twitter meta tags emitted on every page.
+ * Site-level Open Graph meta tags emitted on every page.
  *
- * Adds the document-wide tags the per-page providers don't set: og:site_name, og:locale and the
- * Twitter card type. Twitter intentionally falls back to the og:title / og:description / og:image
- * already emitted per page, so declaring the card type here is enough for a complete Twitter card
- * without duplicating per-page values.
+ * Adds the document-wide tags the per-page providers don't set: og:site_name and og:locale. The X
+ * (Twitter) card tags are not set here: the card type depends on whether the page has an image,
+ * which only MetaTag\Compositor sees, so it adds them after collecting every provider's tags.
  */
 class SiteMetaProvider implements MetaTagProviderInterface
 {
@@ -63,7 +62,6 @@ class SiteMetaProvider implements MetaTagProviderInterface
         if ($locale !== '') {
             $tags[] = ['property' => 'og:locale', 'content' => $locale];
         }
-        $tags[] = ['name' => 'twitter:card', 'content' => 'summary_large_image'];
 
         return $tags;
     }

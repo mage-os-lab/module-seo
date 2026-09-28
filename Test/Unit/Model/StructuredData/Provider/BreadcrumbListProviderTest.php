@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace MageOS\Seo\Test\Unit\Model\StructuredData\Provider;
 
 use Magento\Catalog\Helper\Data as CatalogHelper;
+use Magento\Framework\App\RequestInterface;
 use Magento\Framework\View\Element\BlockInterface;
 use Magento\Framework\View\Layout\ProcessorInterface;
 use Magento\Framework\View\LayoutInterface;
@@ -53,13 +54,18 @@ class BreadcrumbListProviderTest extends TestCase
 
     /**
      * @param string[] $excludedHandles
+     * @param string|null $requestCategory The request's `category` param: set by a category-path URL
      */
-    private function makeProvider(array $excludedHandles = []): BreadcrumbListProvider
+    private function makeProvider(array $excludedHandles = [], ?string $requestCategory = null): BreadcrumbListProvider
     {
+        $request = $this->createStub(RequestInterface::class);
+        $request->method('getParam')->willReturnMap([['category', null, $requestCategory]]);
+
         return new BreadcrumbListProvider(
             $this->layout,
             $this->catalogHelper,
             $this->storeManager,
+            $request,
             $excludedHandles
         );
     }
@@ -119,14 +125,15 @@ class BreadcrumbListProviderTest extends TestCase
 
     public function testLumaFallbackPrependsHomeCrumbFromCatalogPath(): void
     {
-        // No getCrumbs()-capable block (Luma): fall back to the catalog path.
+        // No getCrumbs()-capable block (Luma): fall back to the catalog path. The product was
+        // requested at a category-path URL, so the request carries its category.
         $this->layout->method('getBlock')->with('breadcrumbs')->willReturn(false);
         $this->catalogHelper->method('getBreadcrumbPath')->willReturn([
             'category-1' => ['label' => 'Shoes', 'link' => 'https://example.com/shoes'],
             'product'    => ['label' => 'Sneaker'],
         ]);
 
-        $schemas = $this->makeProvider()->getSchemas();
+        $schemas = $this->makeProvider([], '1')->getSchemas();
 
         $list = $schemas[0]['itemListElement'];
         $this->assertSame('Home', $list[0]['name']);
@@ -134,6 +141,36 @@ class BreadcrumbListProviderTest extends TestCase
         $this->assertSame('Shoes', $list[1]['name']);
         $this->assertSame('Sneaker', $list[2]['name']);
         $this->assertArrayNotHasKey('item', $list[2]);
+    }
+
+    public function testAProductAtAPlainUrlIsHomeThenTheProduct(): void
+    {
+        // The category in the path came from the visitor's session, not the URL: left out, as
+        // Luma's own trail leaves it out, and as the page cache must not keep one visitor's trail.
+        $this->layout->method('getBlock')->with('breadcrumbs')->willReturn(false);
+        $this->catalogHelper->method('getBreadcrumbPath')->willReturn([
+            'category-1' => ['label' => 'Shoes', 'link' => 'https://example.com/shoes'],
+            'product'    => ['label' => 'Sneaker'],
+        ]);
+
+        $list = $this->makeProvider()->getSchemas()[0]['itemListElement'];
+
+        $this->assertSame(['Home', 'Sneaker'], array_column($list, 'name'));
+        $this->assertSame([1, 2], array_column($list, 'position'));
+    }
+
+    public function testACategoryPageKeepsItsPath(): void
+    {
+        // On a category page the category is the page itself, not a guess.
+        $this->layout->method('getBlock')->with('breadcrumbs')->willReturn(false);
+        $this->catalogHelper->method('getBreadcrumbPath')->willReturn([
+            'category-1' => ['label' => 'Shoes', 'link' => 'https://example.com/shoes'],
+            'category-2' => ['label' => 'Sneakers'],
+        ]);
+
+        $list = $this->makeProvider()->getSchemas()[0]['itemListElement'];
+
+        $this->assertSame(['Home', 'Shoes', 'Sneakers'], array_column($list, 'name'));
     }
 
     public function testEmptyWhenNoBlockAndNoCatalogPath(): void

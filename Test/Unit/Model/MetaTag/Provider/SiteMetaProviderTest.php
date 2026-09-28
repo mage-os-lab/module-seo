@@ -80,17 +80,19 @@ class SiteMetaProviderTest extends TestCase
         $this->assertSame([], $this->provider->getMetaTags());
     }
 
-    public function testEmitsSiteNameLocaleAndTwitterCard(): void
+    public function testEmitsSiteNameAndLocale(): void
     {
         $this->config->method('isOgTagsEnabled')->willReturn(true);
         $this->withOrgName('Acme Ltd');
         $this->config->method('getLocaleCode')->willReturn('en_GB');
 
-        $tags = $this->provider->getMetaTags();
-
-        $this->assertContains(['property' => 'og:site_name', 'content' => 'Acme Ltd'], $tags);
-        $this->assertContains(['property' => 'og:locale', 'content' => 'en_GB'], $tags);
-        $this->assertContains(['name' => 'twitter:card', 'content' => 'summary_large_image'], $tags);
+        $this->assertSame(
+            [
+                ['property' => 'og:site_name', 'content' => 'Acme Ltd'],
+                ['property' => 'og:locale', 'content' => 'en_GB'],
+            ],
+            $this->provider->getMetaTags()
+        );
     }
 
     public function testFallsBackToStoreNameWhenOrgNameEmpty(): void
@@ -116,14 +118,15 @@ class SiteMetaProviderTest extends TestCase
         $this->assertNotContains('og:locale', $properties);
     }
 
-    public function testAlwaysEmitsTwitterCardWhenEnabled(): void
+    public function testLeavesTheXCardToTheCompositor(): void
     {
+        // The card type depends on the page's image, which only MetaTag\Compositor sees.
         $this->config->method('isOgTagsEnabled')->willReturn(true);
         $this->withOrgName('Acme Ltd');
         $this->config->method('getLocaleCode')->willReturn('en_GB');
 
         $names = array_column($this->provider->getMetaTags(), 'name');
 
-        $this->assertContains('twitter:card', $names);
+        $this->assertNotContains('twitter:card', $names);
     }
 }

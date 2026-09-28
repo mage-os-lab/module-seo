@@ -88,6 +88,8 @@ class MyMetaProvider implements \MageOS\Seo\Api\MetaTagProviderInterface
 
 Use `'property'` key for `og:` and `'name'` key for `name=` tags. Both are output as `<meta property="..." content="...">` or `<meta name="..." content="...">` accordingly.
 
+You don't need to add X card tags yourself: after collecting every provider's tags, the compositor adds `twitter:card` (by whether the page has an `og:image`) and repeats `og:title`, `og:description` and `og:image` as `twitter:*`. A `twitter:*` tag your provider returns, like the card above, is kept rather than replaced. See [og-tags.md](og-tags.md#twitter--x-cards).
+
 Register against `MageOS\Seo\Model\MetaTag\Compositor` → `providers`.
 
 ---
@@ -140,7 +142,8 @@ class VehicleBuilder extends AbstractBuilder
         $schema = $this->buildBase($product);
 
         if (\in_array('vehicleModelDate', $enabledFields)) {
-            $year = $this->attr($product, 'model_year');
+            // An override for one of your own fields is yours to apply, in your field's shape.
+            $year = $overrides['vehicleModelDate'] ?? $this->attr($product, 'model_year');
             if ($year !== '') {
                 $schema['vehicleModelDate'] = $year;
             }
@@ -160,7 +163,8 @@ Rules to follow:
 - Don't handle configurable products yourself: after your builder runs, `Model\Product\Variant\ProductGroupBuilder` turns a configurable's node into a ProductGroup of its variants, for every template (see [structured-data.md](structured-data.md#configurable-products)).
 - If your builder declares its own constructor, pass AbstractBuilder's arguments through: `StoreManagerInterface`, `ImageHelper`, `Config`, `OfferBuilder`, `AggregateRatingResolver`, `GtinValidator`.
 - Check `\in_array($fieldCode, $enabledFields)` before reading optional attributes.
-- Always call `$this->applyOverrides($schema, $overrides)` as the last step — it ensures category and product overrides win over template defaults.
+- **Read `$overrides[$field]` before the attribute for each of your own fields** (the keys of `getAvailableFields()`), and build the field in its proper shape — a `Brand` node, an `additionalProperty` entry, whatever your field is. An override for one of your fields turns that field on (`SchemaBuilderPool` adds it to `$enabledFields`), and `applyOverrides()` leaves your fields to you: setting the raw value there would replace the node you built with a string.
+- Always call `$this->applyOverrides($schema, $overrides)` as the last step — it sets the override keys your template does **not** list, as given, so a merchant can still set a schema.org property you don't know.
 - Use `$this->attr($product, 'attribute_code')` to read product attributes — it handles select/dropdown label resolution automatically.
 
 **2. Register in di.xml**

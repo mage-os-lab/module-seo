@@ -116,8 +116,7 @@ Both documents draw data from:
 
 ### AI contact
 
-The address published for automated queries, here and as `contact_email` in
-`/.well-known/ai-plugin.json`, is the first of:
+The address published for automated queries is the first of:
 
 1. the Organisation's **Contact Email** (Marketing → SEO → Organisation), the same address the
    `Organization` JSON-LD publishes as its `contactPoint`;
@@ -126,8 +125,7 @@ The address published for automated queries, here and as `contact_email` in
    `support@example.com` there, and publishing that placeholder would tell agents to write to an
    address nobody reads. The shipped value is read from the installed modules' `config.xml`
    defaults, so a distribution that ships a different placeholder is recognised too;
-3. none: the `## AI Contact` section is left out, and `contact_email` is `""` (ai-plugin.json
-   requires the key).
+3. none: the `## AI Contact` section is left out.
 
 `MageOS\Seo\Model\Organisation\ContactEmail` makes this choice for both documents. To publish a
 different address, set the Organisation's Contact Email.

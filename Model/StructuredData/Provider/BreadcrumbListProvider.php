@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace MageOS\Seo\Model\StructuredData\Provider;
 
 use Magento\Catalog\Helper\Data as CatalogHelper;
+use Magento\Framework\App\RequestInterface;
 use Magento\Framework\View\Element\BlockInterface;
 use Magento\Framework\View\LayoutInterface;
 use Magento\Store\Model\StoreManagerInterface;
@@ -16,6 +17,9 @@ use MageOS\Seo\Api\StructuredDataProviderInterface;
  * Reads the breadcrumbs block when it exposes getCrumbs() (Hyvä); on themes whose
  * breadcrumbs block keeps its crumbs protected (Luma), falls back to the catalog
  * breadcrumb path for product and category pages.
+ *
+ * The last crumb has no `item`: Google documents that for the last breadcrumb it is not
+ * required, and uses the page's own URL.
  */
 class BreadcrumbListProvider implements StructuredDataProviderInterface
 {
@@ -23,6 +27,7 @@ class BreadcrumbListProvider implements StructuredDataProviderInterface
      * @param LayoutInterface $layout
      * @param CatalogHelper $catalogHelper
      * @param StoreManagerInterface $storeManager
+     * @param RequestInterface $request
      * @param string[] $excludedHandles Layout handles whose pages manage their own
      *                                  breadcrumb schema; bridge modules append via di.xml
      */
@@ -30,6 +35,7 @@ class BreadcrumbListProvider implements StructuredDataProviderInterface
         private readonly LayoutInterface       $layout,
         private readonly CatalogHelper         $catalogHelper,
         private readonly StoreManagerInterface $storeManager,
+        private readonly RequestInterface      $request,
         private readonly array                 $excludedHandles = []
     ) {
     }
@@ -114,6 +120,11 @@ class BreadcrumbListProvider implements StructuredDataProviderInterface
     /**
      * Rebuild the crumb trail from the catalog breadcrumb path (product/category pages).
      *
+     * On a product page the path's categories are kept only when the request carries the category,
+     * as a category-path product URL does. Otherwise core took them from the category the visitor
+     * last browsed (Catalog\Helper\Product::initProduct()): Luma's own trail shows Home › Product
+     * there, and the page cache would serve that one visitor's trail to everyone after them.
+     *
      * @return array<int, array{label: string, link?: string}>
      */
     private function getCatalogPathCrumbs(): array
@@ -121,6 +132,10 @@ class BreadcrumbListProvider implements StructuredDataProviderInterface
         $path = $this->catalogHelper->getBreadcrumbPath();
         if (empty($path)) {
             return [];
+        }
+
+        if (isset($path['product']) && !$this->request->getParam('category')) {
+            $path = ['product' => $path['product']];
         }
 
         $baseUrl = rtrim((string) $this->storeManager->getStore()->getBaseUrl(), '/') . '/';

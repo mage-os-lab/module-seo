@@ -142,6 +142,7 @@ class LocalExperienceBuilderTest extends TestCase
         $entry = $this->findAdditionalProperty($schema, 'organizer');
         $this->assertNotNull($entry);
         $this->assertSame('Bristol Crafts', $entry['value']);
+        $this->assertArrayNotHasKey('organizer', $schema, 'organizer is not a Product property.');
     }
 
     public function testAvailabilityStartsGoesOnTheOfferNode(): void

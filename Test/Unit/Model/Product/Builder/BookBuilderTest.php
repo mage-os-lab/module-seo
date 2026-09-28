@@ -140,6 +140,18 @@ class BookBuilderTest extends TestCase
         $this->assertSame('Acme Press', $schema['publisher']['name']);
     }
 
+    public function testAuthorAndPublisherOverridesAreNodesToo(): void
+    {
+        $schema = $this->builder->build(
+            $this->product,
+            ['author', 'publisher'],
+            ['author' => 'Ann Author', 'publisher' => 'Big Press']
+        );
+
+        $this->assertSame(['@type' => 'Person', 'name' => 'Ann Author'], $schema['author']);
+        $this->assertSame(['@type' => 'Organization', 'name' => 'Big Press'], $schema['publisher']);
+    }
+
     public function testBookFormatMappedToSchemaUri(): void
     {
         $this->product->method('getData')->willReturnCallback(

@@ -78,6 +78,55 @@ class SchemaBuilderPoolTest extends TestCase
         $this->assertSame(['@type' => 'Apparel'], $result);
     }
 
+    public function testAnOverrideForOneOfTheTemplatesFieldsTurnsThatFieldOn(): void
+    {
+        // So the template builds it in its own shape. A key the template does not know is left to
+        // be set on the node as given, and is not a field to turn on.
+        $this->assertEnabledFieldsPassed(
+            ['color', 'brand'],
+            ['color'],
+            ['brand' => 'Acme', 'name' => 'Own Name']
+        );
+    }
+
+    public function testAFieldAlreadyOnIsNotRepeated(): void
+    {
+        $this->assertEnabledFieldsPassed(['brand', 'color'], ['brand', 'color'], ['brand' => 'Acme']);
+    }
+
+    public function testTheFieldsReachTheTemplateAsAList(): void
+    {
+        // An already-enabled field overridden, then a new one: no gap in the list.
+        $this->assertEnabledFieldsPassed(['brand', 'color'], ['brand'], ['brand' => 'Acme', 'color' => 'Red']);
+    }
+
+    public function testAnEmptyOverrideTurnsNothingOn(): void
+    {
+        $this->assertEnabledFieldsPassed(['color'], ['color'], ['brand' => '', 'material' => null]);
+    }
+
+    /**
+     * Build through the pool and assert the enabled fields the template receives.
+     *
+     * @param string[] $expected
+     * @param string[] $enabledFields
+     * @param array<string,mixed> $overrides
+     * @return void
+     */
+    private function assertEnabledFieldsPassed(array $expected, array $enabledFields, array $overrides): void
+    {
+        $product = $this->createStub(ProductInterface::class);
+        $builder = $this->createMock(ProductSchemaBuilderInterface::class);
+        $builder->method('getAvailableFields')->willReturn(
+            ['brand' => 'Brand', 'color' => 'Colour', 'material' => 'Material']
+        );
+        $builder->expects($this->once())->method('build')
+            ->with($product, $expected, $overrides)
+            ->willReturn([]);
+
+        (new SchemaBuilderPool(['Apparel' => $builder]))->build('Apparel', $product, $enabledFields, $overrides);
+    }
+
     public function testGetAvailableTemplatesReturnsAllRegistered(): void
     {
         $b1  = $this->makeBuilder('GenericProduct', 'Generic Product');

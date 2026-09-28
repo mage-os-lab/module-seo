@@ -13,7 +13,13 @@ The module outputs JSON-LD `<script type="application/ld+json">` blocks in the `
 | Product page | Product (or sub-type), via the template system; a ProductGroup of its variants for a configurable product (see [Configurable products](#configurable-products)) |
 | CMS pages, the home page included | WebPage, `@id` `{url}#webpage` — the home page's URL is the store base URL (see [canonical-urls.md](canonical-urls.md#cms-pages)) |
 
-The Organization and WebSite nodes appear on every page because they are site-wide identity data. The BreadcrumbList node is built from the breadcrumb block already rendered on the page, so it costs nothing extra.
+The Organization and WebSite nodes appear on every page because they are site-wide identity data. The BreadcrumbList node follows the trail the page shows:
+
+- **Hyvä** exposes its breadcrumbs block's crumbs, and the node is built from them — the trail as rendered.
+- **Luma** keeps its crumbs to itself and draws the product trail in JavaScript, so the node is rebuilt from core's catalog breadcrumb path. On a product page it has the category only when the URL carries one (a category-path product URL); otherwise it is **Home › Product**, as Luma shows it. Core would otherwise supply the category the visitor last browsed, from their session, and the page cache would keep that one visitor's trail for everyone.
+- The last crumb has no `item`: [Google documents](https://developers.google.com/search/docs/appearance/structured-data/breadcrumb) that it is not required there, and uses the page's own URL.
+
+A page that builds its own breadcrumb schema can switch this one off with the `excludedHandles` argument (see [extending.md](extending.md)).
 
 ---
 

@@ -81,11 +81,29 @@ Meta tag output is fully FPC-cacheable. The `Block\MetaTags` block does not use 
 
 ## Twitter / X cards
 
-The module does not output `twitter:card` tags. If Twitter card markup is needed, it can be added by registering a new `MetaTagProviderInterface` provider in a bridge module. The provider would return tags like:
+Every page with an `og:title` also gets X card tags. `MetaTag\Compositor` adds them after it has
+collected every provider's tags, because the card type depends on the whole page:
+
+| The page has | Card |
+|---|---|
+| `og:title` and `og:image` | `twitter:card` = `summary_large_image` |
+| `og:title`, no image | `twitter:card` = `summary` |
+| no `og:title` (cart, checkout, account) | none |
+
+`twitter:title`, `twitter:description` and `twitter:image` repeat `og:title`, `og:description` and
+`og:image`. X [falls back to the Open Graph tags](https://developer.x.com/en/docs/x-for-websites/cards/guides/getting-started)
+when they're missing, so they aren't strictly needed there. They're published for readers that
+read only `twitter:*`.
+
+**Setting your own.** A provider that returns a `twitter:*` tag itself keeps it: the compositor adds
+only the tags a page doesn't already have. A bridge module can set a different card type (say
+`player`) or a title written for X:
 
 ```php
 return [
-    ['name' => 'twitter:card', 'content' => 'summary_large_image'],
-    ['name' => 'twitter:title', 'content' => $product->getName()],
+    ['name' => 'twitter:card', 'content' => 'player'],
+    ['name' => 'twitter:title', 'content' => $video->getTitle()],
 ];
 ```
+
+The copies follow the Open Graph tags, so turning off **Enable OG Tags** removes them too.

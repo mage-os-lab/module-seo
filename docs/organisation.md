@@ -24,7 +24,7 @@ The form supports standard Magento store-scope switching: select a website or st
 | Logo width / height | Pixel dimensions of the logo | Both required for a valid Organization schema. |
 | Social profiles | Social profile URLs | Added as the `sameAs` array. One URL per row. |
 | Contact type | `contactType` for the ContactPoint node | e.g. `customer support`, `sales` |
-| Contact email | `email` for the ContactPoint node | Also the AI contact in `/llms.txt`, `/llms-full.txt` and `/.well-known/ai-plugin.json`. Left blank, those fall back to the store's Customer Support email unless it is still Magento's `support@example.com` — see [AI contact](llms-txt.md#ai-contact). |
+| Contact email | `email` for the ContactPoint node | Also the AI contact in `/llms.txt` and `/llms-full.txt`. Left blank, those fall back to the store's Customer Support email unless it is still Magento's `support@example.com` — see [AI contact](llms-txt.md#ai-contact). |
 | Available language | `availableLanguage` for the ContactPoint node | e.g. `English` |
 | Local presence | Address, telephone, email, latitude/longitude, price range | See [Local presence](#local-presence). |
 

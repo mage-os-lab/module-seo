@@ -117,8 +117,9 @@ class DiWiringTest extends TestCase
         /** @var WellKnownEndpointPool $pool */
         $pool = Bootstrap::getObjectManager()->get(WellKnownEndpointPool::class);
         $this->assertTrue($pool->has('ucp'));
-        $this->assertTrue($pool->has('ai-plugin.json'));
         $this->assertTrue($pool->has('security.txt'));
+        // Retired: see RetiredAiPluginManifestTest.
+        $this->assertFalse($pool->has('ai-plugin.json'));
     }
 
     /**

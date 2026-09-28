@@ -157,6 +157,14 @@ Robots setting applies.</comment>
                     <comment>When set to "Use Magento Default", the core Design &gt; Search Engine
 Robots setting applies.</comment>
                 </field>
+                <field id="search_default" translate="label comment" type="select"
+                       sortOrder="35" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Search Results Pages Default</label>
+                    <source_model>MageOS\Seo\Model\Config\Source\RobotsMeta</source_model>
+                    <comment>Quick and advanced search results. NOINDEX,FOLLOW keeps them out of the index;
+to stop them being crawled at all, disallow them in robots.txt instead. When set to "Use Magento
+Default", the core Design &gt; Search Engine Robots setting applies.</comment>
+                </field>
                 <field id="paginated_enabled" translate="label comment" type="select"
                        sortOrder="40" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Override Robots on Paginated Pages</label>
@@ -403,53 +411,9 @@ Merchant free listings.</comment>
                 <field id="enabled" translate="label comment" type="select"
                        sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="0">
                     <label>Enable UCP Profile</label>
-                    <comment>Serve /.well-known/ucp for AI shopping agents. Returns 404 when disabled.</comment>
-                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
-                </field>
-                <field id="merchant_id" translate="label comment" type="text"
-                       sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="0">
-                    <label>Merchant ID</label>
-                    <comment>Reverse-domain identifier (e.g. uk.co.example). Auto-derived from the
-domain when blank.</comment>
-                    <depends><field id="enabled">1</field></depends>
-                </field>
-                <field id="merchant_name" translate="label comment" type="text"
-                       sortOrder="30" showInDefault="1" showInWebsite="1" showInStore="0">
-                    <label>Merchant Name</label>
-                    <comment>Display name in the manifest. Falls back to the store information name
-when blank.</comment>
-                    <depends><field id="enabled">1</field></depends>
-                </field>
-            </group>
-
-            <group id="capabilities" translate="label comment" type="text" sortOrder="20"
-                   showInDefault="1" showInWebsite="1" showInStore="0">
-                <label>Advertised Capabilities</label>
-                <comment>Only enable a capability once its live UCP endpoint exists; advertising a
-missing endpoint harms agent-readiness.</comment>
-                <field id="catalog" translate="label" type="select"
-                       sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="0">
-                    <label>Advertise Catalog API</label>
-                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
-                </field>
-                <field id="cart" translate="label" type="select"
-                       sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="0">
-                    <label>Advertise Cart API</label>
-                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
-                </field>
-                <field id="checkout" translate="label" type="select"
-                       sortOrder="30" showInDefault="1" showInWebsite="1" showInStore="0">
-                    <label>Advertise Checkout API</label>
-                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
-                </field>
-                <field id="identity_linking" translate="label" type="select"
-                       sortOrder="40" showInDefault="1" showInWebsite="1" showInStore="0">
-                    <label>Advertise Identity Linking</label>
-                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
-                </field>
-                <field id="order_management" translate="label" type="select"
-                       sortOrder="50" showInDefault="1" showInWebsite="1" showInStore="0">
-                    <label>Advertise Order Management</label>
+                    <comment>Serve /.well-known/ucp, the Universal Commerce Protocol business profile
+(UCP 2026-08-25). It declares only the services and capabilities an installed module registers;
+with none registered it is valid and declares nothing. Returns 404 when disabled.</comment>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                 </field>
             </group>
@@ -458,7 +422,7 @@ missing endpoint harms agent-readiness.</comment>
                    showInDefault="1" showInWebsite="1" showInStore="0">
                 <label>Signing Keys</label>
                 <comment>Generated by "bin/magento mageos:seo:ucp:keygen --website=N". The private key
-is stored encrypted; only the public JWK is served.</comment>
+is stored encrypted; only the public JWK is served, in the profile's "keys".</comment>
                 <field id="private_key" translate="label" type="obscure"
                        sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="0">
                     <label>Private Key (encrypted)</label>
@@ -468,28 +432,6 @@ is stored encrypted; only the public JWK is served.</comment>
                        sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="0">
                     <label>Public Key JWK</label>
                     <comment>Read-only. Populated by the keygen command.</comment>
-                </field>
-            </group>
-
-            <group id="ai_plugin" translate="label" type="text" sortOrder="40"
-                   showInDefault="1" showInWebsite="1" showInStore="0">
-                <label>AI Plugin Manifest (ai-plugin.json)</label>
-                <field id="enabled" translate="label comment" type="select"
-                       sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="0">
-                    <label>Enable ai-plugin.json</label>
-                    <comment>Serve /.well-known/ai-plugin.json for GPT-based agents.</comment>
-                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
-                </field>
-                <field id="description" translate="label comment" type="textarea"
-                       sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="0">
-                    <label>Description</label>
-                    <comment>Agent-facing store description (truncated to 200 chars).</comment>
-                    <depends><field id="enabled">1</field></depends>
-                </field>
-                <field id="legal_url" translate="label" type="text"
-                       sortOrder="30" showInDefault="1" showInWebsite="1" showInStore="0">
-                    <label>Legal Info URL</label>
-                    <depends><field id="enabled">1</field></depends>
                 </field>
             </group>
 

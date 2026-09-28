@@ -1,0 +1,18 @@
+// MageOS_Seo — styles for Luma, Blank and other themes built on Magento's LESS library.
+//
+// The FAQ widget (templates/faq/list.phtml) is native <details>/<summary>, with no JavaScript.
+// Its disclosure triangle is the <summary>'s list-item marker, which only renders while the
+// <summary> is display: list-item. Magento's reset (.lib-magento-reset(), included by Blank and so
+// Luma) sets `summary { display: block; }`, which hides it, leaving no sign that a question opens.
+// This puts the browser's own marker back for this widget only. Hyvä doesn't compile these files,
+// and its Tailwind reset keeps the marker.
+//
+// To restyle: override .mageos-seo-faq__question in your theme, e.g. `list-style: none` plus your
+// own ::before.
+
+& when (@media-common = true) {
+    .mageos-seo-faq__question {
+        cursor: pointer;
+        display: list-item;
+    }
+}

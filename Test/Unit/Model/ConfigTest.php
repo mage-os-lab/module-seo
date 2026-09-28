@@ -150,6 +150,7 @@ class ConfigTest extends TestCase
             'product robots'       => ['getRobotsProductDefault', Config::XML_ROBOTS_PRODUCT_DEFAULT],
             'category robots'      => ['getRobotsCategoryDefault', Config::XML_ROBOTS_CATEGORY_DEFAULT],
             'cms page robots'      => ['getRobotsCmsDefault', Config::XML_ROBOTS_CMS_DEFAULT],
+            'search results robots' => ['getRobotsSearchDefault', Config::XML_ROBOTS_SEARCH_DEFAULT],
             'core default robots'  => ['getRobotsCoreDefault', Config::XML_ROBOTS_CORE_DEFAULT],
             'paginated robots'     => ['getRobotsPaginated', Config::XML_ROBOTS_PAGINATED],
         ];

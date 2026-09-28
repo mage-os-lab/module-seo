@@ -124,9 +124,17 @@ class ArtAndCraftBuilderTest extends TestCase
         $this->assertSame('60cm', $schema['height']);
     }
 
-    public function testCreatorFromOverrideIsApplied(): void
+    public function testNoCreatorWithoutAnOverride(): void
     {
+        // No attribute holds the creator: enabled without an override, there is none.
+        $schema = $this->builder->build($this->product, ['creator'], []);
+        $this->assertArrayNotHasKey('creator', $schema);
+    }
+
+    public function testCreatorFromOverrideIsAPerson(): void
+    {
+        // schema.org's creator is a Person or an Organization, not text; an artist is a Person.
         $schema = $this->builder->build($this->product, ['creator'], ['creator' => 'Local Artist']);
-        $this->assertSame('Local Artist', $schema['creator']);
+        $this->assertSame(['@type' => 'Person', 'name' => 'Local Artist'], $schema['creator']);
     }
 }

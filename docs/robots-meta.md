@@ -13,11 +13,27 @@ The module controls the `<meta name="robots">` tag on product, category and CMS 
 | Product pages | *(empty — use Magento default)* | Applies to all product pages without a specific override |
 | Category pages | *(empty — use Magento default)* | Applies to all category pages without a specific override |
 | CMS pages | *(empty — use Magento default)* | Applies to all CMS pages, the home page included, without a specific override |
+| Search results pages | *(empty — use Magento default)* | Applies to quick search and advanced search results |
 
 The defaults ship empty ("Use Magento Default"): until you configure a value, Magento core's
 **Design → Search Engine Robots** setting stays in charge, so installing the module never
 re-opens a NOINDEXed environment. These are per-store-view settings — you can set a stricter
 default (e.g. `NOINDEX,FOLLOW`) on a specific store view while keeping another value globally.
+
+**Search results pages: index or crawl?** The two ways of handling internal search results do
+different jobs, and don't combine:
+
+- **`NOINDEX,FOLLOW`** here keeps result pages out of the index, while their links still lead
+  crawlers to your products. Google still fetches each result page to read the tag.
+- **A robots.txt `Disallow`** (Content → Design → Configuration → Search Engine Robots — core's
+  suggested instructions include `Disallow: /*?`) stops result pages being crawled at all, which is
+  [Google's advice for crawl budget](https://developers.google.com/search/docs/crawling-indexing/large-site-managing-crawl-budget):
+  "Don't use `noindex`, as Google will still request, but then drop the page".
+- Do one or the other for a URL: a page blocked in robots.txt is never fetched, so its robots meta
+  is never read.
+
+Paginated search results (`?p=2`) follow the same default; the Paginated Listing setting applies
+to category pages only.
 
 **Accepted values:** the dropdown offers each combination of `INDEX`/`NOINDEX` with
 `FOLLOW`/`NOFOLLOW`, each of those with `noarchive`, `INDEX,FOLLOW` with rich-preview limits
@@ -126,8 +142,8 @@ Engine Robots** value that module was modifying. Its columns on `cms_page` are l
 
 ## Resolution order
 
-Each page type resolves on its own, and the most specific setting wins. The three do not feed
-into one another — in particular, a category's override never reaches its products.
+Each page type resolves on its own, and the most specific setting wins. They do not feed into one
+another — in particular, a category's override never reaches its products.
 
 Product pages:
 
@@ -153,6 +169,12 @@ CMS pages, which form no tree:
 CMS Pages default (system config)
     ↑ overridden by
 CMS page override (mageos_seo_cms_page_config.robots_meta)
+```
+
+Search result pages, which have no per-page override:
+
+```
+Search Results Pages default (system config)
 ```
 
 Where nothing along the chain has a value — the defaults ship empty — this module writes nothing,

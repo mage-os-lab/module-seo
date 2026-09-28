@@ -145,6 +145,57 @@ class ToyBuilderTest extends TestCase
         $this->assertSame(3.0, $schema['audience']['suggestedMinAge']);
     }
 
+    public function testOverridesLandWhereTheTemplatePutsThemAndNowhereElse(): void
+    {
+        // An override for one of the template's own fields is built in the template's shape; it is
+        // not written again as a top-level property, which Product does not have.
+        $this->product->method('getAttributeText')->willReturn(false);
+        $schema = $this->builder->build(
+            $this->product,
+            ['warning', 'batteriesRequired', 'suggestedAge'],
+            ['warning' => 'Small parts', 'batteriesRequired' => 'no', 'suggestedAge' => '5']
+        );
+
+        $this->assertSame('Small parts', $this->findAdditionalProperty($schema, 'safetyWarning')['value'] ?? null);
+        $this->assertSame('No', $this->findAdditionalProperty($schema, 'batteriesRequired')['value'] ?? null);
+        $this->assertSame(5.0, $schema['audience']['suggestedMinAge'] ?? null);
+        $this->assertArrayNotHasKey('warning', $schema);
+        $this->assertArrayNotHasKey('batteriesRequired', $schema);
+        $this->assertArrayNotHasKey('suggestedAge', $schema);
+    }
+
+    public function testPlayerCountBecomesAdditionalProperty(): void
+    {
+        // Product has no player-count property.
+        $this->product->method('getData')->willReturnCallback(
+            static fn (string $key) => $key === 'player_count' ? '2-4' : null
+        );
+        $this->product->method('getAttributeText')->willReturn(false);
+        $schema = $this->builder->build($this->product, ['playerCount'], []);
+
+        $this->assertSame('2-4', $this->findAdditionalProperty($schema, 'playerCount')['value'] ?? null);
+        $this->assertArrayNotHasKey('playerCount', $schema);
+    }
+
+    public function testPlayerCountFromOverride(): void
+    {
+        $this->product->method('getAttributeText')->willReturn(false);
+        $schema = $this->builder->build($this->product, ['playerCount'], ['playerCount' => '1-6']);
+
+        $this->assertSame('1-6', $this->findAdditionalProperty($schema, 'playerCount')['value'] ?? null);
+        $this->assertArrayNotHasKey('playerCount', $schema);
+    }
+
+    public function testABrandOverrideIsABrandNode(): void
+    {
+        // Brand is one of the template's own fields, so applyOverrides() must not replace the node
+        // the template builds from the override with the raw string.
+        $this->product->method('getAttributeText')->willReturn(false);
+        $schema = $this->builder->build($this->product, ['brand'], ['brand' => 'Blockworks']);
+
+        $this->assertSame(['@type' => 'Brand', 'name' => 'Blockworks'], $schema['brand']);
+    }
+
     public function testMaterialAndColorAreTopLevel(): void
     {
         $this->product->method('getData')->willReturnCallback(

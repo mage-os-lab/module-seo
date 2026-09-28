@@ -19,6 +19,7 @@ The SEO module provides structured data (JSON-LD), Open Graph meta tags, canonic
 | [AI Discoverability (llms.txt)](llms-txt.md) | `/llms.txt`, `/llms-full.txt` and `/llms.jsonl` — what they contain | Admin / developer |
 | [Hreflang Alternates & Sitemap](hreflang.md) | Head alternates and those in `sitemap.xml` — what appears in them | Developer / SEO manager |
 | [XML Sitemap](sitemap.md) | The sitemap generator, its file layout, rebuilding on change, and how to extend it | Developer / SEO manager |
+| [UCP Profile](ucp.md) | `/.well-known/ucp` — what it declares, registering a UCP service or capability, signing keys | Developer |
 | [Pre-generated Feeds](feeds.md) | The machinery behind the three llms documents: rebuilds, caching, storage, multi-server, CLI | Developer / DevOps |
 | [Extending the Module](extending.md) | Adding providers, builders, and section content | Developer |
 
@@ -100,5 +101,6 @@ All paths live under `mageos_seo_general/`:
 | `mageos_seo_general/llms_txt/full_enabled` | 1 | Serve /llms-full.txt |
 | `mageos_seo_general/robots_meta/product_default` | *(empty)* | Default for product pages (empty = Magento's Design → Search Engine Robots setting) |
 | `mageos_seo_general/robots_meta/category_default` | *(empty)* | Default for category pages (empty = Magento's Design → Search Engine Robots setting) |
+| `mageos_seo_general/robots_meta/search_default` | *(empty)* | Default for search result pages, quick and advanced (empty = Magento's Design → Search Engine Robots setting). See [robots-meta.md](robots-meta.md#global-defaults) on robots meta against robots.txt |
 
 All paths support store-view and website scope except `has_variant_max`, which is global only.

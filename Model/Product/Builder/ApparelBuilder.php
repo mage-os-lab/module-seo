@@ -117,6 +117,14 @@ class ApparelBuilder extends AbstractBuilder
             }
         }
 
+        // Read as GenericProductBuilder reads it: the override, else the weight or rs_weight attribute.
+        if (\in_array('weight', $enabledFields, true)) {
+            $weight = $overrides['weight'] ?? $this->attr($product, 'weight') ?: $this->attr($product, 'rs_weight');
+            if ($weight !== '') {
+                $schema['weight'] = $weight;
+            }
+        }
+
         return $this->applyOverrides($schema, $overrides);
     }
 

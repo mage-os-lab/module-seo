@@ -24,8 +24,8 @@ use MageOS\Seo\Model\Product\SchemaBuilderPool;
  * without coupling this class to those modules.
  *
  * The locale is the store view's configured one (Config::getLocaleCode()); the line is left out
- * when there is none. The AI contact is Organisation\ContactEmail's, which ai-plugin.json shares;
- * the section is left out when there is none.
+ * when there is none. The AI contact is Organisation\ContactEmail's; the section is left out when
+ * there is none.
  */
 class LlmsTxtBuilder
 {

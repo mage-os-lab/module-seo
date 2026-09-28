@@ -1,6 +1,6 @@
 # MageOS_Seo
 
-A comprehensive Magento 2 **SEO + AEO + GEO** module: JSON-LD structured data, Open Graph / Twitter meta, canonical & robots management, hreflang, FAQ rich results, answer-engine identity (LocalBusiness / Article / Event / Speakable), and generative/agentic discoverability via `/llms.txt`, `/llms.jsonl`, AI-crawler robots directives, and `/.well-known/` manifests (UCP, ai-plugin.json, security.txt).
+A comprehensive Magento 2 **SEO + AEO + GEO** module: JSON-LD structured data, Open Graph / Twitter meta, canonical & robots management, hreflang, FAQ rich results, answer-engine identity (LocalBusiness / Article / Event / Speakable), and generative/agentic discoverability via `/llms.txt`, `/llms.jsonl`, AI-crawler robots directives, and `/.well-known/` manifests (UCP, security.txt).
 
 Every cross-cutting concern is built as an **extensible provider pool** — a second module contributes a provider through its own `di.xml` without ever editing this module.
 
@@ -26,7 +26,7 @@ Every cross-cutting concern is built as an **extensible provider pool** — a se
 
 ### Meta & crawl control
 
-- **Open Graph + Twitter** — og:title/description/image/type/site_name/locale and twitter:card on product, category, and site pages.
+- **Open Graph + Twitter** — og:title/description/image/type/site_name/locale on product, category, and site pages, and the matching X card tags: `summary_large_image` or `summary` by whether the page has an image, with the title, description and image repeated as `twitter:*`.
 - **Canonical URL management** — automatic canonicals on product, category, CMS, and home pages; deduplicates if one is already present.
 - **Robots meta pool** — global INDEX/FOLLOW defaults for product, category, **and CMS** pages, overridable per category/product, plus a pagination provider for `?p=N` pages and enriched directives (`max-snippet`, `max-image-preview`, `noarchive`, `noai`, …).
 
@@ -45,7 +45,7 @@ Every cross-cutting concern is built as an **extensible provider pool** — a se
 - **`/llms.txt`** (concise) and **`/llms-full.txt`** (extended, with category tree) for LLM crawlers.
 - **`/llms.jsonl`** — NDJSON product catalogue feed for AI catalogue consumers (off by default).
 - **AI-crawler robots directives** — per-user-agent Allow/Disallow blocks appended to `robots.txt` for 14 known AI crawlers (off by default).
-- **`/.well-known/` registry** — `ucp` (Universal Commerce Protocol profile), `ai-plugin.json`, and `security.txt`, all served through a pluggable endpoint registry; ECDSA P-256 signing-key generation via CLI.
+- **`/.well-known/` registry** — `ucp` (Universal Commerce Protocol business profile) and `security.txt`, both served through a pluggable endpoint registry; ECDSA P-256 signing-key generation via CLI.
 
 ---
 
@@ -106,7 +106,7 @@ Without a Name and URL saved, the Organization node in JSON-LD will render with 
 | Open Graph Tags | Enable OG/Twitter tags | Yes |
 | Structured Data (JSON-LD) | Master switch, default product template, ItemList toggle & max, most variants per configurable product, aggregate rating | Yes / GenericProduct |
 | AI Discoverability | `/llms.txt`, `/llms-full.txt`, `/llms.jsonl`, FAQ groups in the llms documents | Yes / Yes / **No** / `global` |
-| Robots Meta | Product / category / **CMS** defaults, pagination policy | *(empty — Magento default applies)* |
+| Robots Meta | Product / category / **CMS** / search results defaults, pagination policy | *(empty — Magento default applies)* |
 | Hreflang | Enable, language-only, sitemap | Yes |
 | Answer Engine (AEO) | Speakable toggle + CSS selectors | No |
 | AI Crawler robots.txt | Append directives, disallow list | **No** / CCBot,Bytespider |
@@ -123,10 +123,8 @@ Without a Name and URL saved, the Organization node in JSON-LD will render with 
 
 | Group | Purpose | Default |
 | --- | --- | --- |
-| UCP Profile | Serve `/.well-known/ucp` + merchant id/name | Off |
-| Capabilities | Advertise catalog/cart/checkout/identity/order APIs | All off |
+| UCP Profile | Serve `/.well-known/ucp`, declaring what installed modules register ([docs/ucp.md](docs/ucp.md)) | Off |
 | Signing Keys | Public JWK + encrypted private key (set by keygen CLI) | — |
-| AI Plugin Manifest | Serve `/.well-known/ai-plugin.json` | Off |
 | security.txt | Serve `/.well-known/security.txt` (RFC 9116) | Off |
 
 ---
@@ -147,6 +145,8 @@ Manage FAQs under **Marketing > SEO > FAQ Manager**. Each FAQ set has an identif
 - **Page Builder** — drop the native *FAQ* content type into any Page Builder stage.
 
 Both render the same theme-agnostic `<details>/<summary>` markup (no JS) and feed a single request-scoped collector, so the emitted `FAQPage` JSON-LD always matches the visible questions — even under full-page / block cache.
+
+Each question shows the browser's own open/close triangle. Magento's LESS reset hides it on Luma and Blank (`summary { display: block; }`), so the module's `view/frontend/web/css/source/_module.less` puts it back for `.mageos-seo-faq__question` only. Hyvä's Tailwind reset keeps it without help. To restyle, override `.mageos-seo-faq__question` in your theme.
 
 The groups selected under **AI Discoverability → FAQ Groups** (default `global`) also go into `/llms.txt` and `/llms-full.txt` — see [docs/llms-txt.md](docs/llms-txt.md#faq-section).
 
@@ -173,8 +173,7 @@ A pluggable endpoint registry serves agentic-discovery manifests (all off by def
 
 | URL | Purpose |
 | --- | --- |
-| `/.well-known/ucp` | Universal Commerce Protocol profile — merchant identity, transports, advertised capabilities, public signing keys |
-| `/.well-known/ai-plugin.json` | OpenAI-style plugin manifest pointing at Magento's REST schema |
+| `/.well-known/ucp` | Universal Commerce Protocol business profile (UCP 2026-08-25): the services and capabilities installed modules register — none by default — and the public signing keys. See [docs/ucp.md](docs/ucp.md) |
 | `/.well-known/security.txt` | RFC 9116 security contact disclosure |
 
 ### Generate UCP signing keys
@@ -184,7 +183,7 @@ bin/magento mageos:seo:ucp:keygen --website=1
 bin/magento cache:flush config
 ```
 
-This generates an ECDSA P-256 keypair, stores the private key **encrypted**, and stores/prints the public JWK. The private key is never printed and the served manifest is guaranteed never to contain it.
+This generates an ECDSA P-256 keypair, stores the private key **encrypted**, and stores/prints the public JWK, which the profile publishes in `keys`. The private key is never printed, and a stored key carrying private material makes the endpoint answer 500 rather than serve it.
 
 ---
 
@@ -238,7 +237,8 @@ Every cross-cutting concern is a provider pool wired via `di.xml`, so another mo
 | llms.txt section providers | `SectionProviderInterface` | collect-all |
 | llms.jsonl line providers | `JsonlLineProviderInterface` | collect-all |
 | Well-known endpoints | `WellKnownEndpointInterface` | by path segment |
-| UCP capability providers | `UcpCapabilityProviderInterface` | collect-all |
+| UCP capability providers | `UcpCapabilityProviderInterface` | collect-all, grouped by name ([docs/ucp.md](docs/ucp.md)) |
+| UCP service providers | `UcpServiceProviderInterface` | collect-all, one per transport binding |
 
 Example — add a robots-meta provider for blog pages from your module's `di.xml`:
 

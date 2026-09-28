@@ -261,6 +261,25 @@ class ApparelBuilderTest extends TestCase
         $this->assertArrayNotHasKey('size', $schema);
     }
 
+    public function testBuildWeightFromAttributeWhenEnabled(): void
+    {
+        $this->withInStock();
+        $this->product->method('getData')->willReturnCallback(
+            fn (string $key) => $key === 'weight' ? '0.2' : null
+        );
+        $this->product->method('getAttributeText')->willReturn(false);
+        $schema = $this->builder->build($this->product, ['weight'], []);
+        $this->assertSame('0.2', $schema['weight'] ?? null);
+    }
+
+    public function testBuildWeightFromOverride(): void
+    {
+        $this->withInStock();
+        $this->product->method('getAttributeText')->willReturn(false);
+        $schema = $this->builder->build($this->product, ['weight'], ['weight' => '250 g']);
+        $this->assertSame('250 g', $schema['weight'] ?? null);
+    }
+
     public function testBuildMaterialFromAttributeWhenEnabled(): void
     {
         $this->withInStock();

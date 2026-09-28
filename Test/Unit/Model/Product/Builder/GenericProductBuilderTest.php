@@ -342,12 +342,13 @@ class GenericProductBuilderTest extends TestCase
         $this->assertArrayNotHasKey('brand', $schema);
     }
 
-    public function testBuildBrandOverrideSetsSchemaKeyDirectly(): void
+    public function testABrandOverrideIsABrandNode(): void
     {
-        // applyOverrides() sets schema['brand'] to the plain string value from overrides.
+        // The template builds the Brand node from the override; applyOverrides() leaves the
+        // template's own fields alone rather than replacing that node with the raw string.
         $this->availabilityResolver->method('resolve')->willReturn(AvailabilityResolver::IN_STOCK);
         $schema = $this->builder->build($this->product, ['brand'], ['brand' => 'Override Brand']);
-        $this->assertSame('Override Brand', $schema['brand']);
+        $this->assertSame(['@type' => 'Brand', 'name' => 'Override Brand'], $schema['brand']);
     }
 
     public function testBuildGtin13IncludedWhenFieldEnabledAndValueValid(): void
@@ -402,6 +403,53 @@ class GenericProductBuilderTest extends TestCase
         $this->availabilityResolver->method('resolve')->willReturn(AvailabilityResolver::IN_STOCK);
         $schema = $this->builder->build($this->product, [], ['name' => 'Overridden Name']);
         $this->assertSame('Overridden Name', $schema['name']);
+    }
+
+    public function testAKeyTheTemplateDoesNotListIsStillSetAfterOneItDoes(): void
+    {
+        // Skipping the template's own field must not stop the keys after it.
+        $this->availabilityResolver->method('resolve')->willReturn(AvailabilityResolver::IN_STOCK);
+        $schema = $this->builder->build(
+            $this->product,
+            ['brand'],
+            ['brand' => 'Override Brand', 'name' => 'Overridden Name']
+        );
+        $this->assertSame('Overridden Name', $schema['name']);
+    }
+
+    public function testAGtinOverrideUnderAKeyNoTemplateListsIsValidated(): void
+    {
+        $this->availabilityResolver->method('resolve')->willReturn(AvailabilityResolver::IN_STOCK);
+
+        $valid = $this->builder->build($this->product, [], ['gtin' => '5901234123457']);
+        $this->assertSame('5901234123457', $valid['gtin13'] ?? null);
+        $this->assertArrayNotHasKey('gtin', $valid);
+
+        $invalid = $this->builder->build($this->product, [], ['gtin' => '5901234123450']);
+        $this->assertArrayNotHasKey('gtin', $invalid);
+        $this->assertArrayNotHasKey('gtin13', $invalid);
+    }
+
+    public function testAGtinOverrideDoesNotStopTheKeysAfterIt(): void
+    {
+        $this->availabilityResolver->method('resolve')->willReturn(AvailabilityResolver::IN_STOCK);
+        $schema = $this->builder->build(
+            $this->product,
+            [],
+            ['gtin' => '5901234123457', 'name' => 'Overridden Name']
+        );
+
+        $this->assertSame('5901234123457', $schema['gtin13'] ?? null);
+        $this->assertSame('Overridden Name', $schema['name']);
+    }
+
+    public function testANumericGtinOverrideIsValidatedLikeAString(): void
+    {
+        // A caller building overrides in code may pass the barcode as a number.
+        $this->availabilityResolver->method('resolve')->willReturn(AvailabilityResolver::IN_STOCK);
+        $schema = $this->builder->build($this->product, [], ['gtin' => 5901234123457]);
+
+        $this->assertSame('5901234123457', $schema['gtin13'] ?? null);
     }
 
     public function testBuildOverridesDoNotApplyNullValues(): void

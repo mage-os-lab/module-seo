@@ -383,6 +383,8 @@
                       xsi:type="object">MageOS\Seo\Model\RobotsMeta\Provider\CategoryRobotsProvider</item>
                 <item name="cmsPage"
                       xsi:type="object">MageOS\Seo\Model\RobotsMeta\Provider\CmsPageRobotsProvider</item>
+                <item name="searchResults"
+                      xsi:type="object">MageOS\Seo\Model\RobotsMeta\Provider\SearchResultsRobotsProvider</item>
                 <!-- Paginated listing pages (?p=N) — higher sortOrder wins over category default -->
                 <item name="catalogPagination"
                       xsi:type="object">MageOS\Seo\Model\RobotsMeta\Provider\CatalogPaginationRobotsProvider</item>
@@ -433,8 +435,6 @@
         <arguments>
             <argument name="endpoints" xsi:type="array">
                 <item name="ucp" xsi:type="object">MageOS\Seo\Model\WellKnown\Endpoint\UcpEndpoint</item>
-                <item name="ai-plugin.json"
-                xsi:type="object">MageOS\Seo\Model\WellKnown\Endpoint\AiPluginEndpoint</item>
                 <item name="security.txt"
                 xsi:type="object">MageOS\Seo\Model\WellKnown\Endpoint\SecurityTxtEndpoint</item>
             </argument>

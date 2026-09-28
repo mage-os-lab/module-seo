@@ -109,6 +109,22 @@ class CmsPageOutputTest extends AbstractController
     }
 
     /**
+     * A page without an image gets the summary card, not the large-image one, and its title for X.
+     *
+     * @return void
+     */
+    public function testACmsPageWithoutAnImageGetsASummaryCard(): void
+    {
+        $page = $this->page('mageos-seo-card-' . uniqid(), 'MageOS SEO Card');
+
+        $body = $this->rendered('cms/page/view/page_id/' . $page->getId());
+
+        $this->assertSame('summary', $this->twitterTag('twitter:card', $body));
+        $this->assertSame('MageOS SEO Card', $this->twitterTag('twitter:title', $body));
+        $this->assertSame('', $this->twitterTag('twitter:image', $body));
+    }
+
+    /**
      * The home action at a path of its own runs the same code with the same content, but the page
      * at that URL is not the home page.
      *
@@ -239,6 +255,20 @@ class CmsPageOutputTest extends AbstractController
     private function ogTitle(string $body): string
     {
         return preg_match('#<meta property="og:title"\s+content="([^"]*)"#', $body, $match) === 1
+            ? html_entity_decode($match[1])
+            : '';
+    }
+
+    /**
+     * An X card tag's content, or '' when the page has none.
+     *
+     * @param string $name
+     * @param string $body
+     * @return string
+     */
+    private function twitterTag(string $name, string $body): string
+    {
+        return preg_match('#<meta name="' . preg_quote($name, '#') . '"\s+content="([^"]*)"#', $body, $match) === 1
             ? html_entity_decode($match[1])
             : '';
     }

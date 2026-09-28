@@ -94,8 +94,9 @@ class ArtAndCraftBuilder extends AbstractBuilder
         }
 
         // creator — only from the category or product override; no attribute holds it
+        // schema.org's creator is a Person or an Organization, never text; an artist is a Person.
         if (\in_array('creator', $enabledFields, true) && !empty($overrides['creator'])) {
-            $schema['creator'] = $overrides['creator'];
+            $schema['creator'] = ['@type' => 'Person', 'name' => (string) $overrides['creator']];
         }
 
         return $this->applyOverrides($schema, $overrides);

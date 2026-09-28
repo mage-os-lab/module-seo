@@ -108,6 +108,14 @@ class ToyBuilder extends AbstractBuilder
             }
         }
 
+        // Product has no player-count property either.
+        if (\in_array('playerCount', $enabledFields, true)) {
+            $players = $overrides['playerCount'] ?? $this->attr($product, 'player_count');
+            if ($players !== '') {
+                $schema = $this->addAdditionalProperty($schema, 'playerCount', $players);
+            }
+        }
+
         return $this->applyOverrides($schema, $overrides);
     }
 }

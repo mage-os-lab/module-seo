@@ -72,7 +72,6 @@ class SimpleProductOutputTest extends AbstractController
                 '<meta name="format-detection" content="telephone=no"/>',
                 '<meta property="og:site_name"' . $break . 'content="Default Store View"/>',
                 '<meta property="og:locale"' . $break . 'content="en_US"/>',
-                '<meta name="twitter:card"' . $break . 'content="summary_large_image"/>',
                 '<meta property="og:type"' . $break . 'content="product"/>',
                 '<meta property="og:title"' . $break . 'content="MageOS SEO Simple"/>',
                 '<meta property="og:url"' . $break . 'content="' . $url . '"/>',
@@ -81,6 +80,11 @@ class SimpleProductOutputTest extends AbstractController
                 '<meta property="product:price:amount"' . $break . 'content="12.50"/>',
                 '<meta property="product:price:currency"' . $break . 'content="USD"/>',
                 '<meta property="product:availability"' . $break . 'content="instock"/>',
+                // The X card, decided after every provider's tags: the page has an og:image.
+                '<meta name="twitter:card"' . $break . 'content="summary_large_image"/>',
+                '<meta name="twitter:title"' . $break . 'content="MageOS SEO Simple"/>',
+                '<meta name="twitter:image"' . $break . 'content="http://localhost/static/VERSION/frontend/Magento/'
+                    . 'luma/en_US/Magento_Catalog/images/product/placeholder/image.jpg"/>',
             ],
             $this->metaTags($body),
             'Meta tags'
