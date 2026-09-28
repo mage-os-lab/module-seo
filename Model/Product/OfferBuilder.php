@@ -7,7 +7,6 @@ namespace MageOS\Seo\Model\Product;
 use Magento\Catalog\Api\Data\ProductInterface;
 use Magento\Framework\Stdlib\DateTime\DateTime;
 use Magento\Store\Model\StoreManagerInterface;
-use MageOS\Seo\Model\Config;
 use MageOS\Seo\Model\Product\OfferEnricher\Pool as OfferEnricherPool;
 use MageOS\Seo\Model\Product\Variant\ChildProducts;
 use MageOS\Seo\Service\CurrencyService;
@@ -31,7 +30,6 @@ class OfferBuilder
      * @param StoreManagerInterface $storeManager
      * @param CurrencyService $currencyService
      * @param AvailabilityResolver $availabilityResolver
-     * @param Config $seoConfig
      * @param DateTime $dateTime
      * @param OfferEnricherPool $offerEnricherPool
      * @param ChildProducts $childProducts
@@ -40,7 +38,6 @@ class OfferBuilder
         private readonly StoreManagerInterface $storeManager,
         private readonly CurrencyService       $currencyService,
         private readonly AvailabilityResolver  $availabilityResolver,
-        private readonly Config                $seoConfig,
         private readonly DateTime              $dateTime,
         private readonly OfferEnricherPool     $offerEnricherPool,
         private readonly ChildProducts         $childProducts
@@ -156,10 +153,13 @@ class OfferBuilder
     }
 
     /**
-     * Resolve priceValidUntil
+     * Resolve priceValidUntil: a special price's end date, and nothing made up.
      *
-     * Resolve priceValidUntil: the real special-price end date when one is active,
-     * otherwise a synthetic "today + N months" window (omitted when N is 0).
+     * The date is published only when the catalogue has one: the product has a special price, and
+     * its special_to_date is today or later in the store's time. special_to_date is inclusive — the
+     * special price holds for the whole of that day — so a price ending today still has it. Without
+     * both there is no date: a synthetic "N months from today" would promise a validity nothing
+     * backs, and Google accepts an Offer without one.
      *
      * @param ProductInterface $product
      * @return string|null ISO 8601 date string (Y-m-d), or null to omit the property
@@ -167,22 +167,16 @@ class OfferBuilder
     private function getPriceValidUntil(ProductInterface $product): ?string
     {
         /** @var \Magento\Catalog\Model\Product $product */
-        $specialTo = substr((string) $product->getData('special_to_date'), 0, 10);
-        $today     = $this->dateTime->date('Y-m-d');
-        if ($specialTo !== '' && $specialTo >= $today) {
-            return $specialTo;
-        }
-
-        $storeId = (int) $this->storeManager->getStore()->getId();
-        $months  = $this->seoConfig->getPriceValidUntilMonths($storeId);
-        if ($months <= 0) {
-            // Merchants set 0 to omit the synthetic date rather than promise
-            // a price validity that has no basis in real pricing data.
+        $specialPrice = $product->getData('special_price');
+        if ($specialPrice === null || $specialPrice === '') {
             return null;
         }
 
+        $specialTo = substr((string) $product->getData('special_to_date'), 0, 10);
         // Store-timezone-aware (Stdlib DateTime::date applies the store offset).
-        return $this->dateTime->date('Y-m-d', "+{$months} months");
+        $today = $this->dateTime->date('Y-m-d');
+
+        return $specialTo !== '' && $specialTo >= $today ? $specialTo : null;
     }
 
     /**

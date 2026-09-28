@@ -105,7 +105,6 @@ class ApparelBuilderTest extends TestCase
         $this->product->method('getId')->willReturn(10);
         $this->product->method('getProductUrl')->willReturn('https://example.com/blue-tshirt');
         $this->product->method('getMediaGalleryImages')->willReturn(null);
-        $this->seoConfig->method('getPriceValidUntilMonths')->willReturn(3);
         $this->imageHelper->method('init')->willReturnSelf();
         $this->imageHelper->method('getUrl')->willReturn('');
 
@@ -117,7 +116,6 @@ class ApparelBuilderTest extends TestCase
                 $this->storeManager,
                 $this->currencyService,
                 $this->availabilityResolver,
-                $this->seoConfig,
                 $this->dateTime,
                 new OfferEnricherPool()
             ),

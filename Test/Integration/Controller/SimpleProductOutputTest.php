@@ -36,8 +36,7 @@ class SimpleProductOutputTest extends AbstractController
         $body = $this->productPage('product');
         $url  = 'http://localhost/index.php/' . self::SKU . '.html';
 
-        $node           = $this->productNode($body);
-        $node['offers'] = $this->withoutPriceValidUntil($node['offers'] ?? []);
+        $node = $this->productNode($body);
 
         $this->assertSame(
             [

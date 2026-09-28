@@ -16,7 +16,6 @@ class Config
     public const XML_SD_CATEGORY_ITEM_LIST_ENABLED = 'mageos_seo_general/structured_data/category_item_list_enabled';
     public const XML_SD_CATEGORY_ITEM_LIST_MAX     = 'mageos_seo_general/structured_data/category_item_list_max';
     public const XML_SD_HAS_VARIANT_MAX            = 'mageos_seo_general/structured_data/has_variant_max';
-    public const XML_SD_PRICE_VALID_UNTIL_MONTHS   = 'mageos_seo_general/structured_data/price_valid_until_months';
     public const XML_SD_AGGREGATE_RATING_ENABLED   = 'mageos_seo_general/structured_data/aggregate_rating_enabled';
 
     public const XML_CATEGORY_INHERITANCE_STRATEGY = 'mageos_seo_general/category_config/inheritance_strategy';
@@ -178,21 +177,6 @@ class Config
         }
 
         return max(0, (int) $value);
-    }
-
-    /**
-     * Return the number of months used to calculate priceValidUntil.
-     *
-     * @param int|string|null $storeId
-     * @return int
-     */
-    public function getPriceValidUntilMonths(int|string|null $storeId = null): int
-    {
-        return max(1, (int) $this->scopeConfig->getValue(
-            self::XML_SD_PRICE_VALID_UNTIL_MONTHS,
-            ScopeInterface::SCOPE_STORE,
-            $storeId
-        ));
     }
 
     /**

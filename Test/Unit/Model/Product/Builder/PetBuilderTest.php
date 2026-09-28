@@ -60,7 +60,6 @@ class PetBuilderTest extends TestCase
         $this->product->method('getId')->willReturn(24);
         $this->product->method('getProductUrl')->willReturn('https://example.com/dog-chew');
         $this->product->method('getMediaGalleryImages')->willReturn(null);
-        $seoConfig->method('getPriceValidUntilMonths')->willReturn(3);
         $imageHelper->method('init')->willReturnSelf();
         $imageHelper->method('getUrl')->willReturn('');
         $availability->method('resolve')->willReturn(AvailabilityResolver::IN_STOCK);
@@ -73,7 +72,6 @@ class PetBuilderTest extends TestCase
                 $storeManager,
                 $currencyService,
                 $availability,
-                $seoConfig,
                 $this->createMock(DateTime::class),
                 new OfferEnricherPool()
             ),

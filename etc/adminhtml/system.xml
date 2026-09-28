@@ -57,13 +57,6 @@ Default: GenericProduct.</comment>
                     <comment>A configurable product with up to this many sellable children is described as a ProductGroup, each child a variant with its own offer. One with more is a single Product with an AggregateOffer over its whole price range, rather than a list cut short. 0 describes every configurable that way. Each variant costs a salability check on an uncached product page. Default: 50.</comment>
                     <validate>validate-digits</validate>
                 </field>
-                <field id="price_valid_until_months" translate="label comment" type="text"
-                       sortOrder="60" showInDefault="1" showInWebsite="1" showInStore="1">
-                    <label>Price Valid Until (months)</label>
-                    <comment>Months from today to use as priceValidUntil when a product has no active
-special-price end date (which always wins). Set 0 to omit the synthetic date entirely. Default: 12.</comment>
-                    <validate>validate-digits</validate>
-                </field>
                 <field id="aggregate_rating_enabled" translate="label comment" type="select"
                        sortOrder="70" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Enable AggregateRating</label>

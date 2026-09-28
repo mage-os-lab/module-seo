@@ -189,15 +189,6 @@ class ConfigTest extends TestCase
         $this->assertSame(1, $this->config([$path => '-5'])->getCategoryItemListMax(self::STORE_ID));
     }
 
-    public function testThePriceValidUntilMonths(): void
-    {
-        // Only the uncontested case: what 0 should mean is O6's question.
-        $path = Config::XML_SD_PRICE_VALID_UNTIL_MONTHS;
-
-        $this->assertSame(6, $this->config([$path => '6'])->getPriceValidUntilMonths(self::STORE_ID));
-        $this->assertSame([$path, ScopeInterface::SCOPE_STORE, self::STORE_ID], end($this->reads));
-    }
-
     public function testTheInheritanceStrategyIsReadAtDefaultScopeWithADefault(): void
     {
         $path = Config::XML_CATEGORY_INHERITANCE_STRATEGY;

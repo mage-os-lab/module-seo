@@ -102,7 +102,6 @@ class ConfigurableProductOutputTest extends AbstractController
             $this->assertNotSame('', $size, $sku . ' has a size');
 
             $variant = $bySku[$sku];
-            $variant['offers'] = $this->withoutPriceValidUntil($variant['offers'] ?? []);
 
             $this->assertSame(
                 [
@@ -212,7 +211,7 @@ class ConfigurableProductOutputTest extends AbstractController
                 'availability'  => 'https://schema.org/InStock',
                 'itemCondition' => 'https://schema.org/NewCondition',
             ],
-            $this->withoutPriceValidUntil($node['offers'] ?? [])
+            $node['offers'] ?? []
         );
     }
 
@@ -311,7 +310,7 @@ class ConfigurableProductOutputTest extends AbstractController
                 'highPrice'     => $high,
                 'itemCondition' => 'https://schema.org/NewCondition',
             ],
-            $this->withoutPriceValidUntil($node['offers'] ?? [])
+            $node['offers'] ?? []
         );
     }
 

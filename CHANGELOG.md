@@ -78,6 +78,10 @@ become public contract.
 
 ### Removed
 
+- **Structured Data → Price Valid Until (months)** (`mageos_seo_general/structured_data/price_valid_until_months`),
+  with `Model\Config::getPriceValidUntilMonths()` and `Config::XML_SD_PRICE_VALID_UNTIL_MONTHS`: no
+  synthetic `priceValidUntil` is made any more (see Changed). Its "0 omits the date" never worked —
+  the value was read as at least 1 month. Values already saved stay in `core_config_data`, unread.
 - `Model\Ucp\UcpConfig::getSupportEmail()` and `UcpConfig::XML_SUPPORT_EMAIL`. ai-plugin.json's
   contact comes from `Model\Organisation\ContactEmail` (see Fixed).
 
@@ -109,6 +113,8 @@ become public contract.
 
 ### Fixed
 
+- A product with a `special_to_date` but no special price published that date as its offer's
+  `priceValidUntil`. It now needs a special price with a value (see Changed).
 - `/llms.txt` and `/llms-full.txt` printed an empty `> Locale:` line: the store view's locale was
   read from `Store::getLocaleCode()`, which does not exist and fell through to empty data. It is
   now **General → Locale Options → Locale** for the store view, and the line is left out when there
@@ -270,9 +276,8 @@ become public contract.
 - JSON-LD / Open Graph prices are converted to the display currency before being
   paired with the display currency code (previously base-currency amounts were
   labelled with the display code).
-- `priceValidUntil` prefers an active `special_to_date`; the synthetic
-  "today + N months" window is store-timezone-aware and can be disabled by
-  configuring 0 months. `itemCondition` is no longer hardcoded to NewCondition
+- `priceValidUntil` comes only from a special price's end date (see Changed).
+  `itemCondition` is no longer hardcoded to NewCondition
   (the configurable ItemConditionEnricher supplies it). Backorderable
   out-of-stock products emit `BackOrder` availability.
 - GTIN values are validated (length + GS1 check digit) and emitted under the
@@ -308,6 +313,13 @@ become public contract.
 
 ### Changed
 
+- An offer's `priceValidUntil` is a special price's end date and nothing else: published when the
+  product has a special price and its `special_to_date` is today or later in store time
+  (inclusive). The synthetic date, "today plus N months", is gone — it promised a validity nothing
+  in the store backed — so an offer without a special price, or one without an end date, has no
+  `priceValidUntil`. A `special_to_date` without a special price no longer publishes a date either.
+  **`Model\Product\OfferBuilder`'s constructor** no longer takes `Config`. Another source of dates
+  plugs in as an `Api\OfferEnricherInterface`. See `docs/structured-data.md#an-offers-pricevaliduntil`.
 - A store view's locale is read in one place, `Model\Config::getLocaleCode()`, by hreflang,
   `og:locale` and the llms documents. Constructors changed with it: `Hreflang\StoreLocaleMap` and
   `MetaTag\Provider\SiteMetaProvider` no longer take `ScopeConfigInterface`; `LlmsTxtBuilder` takes

@@ -12,7 +12,6 @@
                 <category_item_list_enabled>1</category_item_list_enabled>
                 <category_item_list_max>36</category_item_list_max>
                 <has_variant_max>50</has_variant_max>
-                <price_valid_until_months>12</price_valid_until_months>
                 <aggregate_rating_enabled>1</aggregate_rating_enabled>
             </structured_data>
             <category_config>

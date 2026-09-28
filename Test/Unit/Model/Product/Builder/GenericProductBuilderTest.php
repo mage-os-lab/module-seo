@@ -110,7 +110,6 @@ class GenericProductBuilderTest extends TestCase
         // getMediaGalleryImages and imageHelper->getUrl() are NOT stubbed in setUp:
         // tests that need specific values configure them individually to avoid
         // PHPUnit 10's first-match-wins stub ordering issue.
-        $this->seoConfig->method('getPriceValidUntilMonths')->willReturn(3);
         $this->imageHelper->method('init')->willReturnSelf();
 
         $this->builder = new GenericProductBuilder(
@@ -121,7 +120,6 @@ class GenericProductBuilderTest extends TestCase
                 $this->storeManager,
                 $this->currencyService,
                 $this->availabilityResolver,
-                $this->seoConfig,
                 $this->dateTime,
                 new OfferEnricherPool()
             ),
@@ -413,49 +411,25 @@ class GenericProductBuilderTest extends TestCase
         $this->assertSame('Test Widget', $schema['name']);
     }
 
-    public function testBuildPriceValidUntilUsesSyntheticWindowWhenNoSpecialPrice(): void
+    public function testBuildHasNoPriceValidUntilWithoutASpecialPrice(): void
     {
+        // No date is made up: without a special price's end date there is none.
         $this->availabilityResolver->method('resolve')->willReturn(AvailabilityResolver::IN_STOCK);
-        $this->dateTime->method('date')->willReturnCallback(
-            static fn (string $format, ?string $input = null): string => $input === null ? '2026-07-10' : '2026-10-10'
-        );
+        $this->dateTime->method('date')->willReturn('2026-07-10');
         $schema = $this->builder->build($this->product, [], []);
-        $this->assertSame('2026-10-10', $schema['offers']['priceValidUntil']);
+        $this->assertArrayNotHasKey('priceValidUntil', $schema['offers']);
     }
 
-    public function testBuildPriceValidUntilPrefersActiveSpecialPriceEndDate(): void
+    public function testBuildPriceValidUntilIsTheSpecialPriceEndDate(): void
     {
         $this->availabilityResolver->method('resolve')->willReturn(AvailabilityResolver::IN_STOCK);
         $this->dateTime->method('date')->willReturn('2026-07-10');
+        $data = ['special_price' => '19.9900', 'special_to_date' => '2026-08-01 00:00:00'];
         $this->product->method('getData')->willReturnCallback(
-            static fn (string $key): ?string => $key === 'special_to_date' ? '2026-08-01 00:00:00' : null
+            static fn (string $key): ?string => $data[$key] ?? null
         );
         $schema = $this->builder->build($this->product, [], []);
         $this->assertSame('2026-08-01', $schema['offers']['priceValidUntil']);
-    }
-
-    public function testBuildOmitsPriceValidUntilWhenMonthsConfiguredZero(): void
-    {
-        $this->availabilityResolver->method('resolve')->willReturn(AvailabilityResolver::IN_STOCK);
-        $this->dateTime->method('date')->willReturn('2026-07-10');
-        $seoConfig = $this->makeConfigWithMonths(0);
-        $builder   = new GenericProductBuilder(
-            $this->storeManager,
-            $this->imageHelper,
-            $seoConfig,
-            $this->offerBuilder(
-                $this->storeManager,
-                $this->currencyService,
-                $this->availabilityResolver,
-                $seoConfig,
-                $this->dateTime,
-                new OfferEnricherPool()
-            ),
-            new AggregateRatingResolver(),
-            new GtinValidator()
-        );
-        $schema = $builder->build($this->product, [], []);
-        $this->assertArrayNotHasKey('priceValidUntil', $schema['offers']);
     }
 
     public function testBuildDoesNotHardcodeItemCondition(): void
@@ -475,15 +449,5 @@ class GenericProductBuilderTest extends TestCase
 
         $schema = $this->builder->build($this->product, [], []);
         $this->assertSame('https://schema.org/BackOrder', $schema['offers']['availability']);
-    }
-
-    /**
-     * Build a Config mock whose priceValidUntil window is the given number of months.
-     */
-    private function makeConfigWithMonths(int $months): Config&MockObject
-    {
-        $config = $this->createMock(Config::class);
-        $config->method('getPriceValidUntilMonths')->willReturn($months);
-        return $config;
     }
 }

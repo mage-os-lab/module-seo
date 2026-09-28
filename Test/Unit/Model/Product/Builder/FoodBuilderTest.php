@@ -65,7 +65,6 @@ class FoodBuilderTest extends TestCase
         $this->product->method('getId')->willReturn(20);
         $this->product->method('getProductUrl')->willReturn('https://example.com/honey');
         $this->product->method('getMediaGalleryImages')->willReturn(null);
-        $seoConfig->method('getPriceValidUntilMonths')->willReturn(3);
         $imageHelper->method('init')->willReturnSelf();
         $imageHelper->method('getUrl')->willReturn('');
         $this->availabilityResolver->method('resolve')->willReturn(AvailabilityResolver::IN_STOCK);
@@ -78,7 +77,6 @@ class FoodBuilderTest extends TestCase
                 $storeManager,
                 $currencyService,
                 $this->availabilityResolver,
-                $seoConfig,
                 $this->createMock(DateTime::class),
                 new OfferEnricherPool()
             ),

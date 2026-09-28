@@ -70,7 +70,6 @@ class AbstractBuilderEnrichmentTest extends TestCase
         $this->product->method('getSku')->willReturn('SKU-001');
         $this->product->method('getId')->willReturn(42);
         $this->product->method('getProductUrl')->willReturn('https://example.com/test-widget');
-        $this->seoConfig->method('getPriceValidUntilMonths')->willReturn(12);
 
         $finalPrice = $this->createMock(PriceInterface::class);
         $finalPrice->method('getValue')->willReturn(29.99);
@@ -108,7 +107,6 @@ class AbstractBuilderEnrichmentTest extends TestCase
                 $this->storeManager,
                 $currencyService,
                 $this->availabilityResolver,
-                $this->seoConfig,
                 $this->createMock(DateTime::class),
                 new OfferEnricherPool([$enricher])
             ),

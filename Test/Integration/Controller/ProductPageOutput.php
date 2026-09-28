@@ -53,20 +53,4 @@ trait ProductPageOutput
 
         return [];
     }
-
-    /**
-     * Assert an offer's priceValidUntil is a date and remove it, so the rest can be pinned whole.
-     *
-     * The date lies some months ahead of today: its shape is pinned, not its value.
-     *
-     * @param array<string,mixed> $offer
-     * @return array<string,mixed>
-     */
-    private function withoutPriceValidUntil(array $offer): array
-    {
-        $this->assertMatchesRegularExpression('/^\d{4}-\d{2}-\d{2}$/', $offer['priceValidUntil'] ?? '');
-        unset($offer['priceValidUntil']);
-
-        return $offer;
-    }
 }

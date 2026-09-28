@@ -60,7 +60,6 @@ class CosmeticsBuilderTest extends TestCase
         $this->product->method('getId')->willReturn(28);
         $this->product->method('getProductUrl')->willReturn('https://example.com/rose-lipstick');
         $this->product->method('getMediaGalleryImages')->willReturn(null);
-        $seoConfig->method('getPriceValidUntilMonths')->willReturn(3);
         $imageHelper->method('init')->willReturnSelf();
         $imageHelper->method('getUrl')->willReturn('');
         $availability->method('resolve')->willReturn(AvailabilityResolver::IN_STOCK);
@@ -73,7 +72,6 @@ class CosmeticsBuilderTest extends TestCase
                 $storeManager,
                 $currencyService,
                 $availability,
-                $seoConfig,
                 $this->createMock(DateTime::class),
                 new OfferEnricherPool()
             ),

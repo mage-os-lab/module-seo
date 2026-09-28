@@ -12,7 +12,6 @@ use Magento\Framework\Stdlib\DateTime\DateTime;
 use Magento\Store\Model\Store;
 use Magento\Store\Model\StoreManagerInterface;
 use MageOS\Seo\Api\OfferEnricherInterface;
-use MageOS\Seo\Model\Config;
 use MageOS\Seo\Model\Product\AvailabilityResolver;
 use MageOS\Seo\Model\Product\OfferBuilder;
 use MageOS\Seo\Model\Product\OfferEnricher\Pool as OfferEnricherPool;
@@ -34,12 +33,11 @@ class OfferBuilderTest extends TestCase
 
         $this->assertSame(
             [
-                '@type'           => 'Offer',
-                'url'             => self::URL . '?size=2',
-                'price'           => '12.50',
-                'priceCurrency'   => 'GBP',
-                'availability'    => AvailabilityResolver::IN_STOCK,
-                'priceValidUntil' => '2026-12-25',
+                '@type'         => 'Offer',
+                'url'           => self::URL . '?size=2',
+                'price'         => '12.50',
+                'priceCurrency' => 'GBP',
+                'availability'  => AvailabilityResolver::IN_STOCK,
             ],
             $offer
         );
@@ -60,18 +58,52 @@ class OfferBuilderTest extends TestCase
         $this->assertSame(['@type' => 'OfferShippingDetails'], $offer['shippingDetails']);
     }
 
-    public function testAnActiveSpecialPriceEndDateIsWhenThePriceIsValidUntil(): void
+    public function testASpecialPriceWithAFutureEndDateGivesThatDate(): void
     {
-        $offer = $this->offerBuilder()->build($this->product('simple', 12.5, '2027-01-31 00:00:00'), self::URL);
+        $offer = $this->offerBuilder()
+            ->build($this->product('simple', 12.5, '2027-01-31 00:00:00', '9.9900'), self::URL);
 
         $this->assertSame('2027-01-31', $offer['priceValidUntil']);
     }
 
-    public function testZeroMonthsLeavesPriceValidUntilOut(): void
+    public function testASpecialPriceEndingTodayStillGivesTheDate(): void
     {
-        $offer = $this->offerBuilder(months: 0)->build($this->product('simple', 12.5), self::URL);
+        // special_to_date is inclusive: the special price holds for the whole of that day.
+        $offer = $this->offerBuilder()
+            ->build($this->product('simple', 12.5, '2026-09-25 00:00:00', '9.9900'), self::URL);
+
+        $this->assertSame('2026-09-25', $offer['priceValidUntil']);
+    }
+
+    public function testWithoutASpecialPriceThereIsNoPriceValidUntil(): void
+    {
+        $offer = $this->offerBuilder()->build($this->product('simple', 12.5), self::URL);
 
         $this->assertArrayNotHasKey('priceValidUntil', $offer);
+    }
+
+    public function testASpecialPriceWithoutAnEndDateGivesNoDate(): void
+    {
+        $offer = $this->offerBuilder()->build($this->product('simple', 12.5, null, '9.9900'), self::URL);
+
+        $this->assertArrayNotHasKey('priceValidUntil', $offer);
+    }
+
+    public function testASpecialPriceWhoseEndDateHasPassedGivesNoDate(): void
+    {
+        $offer = $this->offerBuilder()
+            ->build($this->product('simple', 12.5, '2026-09-24 00:00:00', '9.9900'), self::URL);
+
+        $this->assertArrayNotHasKey('priceValidUntil', $offer);
+    }
+
+    public function testAnEndDateWithoutASpecialPriceGivesNoDate(): void
+    {
+        $offer = $this->offerBuilder()->build($this->product('simple', 12.5, '2027-01-31 00:00:00'), self::URL);
+        $empty = $this->offerBuilder()->build($this->product('simple', 12.5, '2027-01-31 00:00:00', ''), self::URL);
+
+        $this->assertArrayNotHasKey('priceValidUntil', $offer);
+        $this->assertArrayNotHasKey('priceValidUntil', $empty);
     }
 
     public function testAConfigurableWhoseChildrenDifferInPriceHasAnAggregateOffer(): void
@@ -82,13 +114,12 @@ class OfferBuilderTest extends TestCase
 
         $this->assertSame(
             [
-                '@type'           => 'AggregateOffer',
-                'url'             => self::URL,
-                'priceCurrency'   => 'GBP',
-                'availability'    => AvailabilityResolver::IN_STOCK,
-                'priceValidUntil' => '2026-12-25',
-                'lowPrice'        => '10.00',
-                'highPrice'       => '50.00',
+                '@type'         => 'AggregateOffer',
+                'url'           => self::URL,
+                'priceCurrency' => 'GBP',
+                'availability'  => AvailabilityResolver::IN_STOCK,
+                'lowPrice'      => '10.00',
+                'highPrice'     => '50.00',
             ],
             $offer
         );
@@ -131,9 +162,10 @@ class OfferBuilderTest extends TestCase
     }
 
     /**
+     * The offer builder, on 2026-09-25 in store time.
+     *
      * @param Product[] $children The configurable's sellable children
      * @param OfferEnricherInterface[] $enrichers
-     * @param int $months priceValidUntil months
      * @param float $rate Display currency per unit of base currency
      * @param ConfigurableOptionsProviderInterface|null $optionsProvider
      * @return OfferBuilder
@@ -141,7 +173,6 @@ class OfferBuilderTest extends TestCase
     private function offerBuilder(
         array $children = [],
         array $enrichers = [],
-        int $months = 3,
         float $rate = 1.0,
         ?ConfigurableOptionsProviderInterface $optionsProvider = null
     ): OfferBuilder {
@@ -159,13 +190,8 @@ class OfferBuilderTest extends TestCase
         $availability = $this->createStub(AvailabilityResolver::class);
         $availability->method('resolve')->willReturn(AvailabilityResolver::IN_STOCK);
 
-        $seoConfig = $this->createStub(Config::class);
-        $seoConfig->method('getPriceValidUntilMonths')->willReturn($months);
-
         $dateTime = $this->createStub(DateTime::class);
-        $dateTime->method('date')->willReturnCallback(
-            static fn (string $format, ?string $input = null): string => $input === null ? '2026-09-25' : '2026-12-25'
-        );
+        $dateTime->method('date')->willReturn('2026-09-25');
 
         if ($optionsProvider === null) {
             $optionsProvider = $this->createStub(ConfigurableOptionsProviderInterface::class);
@@ -176,7 +202,6 @@ class OfferBuilderTest extends TestCase
             $storeManager,
             $currencyService,
             $availability,
-            $seoConfig,
             $dateTime,
             new OfferEnricherPool($enrichers),
             new ChildProducts($optionsProvider)
@@ -184,23 +209,31 @@ class OfferBuilderTest extends TestCase
     }
 
     /**
+     * A product as loaded: its final price, and the special price attributes as the database has them.
+     *
      * @param string $typeId
      * @param float $finalPrice
      * @param string|null $specialToDate
+     * @param string|null $specialPrice
      * @return Product
      */
-    private function product(string $typeId, float $finalPrice, ?string $specialToDate = null): Product
-    {
+    private function product(
+        string $typeId,
+        float $finalPrice,
+        ?string $specialToDate = null,
+        ?string $specialPrice = null
+    ): Product {
         $price = $this->createStub(PriceInterface::class);
         $price->method('getValue')->willReturn($finalPrice);
         $priceInfo = $this->createStub(PriceInfoInterface::class);
         $priceInfo->method('getPrice')->willReturn($price);
 
+        $data    = ['special_to_date' => $specialToDate, 'special_price' => $specialPrice];
         $product = $this->createStub(Product::class);
         $product->method('getTypeId')->willReturn($typeId);
         $product->method('getPriceInfo')->willReturn($priceInfo);
         $product->method('getData')->willReturnCallback(
-            static fn (string $key = '') => $key === 'special_to_date' ? $specialToDate : null
+            static fn (string $key = '') => $data[$key] ?? null
         );
 
         return $product;

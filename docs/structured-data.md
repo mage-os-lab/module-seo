@@ -64,6 +64,32 @@ This means the product JSON-LD block always contains exactly one product node, r
 
 ---
 
+## An offer's priceValidUntil
+
+`priceValidUntil` is published only where the catalogue has the date, never made up. An offer
+carries it when both of these hold:
+
+- the product has a **special price** with a value, and
+- its **special price end date** (`special_to_date`) is today or later, in the store's time.
+
+The end date is inclusive: a special price ending today holds for the whole of that day, so the date
+is still published on its last day.
+
+In every other case there is no `priceValidUntil`: no special price, a special price without an end
+date, an end date that has passed, or an end date without a special price. Google accepts an Offer
+without one.
+
+Earlier versions filled the gap with a synthetic date, today plus **Price Valid Until (months)**.
+That date promised a validity nothing in the store backed, so it and its setting have been removed.
+Values saved for the old setting stay in `core_config_data` and are no longer read.
+
+`Model\Product\OfferBuilder` decides this for every offer, a variant's included. To publish a date
+from another source — a catalog price rule's end, a campaign calendar — register an
+`Api\OfferEnricherInterface` that returns `priceValidUntil` for the products it knows a date for.
+Enrichers are merged into the offer after it is built, so the enricher's date is the one published.
+
+---
+
 ## Configurable products
 
 A configurable product is described the way Google's [product variant guidance](https://developers.google.com/search/docs/appearance/structured-data/product-variants) asks, from the children the storefront sells: core's `ConfigurableOptionsProviderInterface`, after its filters (enabled children, and in-stock ones unless out-of-stock products are displayed).
