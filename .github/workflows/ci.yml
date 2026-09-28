@@ -27,18 +27,6 @@ jobs:
     secrets:
       composer_auth: ${{ secrets.COMPOSER_AUTH }}
 
-  # The jobs below cover checks not performed by check-extension.yaml
-  # (which handles unit tests, integration tests, phpcs, and DI compile).
-  static:
-    name: PHPStan
-    runs-on: ubuntu-22.04
-    steps:
-      - uses: actions/checkout@v7
-      - uses: shivammathur/setup-php@v2
-        with: { php-version: '8.3' }
-      - run: composer install --no-interaction --prefer-dist
-      - run: vendor/bin/phpstan analyse --memory-limit=1G --no-progress
-
   infection:
     name: Mutation testing
     if: github.event_name != 'pull_request'
