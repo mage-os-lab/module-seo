@@ -145,7 +145,7 @@ class AlternateBuilderTest extends TestCase
     {
         // A .com website sending unmatched visitors to its US store, a .co.uk one to its UK store.
         $this->config->method('getHreflangXDefaultStoreId')->willReturnCallback(
-            static fn (?int $websiteId): int => [1 => 2, 2 => 1][$websiteId] ?? 0
+            static fn (?int $websiteId): int => $websiteId === null ? 0 : ([1 => 2, 2 => 1][$websiteId] ?? 0)
         );
         $links = [$this->link('en-GB', 'https://uk/p', 1), $this->link('en-US', 'https://us/p', 2)];
 
