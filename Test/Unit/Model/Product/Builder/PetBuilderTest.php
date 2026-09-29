@@ -23,6 +23,8 @@ use PHPUnit\Framework\TestCase;
 
 class PetBuilderTest extends TestCase
 {
+    use OfferBuilders;
+
     /**
      * @var Product&MockObject
      */
@@ -58,19 +60,21 @@ class PetBuilderTest extends TestCase
         $this->product->method('getId')->willReturn(24);
         $this->product->method('getProductUrl')->willReturn('https://example.com/dog-chew');
         $this->product->method('getMediaGalleryImages')->willReturn(null);
-        $seoConfig->method('getPriceValidUntilMonths')->willReturn(3);
         $imageHelper->method('init')->willReturnSelf();
         $imageHelper->method('getUrl')->willReturn('');
         $availability->method('resolve')->willReturn(AvailabilityResolver::IN_STOCK);
 
         $this->builder = new PetBuilder(
             $storeManager,
-            $currencyService,
-            $availability,
             $imageHelper,
             $seoConfig,
-            $this->createMock(DateTime::class),
-            new OfferEnricherPool(),
+            $this->offerBuilder(
+                $storeManager,
+                $currencyService,
+                $availability,
+                $this->createMock(DateTime::class),
+                new OfferEnricherPool()
+            ),
             new AggregateRatingResolver(),
             new GtinValidator()
         );
@@ -100,7 +104,7 @@ class PetBuilderTest extends TestCase
 
     public function testBuildReturnsPlainProductType(): void
     {
-        $schema = $this->builder->build($this->product, [], [], []);
+        $schema = $this->builder->build($this->product, [], []);
         $this->assertSame('Product', $schema['@type']);
     }
 
@@ -110,7 +114,7 @@ class PetBuilderTest extends TestCase
         $this->product->method('getData')->willReturnCallback(
             static fn (string $key) => $key === 'pet_species' ? 'Dog' : null
         );
-        $schema = $this->builder->build($this->product, ['targetSpecies'], [], []);
+        $schema = $this->builder->build($this->product, ['targetSpecies'], []);
 
         $this->assertArrayNotHasKey('targetSpecies', $schema);
         $entry = $this->findAdditionalProperty($schema, 'targetSpecies');
@@ -123,7 +127,7 @@ class PetBuilderTest extends TestCase
         $this->product->method('getData')->willReturnCallback(
             static fn (string $key) => $key === 'safety_warning' ? 'Not for puppies under 6 months' : null
         );
-        $schema = $this->builder->build($this->product, ['warning'], [], []);
+        $schema = $this->builder->build($this->product, ['warning'], []);
 
         $entry = $this->findAdditionalProperty($schema, 'safetyWarning');
         $this->assertNotNull($entry);
@@ -139,7 +143,7 @@ class PetBuilderTest extends TestCase
                 default       => null,
             }
         );
-        $schema = $this->builder->build($this->product, ['material', 'color'], [], []);
+        $schema = $this->builder->build($this->product, ['material', 'color'], []);
         $this->assertSame('Rawhide', $schema['material']);
         $this->assertSame('Brown', $schema['color']);
     }
@@ -149,7 +153,7 @@ class PetBuilderTest extends TestCase
         $this->product->method('getData')->willReturnCallback(
             static fn (string $key) => $key === 'barcode' ? '5901234123450' : null
         );
-        $schema = $this->builder->build($this->product, ['gtin13'], [], []);
+        $schema = $this->builder->build($this->product, ['gtin13'], []);
         $this->assertArrayNotHasKey('gtin13', $schema);
     }
 }

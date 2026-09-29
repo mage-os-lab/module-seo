@@ -30,7 +30,10 @@ Format: keys are schema.org property names, values are the hard-coded output val
 
 This is the innermost layer — product overrides win over category overrides, which win over template defaults. Use this to correct individual products where the attribute data does not match what you want in the schema.
 
-The available properties depend on the template assigned to the product's category. Any key present in the override JSON is applied regardless of whether the field is listed in the category's enabled fields.
+The available properties depend on the template assigned to the product's category. Any key present in the override JSON is applied regardless of whether the field is listed in the category's enabled fields. How it is applied depends on the key:
+
+- **One of the template's own fields** (listed on the category's Enabled Fields) turns that field on, and the template builds it from your value in the field's proper shape — the example's `brand` becomes `{"@type": "Brand", "name": "Makers Workshop"}`, a Book's `author` a `Person`, `gender` or an age goes into `audience`, and a field with no `Product` property (a toy's `warning`, say) into `additionalProperty`.
+- **Any other key** is set on the node as given: the way to set a schema.org property the template doesn't know (`name`, `description`, …).
 
 ### Robots Meta
 

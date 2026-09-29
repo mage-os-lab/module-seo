@@ -56,6 +56,21 @@ OG tags are rendered by the `Block\MetaTags` block, which is injected into the `
 
 Each provider declares which layout handles it applies to — the compositor only calls providers whose handles match the current page.
 
+### Core's product Open Graph is removed
+
+Magento renders its own Open Graph on product pages — `catalog_product_view` pulls in
+`catalog_product_opengraph`, which adds the `opengraph.general` block: `og:type`, `og:title`,
+`og:image`, `og:description`, `og:url`, and `product:price:amount` / `product:price:currency` from
+its `opengraph.currency` child. This module emits every one of those as well, so leaving core's
+block in place put two of each tag on every product page, and a crawler meeting two `og:image`
+values chooses one itself.
+
+`MageOS\Seo\Observer\RemoveCoreOpenGraph` unsets core's block on `layout_generate_blocks_after`
+**only while this module's Open Graph output is enabled**. Switching it off under
+**Enable / disable** above hands product pages back to core's tags rather than leaving them with
+none. That dependency is why the block is removed at runtime rather than with `remove="true"` in
+layout XML, which cannot be made conditional.
+
 ---
 
 ## Caching
@@ -66,11 +81,29 @@ Meta tag output is fully FPC-cacheable. The `Block\MetaTags` block does not use 
 
 ## Twitter / X cards
 
-The module does not output `twitter:card` tags. If Twitter card markup is needed, it can be added by registering a new `MetaTagProviderInterface` provider in a bridge module. The provider would return tags like:
+Every page with an `og:title` also gets X card tags. `MetaTag\Compositor` adds them after it has
+collected every provider's tags, because the card type depends on the whole page:
+
+| The page has | Card |
+|---|---|
+| `og:title` and `og:image` | `twitter:card` = `summary_large_image` |
+| `og:title`, no image | `twitter:card` = `summary` |
+| no `og:title` (cart, checkout, account) | none |
+
+`twitter:title`, `twitter:description` and `twitter:image` repeat `og:title`, `og:description` and
+`og:image`. X [falls back to the Open Graph tags](https://developer.x.com/en/docs/x-for-websites/cards/guides/getting-started)
+when they're missing, so they aren't strictly needed there. They're published for readers that
+read only `twitter:*`.
+
+**Setting your own.** A provider that returns a `twitter:*` tag itself keeps it: the compositor adds
+only the tags a page doesn't already have. A bridge module can set a different card type (say
+`player`) or a title written for X:
 
 ```php
 return [
-    ['name' => 'twitter:card', 'content' => 'summary_large_image'],
-    ['name' => 'twitter:title', 'content' => $product->getName()],
+    ['name' => 'twitter:card', 'content' => 'player'],
+    ['name' => 'twitter:title', 'content' => $video->getTitle()],
 ];
 ```
+
+The copies follow the Open Graph tags, so turning off **Enable OG Tags** removes them too.

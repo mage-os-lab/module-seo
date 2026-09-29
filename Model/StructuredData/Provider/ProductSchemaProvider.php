@@ -4,21 +4,19 @@ declare(strict_types=1);
 
 namespace MageOS\Seo\Model\StructuredData\Provider;
 
-use Magento\Framework\App\RequestInterface;
 use Magento\Store\Model\StoreManagerInterface;
 use MageOS\Seo\Api\StructuredDataProviderInterface;
 use MageOS\Seo\Model\Catalog\CurrentEntity;
 use MageOS\Seo\Model\Category\ConfigRepository as CategoryConfigRepository;
+use MageOS\Seo\Model\Category\PathResolver as CategoryPathResolver;
 use MageOS\Seo\Model\Category\ProductOverrideRepository;
 use MageOS\Seo\Model\Config;
 use MageOS\Seo\Model\Product\SchemaBuilderPool;
 use MageOS\Seo\Model\Product\SchemaRegistry;
+use MageOS\Seo\Model\Product\Variant\ProductGroupBuilder;
 
 class ProductSchemaProvider implements StructuredDataProviderInterface
 {
-    // Request param set by MageOS_ProductVariantUrl router
-    private const VARIANT_DATA_PARAM = 'variant_slug_data';
-
     /**
      * @param CurrentEntity $currentEntity
      * @param SchemaBuilderPool $builderPool
@@ -27,17 +25,19 @@ class ProductSchemaProvider implements StructuredDataProviderInterface
      * @param ProductOverrideRepository $productOverrideRepository
      * @param StoreManagerInterface $storeManager
      * @param Config $seoConfig
-     * @param RequestInterface $request
+     * @param CategoryPathResolver $categoryPathResolver
+     * @param ProductGroupBuilder $productGroupBuilder
      */
     public function __construct(
-        private readonly CurrentEntity $currentEntity,
+        private readonly CurrentEntity             $currentEntity,
         private readonly SchemaBuilderPool         $builderPool,
         private readonly SchemaRegistry            $schemaRegistry,
         private readonly CategoryConfigRepository  $categoryConfigRepository,
         private readonly ProductOverrideRepository $productOverrideRepository,
         private readonly StoreManagerInterface     $storeManager,
         private readonly Config                    $seoConfig,
-        private readonly RequestInterface          $request
+        private readonly CategoryPathResolver      $categoryPathResolver,
+        private readonly ProductGroupBuilder       $productGroupBuilder
     ) {
     }
 
@@ -66,7 +66,11 @@ class ProductSchemaProvider implements StructuredDataProviderInterface
         // Resolve category config (template + fields) — use first assigned category
         $categoryIds  = $product->getCategoryIds();
         $categoryId   = !empty($categoryIds) ? (int) reset($categoryIds) : 0;
-        $categoryRow  = $this->categoryConfigRepository->getForCategory($categoryId, [], $storeId);
+        $categoryRow  = $this->categoryConfigRepository->getForCategory(
+            $categoryId,
+            $this->categoryPathResolver->forCategoryId($categoryId, $storeId),
+            $storeId
+        );
         $categoryRow  = $this->categoryConfigRepository->decode($categoryRow);
 
         $templateCode  = $categoryRow['schema_template'] ?? '';
@@ -84,28 +88,24 @@ class ProductSchemaProvider implements StructuredDataProviderInterface
         $productOverrideRow = $this->productOverrideRepository->getForProduct($productId, $storeId);
         $overrides = array_merge($categoryOverrides, $productOverrideRow['override_fields'] ?? []);
 
-        // Resolve variant data if a variant URL is active
-        $variantData = [];
-        $variantParam = $this->request->getParam(self::VARIANT_DATA_PARAM);
-        if (!empty($variantParam) && \is_array($variantParam)) {
-            $variantData = $variantParam;
-        }
-
         // Build schema using the appropriate builder
         $schema = $this->builderPool->build(
             $templateCode,
             $product,
             $enabledFields,
-            $overrides,
-            $variantData
+            $overrides
         );
 
         if (empty($schema)) {
             return [];
         }
 
-        // Store in the registry. The compositor reads the final registry state
-        // after all providers (including the variant enricher) have run.
+        // After the template, so what varies can come off the group whatever the template set:
+        // a configurable within has_variant_max becomes a ProductGroup of its variants.
+        $schema = $this->productGroupBuilder->build($schema, $product, $enabledFields);
+
+        // Store in the registry. The compositor reads the final registry state after every
+        // provider has run, so another module's provider can still adjust the node.
         $this->schemaRegistry->set($schema);
 
         return [];

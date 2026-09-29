@@ -6,6 +6,7 @@ namespace MageOS\Seo\Service;
 
 use Magento\Directory\Model\Currency;
 use Magento\Framework\Locale\FormatInterface;
+use \Magento\Framework\Locale\Resolver;
 use Magento\Store\Model\Store;
 use Magento\Store\Model\StoreManagerInterface;
 
@@ -17,13 +18,26 @@ use Magento\Store\Model\StoreManagerInterface;
  */
 class CurrencyService
 {
+    /**
+     * Service constructor
+     *
+     * @param StoreManagerInterface $storeManager
+     * @param Resolver $locale
+     */
     public function __construct(
-        private readonly StoreManagerInterface $storeManager
-    ) {}
+        private readonly StoreManagerInterface $storeManager,
+        private readonly Resolver $locale
+    ) {
+    }
 
     /**
+     * Get currency code
+     *
      * Get the current store's active currency code.
      * e.g. "GBP", "EUR", "USD"
+     *
+     * @param int|null $storeId
+     * @return string
      */
     public function getCurrentCurrencyCode(?int $storeId = null): string
     {
@@ -36,12 +50,16 @@ class CurrencyService
 
     /**
      * Get the current store's base currency code.
-     * e.g. "GBP" — the currency the store is configured in, regardless
+     *
+     * E.g. "GBP" — the currency the store is configured in, regardless
      * of what the customer has switched to.
      *
      * Returns an empty string when no store context can be resolved: callers all
      * run with a resolved store, so inventing a currency here would only mask a
      * broken store context with wrong data.
+     *
+     * @param int|null $storeId
+     * @return string
      */
     public function getBaseCurrencyCode(?int $storeId = null): string
     {
@@ -53,8 +71,13 @@ class CurrencyService
     }
 
     /**
-     * Get the currency symbol for the current store's active currency.
+     * Get the currency symbol
+     *
+     * Currency symbol for the current store's active currency.
      * e.g. "£", "€", "$"
+     *
+     * @param int|null $storeId
+     * @return string
      */
     public function getCurrentCurrencySymbol(?int $storeId = null): string
     {
@@ -69,6 +92,9 @@ class CurrencyService
 
     /**
      * Get the currency symbol for the store's base currency.
+     *
+     * @param int|null $storeId
+     * @return string
      */
     public function getBaseCurrencySymbol(?int $storeId = null): string
     {
@@ -82,12 +108,15 @@ class CurrencyService
     }
 
     /**
-     * Format a price value as a localised string using the current currency.
+     * Format a price
+     *
+     * Price value as a localised string using the current currency.
      * e.g. 29.99 => "£29.99"
      *
      * @param float $amount The price to format
-     * @param bool  $includeSymbol Whether to include the currency symbol
+     * @param bool $includeSymbol Whether to include the currency symbol
      * @param int|null $storeId Optional store ID, defaults to current store
+     * @return string
      */
     public function formatPrice(
         float $amount,
@@ -105,17 +134,21 @@ class CurrencyService
             );
         } catch (\Exception) {
             // Graceful fallback — symbol + 2 decimal places
-            $symbol = $includeSymbol ? $this->getCurrentCurrencySymbol($storeId) : '';
-            return $symbol . number_format($amount, 2);
+            return $this->currencyFormatter(
+                $amount,
+                $includeSymbol,
+                $this->getCurrentCurrencySymbol($storeId)
+            );
         }
     }
 
     /**
      * Format a price value using the store's base currency.
+     *
      * Useful when displaying prices that have not been converted.
      *
      * @param float $amount The price to format
-     * @param bool  $includeSymbol Whether to include the currency symbol
+     * @param bool $includeSymbol Whether to include the currency symbol
      * @param int|null $storeId Optional store ID, defaults to current store
      */
     public function formatBasePrice(
@@ -133,14 +166,22 @@ class CurrencyService
                 false
             );
         } catch (\Exception) {
-            $symbol = $includeSymbol ? $this->getBaseCurrencySymbol($storeId) : '';
-            return $symbol . number_format($amount, 2);
+            return $this->currencyFormatter(
+                $amount,
+                $includeSymbol,
+                $this->getBaseCurrencySymbol($storeId)
+            );
         }
     }
 
     /**
      * Convert an amount from the base currency to the current display currency.
+     *
      * Returns the original amount if conversion fails.
+     *
+     * @param float $amount
+     * @param int|null $storeId
+     * @return float
      */
     public function convertFromBase(float $amount, ?int $storeId = null): float
     {
@@ -156,7 +197,11 @@ class CurrencyService
     }
 
     /**
+     * Store getter
+     *
+     * @param int|null $storeId
      * @throws \Magento\Framework\Exception\NoSuchEntityException
+     * @return Store
      */
     private function getStore(?int $storeId = null): Store
     {
@@ -166,5 +211,30 @@ class CurrencyService
             : $this->storeManager->getStore();
 
         return $store;
+    }
+
+    /**
+     * currency / number formatter
+     *
+     * @param float $amount
+     * @param boolean $includeSymbol
+     * @param string $code
+     * @return string
+     */
+    private function currencyFormatter(
+        float $amount,
+        bool $includeSymbol = true,
+        string $code = ''
+    ): string
+    {
+        $localeString = $this->locale->getLocale();
+        if ($code !== '' && $includeSymbol) {
+            $fmt = new \NumberFormatter( $localeString, \NumberFormatter::CURRENCY );
+            return $fmt->formatCurrency($amount, $code);
+        } else {
+            // 
+            $fmt = new \NumberFormatter( $localeString, \NumberFormatter::DECIMAL );
+            return $fmt->format($amount);
+        }
     }
 }

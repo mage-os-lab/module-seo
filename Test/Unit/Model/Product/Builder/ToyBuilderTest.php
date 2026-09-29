@@ -23,6 +23,8 @@ use PHPUnit\Framework\TestCase;
 
 class ToyBuilderTest extends TestCase
 {
+    use OfferBuilders;
+
     /**
      * @var Product&MockObject
      */
@@ -58,19 +60,21 @@ class ToyBuilderTest extends TestCase
         $this->product->method('getId')->willReturn(25);
         $this->product->method('getProductUrl')->willReturn('https://example.com/blocks');
         $this->product->method('getMediaGalleryImages')->willReturn(null);
-        $seoConfig->method('getPriceValidUntilMonths')->willReturn(3);
         $imageHelper->method('init')->willReturnSelf();
         $imageHelper->method('getUrl')->willReturn('');
         $availability->method('resolve')->willReturn(AvailabilityResolver::IN_STOCK);
 
         $this->builder = new ToyBuilder(
             $storeManager,
-            $currencyService,
-            $availability,
             $imageHelper,
             $seoConfig,
-            $this->createMock(DateTime::class),
-            new OfferEnricherPool(),
+            $this->offerBuilder(
+                $storeManager,
+                $currencyService,
+                $availability,
+                $this->createMock(DateTime::class),
+                new OfferEnricherPool()
+            ),
             new AggregateRatingResolver(),
             new GtinValidator()
         );
@@ -109,7 +113,7 @@ class ToyBuilderTest extends TestCase
         $this->product->method('getData')->willReturnCallback(
             static fn (string $key) => $key === 'batteries_required' ? 'yes' : null
         );
-        $schema = $this->builder->build($this->product, ['batteriesRequired'], [], []);
+        $schema = $this->builder->build($this->product, ['batteriesRequired'], []);
 
         $this->assertArrayNotHasKey('batteriesRequired', $schema);
         $entry = $this->findAdditionalProperty($schema, 'batteriesRequired');
@@ -122,7 +126,7 @@ class ToyBuilderTest extends TestCase
         $this->product->method('getData')->willReturnCallback(
             static fn (string $key) => $key === 'safety_warning' ? 'Choking hazard' : null
         );
-        $schema = $this->builder->build($this->product, ['warning'], [], []);
+        $schema = $this->builder->build($this->product, ['warning'], []);
 
         $entry = $this->findAdditionalProperty($schema, 'safetyWarning');
         $this->assertNotNull($entry);
@@ -135,10 +139,61 @@ class ToyBuilderTest extends TestCase
             static fn (string $key) => $key === 'min_age' ? '3' : null
         );
         $this->product->method('getAttributeText')->willReturn(false);
-        $schema = $this->builder->build($this->product, ['suggestedAge'], [], []);
+        $schema = $this->builder->build($this->product, ['suggestedAge'], []);
 
         $this->assertSame('PeopleAudience', $schema['audience']['@type']);
         $this->assertSame(3.0, $schema['audience']['suggestedMinAge']);
+    }
+
+    public function testOverridesLandWhereTheTemplatePutsThemAndNowhereElse(): void
+    {
+        // An override for one of the template's own fields is built in the template's shape; it is
+        // not written again as a top-level property, which Product does not have.
+        $this->product->method('getAttributeText')->willReturn(false);
+        $schema = $this->builder->build(
+            $this->product,
+            ['warning', 'batteriesRequired', 'suggestedAge'],
+            ['warning' => 'Small parts', 'batteriesRequired' => 'no', 'suggestedAge' => '5']
+        );
+
+        $this->assertSame('Small parts', $this->findAdditionalProperty($schema, 'safetyWarning')['value'] ?? null);
+        $this->assertSame('No', $this->findAdditionalProperty($schema, 'batteriesRequired')['value'] ?? null);
+        $this->assertSame(5.0, $schema['audience']['suggestedMinAge'] ?? null);
+        $this->assertArrayNotHasKey('warning', $schema);
+        $this->assertArrayNotHasKey('batteriesRequired', $schema);
+        $this->assertArrayNotHasKey('suggestedAge', $schema);
+    }
+
+    public function testPlayerCountBecomesAdditionalProperty(): void
+    {
+        // Product has no player-count property.
+        $this->product->method('getData')->willReturnCallback(
+            static fn (string $key) => $key === 'player_count' ? '2-4' : null
+        );
+        $this->product->method('getAttributeText')->willReturn(false);
+        $schema = $this->builder->build($this->product, ['playerCount'], []);
+
+        $this->assertSame('2-4', $this->findAdditionalProperty($schema, 'playerCount')['value'] ?? null);
+        $this->assertArrayNotHasKey('playerCount', $schema);
+    }
+
+    public function testPlayerCountFromOverride(): void
+    {
+        $this->product->method('getAttributeText')->willReturn(false);
+        $schema = $this->builder->build($this->product, ['playerCount'], ['playerCount' => '1-6']);
+
+        $this->assertSame('1-6', $this->findAdditionalProperty($schema, 'playerCount')['value'] ?? null);
+        $this->assertArrayNotHasKey('playerCount', $schema);
+    }
+
+    public function testABrandOverrideIsABrandNode(): void
+    {
+        // Brand is one of the template's own fields, so applyOverrides() must not replace the node
+        // the template builds from the override with the raw string.
+        $this->product->method('getAttributeText')->willReturn(false);
+        $schema = $this->builder->build($this->product, ['brand'], ['brand' => 'Blockworks']);
+
+        $this->assertSame(['@type' => 'Brand', 'name' => 'Blockworks'], $schema['brand']);
     }
 
     public function testMaterialAndColorAreTopLevel(): void
@@ -150,7 +205,7 @@ class ToyBuilderTest extends TestCase
                 default    => null,
             }
         );
-        $schema = $this->builder->build($this->product, ['material', 'color'], [], []);
+        $schema = $this->builder->build($this->product, ['material', 'color'], []);
         $this->assertSame('Plastic', $schema['material']);
         $this->assertSame('Red', $schema['color']);
     }

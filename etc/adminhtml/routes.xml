@@ -5,5 +5,9 @@
         <route id="mageos_seo" frontName="mageos_seo">
             <module name="MageOS_Seo"/>
         </route>
+        <!-- The FAQ admin, under MageOS_Faq's prefix ahead of the split. -->
+        <route id="mageos_faq" frontName="mageos_faq">
+            <module name="MageOS_Seo"/>
+        </route>
     </router>
 </config>

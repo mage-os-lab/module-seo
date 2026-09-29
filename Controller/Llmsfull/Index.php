@@ -8,12 +8,12 @@ use Magento\Framework\App\Action\HttpGetActionInterface;
 use Magento\Framework\Controller\Result\RawFactory;
 use Magento\Framework\Controller\ResultInterface;
 use Magento\Store\Model\StoreManagerInterface;
-use MageOS\Seo\Model\Config;
-use MageOS\Seo\Model\Feed\CanonicalPathRedirect;
+use MageOS\Seo\Model\Aeo\Config;
 use MageOS\Seo\Model\Feed\FeedCache;
 use MageOS\Seo\Model\Feed\FeedRegenerator;
 use MageOS\Seo\Model\Feed\FeedStorage;
-use MageOS\Seo\Model\Feed\RegenerationRequester;
+use MageOS\Seo\Model\Rebuild\RegenerationRequester;
+use MageOS\Seo\Model\Router\CanonicalPathRedirect;
 
 class Index implements HttpGetActionInterface
 {
@@ -21,7 +21,7 @@ class Index implements HttpGetActionInterface
 
     /**
      * @param RawFactory $rawFactory
-     * @param Config $seoConfig
+     * @param Config $aeoConfig
      * @param FeedStorage $feedStorage
      * @param CanonicalPathRedirect $canonicalPathRedirect
      * @param RegenerationRequester $regenerationRequester
@@ -29,7 +29,7 @@ class Index implements HttpGetActionInterface
      */
     public function __construct(
         private readonly RawFactory            $rawFactory,
-        private readonly Config                $seoConfig,
+        private readonly Config                $aeoConfig,
         private readonly FeedStorage           $feedStorage,
         private readonly CanonicalPathRedirect $canonicalPathRedirect,
         private readonly RegenerationRequester $regenerationRequester,
@@ -54,7 +54,7 @@ class Index implements HttpGetActionInterface
 
         $result = $this->rawFactory->create();
 
-        if (!$this->seoConfig->isLlmsFullTxtEnabled()) {
+        if (!$this->aeoConfig->isLlmsFullTxtEnabled()) {
             $result->setHttpResponseCode(404);
             $result->setContents('');
             return $result;

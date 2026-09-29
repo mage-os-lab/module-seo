@@ -11,7 +11,7 @@ use PHPUnit\Framework\TestCase;
 
 class FeedFileWriterTest extends TestCase
 {
-    private const TEMPORARY = 'mageos_seo/store_1/.abc123.tmp';
+    private const TEMPORARY = 'mageos_aeo/store_1/.abc123.tmp';
 
     public function testContentGoesToTheTemporaryFileAndIsNamedOnCommit(): void
     {
@@ -27,9 +27,9 @@ class FeedFileWriterTest extends TestCase
         $directory = $this->createMock(WriteInterface::class);
         $directory->expects($this->once())->method('openFile')->with(self::TEMPORARY, 'w')->willReturn($file);
         $directory->expects($this->once())->method('renameFile')
-            ->with(self::TEMPORARY, 'mageos_seo/store_1/llms.jsonl');
+            ->with(self::TEMPORARY, 'mageos_aeo/store_1/llms.jsonl');
         $directory->expects($this->once())->method('changePermissions')
-            ->with('mageos_seo/store_1/llms.jsonl', 0o640);
+            ->with('mageos_aeo/store_1/llms.jsonl', 0o640);
 
         $writer = $this->writer($directory);
         $writer->write("first\n");
@@ -47,7 +47,7 @@ class FeedFileWriterTest extends TestCase
             $this->createStub(FileWriteInterface::class)
         );
         $directory->expects($this->once())->method('renameFile')
-            ->with(self::TEMPORARY, 'mageos_seo/store_1/llms.jsonl');
+            ->with(self::TEMPORARY, 'mageos_aeo/store_1/llms.jsonl');
 
         $this->writer($directory)->commit('llms.jsonl');
     }
@@ -90,6 +90,6 @@ class FeedFileWriterTest extends TestCase
      */
     private function writer(WriteInterface $directory): FeedFileWriter
     {
-        return new FeedFileWriter($directory, self::TEMPORARY, 'mageos_seo/store_1', 0o640);
+        return new FeedFileWriter($directory, self::TEMPORARY, 'mageos_aeo/store_1', 0o640);
     }
 }

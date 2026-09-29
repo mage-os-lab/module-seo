@@ -23,6 +23,8 @@ use PHPUnit\Framework\TestCase;
 
 class ArtAndCraftBuilderTest extends TestCase
 {
+    use OfferBuilders;
+
     /**
      * @var Product&MockObject
      */
@@ -58,19 +60,21 @@ class ArtAndCraftBuilderTest extends TestCase
         $this->product->method('getId')->willReturn(23);
         $this->product->method('getProductUrl')->willReturn('https://example.com/sunset');
         $this->product->method('getMediaGalleryImages')->willReturn(null);
-        $seoConfig->method('getPriceValidUntilMonths')->willReturn(3);
         $imageHelper->method('init')->willReturnSelf();
         $imageHelper->method('getUrl')->willReturn('');
         $availability->method('resolve')->willReturn(AvailabilityResolver::IN_STOCK);
 
         $this->builder = new ArtAndCraftBuilder(
             $storeManager,
-            $currencyService,
-            $availability,
             $imageHelper,
             $seoConfig,
-            $this->createMock(DateTime::class),
-            new OfferEnricherPool(),
+            $this->offerBuilder(
+                $storeManager,
+                $currencyService,
+                $availability,
+                $this->createMock(DateTime::class),
+                new OfferEnricherPool()
+            ),
             new AggregateRatingResolver(),
             new GtinValidator()
         );
@@ -88,7 +92,7 @@ class ArtAndCraftBuilderTest extends TestCase
 
     public function testBuildReturnsProductAndVisualArtworkMultiType(): void
     {
-        $schema = $this->builder->build($this->product, [], [], []);
+        $schema = $this->builder->build($this->product, [], []);
         $this->assertSame(['Product', 'VisualArtwork'], $schema['@type']);
     }
 
@@ -101,7 +105,7 @@ class ArtAndCraftBuilderTest extends TestCase
                 default           => null,
             }
         );
-        $schema = $this->builder->build($this->product, ['artMedium', 'artworkSurface'], [], []);
+        $schema = $this->builder->build($this->product, ['artMedium', 'artworkSurface'], []);
         $this->assertSame('Oil', $schema['artMedium']);
         $this->assertSame('Canvas', $schema['artworkSurface']);
     }
@@ -115,14 +119,22 @@ class ArtAndCraftBuilderTest extends TestCase
                 default  => null,
             }
         );
-        $schema = $this->builder->build($this->product, ['width', 'height'], [], []);
+        $schema = $this->builder->build($this->product, ['width', 'height'], []);
         $this->assertSame('40cm', $schema['width']);
         $this->assertSame('60cm', $schema['height']);
     }
 
-    public function testCreatorFromOverrideIsApplied(): void
+    public function testNoCreatorWithoutAnOverride(): void
     {
-        $schema = $this->builder->build($this->product, ['creator'], ['creator' => 'Local Artist'], []);
-        $this->assertSame('Local Artist', $schema['creator']);
+        // No attribute holds the creator: enabled without an override, there is none.
+        $schema = $this->builder->build($this->product, ['creator'], []);
+        $this->assertArrayNotHasKey('creator', $schema);
+    }
+
+    public function testCreatorFromOverrideIsAPerson(): void
+    {
+        // schema.org's creator is a Person or an Organization, not text; an artist is a Person.
+        $schema = $this->builder->build($this->product, ['creator'], ['creator' => 'Local Artist']);
+        $this->assertSame(['@type' => 'Person', 'name' => 'Local Artist'], $schema['creator']);
     }
 }

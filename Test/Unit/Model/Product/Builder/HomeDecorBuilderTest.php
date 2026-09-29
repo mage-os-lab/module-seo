@@ -23,6 +23,8 @@ use PHPUnit\Framework\TestCase;
 
 class HomeDecorBuilderTest extends TestCase
 {
+    use OfferBuilders;
+
     /**
      * @var Product&MockObject
      */
@@ -58,19 +60,21 @@ class HomeDecorBuilderTest extends TestCase
         $this->product->method('getId')->willReturn(30);
         $this->product->method('getProductUrl')->willReturn('https://example.com/ceramic-vase');
         $this->product->method('getMediaGalleryImages')->willReturn(null);
-        $seoConfig->method('getPriceValidUntilMonths')->willReturn(3);
         $imageHelper->method('init')->willReturnSelf();
         $imageHelper->method('getUrl')->willReturn('');
         $availability->method('resolve')->willReturn(AvailabilityResolver::IN_STOCK);
 
         $this->builder = new HomeDecorBuilder(
             $storeManager,
-            $currencyService,
-            $availability,
             $imageHelper,
             $seoConfig,
-            $this->createMock(DateTime::class),
-            new OfferEnricherPool(),
+            $this->offerBuilder(
+                $storeManager,
+                $currencyService,
+                $availability,
+                $this->createMock(DateTime::class),
+                new OfferEnricherPool()
+            ),
             new AggregateRatingResolver(),
             new GtinValidator()
         );
@@ -88,7 +92,7 @@ class HomeDecorBuilderTest extends TestCase
 
     public function testBuildReturnsPlainProductType(): void
     {
-        $schema = $this->builder->build($this->product, [], [], []);
+        $schema = $this->builder->build($this->product, [], []);
         $this->assertSame('Product', $schema['@type']);
     }
 
@@ -101,15 +105,9 @@ class HomeDecorBuilderTest extends TestCase
                 default    => null,
             }
         );
-        $schema = $this->builder->build($this->product, ['color', 'material'], [], []);
+        $schema = $this->builder->build($this->product, ['color', 'material'], []);
         $this->assertSame('Teal', $schema['color']);
         $this->assertSame('Ceramic', $schema['material']);
-    }
-
-    public function testColorFromVariantDataPreferredOverAttribute(): void
-    {
-        $schema = $this->builder->build($this->product, ['color'], [], ['color' => 'Amber']);
-        $this->assertSame('Amber', $schema['color']);
     }
 
     public function testInvalidGtinFromBarcodeIsOmitted(): void
@@ -117,7 +115,7 @@ class HomeDecorBuilderTest extends TestCase
         $this->product->method('getData')->willReturnCallback(
             static fn (string $key) => $key === 'barcode' ? '5901234123450' : null
         );
-        $schema = $this->builder->build($this->product, ['gtin13'], [], []);
+        $schema = $this->builder->build($this->product, ['gtin13'], []);
         $this->assertArrayNotHasKey('gtin13', $schema);
     }
 }

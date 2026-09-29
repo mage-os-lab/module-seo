@@ -49,12 +49,11 @@ class GenericProductBuilder extends AbstractBuilder
     public function build(
         ProductInterface $product,
         array            $enabledFields,
-        array            $overrides,
-        array            $variantData
+        array            $overrides
     ): array {
-        $schema = $this->buildBase($product, $variantData);
+        $schema = $this->buildBase($product);
 
-        // Brand — populated by SellersSeo bridge via overrides, or product attribute.
+        // Brand — the override, else the manufacturer or brand attribute.
         if (\in_array('brand', $enabledFields, true)) {
             $brand = $overrides['brand'] ?? $this->attr($product, 'manufacturer') ?: $this->attr($product, 'brand');
             if ($brand !== '') {
@@ -95,10 +94,6 @@ class GenericProductBuilder extends AbstractBuilder
                         break;
                     }
                 }
-            }
-            // Variant data can supply color/size
-            if ($value === '' && isset($variantData[$fieldCode])) {
-                $value = (string) $variantData[$fieldCode];
             }
             if ($value !== '') {
                 $schema[$fieldCode] = $value;

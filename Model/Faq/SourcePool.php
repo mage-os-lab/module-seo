@@ -42,4 +42,24 @@ class SourcePool
 
         return $faqs;
     }
+
+    /**
+     * Every group identifier any source has FAQs for, sorted, each once.
+     *
+     * @return string[]
+     */
+    public function getIdentifiers(): array
+    {
+        $identifiers = [];
+        foreach ($this->sources as $source) {
+            if ($source instanceof FaqSourceProviderInterface) {
+                array_push($identifiers, ...array_values($source->getIdentifiers()));
+            }
+        }
+
+        $identifiers = array_values(array_unique(array_map('strval', $identifiers)));
+        sort($identifiers, SORT_STRING);
+
+        return $identifiers;
+    }
 }

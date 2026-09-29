@@ -15,8 +15,8 @@ use Magento\TestFramework\Fixture\DataFixtureStorageManager;
 use Magento\TestFramework\Helper\Bootstrap;
 use MageOS\Seo\Model\Feed\FeedRegenerator;
 use MageOS\Seo\Model\Feed\FeedStorage;
-use MageOS\Seo\Model\Feed\RegenerateConsumer;
-use MageOS\Seo\Model\Feed\RegenerationRequester;
+use MageOS\Seo\Model\Rebuild\RegenerateConsumer;
+use MageOS\Seo\Model\Rebuild\RegenerationRequester;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -75,13 +75,20 @@ class FeedRebuildTest extends TestCase
         $this->storage()->write('llms.txt', $this->storeId(), 'second');
 
         $this->assertSame('second', $this->storage()->read('llms.txt', $this->storeId()));
-        $this->assertSame([], $this->storage()->listForStore('.*.tmp', $this->storeId()));
 
         $var      = Bootstrap::getObjectManager()->get(Filesystem::class)->getDirectoryRead(DirectoryList::VAR_DIR);
-        $storeDir = 'mageos_seo/store_' . $this->storeId();
+        $storeDir = 'mageos_aeo/store_' . $this->storeId();
+        $this->assertSame(
+            [],
+            array_values(array_filter(
+                $var->read($storeDir),
+                static fn (string $path): bool => str_ends_with($path, '.tmp')
+            )),
+            'No temporary file is left behind.'
+        );
         $this->assertSame('640', $this->mode($var->getAbsolutePath($storeDir . '/llms.txt')));
         $this->assertSame('750', $this->mode($var->getAbsolutePath($storeDir)));
-        $this->assertSame('750', $this->mode($var->getAbsolutePath('mageos_seo')));
+        $this->assertSame('750', $this->mode($var->getAbsolutePath('mageos_aeo')));
     }
 
     /**

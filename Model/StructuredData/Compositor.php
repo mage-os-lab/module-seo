@@ -31,8 +31,8 @@ class Compositor
      * Returns an empty string if structured data is disabled or no schemas produced.
      *
      * The product schema is handled specially: ProductSchemaProvider stores the
-     * base schema in SchemaRegistry and returns []. The VariantSchemaEnricher then
-     * mutates the registry. After all providers have run, we read the final state
+     * node in SchemaRegistry and returns [], so a provider that runs after it can still
+     * adjust the node there. After all providers have run, we read the final state
      * from the registry and append it. This avoids any reference chain complexity.
      *
      * @return string
@@ -56,9 +56,8 @@ class Compositor
             }
         }
 
-        // Append the product schema from the registry after all providers have run.
-        // This ensures the enricher's mutations (hasVariant, offers enrichment) are
-        // included regardless of provider execution order.
+        // Append the product schema from the registry after all providers have run, so any
+        // provider's change to it is included regardless of provider execution order.
         $productSchema = $this->schemaRegistry->get();
         if ($productSchema !== null && !empty($productSchema)) {
             $schemas[] = $productSchema;

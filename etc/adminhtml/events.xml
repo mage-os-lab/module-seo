@@ -20,4 +20,10 @@
         <observer name="mageos_seo_save_category_seo_config"
                   instance="MageOS\Seo\Observer\Adminhtml\SaveCategorySeoConfig"/>
     </event>
+
+    <!-- CMS page "Search Engine Optimization" fieldset -->
+    <event name="cms_page_save_after">
+        <observer name="mageos_seo_save_cms_page_seo_config"
+                  instance="MageOS\Seo\Observer\Adminhtml\SaveCmsPageSeoConfig"/>
+    </event>
 </config>

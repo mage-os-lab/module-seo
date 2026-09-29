@@ -13,6 +13,7 @@ All major composition points are exposed as injectable arrays in `di.xml`. Bridg
 | Custom page `<title>` provider | `PageTitleProviderInterface` | `Model\PageTitle\Compositor` → `providers` array |
 | New product schema template | `ProductSchemaBuilderInterface` | `Model\Product\SchemaBuilderPool` → `builders` array |
 | Extra content in `/llms.txt` | `SectionProviderInterface` | `Model\LlmsTxt\LlmsTxtBuilder` → `sectionProviders` array |
+| Your own pre-generated output, rebuilt on change | `Api\Rebuild\GroupHandlerInterface` | `Model\Rebuild\HandlerPool` → `handlers` array |
 
 ---
 
@@ -88,6 +89,8 @@ class MyMetaProvider implements \MageOS\Seo\Api\MetaTagProviderInterface
 
 Use `'property'` key for `og:` and `'name'` key for `name=` tags. Both are output as `<meta property="..." content="...">` or `<meta name="..." content="...">` accordingly.
 
+You don't need to add X card tags yourself: after collecting every provider's tags, the compositor adds `twitter:card` (by whether the page has an `og:image`) and repeats `og:title`, `og:description` and `og:image` as `twitter:*`. A `twitter:*` tag your provider returns, like the card above, is kept rather than replaced. See [og-tags.md](og-tags.md#twitter--x-cards).
+
 Register against `MageOS\Seo\Model\MetaTag\Compositor` → `providers`.
 
 ---
@@ -135,16 +138,13 @@ class VehicleBuilder extends AbstractBuilder
         ];
     }
 
-    public function build(
-        ProductInterface $product,
-        array $enabledFields,
-        array $overrides,
-        array $variantData
-    ): array {
-        $schema = $this->buildBase($product, $variantData);
+    public function build(ProductInterface $product, array $enabledFields, array $overrides): array
+    {
+        $schema = $this->buildBase($product);
 
         if (\in_array('vehicleModelDate', $enabledFields)) {
-            $year = $this->attr($product, 'model_year');
+            // An override for one of your own fields is yours to apply, in your field's shape.
+            $year = $overrides['vehicleModelDate'] ?? $this->attr($product, 'model_year');
             if ($year !== '') {
                 $schema['vehicleModelDate'] = $year;
             }
@@ -160,9 +160,12 @@ class VehicleBuilder extends AbstractBuilder
 ```
 
 Rules to follow:
-- Always call `$this->buildBase()` first — it provides the base product node with offers, images, and description.
+- Always call `$this->buildBase()` first — it provides the base product node with offers, images, and description. The offer comes from `Model\Product\OfferBuilder`, the one place offers are built; to change every offer, register an `OfferEnricherInterface` or plug in to `OfferBuilder::build()` rather than editing the node here.
+- Don't handle configurable products yourself: after your builder runs, `Model\Product\Variant\ProductGroupBuilder` turns a configurable's node into a ProductGroup of its variants, for every template (see [structured-data.md](structured-data.md#configurable-products)).
+- If your builder declares its own constructor, pass AbstractBuilder's arguments through: `StoreManagerInterface`, `ImageHelper`, `Config`, `OfferBuilder`, `AggregateRatingResolver`, `GtinValidator`.
 - Check `\in_array($fieldCode, $enabledFields)` before reading optional attributes.
-- Always call `$this->applyOverrides($schema, $overrides)` as the last step — it ensures category and product overrides win over template defaults.
+- **Read `$overrides[$field]` before the attribute for each of your own fields** (the keys of `getAvailableFields()`), and build the field in its proper shape — a `Brand` node, an `additionalProperty` entry, whatever your field is. An override for one of your fields turns that field on (`SchemaBuilderPool` adds it to `$enabledFields`), and `applyOverrides()` leaves your fields to you: setting the raw value there would replace the node you built with a string.
+- Always call `$this->applyOverrides($schema, $overrides)` as the last step — it sets the override keys your template does **not** list, as given, so a merchant can still set a schema.org property you don't know.
 - Use `$this->attr($product, 'attribute_code')` to read product attributes — it handles select/dropdown label resolution automatically.
 
 **2. Register in di.xml**
@@ -187,6 +190,88 @@ The key (`Vehicle`) must match the string returned by `getTemplateCode()`. The t
 ## Adding llms.txt content
 
 See [llms-txt.md](llms-txt.md#adding-content-from-a-bridge-module) for the full example with code and di.xml registration.
+
+---
+
+## Rebuilding your own output through the queue
+
+Output that is expensive to build, such as a feed file, should never be built during a web request
+or on every save. This module's rebuild queue (topic `mageos.seo.feed.regenerate`, consumer
+`mageosSeoFeedRegenerate`) already does this for the XML sitemaps and the llms documents. A module
+can hand it groups of its own. What a group gets:
+
+- **Collapsing.** However many times a group is invalidated before the consumer runs, it is built
+  once.
+- **Nothing queued for nothing.** A group is queued only while your handler says some store view
+  can build it.
+- **No lost change.** A rebuild refused with `RebuildInProgressException`, because another process
+  holds your lock, is queued again.
+- **`bin/magento seo:rebuild`** lists your groups, rebuilds them with no `-g`, and
+  rebuilds one with `-g <group>`.
+- **Every `setup:upgrade`** queues your groups, so a fresh install builds them.
+
+Implement the handler:
+
+```php
+use MageOS\Seo\Api\Rebuild\GroupHandlerInterface;
+
+class BlogFeedHandler implements GroupHandlerInterface
+{
+    public function __construct(
+        private readonly BlogFeedBuilder $builder,  // inject as a proxy in di.xml
+        private readonly BlogConfig $config
+    ) {
+    }
+
+    public function getGroups(): array
+    {
+        return ['blog-feed'];                       // unique; never `sitemap-…`
+    }
+
+    public function isEnabled(string $group): bool
+    {
+        return $this->config->isFeedEnabledInAnyStore();
+    }
+
+    public function rebuild(?string $group): array
+    {
+        return $this->builder->buildForEveryStore(); // store ID => error, for the failures
+    }
+}
+```
+
+Register it, with its builder behind a proxy:
+
+```xml
+<type name="MageOS\Seo\Model\Rebuild\HandlerPool">
+    <arguments>
+        <argument name="handlers" xsi:type="array">
+            <item name="blog" xsi:type="object">Vendor\Blog\Model\BlogFeedHandler</item>
+        </argument>
+    </arguments>
+</type>
+<type name="Vendor\Blog\Model\BlogFeedHandler">
+    <arguments>
+        <argument name="builder" xsi:type="object">Vendor\Blog\Model\BlogFeedBuilder\Proxy</argument>
+    </arguments>
+</type>
+```
+
+The pool is built whenever a save is inspected, so a handler must be cheap to construct. The proxy
+keeps your builder from loading until a rebuild actually runs.
+
+Queue a rebuild from your own observer when your data changes:
+
+```php
+$this->invalidator->invalidate('blog-feed');  // MageOS\Seo\Model\Rebuild\Invalidator
+```
+
+A group no handler owns throws `\InvalidArgumentException`, which catches a misspelt name. So does
+registering a group twice, or one named like a sitemap group: the pool throws `\LogicException`
+the first time it is asked.
+
+For a new **type of page in the XML sitemaps**, use `Api\Sitemap\RebuildRequesterInterface`
+instead. See [sitemap.md](sitemap.md).
 
 ---
 

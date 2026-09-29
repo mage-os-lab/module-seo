@@ -6,11 +6,14 @@ namespace MageOS\Seo\Block;
 
 use Magento\Framework\View\Element\Template;
 use Magento\Framework\View\Element\Template\Context;
-use Magento\Store\Model\StoreManagerInterface;
 use MageOS\Seo\Model\Cms\CmsPageResolver;
 
 /**
- * Outputs a canonical URL for CMS content pages (home page and cms_page_view).
+ * Outputs a canonical URL for CMS pages, the home page included.
+ *
+ * The URL is CmsPageResolver::currentUrl(): the store base URL on the home page — recognised as
+ * core's router recognises it, by an empty path — and the base URL plus the identifier on every
+ * other CMS page.
  *
  * Product and category canonicals are core's job (catalog/seo/product_canonical_tag
  * and category_canonical_tag) or a bridge module's via CanonicalUrlManager — this
@@ -24,20 +27,20 @@ use MageOS\Seo\Model\Cms\CmsPageResolver;
  */
 class Canonical extends Template
 {
-    private const HANDLE_HOME     = 'cms_index_index';
+    /**
+     * Core's `Cms\Helper\Page::prepareResultPage()` adds it for the home page and every CMS page.
+     */
     private const HANDLE_CMS_PAGE = 'cms_page_view';
 
     /**
      * @param Context $context
      * @param CmsPageResolver $cmsPageResolver
-     * @param StoreManagerInterface $storeManager
      * @param mixed[] $data
      */
     public function __construct(
-        Context                                $context,
-        private readonly CmsPageResolver       $cmsPageResolver,
-        private readonly StoreManagerInterface $storeManager,
-        array                                  $data = []
+        Context                          $context,
+        private readonly CmsPageResolver $cmsPageResolver,
+        array                            $data = []
     ) {
         parent::__construct($context, $data);
     }
@@ -54,22 +57,12 @@ class Canonical extends Template
         }
 
         try {
-            $handles = $this->getLayout()->getUpdate()->getHandles();
-            $baseUrl = rtrim((string) $this->storeManager->getStore()->getBaseUrl(), '/') . '/';
-
-            if (\in_array(self::HANDLE_HOME, $handles, true)) {
-                return $baseUrl;
+            // Off everything but CMS pages — and off `/` when web/default/front serves something else.
+            if (!\in_array(self::HANDLE_CMS_PAGE, $this->getLayout()->getUpdate()->getHandles(), true)) {
+                return '';
             }
 
-            if (\in_array(self::HANDLE_CMS_PAGE, $handles, true)) {
-                $page       = $this->cmsPageResolver->resolve();
-                $identifier = $page !== null ? (string) $page->getIdentifier() : '';
-                if ($identifier !== '') {
-                    return $baseUrl . $identifier;
-                }
-            }
-
-            return '';
+            return $this->cmsPageResolver->currentUrl();
         } catch (\Exception) {
             return '';
         }

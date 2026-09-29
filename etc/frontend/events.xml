@@ -11,5 +11,8 @@
                   instance="MageOS\Seo\Observer\ApplyRobotsMeta"/>
         <observer name="mageos_seo_apply_page_title"
                   instance="MageOS\Seo\Observer\ApplyPageTitle"/>
+        <!-- Core's product Open Graph block duplicates every tag this module emits. -->
+        <observer name="mageos_seo_remove_core_open_graph"
+                  instance="MageOS\Seo\Observer\RemoveCoreOpenGraph"/>
     </event>
 </config>

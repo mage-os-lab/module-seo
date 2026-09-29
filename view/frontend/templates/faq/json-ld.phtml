@@ -14,13 +14,9 @@ if ($json === '') {
 
 // CSP nonce registration (Hyva pattern), mirroring seo/json-ld.phtml.
 $cspNonce = '';
-try {
-    $cspBlock = $block->getLayout()->getBlock('hyva.csp');
-    if ($cspBlock) {
-        $cspNonce = $cspBlock->registerInlineScript();
-    }
-} catch (\Exception $e) {
-    // CSP block not available in this layout context — proceed without nonce
+$cspBlock = $block->getLayout()->getBlock('hyva.csp');
+if ($cspBlock) {
+    $cspNonce = $cspBlock->registerInlineScript();
 }
 ?>
 <script type="application/ld+json"<?= $cspNonce ? ' nonce="' . /* @noEscape */ $cspNonce . '"' : '' ?>>

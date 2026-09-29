@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace MageOS\Seo\Plugin\Robots;
 
 use Magento\Robots\Model\Robots;
-use MageOS\Seo\Model\Config;
+use MageOS\Seo\Model\Aeo\Config;
 use MageOS\Seo\Model\Config\Source\AiBots;
 
 /**
@@ -20,11 +20,11 @@ use MageOS\Seo\Model\Config\Source\AiBots;
 class AppendAiDirectivesPlugin
 {
     /**
-     * @param Config $seoConfig
+     * @param Config $aeoConfig
      * @param AiBots $aiBots
      */
     public function __construct(
-        private readonly Config $seoConfig,
+        private readonly Config $aeoConfig,
         private readonly AiBots $aiBots
     ) {
     }
@@ -53,11 +53,11 @@ class AppendAiDirectivesPlugin
      */
     public function buildAiDirectives(): string
     {
-        if (!$this->seoConfig->isAiRobotsEnabled()) {
+        if (!$this->aeoConfig->isAiRobotsEnabled()) {
             return '';
         }
 
-        $disallowed = $this->seoConfig->getAiDisallowedBots();
+        $disallowed = $this->aeoConfig->getAiDisallowedBots();
 
         $blocks = ['# AI crawlers (managed by MageOS_Seo)'];
         foreach ($this->aiBots->toOptionArray() as $option) {

@@ -1,7 +1,12 @@
 <?xml version="1.0"?>
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xsi:noNamespaceSchemaLocation="urn:magento:framework-message-queue:etc/topology.xsd">
-    <exchange name="magento-db" type="topic" connection="db">
+    <!--
+        Bound to the default "magento" exchange, as core's own topics are, rather than to the
+        transport-specific "magento-db". The exchange an install actually uses follows its
+        configured transport, so naming the database one here would pin the module to it.
+    -->
+    <exchange name="magento">
         <binding id="mageosSeoFeedRegenerate"
                  topic="mageos.seo.feed.regenerate"
                  destinationType="queue"

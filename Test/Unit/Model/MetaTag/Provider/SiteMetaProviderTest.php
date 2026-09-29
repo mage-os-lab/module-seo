@@ -4,12 +4,11 @@ declare(strict_types=1);
 
 namespace MageOS\Seo\Test\Unit\Model\MetaTag\Provider;
 
-use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Store\Api\Data\StoreInterface;
 use Magento\Store\Api\Data\WebsiteInterface;
 use Magento\Store\Model\StoreManagerInterface;
-use MageOS\Seo\Api\Data\OrganisationInterface;
-use MageOS\Seo\Api\OrganisationRepositoryInterface;
+use MageOS\Seo\Api\Data\OrganizationInterface;
+use MageOS\Seo\Api\OrganizationRepositoryInterface;
 use MageOS\Seo\Model\Config;
 use MageOS\Seo\Model\MetaTag\Provider\SiteMetaProvider;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -28,14 +27,9 @@ class SiteMetaProviderTest extends TestCase
     private StoreManagerInterface&MockObject $storeManager;
 
     /**
-     * @var OrganisationRepositoryInterface&MockObject
+     * @var OrganizationRepositoryInterface&MockObject
      */
-    private OrganisationRepositoryInterface&MockObject $repository;
-
-    /**
-     * @var ScopeConfigInterface&MockObject
-     */
-    private ScopeConfigInterface&MockObject $scopeConfig;
+    private OrganizationRepositoryInterface&MockObject $repository;
 
     /**
      * @var StoreInterface&MockObject
@@ -51,8 +45,7 @@ class SiteMetaProviderTest extends TestCase
     {
         $this->config       = $this->createMock(Config::class);
         $this->storeManager = $this->createMock(StoreManagerInterface::class);
-        $this->repository   = $this->createMock(OrganisationRepositoryInterface::class);
-        $this->scopeConfig  = $this->createMock(ScopeConfigInterface::class);
+        $this->repository   = $this->createMock(OrganizationRepositoryInterface::class);
 
         $this->store = $this->createMock(StoreInterface::class);
         $this->store->method('getId')->willReturn(1);
@@ -65,14 +58,13 @@ class SiteMetaProviderTest extends TestCase
         $this->provider = new SiteMetaProvider(
             $this->config,
             $this->storeManager,
-            $this->repository,
-            $this->scopeConfig
+            $this->repository
         );
     }
 
     private function withOrgName(string $name): void
     {
-        $org = $this->createMock(OrganisationInterface::class);
+        $org = $this->createMock(OrganizationInterface::class);
         $org->method('getName')->willReturn($name);
         $this->repository->method('getForScope')->willReturn($org);
     }
@@ -88,24 +80,26 @@ class SiteMetaProviderTest extends TestCase
         $this->assertSame([], $this->provider->getMetaTags());
     }
 
-    public function testEmitsSiteNameLocaleAndTwitterCard(): void
+    public function testEmitsSiteNameAndLocale(): void
     {
         $this->config->method('isOgTagsEnabled')->willReturn(true);
         $this->withOrgName('Acme Ltd');
-        $this->scopeConfig->method('getValue')->willReturn('en_GB');
+        $this->config->method('getLocaleCode')->willReturn('en_GB');
 
-        $tags = $this->provider->getMetaTags();
-
-        $this->assertContains(['property' => 'og:site_name', 'content' => 'Acme Ltd'], $tags);
-        $this->assertContains(['property' => 'og:locale', 'content' => 'en_GB'], $tags);
-        $this->assertContains(['name' => 'twitter:card', 'content' => 'summary_large_image'], $tags);
+        $this->assertSame(
+            [
+                ['property' => 'og:site_name', 'content' => 'Acme Ltd'],
+                ['property' => 'og:locale', 'content' => 'en_GB'],
+            ],
+            $this->provider->getMetaTags()
+        );
     }
 
     public function testFallsBackToStoreNameWhenOrgNameEmpty(): void
     {
         $this->config->method('isOgTagsEnabled')->willReturn(true);
         $this->withOrgName('');
-        $this->scopeConfig->method('getValue')->willReturn('en_GB');
+        $this->config->method('getLocaleCode')->willReturn('en_GB');
 
         $tags = $this->provider->getMetaTags();
 
@@ -116,7 +110,7 @@ class SiteMetaProviderTest extends TestCase
     {
         $this->config->method('isOgTagsEnabled')->willReturn(true);
         $this->withOrgName('Acme Ltd');
-        $this->scopeConfig->method('getValue')->willReturn(null);
+        $this->config->method('getLocaleCode')->willReturn('');
 
         $tags       = $this->provider->getMetaTags();
         $properties = array_column($tags, 'property');
@@ -124,14 +118,15 @@ class SiteMetaProviderTest extends TestCase
         $this->assertNotContains('og:locale', $properties);
     }
 
-    public function testAlwaysEmitsTwitterCardWhenEnabled(): void
+    public function testLeavesTheXCardToTheCompositor(): void
     {
+        // The card type depends on the page's image, which only MetaTag\Compositor sees.
         $this->config->method('isOgTagsEnabled')->willReturn(true);
         $this->withOrgName('Acme Ltd');
-        $this->scopeConfig->method('getValue')->willReturn('en_GB');
+        $this->config->method('getLocaleCode')->willReturn('en_GB');
 
         $names = array_column($this->provider->getMetaTags(), 'name');
 
-        $this->assertContains('twitter:card', $names);
+        $this->assertNotContains('twitter:card', $names);
     }
 }

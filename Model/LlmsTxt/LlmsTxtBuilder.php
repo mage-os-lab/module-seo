@@ -8,7 +8,9 @@ use Magento\Catalog\Model\ResourceModel\Category\CollectionFactory as CategoryCo
 use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Store\Model\ScopeInterface;
 use Magento\Store\Model\StoreManagerInterface;
-use MageOS\Seo\Api\OrganisationRepositoryInterface;
+use MageOS\Seo\Api\OrganizationRepositoryInterface;
+use MageOS\Seo\Model\Config;
+use MageOS\Seo\Model\Organization\ContactEmail;
 use MageOS\Seo\Model\Product\SchemaBuilderPool;
 
 /**
@@ -20,23 +22,31 @@ use MageOS\Seo\Model\Product\SchemaBuilderPool;
  * Extended vendor and category data is injected via provider arrays registered
  * in di.xml — allowing SellersSeo (and any future bridge) to contribute content
  * without coupling this class to those modules.
+ *
+ * The locale is the store view's configured one (Config::getLocaleCode()); the line is left out
+ * when there is none. The AI contact is Organization\ContactEmail's; the section is left out when
+ * there is none.
  */
 class LlmsTxtBuilder
 {
     /**
-     * @param OrganisationRepositoryInterface $organisationRepository
+     * @param OrganizationRepositoryInterface $organizationRepository
      * @param StoreManagerInterface $storeManager
      * @param ScopeConfigInterface $scopeConfig
      * @param CategoryCollectionFactory $categoryCollectionFactory
      * @param SchemaBuilderPool $builderPool
+     * @param Config $seoConfig
+     * @param ContactEmail $contactEmail
      * @param \MageOS\Seo\Model\LlmsTxt\SectionProviderInterface[] $sectionProviders
      */
     public function __construct(
-        private readonly OrganisationRepositoryInterface $organisationRepository,
+        private readonly OrganizationRepositoryInterface $organizationRepository,
         private readonly StoreManagerInterface           $storeManager,
         private readonly ScopeConfigInterface            $scopeConfig,
         private readonly CategoryCollectionFactory       $categoryCollectionFactory,
         private readonly SchemaBuilderPool               $builderPool,
+        private readonly Config                          $seoConfig,
+        private readonly ContactEmail                    $contactEmail,
         private readonly array                           $sectionProviders = []
     ) {
     }
@@ -52,7 +62,7 @@ class LlmsTxtBuilder
         $store     = $this->storeManager->getStore();
         $storeId   = (int) $store->getId();
         $websiteId = (int) $this->storeManager->getWebsite()->getId();
-        $org       = $this->organisationRepository->getForScope($storeId, $websiteId);
+        $org       = $this->organizationRepository->getForScope($storeId, $websiteId);
         $baseUrl   = rtrim((string) $store->getBaseUrl(), '/');
         $name      = $org->getName() ?: (string) $store->getName();
 
@@ -64,7 +74,7 @@ class LlmsTxtBuilder
             $lines[] = '> ' . $org->getDescription();
         }
         $lines[] = "> Base URL: {$baseUrl}";
-        $lines[] = '> Locale: ' . $store->getLocaleCode();
+        $lines   = [...$lines, ...$this->localeLine($storeId)];
         $lines[] = '';
 
         // Key URLs
@@ -94,13 +104,10 @@ class LlmsTxtBuilder
         }
 
         // AI contact
-        $adminEmail = (string) $this->scopeConfig->getValue(
-            'trans_email/ident_support/email',
-            ScopeInterface::SCOPE_STORE
-        );
-        if ($adminEmail !== '') {
+        $contactEmail = $this->contactEmail->get();
+        if ($contactEmail !== '') {
             $lines[] = '## AI Contact';
-            $lines[] = $adminEmail;
+            $lines[] = $contactEmail;
             $lines[] = '';
         }
 
@@ -118,7 +125,7 @@ class LlmsTxtBuilder
         $store     = $this->storeManager->getStore();
         $storeId   = (int) $store->getId();
         $websiteId = (int) $this->storeManager->getWebsite()->getId();
-        $org       = $this->organisationRepository->getForScope($storeId, $websiteId);
+        $org       = $this->organizationRepository->getForScope($storeId, $websiteId);
         $baseUrl   = rtrim((string) $store->getBaseUrl(), '/');
         $name      = $org->getName() ?: (string) $store->getName();
 
@@ -130,7 +137,7 @@ class LlmsTxtBuilder
             $lines[] = '> ' . $org->getDescription();
         }
         $lines[] = "> Base URL: {$baseUrl}";
-        $lines[] = '> Locale: ' . $store->getLocaleCode();
+        $lines   = [...$lines, ...$this->localeLine($storeId)];
 
         $socials = $org->getSocialProfiles();
         if (!empty($socials)) {
@@ -188,17 +195,27 @@ class LlmsTxtBuilder
         }
 
         // AI contact
-        $adminEmail = (string) $this->scopeConfig->getValue(
-            'trans_email/ident_support/email',
-            ScopeInterface::SCOPE_STORE
-        );
-        if ($adminEmail !== '') {
+        $contactEmail = $this->contactEmail->get();
+        if ($contactEmail !== '') {
             $lines[] = '## AI Contact';
-            $lines[] = "Preferred contact for automated queries: {$adminEmail}";
+            $lines[] = "Preferred contact for automated queries: {$contactEmail}";
             $lines[] = '';
         }
 
         return implode("\n", $lines);
+    }
+
+    /**
+     * The header's locale line, or none when the store view has no locale configured.
+     *
+     * @param int $storeId
+     * @return string[]
+     */
+    private function localeLine(int $storeId): array
+    {
+        $locale = $this->seoConfig->getLocaleCode($storeId);
+
+        return $locale === '' ? [] : ["> Locale: {$locale}"];
     }
 
     /**

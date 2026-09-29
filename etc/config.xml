@@ -12,18 +12,17 @@
                 <category_item_list_enabled>1</category_item_list_enabled>
                 <category_item_list_max>36</category_item_list_max>
                 <has_variant_max>50</has_variant_max>
-                <price_valid_until_months>12</price_valid_until_months>
                 <aggregate_rating_enabled>1</aggregate_rating_enabled>
             </structured_data>
-            <llms_txt>
-                <enabled>1</enabled>
-                <full_enabled>1</full_enabled>
-                <jsonl_enabled>0</jsonl_enabled>
-            </llms_txt>
-            <feeds>
-                <!-- empty = var/mageos_seo; multi-host deployments set a shared mount -->
-                <storage_dir/>
-            </feeds>
+            <category_config>
+                <!--
+                    How a category's settings are looked up when it does not set them itself.
+                    category_first: the category's own scopes, then its nearest ancestor's.
+                    store_first: this store view across the whole tree, then the global scope.
+                    A third party may register further strategies; see docs/category-seo.md.
+                -->
+                <inheritance_strategy>category_first</inheritance_strategy>
+            </category_config>
             <robots_meta>
                 <!--
                     Defaults are intentionally empty ("no opinion"): the providers then
@@ -34,6 +33,7 @@
                 <product_default/>
                 <category_default/>
                 <cms_page_default/>
+                <search_default/>
                 <paginated_enabled>0</paginated_enabled>
                 <paginated_robots>NOINDEX,FOLLOW</paginated_robots>
             </robots_meta>
@@ -50,11 +50,24 @@
 .product.attribute.overview
 .category-description</speakable_css_selectors>
             </aeo>
+        </mageos_seo_general>
+        <!-- The llms documents and AI crawler directives (MageOS_Aeo ahead of the split). -->
+        <mageos_aeo>
+            <llms_txt>
+                <enabled>1</enabled>
+                <full_enabled>1</full_enabled>
+                <jsonl_enabled>0</jsonl_enabled>
+                <faq_groups>global</faq_groups>
+            </llms_txt>
+            <feeds>
+                <!-- empty = var/mageos_aeo; multi-host deployments set a shared mount -->
+                <storage_dir/>
+            </feeds>
             <ai_robots>
                 <enabled>0</enabled>
                 <disallowed>CCBot,Bytespider</disallowed>
             </ai_robots>
-        </mageos_seo_general>
+        </mageos_aeo>
         <mageos_seo_merchant>
             <condition>
                 <default_condition>https://schema.org/NewCondition</default_condition>
@@ -70,23 +83,21 @@
                 <enabled>0</enabled>
             </shipping>
         </mageos_seo_merchant>
-        <mageos_seo_ucp>
+        <!-- The agentic commerce profile and security.txt (MageOS_Agentic ahead of the split). -->
+        <mageos_agentic>
             <general>
                 <enabled>0</enabled>
             </general>
-            <capabilities>
-                <catalog>0</catalog>
-                <cart>0</cart>
-                <checkout>0</checkout>
-                <identity_linking>0</identity_linking>
-                <order_management>0</order_management>
-            </capabilities>
-            <ai_plugin>
-                <enabled>0</enabled>
-            </ai_plugin>
             <security_txt>
                 <enabled>0</enabled>
             </security_txt>
-        </mageos_seo_ucp>
+        </mageos_agentic>
+        <sitemap>
+            <generate>
+                <mageos_seo_generator>mageos_seo</mageos_seo_generator>
+                <mageos_seo_exclude_noindex>1</mageos_seo_exclude_noindex>
+                <mageos_seo_rebuild_on_change>1</mageos_seo_rebuild_on_change>
+            </generate>
+        </sitemap>
     </default>
 </config>

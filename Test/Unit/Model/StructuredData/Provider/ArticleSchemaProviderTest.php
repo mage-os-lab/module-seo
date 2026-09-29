@@ -10,8 +10,9 @@ use Magento\Store\Api\Data\StoreInterface;
 use Magento\Store\Model\StoreManagerInterface;
 use MageOS\Seo\Api\ArticleDataProviderInterface;
 use MageOS\Seo\Model\Pool\HandleMatcher;
-use MageOS\Seo\Model\StructuredData\OrganisationId;
+use MageOS\Seo\Model\StructuredData\OrganizationId;
 use MageOS\Seo\Model\StructuredData\Provider\ArticleSchemaProvider;
+use MageOS\Seo\Model\StructuredData\SpeakableSpecification;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 
@@ -28,9 +29,9 @@ class ArticleSchemaProviderTest extends TestCase
     private Layout&MockObject $layout;
 
     /**
-     * @var OrganisationId&MockObject
+     * @var OrganizationId&MockObject
      */
-    private OrganisationId&MockObject $organisationId;
+    private OrganizationId&MockObject $organizationId;
 
     protected function setUp(): void
     {
@@ -38,8 +39,8 @@ class ArticleSchemaProviderTest extends TestCase
         $this->layoutUpdate = $this->createMock(ProcessorInterface::class);
         $this->layout->method('getUpdate')->willReturn($this->layoutUpdate);
         $this->layoutUpdate->method('getHandles')->willReturn(['blog_post_view']);
-        $this->organisationId = $this->createMock(OrganisationId::class);
-        $this->organisationId->method('getId')->willReturn('https://acme.com/#organization');
+        $this->organizationId = $this->createMock(OrganizationId::class);
+        $this->organizationId->method('getId')->willReturn('https://acme.com/#organization');
     }
 
     /**
@@ -58,19 +59,23 @@ class ArticleSchemaProviderTest extends TestCase
 
     /**
      * @param array<int, ArticleDataProviderInterface&MockObject> $providers
+     * @param array<string, mixed>|null $speakable The page's SpeakableSpecification, null when off
      */
-    private function provider(array $providers): ArticleSchemaProvider
+    private function provider(array $providers, ?array $speakable = null): ArticleSchemaProvider
     {
         $storeManager = $this->createMock(StoreManagerInterface::class);
         $store        = $this->createMock(StoreInterface::class);
         $store->method('getId')->willReturn(1);
         $storeManager->method('getStore')->willReturn($store);
+        $speakableSpecification = $this->createStub(SpeakableSpecification::class);
+        $speakableSpecification->method('get')->willReturn($speakable);
 
         return new ArticleSchemaProvider(
             $this->layout,
             $storeManager,
-            $this->organisationId,
+            $this->organizationId,
             new HandleMatcher(),
+            $speakableSpecification,
             $providers
         );
     }
@@ -103,7 +108,7 @@ class ArticleSchemaProviderTest extends TestCase
         $this->assertSame([], $schemas);
     }
 
-    public function testBuildsBlogPostingWithOrganisationReferences(): void
+    public function testBuildsBlogPostingWithOrganizationReferences(): void
     {
         $article = [
             'headline'      => 'The Best Markets',
@@ -125,5 +130,16 @@ class ArticleSchemaProviderTest extends TestCase
         $this->assertSame(['@id' => 'https://acme.com/#organization'], $node['publisher']);
         $this->assertSame('A guide.', $node['description']);
         $this->assertSame(['markets'], $node['keywords']);
+        $this->assertArrayNotHasKey('speakable', $node, 'Speakable is off.');
+    }
+
+    public function testTheBlogPostingCarriesTheSpeakableSpecification(): void
+    {
+        $spec    = ['@type' => 'SpeakableSpecification', 'cssSelector' => ['.post-title']];
+        $article = ['headline' => 'The Best Markets', 'url' => 'https://acme.com/blog/markets'];
+
+        $schemas = $this->provider([$this->makeDataProvider($article)], $spec)->getSchemas();
+
+        $this->assertSame($spec, $schemas[0]['speakable'] ?? null);
     }
 }

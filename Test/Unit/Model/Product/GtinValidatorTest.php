@@ -56,4 +56,14 @@ class GtinValidatorTest extends TestCase
     {
         $this->assertNull($this->validator->normalize('SKU_123'));
     }
+
+    public function testToPropertiesGivesTheLengthsPropertyWithBareDigits(): void
+    {
+        $this->assertSame(['gtin13' => '4006381333931'], $this->validator->toProperties(' 4-006381-333931 '));
+    }
+
+    public function testToPropertiesIsEmptyForAValueThatDoesNotValidate(): void
+    {
+        $this->assertSame([], $this->validator->toProperties('5901234123450'));
+    }
 }

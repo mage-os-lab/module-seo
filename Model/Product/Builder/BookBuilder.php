@@ -48,10 +48,9 @@ class BookBuilder extends AbstractBuilder
     public function build(
         ProductInterface $product,
         array            $enabledFields,
-        array            $overrides,
-        array            $variantData
+        array            $overrides
     ): array {
-        $schema = $this->buildBase($product, $variantData);
+        $schema = $this->buildBase($product);
 
         if (\in_array('isbn', $enabledFields, true)) {
             $isbn = $overrides['isbn'] ?? $this->attr($product, 'isbn') ?: $this->attr($product, 'barcode');

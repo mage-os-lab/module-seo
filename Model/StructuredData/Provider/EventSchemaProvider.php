@@ -9,27 +9,27 @@ use Magento\Store\Model\StoreManagerInterface;
 use MageOS\Seo\Api\EventDataProviderInterface;
 use MageOS\Seo\Api\StructuredDataProviderInterface;
 use MageOS\Seo\Model\Pool\HandleMatcher;
-use MageOS\Seo\Model\StructuredData\OrganisationId;
+use MageOS\Seo\Model\StructuredData\OrganizationId;
 
 /**
  * Emits Event structured data from bridge-supplied event data.
  *
  * Collects events from every matching EventDataProviderInterface in the pool (empty by default) and
- * emits one Event node per event, each linking the store Organisation as organizer.
+ * emits one Event node per event, each linking the store Organization as organizer.
  */
 class EventSchemaProvider implements StructuredDataProviderInterface
 {
     /**
      * @param LayoutInterface $layout
      * @param StoreManagerInterface $storeManager
-     * @param OrganisationId $organisationId
+     * @param OrganizationId $organizationId
      * @param HandleMatcher $handleMatcher
      * @param array<mixed> $dataProviders
      */
     public function __construct(
         private readonly LayoutInterface                $layout,
         private readonly StoreManagerInterface $storeManager,
-        private readonly OrganisationId        $organisationId,
+        private readonly OrganizationId        $organizationId,
         private readonly HandleMatcher         $handleMatcher,
         private readonly array                 $dataProviders = []
     ) {
@@ -50,7 +50,7 @@ class EventSchemaProvider implements StructuredDataProviderInterface
     {
         $activeHandles = $this->layout->getUpdate()->getHandles();
         $storeId       = (int) $this->storeManager->getStore()->getId();
-        $orgId         = $this->organisationId->getId($storeId);
+        $orgId         = $this->organizationId->getId($storeId);
 
         $schemas = [];
         foreach ($this->dataProviders as $provider) {

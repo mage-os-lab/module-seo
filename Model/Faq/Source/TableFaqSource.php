@@ -8,7 +8,7 @@ use MageOS\Seo\Api\FaqSourceProviderInterface;
 use MageOS\Seo\Model\Faq\Repository;
 
 /**
- * FAQ source backed by the module's own mageos_seo_faq table.
+ * FAQ source backed by the module's own mageos_faq table.
  */
 class TableFaqSource implements FaqSourceProviderInterface
 {
@@ -26,5 +26,13 @@ class TableFaqSource implements FaqSourceProviderInterface
     public function getFaqs(string $identifier, int $storeId): array
     {
         return $this->repository->getByIdentifier($identifier, $storeId);
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function getIdentifiers(): array
+    {
+        return $this->repository->getIdentifiers();
     }
 }

@@ -9,21 +9,21 @@
              parent="Magento_Backend::marketing"
              resource="MageOS_Seo::seo"/>
 
-        <add id="MageOS_Seo::organisation"
-             title="Organisation"
+        <add id="MageOS_Seo::organization"
+             title="Organization"
              module="MageOS_Seo"
              sortOrder="10"
              parent="MageOS_Seo::seo"
-             action="mageos_seo/organisation/edit"
-             resource="MageOS_Seo::organisation"/>
+             action="mageos_seo/organization/edit"
+             resource="MageOS_Seo::organization"/>
 
-        <add id="MageOS_Seo::faq"
+        <add id="MageOS_Faq::faq"
              title="FAQ Manager"
              module="MageOS_Seo"
              sortOrder="15"
              parent="MageOS_Seo::seo"
-             action="mageos_seo/faq/index"
-             resource="MageOS_Seo::faq"/>
+             action="mageos_faq/faq/index"
+             resource="MageOS_Faq::faq"/>
 
         <add id="MageOS_Seo::config_link"
              title="Configuration"

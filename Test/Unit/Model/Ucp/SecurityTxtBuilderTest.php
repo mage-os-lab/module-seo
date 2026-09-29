@@ -35,6 +35,34 @@ class SecurityTxtBuilderTest extends TestCase
         $this->assertStringEndsWith("\n", $output);
     }
 
+    public function testANewlineInAConfiguredValueCannotForgeADirective(): void
+    {
+        // Review finding S5: the document is one directive per line (RFC 9116), so a newline in
+        // a field an admin controls would otherwise add directives of their choosing.
+        $this->config->method('getSecurityContactEmail')
+            ->willReturn("security@shop.test\r\nEncryption: https://evil.test/key.asc");
+        $this->config->method('getSecurityExpires')
+            ->willReturn("2027-01-01T00:00:00.000Z\nContact: mailto:evil@evil.test");
+        $this->config->method('getSecurityPolicyUrl')
+            ->willReturn("https://shop.test/security\u{2028}Acknowledgments: https://evil.test");
+
+        $output = $this->builder->build();
+
+        $this->assertStringNotContainsString('Encryption:', $output);
+        $this->assertStringNotContainsString('evil.test', $output);
+        $this->assertStringNotContainsString('Acknowledgments:', $output);
+        // One line per directive, every line one we wrote, and each value only its first line.
+        $this->assertSame(
+            [
+                'Contact: mailto:security@shop.test',
+                'Expires: 2027-01-01T00:00:00.000Z',
+                'Preferred-Languages: en',
+                'Policy: https://shop.test/security',
+            ],
+            explode("\n", trim($output))
+        );
+    }
+
     public function testAlreadyQualifiedContactUriIsKept(): void
     {
         $this->config->method('getSecurityContactEmail')->willReturn('https://shop.test/contact');

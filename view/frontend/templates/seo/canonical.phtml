@@ -11,9 +11,13 @@
  *
  * @var \MageOS\Seo\Block\Canonical $block
  */
+use Magento\Framework\Escaper;
+
+/** @var Escaper $escaper */
+
 $canonical = $block->getCanonicalUrl();
 if (!$canonical) {
     return;
 }
 ?>
-<link rel="canonical" href="<?= $block->escapeUrl($canonical) ?>"/>
+<link rel="canonical" href="<?= $escaper->escapeUrl($canonical) ?>"/>

@@ -49,10 +49,9 @@ class HomeDecorBuilder extends AbstractBuilder
     public function build(
         ProductInterface $product,
         array            $enabledFields,
-        array            $overrides,
-        array            $variantData
+        array            $overrides
     ): array {
-        $schema = $this->buildBase($product, $variantData);
+        $schema = $this->buildBase($product);
 
         if (\in_array('brand', $enabledFields, true)) {
             $brand = $overrides['brand'] ?? $this->attr($product, 'manufacturer') ?: $this->attr($product, 'brand');
@@ -72,7 +71,7 @@ class HomeDecorBuilder extends AbstractBuilder
             if (!\in_array($field, $enabledFields, true)) {
                 continue;
             }
-            $value = $overrides[$field] ?? $variantData[$field] ?? $this->attr($product, $field);
+            $value = $overrides[$field] ?? $this->attr($product, $field);
             if ($value !== '') {
                 $schema[$field] = $value;
             }

@@ -18,15 +18,34 @@ class FeedCacheTest extends TestCase
     {
         $purgeCache = $this->createMock(PurgeCache::class);
         $purgeCache->expects($this->once())->method('sendPurgeRequest')->with([
-            '((^|,)MAGEOS_SEO_LLMS(,|$))',
-            '((^|,)MAGEOS_SEO_LLMS_FULL(,|$))',
-            '((^|,)MAGEOS_SEO_HREFLANG_SITEMAP(,|$))',
+            '((^|,)MAGEOS_AEO_LLMS(,|$))',
+            '((^|,)MAGEOS_AEO_LLMS_FULL(,|$))',
+            '((^|,)MAGEOS_AEO_LLMS_JSONL(,|$))',
         ]);
         $fullPageCache = $this->createMock(FullPageCache::class);
         $fullPageCache->expects($this->never())->method('clean');
 
         $this->feedCache(true, PageCacheConfig::VARNISH, $fullPageCache, $purgeCache)
-            ->purge([FeedRegenerator::GROUP_LLMS, FeedRegenerator::GROUP_HREFLANG]);
+            ->purge([FeedRegenerator::GROUP_LLMS, FeedRegenerator::GROUP_JSONL]);
+    }
+
+    public function testATagNoGroupHasCanBePurgedByName(): void
+    {
+        // A retired feed's cached responses outlive its group (see Setup\Patch\Data\RemoveHreflangSitemap).
+        $purgeCache = $this->createMock(PurgeCache::class);
+        $purgeCache->expects($this->once())->method('sendPurgeRequest')
+            ->with(['((^|,)MAGEOS_SEO_HREFLANG_SITEMAP(,|$))']);
+
+        $this->feedCache(true, PageCacheConfig::VARNISH, $this->createStub(FullPageCache::class), $purgeCache)
+            ->purgeTags(['MAGEOS_SEO_HREFLANG_SITEMAP', 'MAGEOS_SEO_HREFLANG_SITEMAP']);
+    }
+
+    public function testNoTagsPurgeNothing(): void
+    {
+        $fullPageCache = $this->createMock(FullPageCache::class);
+        $fullPageCache->expects($this->never())->method('clean');
+
+        $this->feedCache(true, PageCacheConfig::BUILT_IN, $fullPageCache)->purgeTags([]);
     }
 
     public function testBuiltInFullPageCacheIsCleanedByTag(): void
@@ -35,7 +54,7 @@ class FeedCacheTest extends TestCase
         // Literal on purpose: 'matchingAnyTag' is the cross-version contract the
         // cache backend receives (CacheConstants on 2.4.9+, Zend_Cache before).
         $fullPageCache->expects($this->once())->method('clean')
-            ->with('matchingAnyTag', ['MAGEOS_SEO_LLMS_JSONL']);
+            ->with('matchingAnyTag', ['MAGEOS_AEO_LLMS_JSONL']);
         $purgeCache = $this->createMock(PurgeCache::class);
         $purgeCache->expects($this->never())->method('sendPurgeRequest');
 
@@ -47,10 +66,9 @@ class FeedCacheTest extends TestCase
     {
         $fullPageCache = $this->createMock(FullPageCache::class);
         $fullPageCache->expects($this->once())->method('clean')->with('matchingAnyTag', [
-            'MAGEOS_SEO_LLMS',
-            'MAGEOS_SEO_LLMS_FULL',
-            'MAGEOS_SEO_LLMS_JSONL',
-            'MAGEOS_SEO_HREFLANG_SITEMAP',
+            'MAGEOS_AEO_LLMS',
+            'MAGEOS_AEO_LLMS_FULL',
+            'MAGEOS_AEO_LLMS_JSONL',
         ]);
 
         $this->feedCache(true, PageCacheConfig::BUILT_IN, $fullPageCache)

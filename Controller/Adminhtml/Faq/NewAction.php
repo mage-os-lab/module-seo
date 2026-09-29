@@ -12,7 +12,7 @@ use Magento\Framework\Controller\Result\ForwardFactory;
 
 class NewAction extends Action implements HttpGetActionInterface
 {
-    public const ADMIN_RESOURCE = 'MageOS_Seo::faq';
+    public const ADMIN_RESOURCE = 'MageOS_Faq::faq';
 
     /**
      * @param Context $context

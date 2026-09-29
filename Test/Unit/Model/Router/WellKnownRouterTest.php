@@ -51,7 +51,7 @@ class WellKnownRouterTest extends TestCase
     public function testLoopGuardReturnsNullWhenAlreadyDispatched(): void
     {
         $this->actionFactory->expects($this->never())->method('create');
-        $this->assertNull($this->router->match($this->request('/.well-known/ucp', 'mageos-seo')));
+        $this->assertNull($this->router->match($this->request('/.well-known/ucp', 'mageos-agentic')));
     }
 
     public function testRegisteredPathForwardsToDispatcher(): void
@@ -59,7 +59,7 @@ class WellKnownRouterTest extends TestCase
         $this->pool->method('has')->with('ucp')->willReturn(true);
         $request = $this->request('/.well-known/ucp');
 
-        $request->expects($this->once())->method('setModuleName')->with('mageos-seo')->willReturnSelf();
+        $request->expects($this->once())->method('setModuleName')->with('mageos-agentic')->willReturnSelf();
         $request->expects($this->once())->method('setControllerName')->with('wellknown')->willReturnSelf();
         $request->expects($this->once())->method('setActionName')->with('index')->willReturnSelf();
         $request->expects($this->once())->method('setParam')->with('endpoint', 'ucp')->willReturnSelf();

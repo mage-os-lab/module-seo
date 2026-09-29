@@ -45,9 +45,9 @@ class ToyBuilder extends AbstractBuilder
     /**
      * @inheritdoc
      */
-    public function build(ProductInterface $product, array $enabledFields, array $overrides, array $variantData): array
+    public function build(ProductInterface $product, array $enabledFields, array $overrides): array
     {
-        $schema = $this->buildBase($product, $variantData);
+        $schema = $this->buildBase($product);
 
         if (\in_array('brand', $enabledFields, true)) {
             $brand = $overrides['brand'] ?? $this->attr($product, 'manufacturer') ?: $this->attr($product, 'brand');
@@ -105,6 +105,14 @@ class ToyBuilder extends AbstractBuilder
                     'batteriesRequired',
                     filter_var($batteries, FILTER_VALIDATE_BOOLEAN) ? 'Yes' : 'No'
                 );
+            }
+        }
+
+        // Product has no player-count property either.
+        if (\in_array('playerCount', $enabledFields, true)) {
+            $players = $overrides['playerCount'] ?? $this->attr($product, 'player_count');
+            if ($players !== '') {
+                $schema = $this->addAdditionalProperty($schema, 'playerCount', $players);
             }
         }
 

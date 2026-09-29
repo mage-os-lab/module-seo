@@ -8,28 +8,38 @@
         onCreate migrates data from the pre-release hyphenated names.
     -->
 
-    <!-- Organisation / site identity settings (scoped: default / websites / stores) -->
-    <table name="mageos_seo_organisation" resource="default" engine="innodb"
-           comment="MageOS SEO — Organisation schema settings (per scope)">
+    <!--
+        Organization / site identity settings (scoped: default / websites / stores).
+        Formerly mageos_seo_organisation. db_schema_whitelist.json keeps that name so
+        setup:upgrade drops the old table; its rows are not carried over.
+    -->
+    <table name="mageos_seo_organization" resource="default" engine="innodb"
+           comment="MageOS SEO — Organization schema settings (per scope)">
         <column xsi:type="int" name="entity_id" unsigned="true" nullable="false" identity="true" comment="Entity ID"/>
         <column xsi:type="varchar" name="scope" nullable="false" length="8" default="default"
                 comment="Config scope: default, websites, stores"/>
         <column xsi:type="int" name="scope_id" unsigned="true" nullable="false" default="0"
                 comment="Scope entity ID (0 for default scope)"/>
-        <column xsi:type="varchar" name="name" nullable="false" length="255" default="" comment="Organisation name"/>
-        <column xsi:type="varchar" name="url" nullable="false" length="255" default="" comment="Canonical organisation URL"/>
-        <column xsi:type="varchar" name="logo_path" nullable="true" length="255" comment="Logo image path (media-relative)"/>
+        <column xsi:type="varchar" name="name" nullable="false" length="255" default="" comment="Organization name"/>
+        <column xsi:type="varchar" name="url" nullable="false" length="255" default=""
+                comment="Canonical organization URL"/>
+        <column xsi:type="varchar" name="logo_path" nullable="true" length="255"
+                comment="Logo image path (media-relative)"/>
         <column xsi:type="smallint" name="logo_width" nullable="true" unsigned="true" comment="Logo width in pixels"/>
         <column xsi:type="smallint" name="logo_height" nullable="true" unsigned="true" comment="Logo height in pixels"/>
-        <column xsi:type="text" name="description" nullable="true" comment="Organisation description / tagline"/>
+        <column xsi:type="text" name="description" nullable="true" comment="Organization description / tagline"/>
         <column xsi:type="text" name="social_profiles" nullable="true" comment="JSON array of social profile URLs"/>
-        <column xsi:type="text" name="contact_point" nullable="true" comment="JSON object: contactType, email, availableLanguage"/>
-        <column xsi:type="varchar" name="org_type" nullable="false" length="64" default="Organization" comment="Schema.org @type"/>
-        <column xsi:type="varchar" name="street_address" nullable="true" length="255" comment="LocalBusiness street address"/>
+        <column xsi:type="text" name="contact_point" nullable="true"
+                comment="JSON object: contactType, email, availableLanguage"/>
+        <column xsi:type="varchar" name="org_type" nullable="false" length="64" default="Organization"
+                comment="Schema.org @type"/>
+        <column xsi:type="varchar" name="street_address" nullable="true" length="255"
+                comment="LocalBusiness street address"/>
         <column xsi:type="varchar" name="address_locality" nullable="true" length="128" comment="City / town"/>
         <column xsi:type="varchar" name="address_region" nullable="true" length="128" comment="County / state"/>
         <column xsi:type="varchar" name="postal_code" nullable="true" length="32" comment="Postcode / ZIP"/>
-        <column xsi:type="varchar" name="address_country" nullable="true" length="2" comment="ISO 3166-1 alpha-2 country"/>
+        <column xsi:type="varchar" name="address_country" nullable="true" length="2"
+                comment="ISO 3166-1 alpha-2 country"/>
         <column xsi:type="varchar" name="telephone" nullable="true" length="64" comment="Contact telephone"/>
         <column xsi:type="varchar" name="email" nullable="true" length="255" comment="Contact email"/>
         <column xsi:type="varchar" name="latitude" nullable="true" length="32" comment="Geo latitude"/>
@@ -48,7 +58,7 @@
             No foreign key on scope_id: it points at a website or a store view depending on the
             scope column, which no single constraint can express. core_config_data is built the
             same way, and core cleans it up in Website::beforeDelete() / Group::beforeDelete()
-            via clearScopeData(). MageOS\Seo\Observer\RemoveOrganisationOnScopeDelete does the
+            via clearScopeData(). MageOS\Seo\Observer\RemoveOrganizationOnScopeDelete does the
             equivalent for this table.
         -->
     </table>
@@ -57,12 +67,16 @@
     <table name="mageos_seo_category_config" resource="default" engine="innodb"
            comment="MageOS SEO — per-category schema configuration">
         <column xsi:type="int" name="entity_id" unsigned="true" nullable="false" identity="true" comment="Entity ID"/>
-        <column xsi:type="int" name="category_id" unsigned="true" nullable="false" comment="Catalog category entity_id"/>
+        <column xsi:type="int" name="category_id" unsigned="true" nullable="false"
+                comment="Catalog category entity_id"/>
         <column xsi:type="smallint" name="store_id" unsigned="true" nullable="false" default="0"
                 comment="Store view ID (0 = all stores / global default)"/>
-        <column xsi:type="varchar" name="schema_template" nullable="true" length="64" comment="Product schema template code"/>
-        <column xsi:type="text" name="enabled_fields" nullable="true" comment="JSON array of enabled optional field codes"/>
-        <column xsi:type="text" name="override_fields" nullable="true" comment="JSON object of hard-coded field value overrides"/>
+        <column xsi:type="varchar" name="schema_template" nullable="true" length="64"
+                comment="Product schema template code"/>
+        <column xsi:type="text" name="enabled_fields" nullable="true"
+                comment="JSON array of enabled optional field codes"/>
+        <column xsi:type="text" name="override_fields" nullable="true"
+                comment="JSON object of hard-coded field value overrides"/>
         <column xsi:type="smallint" name="item_list_enabled" nullable="true" unsigned="true"
                 comment="Override ItemList output: NULL=global default, 0=disabled, 1=enabled"/>
         <column xsi:type="varchar" name="robots_meta" nullable="true" length="64"
@@ -98,9 +112,12 @@
            comment="MageOS SEO — per-product schema field overrides">
         <column xsi:type="int" name="entity_id" unsigned="true" nullable="false" identity="true" comment="Entity ID"/>
         <column xsi:type="int" name="product_id" unsigned="true" nullable="false" comment="Catalog product entity_id"/>
-        <column xsi:type="smallint" name="store_id" unsigned="true" nullable="false" default="0" comment="Store view ID (0 = all stores)"/>
-        <column xsi:type="text" name="override_fields" nullable="true" comment="JSON object of hard-coded field value overrides"/>
-        <column xsi:type="varchar" name="robots_meta" nullable="true" length="64" comment="Robots meta override for this product"/>
+        <column xsi:type="smallint" name="store_id" unsigned="true" nullable="false" default="0"
+                comment="Store view ID (0 = all stores)"/>
+        <column xsi:type="text" name="override_fields" nullable="true"
+                comment="JSON object of hard-coded field value overrides"/>
+        <column xsi:type="varchar" name="robots_meta" nullable="true" length="64"
+                comment="Robots meta override for this product"/>
         <column xsi:type="timestamp" name="updated_at" nullable="false" default="CURRENT_TIMESTAMP"
                 on_update="true" comment="Last updated"/>
         <constraint xsi:type="primary" referenceId="PRIMARY">
@@ -127,8 +144,56 @@
     </table>
 
     <!-- FAQ entries, grouped by a named identifier referenced from widgets / Page Builder -->
-    <table name="mageos_seo_faq" resource="default" engine="innodb"
-           comment="MageOS SEO — FAQ entries (FAQPage structured data)">
+    <table name="mageos_seo_cms_page_config" resource="default" engine="innodb"
+           comment="MageOS SEO — per-CMS-page SEO configuration">
+        <column xsi:type="int" name="entity_id" unsigned="true" nullable="false" identity="true" comment="Entity ID"/>
+        <column xsi:type="int" name="page_id" unsigned="true" nullable="false" comment="CMS page page_id"/>
+        <column xsi:type="smallint" name="store_id" unsigned="true" nullable="false" default="0"
+                comment="Store view ID (0 = all stores / global default)"/>
+        <column xsi:type="varchar" name="robots_meta" nullable="true" length="64"
+                comment="Robots meta override for this CMS page (INDEX,FOLLOW etc.)"/>
+        <!--
+            Pages sharing a value are translations of one another, and list each other as hreflang
+            alternates. It identifies the page rather than a store view's presentation of it, so it
+            is kept on the global (store 0) row. MageOS_Hreflang's cms_page.meta_identifier.
+        -->
+        <column xsi:type="varchar" name="hreflang_group" nullable="true" length="255"
+                comment="Translation group: CMS pages sharing it are hreflang alternates"/>
+        <column xsi:type="timestamp" name="updated_at" nullable="false" default="CURRENT_TIMESTAMP"
+                on_update="true" comment="Last updated"/>
+        <constraint xsi:type="primary" referenceId="PRIMARY">
+            <column name="entity_id"/>
+        </constraint>
+        <constraint xsi:type="unique" referenceId="MAGEOS_SEO_CMS_PAGE_CONFIG_PAGE_STORE">
+            <column name="page_id"/>
+            <column name="store_id"/>
+        </constraint>
+        <!--
+            Store view cascades, as it does for the category and product overrides.
+
+            page_id deliberately carries NO foreign key. On Adobe Commerce, content staging keys
+            cms_page on row_id and page_id stops being unique, so the constraint cannot be created
+            there — the same reason MageOS_MetaRobotsTag adds plain columns instead. Rows are
+            removed with their page by Observer\RemoveCmsPageConfigOnDelete rather than by the
+            database.
+        -->
+        <constraint xsi:type="foreign" referenceId="MAGEOS_SEO_CMS_PAGE_CONFIG_STORE_ID_STORE_STORE_ID"
+                    table="mageos_seo_cms_page_config" column="store_id"
+                    referenceTable="store" referenceColumn="store_id" onDelete="CASCADE"/>
+        <index referenceId="MAGEOS_SEO_CMS_PAGE_CONFIG_STORE_ID" indexType="btree">
+            <column name="store_id"/>
+        </index>
+        <index referenceId="MAGEOS_SEO_CMS_PAGE_CONFIG_HREFLANG_GROUP" indexType="btree">
+            <column name="hreflang_group"/>
+        </index>
+    </table>
+
+    <!--
+        Formerly mageos_seo_faq. db_schema_whitelist.json keeps that name so setup:upgrade drops
+        the old table; its rows are not carried over.
+    -->
+    <table name="mageos_faq" resource="default" engine="innodb"
+           comment="MageOS FAQ — FAQ entries (FAQPage structured data)">
         <column xsi:type="int" name="entity_id" unsigned="true" nullable="false" identity="true" comment="Entity ID"/>
         <column xsi:type="varchar" name="identifier" nullable="false" length="128"
                 comment="FAQ group identifier referenced by widgets / Page Builder"/>
@@ -136,14 +201,16 @@
                 comment="Store view ID (0 = all stores)"/>
         <column xsi:type="varchar" name="question" nullable="false" length="512" comment="Question text"/>
         <column xsi:type="text" name="answer" nullable="false" comment="Answer text"/>
-        <column xsi:type="smallint" name="sort_order" unsigned="true" nullable="false" default="0" comment="Sort order"/>
-        <column xsi:type="smallint" name="is_active" unsigned="true" nullable="false" default="1" comment="Enabled flag"/>
+        <column xsi:type="smallint" name="sort_order" unsigned="true" nullable="false" default="0"
+                comment="Sort order"/>
+        <column xsi:type="smallint" name="is_active" unsigned="true" nullable="false" default="1"
+                comment="Enabled flag"/>
         <column xsi:type="timestamp" name="updated_at" nullable="false" default="CURRENT_TIMESTAMP"
                 on_update="true" comment="Last updated"/>
         <constraint xsi:type="primary" referenceId="PRIMARY">
             <column name="entity_id"/>
         </constraint>
-        <index referenceId="MAGEOS_SEO_FAQ_IDENTIFIER_STORE_IDX" indexType="btree">
+        <index referenceId="MAGEOS_FAQ_IDENTIFIER_STORE_IDX" indexType="btree">
             <column name="identifier"/>
             <column name="store_id"/>
         </index>
@@ -151,10 +218,10 @@
             store_id sits second in the index above, so the foreign key needs its own.
             identifier is a free-text grouping key and references nothing.
         -->
-        <constraint xsi:type="foreign" referenceId="MAGEOS_SEO_FAQ_STORE_ID_STORE_STORE_ID"
-                    table="mageos_seo_faq" column="store_id"
+        <constraint xsi:type="foreign" referenceId="MAGEOS_FAQ_STORE_ID_STORE_STORE_ID"
+                    table="mageos_faq" column="store_id"
                     referenceTable="store" referenceColumn="store_id" onDelete="CASCADE"/>
-        <index referenceId="MAGEOS_SEO_FAQ_STORE_ID" indexType="btree">
+        <index referenceId="MAGEOS_FAQ_STORE_ID" indexType="btree">
             <column name="store_id"/>
         </index>
     </table>

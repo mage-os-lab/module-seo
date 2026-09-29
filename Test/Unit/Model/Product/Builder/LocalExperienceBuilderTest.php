@@ -23,6 +23,8 @@ use PHPUnit\Framework\TestCase;
 
 class LocalExperienceBuilderTest extends TestCase
 {
+    use OfferBuilders;
+
     /**
      * @var Product&MockObject
      */
@@ -58,19 +60,21 @@ class LocalExperienceBuilderTest extends TestCase
         $this->product->method('getId')->willReturn(26);
         $this->product->method('getProductUrl')->willReturn('https://example.com/pottery');
         $this->product->method('getMediaGalleryImages')->willReturn(null);
-        $seoConfig->method('getPriceValidUntilMonths')->willReturn(3);
         $imageHelper->method('init')->willReturnSelf();
         $imageHelper->method('getUrl')->willReturn('');
         $availability->method('resolve')->willReturn(AvailabilityResolver::IN_STOCK);
 
         $this->builder = new LocalExperienceBuilder(
             $storeManager,
-            $currencyService,
-            $availability,
             $imageHelper,
             $seoConfig,
-            $this->createMock(DateTime::class),
-            new OfferEnricherPool(),
+            $this->offerBuilder(
+                $storeManager,
+                $currencyService,
+                $availability,
+                $this->createMock(DateTime::class),
+                new OfferEnricherPool()
+            ),
             new AggregateRatingResolver(),
             new GtinValidator()
         );
@@ -102,7 +106,7 @@ class LocalExperienceBuilderTest extends TestCase
     {
         // Experiences with real schedules belong in a dedicated Event node; on the
         // Product node, Event-only properties are additionalProperty entries.
-        $schema = $this->builder->build($this->product, [], [], []);
+        $schema = $this->builder->build($this->product, [], []);
         $this->assertSame('Product', $schema['@type']);
     }
 
@@ -111,7 +115,7 @@ class LocalExperienceBuilderTest extends TestCase
         $this->product->method('getData')->willReturnCallback(
             static fn (string $key) => $key === 'location' ? 'Studio 5, Bristol' : null
         );
-        $schema = $this->builder->build($this->product, ['location'], [], []);
+        $schema = $this->builder->build($this->product, ['location'], []);
 
         $this->assertArrayNotHasKey('location', $schema);
         $entry = $this->findAdditionalProperty($schema, 'location');
@@ -124,7 +128,7 @@ class LocalExperienceBuilderTest extends TestCase
         $this->product->method('getData')->willReturnCallback(
             static fn (string $key) => $key === 'duration' ? '2 hours' : null
         );
-        $schema = $this->builder->build($this->product, ['duration'], [], []);
+        $schema = $this->builder->build($this->product, ['duration'], []);
 
         $entry = $this->findAdditionalProperty($schema, 'duration');
         $this->assertNotNull($entry);
@@ -133,11 +137,12 @@ class LocalExperienceBuilderTest extends TestCase
 
     public function testOrganizerFromOverrideBecomesAdditionalProperty(): void
     {
-        $schema = $this->builder->build($this->product, ['organizer'], ['organizer' => 'Bristol Crafts'], []);
+        $schema = $this->builder->build($this->product, ['organizer'], ['organizer' => 'Bristol Crafts']);
 
         $entry = $this->findAdditionalProperty($schema, 'organizer');
         $this->assertNotNull($entry);
         $this->assertSame('Bristol Crafts', $entry['value']);
+        $this->assertArrayNotHasKey('organizer', $schema, 'organizer is not a Product property.');
     }
 
     public function testAvailabilityStartsGoesOnTheOfferNode(): void
@@ -145,7 +150,7 @@ class LocalExperienceBuilderTest extends TestCase
         $this->product->method('getData')->willReturnCallback(
             static fn (string $key) => $key === 'availability_starts' ? '2026-08-01' : null
         );
-        $schema = $this->builder->build($this->product, ['availabilityStarts'], [], []);
+        $schema = $this->builder->build($this->product, ['availabilityStarts'], []);
         $this->assertSame('2026-08-01', $schema['offers']['availabilityStarts']);
     }
 }

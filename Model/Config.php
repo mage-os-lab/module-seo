@@ -6,6 +6,7 @@ namespace MageOS\Seo\Model;
 
 use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Store\Model\ScopeInterface;
+use MageOS\Seo\Model\Config\Source\SitemapGenerator;
 
 class Config
 {
@@ -15,27 +16,42 @@ class Config
     public const XML_SD_CATEGORY_ITEM_LIST_ENABLED = 'mageos_seo_general/structured_data/category_item_list_enabled';
     public const XML_SD_CATEGORY_ITEM_LIST_MAX     = 'mageos_seo_general/structured_data/category_item_list_max';
     public const XML_SD_HAS_VARIANT_MAX            = 'mageos_seo_general/structured_data/has_variant_max';
-    public const XML_SD_PRICE_VALID_UNTIL_MONTHS   = 'mageos_seo_general/structured_data/price_valid_until_months';
     public const XML_SD_AGGREGATE_RATING_ENABLED   = 'mageos_seo_general/structured_data/aggregate_rating_enabled';
-    public const XML_LLMS_ENABLED                  = 'mageos_seo_general/llms_txt/enabled';
-    public const XML_LLMS_FULL_ENABLED             = 'mageos_seo_general/llms_txt/full_enabled';
-    public const XML_LLMS_JSONL_ENABLED            = 'mageos_seo_general/llms_txt/jsonl_enabled';
-    public const XML_FEEDS_STORAGE_DIR             = 'mageos_seo_general/feeds/storage_dir';
+
+    public const XML_CATEGORY_INHERITANCE_STRATEGY = 'mageos_seo_general/category_config/inheritance_strategy';
+
+    /**
+     * The strategy used when configuration names none, and the one shipped as the default.
+     */
+    public const DEFAULT_INHERITANCE_STRATEGY = 'category_first';
     public const XML_ROBOTS_PRODUCT_DEFAULT        = 'mageos_seo_general/robots_meta/product_default';
     public const XML_ROBOTS_CATEGORY_DEFAULT       = 'mageos_seo_general/robots_meta/category_default';
     public const XML_ROBOTS_CMS_DEFAULT            = 'mageos_seo_general/robots_meta/cms_page_default';
+    public const XML_ROBOTS_SEARCH_DEFAULT         = 'mageos_seo_general/robots_meta/search_default';
     public const XML_ROBOTS_PAGINATED_ENABLED      = 'mageos_seo_general/robots_meta/paginated_enabled';
     public const XML_ROBOTS_PAGINATED              = 'mageos_seo_general/robots_meta/paginated_robots';
+
+    /**
+     * Core's Design → Search Engine Robots, which a page keeps when this module has no directive.
+     */
+    public const XML_ROBOTS_CORE_DEFAULT           = 'design/search_engine_robots/default_robots';
+
+    /**
+     * Core's General → Locale Options → Locale (Directory\Helper\Data::XML_PATH_DEFAULT_LOCALE).
+     */
+    public const XML_LOCALE_CODE                   = 'general/locale/code';
     public const XML_HREFLANG_ENABLED              = 'mageos_seo_general/hreflang/enabled';
     public const XML_HREFLANG_XDEFAULT_STORE       = 'mageos_seo_general/hreflang/xdefault_store_id';
     public const XML_HREFLANG_EXCLUDED_STORES      = 'mageos_seo_general/hreflang/excluded_store_ids';
     public const XML_HREFLANG_LANGUAGE_ONLY        = 'mageos_seo_general/hreflang/language_only_enabled';
     public const XML_HREFLANG_SITEMAP_ENABLED      = 'mageos_seo_general/hreflang/sitemap_enabled';
     public const XML_HREFLANG_SAME_WEBSITE_ONLY    = 'mageos_seo_general/hreflang/same_website_only';
+    public const XML_HREFLANG_CODES                = 'mageos_seo_general/hreflang/codes';
+    public const XML_SITEMAP_GENERATOR             = 'sitemap/generate/mageos_seo_generator';
+    public const XML_SITEMAP_EXCLUDE_NOINDEX       = 'sitemap/generate/mageos_seo_exclude_noindex';
+    public const XML_SITEMAP_REBUILD_ON_CHANGE     = 'sitemap/generate/mageos_seo_rebuild_on_change';
     public const XML_AEO_SPEAKABLE_ENABLED         = 'mageos_seo_general/aeo/speakable_enabled';
     public const XML_AEO_SPEAKABLE_SELECTORS       = 'mageos_seo_general/aeo/speakable_css_selectors';
-    public const XML_AI_ROBOTS_ENABLED             = 'mageos_seo_general/ai_robots/enabled';
-    public const XML_AI_ROBOTS_DISALLOWED          = 'mageos_seo_general/ai_robots/disallowed';
 
     /**
      * Initialize Config with scope configuration.
@@ -123,33 +139,38 @@ class Config
     }
 
     /**
-     * Return the maximum number of hasVariant offers to render per product.
+     * Return the code of the configured category inheritance strategy.
+     *
+     * Read at default scope and takes no store ID: this decides how store-view scope itself is
+     * resolved against the category tree, so letting it vary per store view would mean the rule
+     * for choosing between scopes depended on the scope it was choosing.
+     *
+     * @return string
+     */
+    public function getCategoryInheritanceStrategy(): string
+    {
+        $configured = (string) $this->scopeConfig->getValue(self::XML_CATEGORY_INHERITANCE_STRATEGY);
+
+        return $configured !== '' ? $configured : self::DEFAULT_INHERITANCE_STRATEGY;
+    }
+
+    /**
+     * Return how many sellable children a configurable may have and still be a ProductGroup.
+     *
+     * One with more is described as a Product with an AggregateOffer. 0 turns variants off:
+     * every configurable gets the AggregateOffer. Unset reads as the default, 50.
      *
      * @param int|string|null $storeId
      * @return int
      */
     public function getHasVariantMax(int|string|null $storeId = null): int
     {
-        return max(1, (int) ($this->scopeConfig->getValue(
-            self::XML_SD_HAS_VARIANT_MAX,
-            ScopeInterface::SCOPE_STORE,
-            $storeId
-        ) ?: 50));
-    }
+        $value = $this->scopeConfig->getValue(self::XML_SD_HAS_VARIANT_MAX, ScopeInterface::SCOPE_STORE, $storeId);
+        if ($value === null || $value === '') {
+            return 50;
+        }
 
-    /**
-     * Return the number of months used to calculate priceValidUntil.
-     *
-     * @param int|string|null $storeId
-     * @return int
-     */
-    public function getPriceValidUntilMonths(int|string|null $storeId = null): int
-    {
-        return max(1, (int) $this->scopeConfig->getValue(
-            self::XML_SD_PRICE_VALID_UNTIL_MONTHS,
-            ScopeInterface::SCOPE_STORE,
-            $storeId
-        ));
+        return max(0, (int) $value);
     }
 
     /**
@@ -165,64 +186,6 @@ class Config
             ScopeInterface::SCOPE_STORE,
             $storeId
         );
-    }
-
-    /**
-     * Check if the llms.txt endpoint is enabled.
-     *
-     * @param int|string|null $storeId
-     * @return bool
-     */
-    public function isLlmsTxtEnabled(int|string|null $storeId = null): bool
-    {
-        return (bool) $this->scopeConfig->getValue(
-            self::XML_LLMS_ENABLED,
-            ScopeInterface::SCOPE_STORE,
-            $storeId
-        );
-    }
-
-    /**
-     * Check if the llms-full.txt endpoint is enabled.
-     *
-     * @param int|string|null $storeId
-     * @return bool
-     */
-    public function isLlmsFullTxtEnabled(int|string|null $storeId = null): bool
-    {
-        return (bool) $this->scopeConfig->getValue(
-            self::XML_LLMS_FULL_ENABLED,
-            ScopeInterface::SCOPE_STORE,
-            $storeId
-        );
-    }
-
-    /**
-     * Check if the /llms.jsonl product catalog endpoint is enabled.
-     *
-     * @param int|string|null $storeId
-     * @return bool
-     */
-    public function isLlmsJsonlEnabled(int|string|null $storeId = null): bool
-    {
-        return (bool) $this->scopeConfig->getValue(
-            self::XML_LLMS_JSONL_ENABLED,
-            ScopeInterface::SCOPE_STORE,
-            $storeId
-        );
-    }
-
-    /**
-     * Absolute directory for pre-generated feed files, or '' for the default (var/mageos_seo).
-     *
-     * Scaled deployments point this at a mount shared between the web hosts and the
-     * host running cron/queue consumers; var/ is host-local on multi-server setups.
-     *
-     * @return string
-     */
-    public function getFeedStorageDir(): string
-    {
-        return trim((string) $this->scopeConfig->getValue(self::XML_FEEDS_STORAGE_DIR));
     }
 
     /**
@@ -265,6 +228,39 @@ class Config
     {
         return (string) $this->scopeConfig->getValue(
             self::XML_ROBOTS_CMS_DEFAULT,
+            ScopeInterface::SCOPE_STORE,
+            $storeId
+        );
+    }
+
+    /**
+     * Return the default robots meta value for search result pages (quick and advanced search).
+     *
+     * Empty means no opinion: core's Design → Search Engine Robots applies, as for the other
+     * page-type defaults.
+     *
+     * @param int|string|null $storeId
+     * @return string
+     */
+    public function getRobotsSearchDefault(int|string|null $storeId = null): string
+    {
+        return (string) $this->scopeConfig->getValue(
+            self::XML_ROBOTS_SEARCH_DEFAULT,
+            ScopeInterface::SCOPE_STORE,
+            $storeId
+        );
+    }
+
+    /**
+     * Core's default robots directive for a store view (Design → Search Engine Robots).
+     *
+     * @param int $storeId
+     * @return string
+     */
+    public function getRobotsCoreDefault(int $storeId): string
+    {
+        return (string) $this->scopeConfig->getValue(
+            self::XML_ROBOTS_CORE_DEFAULT,
             ScopeInterface::SCOPE_STORE,
             $storeId
         );
@@ -318,11 +314,63 @@ class Config
     /**
      * Return the store view ID to advertise as hreflang x-default (0 = none).
      *
+     * Read at website scope: on an installation with several websites — a .com and a .co.uk, say —
+     * each has its own idea of which store view a visitor matching no alternate should land on.
+     * A website with no value of its own inherits the default-scope one.
+     *
+     * @param int|null $websiteId null reads the default scope
      * @return int
      */
-    public function getHreflangXDefaultStoreId(): int
+    public function getHreflangXDefaultStoreId(?int $websiteId = null): int
     {
-        return (int) $this->scopeConfig->getValue(self::XML_HREFLANG_XDEFAULT_STORE);
+        if ($websiteId === null) {
+            return (int) $this->scopeConfig->getValue(self::XML_HREFLANG_XDEFAULT_STORE);
+        }
+
+        return (int) $this->scopeConfig->getValue(
+            self::XML_HREFLANG_XDEFAULT_STORE,
+            ScopeInterface::SCOPE_WEBSITE,
+            $websiteId
+        );
+    }
+
+    /**
+     * Return the hreflang codes a store view claims, normalised, or none when it relies on its locale.
+     *
+     * @param int $storeId
+     * @return string[]
+     */
+    public function getHreflangCodes(int $storeId): array
+    {
+        $raw = (string) $this->scopeConfig->getValue(
+            self::XML_HREFLANG_CODES,
+            ScopeInterface::SCOPE_STORE,
+            $storeId
+        );
+
+        return array_values(array_filter(
+            array_map('trim', explode(',', $raw)),
+            static fn (string $code): bool => $code !== ''
+        ));
+    }
+
+    /**
+     * Return a store view's locale code (e.g. en_GB), or '' when none is configured.
+     *
+     * The one place this module reads a store view's locale: hreflang, og:locale and the llms
+     * documents all take it from here. It is configuration, not a property of the store: Store has
+     * no locale of its own.
+     *
+     * @param int $storeId
+     * @return string
+     */
+    public function getLocaleCode(int $storeId): string
+    {
+        return (string) $this->scopeConfig->getValue(
+            self::XML_LOCALE_CODE,
+            ScopeInterface::SCOPE_STORE,
+            $storeId
+        );
     }
 
     /**
@@ -354,7 +402,52 @@ class Config
     }
 
     /**
-     * Check if the /hreflang-sitemap.xml endpoint is enabled.
+     * Whether this module generates the store view's sitemaps, rather than Magento.
+     *
+     * @param int $storeId
+     * @return bool
+     */
+    public function isSitemapGeneratorEnabled(int $storeId): bool
+    {
+        return $this->scopeConfig->getValue(
+            self::XML_SITEMAP_GENERATOR,
+            ScopeInterface::SCOPE_STORE,
+            $storeId
+        ) === SitemapGenerator::MAGEOS_SEO;
+    }
+
+    /**
+     * Whether this module's generator leaves out pages whose robots directive is NOINDEX.
+     *
+     * @param int $storeId
+     * @return bool
+     */
+    public function isSitemapNoindexExcluded(int $storeId): bool
+    {
+        return $this->scopeConfig->isSetFlag(
+            self::XML_SITEMAP_EXCLUDE_NOINDEX,
+            ScopeInterface::SCOPE_STORE,
+            $storeId
+        );
+    }
+
+    /**
+     * Whether a change to what the store view's sitemaps list rebuilds them through the queue.
+     *
+     * @param int $storeId
+     * @return bool
+     */
+    public function isSitemapRebuildOnChangeEnabled(int $storeId): bool
+    {
+        return $this->scopeConfig->isSetFlag(
+            self::XML_SITEMAP_REBUILD_ON_CHANGE,
+            ScopeInterface::SCOPE_STORE,
+            $storeId
+        );
+    }
+
+    /**
+     * Whether the MageOS SEO sitemap generator lists each URL's hreflang alternates beside it.
      *
      * @return bool
      */
@@ -406,30 +499,5 @@ class Config
         }
 
         return array_values(array_filter(array_map('trim', preg_split('/\r\n|\r|\n/', $raw) ?: [])));
-    }
-
-    /**
-     * Check if AI-crawler directives are appended to robots.txt.
-     *
-     * @return bool
-     */
-    public function isAiRobotsEnabled(): bool
-    {
-        return (bool) $this->scopeConfig->getValue(self::XML_AI_ROBOTS_ENABLED, ScopeInterface::SCOPE_STORE);
-    }
-
-    /**
-     * Return the AI user-agents to disallow in robots.txt.
-     *
-     * @return string[]
-     */
-    public function getAiDisallowedBots(): array
-    {
-        $raw = (string) $this->scopeConfig->getValue(self::XML_AI_ROBOTS_DISALLOWED, ScopeInterface::SCOPE_STORE);
-        if ($raw === '') {
-            return [];
-        }
-
-        return array_values(array_filter(array_map('trim', explode(',', $raw))));
     }
 }

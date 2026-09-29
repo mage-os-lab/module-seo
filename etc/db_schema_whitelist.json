@@ -54,6 +54,38 @@
             "MAGEOS_SEO_ORGANISATION_SCOPE_SCOPE_ID": true
         }
     },
+    "mageos_seo_organization": {
+        "column": {
+            "entity_id": true,
+            "scope": true,
+            "scope_id": true,
+            "name": true,
+            "url": true,
+            "logo_path": true,
+            "logo_width": true,
+            "logo_height": true,
+            "description": true,
+            "social_profiles": true,
+            "contact_point": true,
+            "org_type": true,
+            "street_address": true,
+            "address_locality": true,
+            "address_region": true,
+            "postal_code": true,
+            "address_country": true,
+            "telephone": true,
+            "email": true,
+            "latitude": true,
+            "longitude": true,
+            "price_range": true,
+            "updated_at": true
+        },
+        "constraint": {
+            "PRIMARY": true,
+            "MAGEOS_SEO_ORG_SCOPE_SCOPE_ID": true,
+            "MAGEOS_SEO_ORGANIZATION_SCOPE_SCOPE_ID": true
+        }
+    },
     "mageos_seo_product_override": {
         "column": {
             "entity_id": true,
@@ -76,6 +108,25 @@
             "MAGEOS_SEO_PRODUCT_OVERRIDE_STORE_ID": true
         }
     },
+    "mageos_seo_cms_page_config": {
+        "column": {
+            "entity_id": true,
+            "page_id": true,
+            "store_id": true,
+            "robots_meta": true,
+            "hreflang_group": true,
+            "updated_at": true
+        },
+        "constraint": {
+            "PRIMARY": true,
+            "MAGEOS_SEO_CMS_PAGE_CONFIG_PAGE_STORE": true,
+            "MAGEOS_SEO_CMS_PAGE_CONFIG_STORE_ID_STORE_STORE_ID": true
+        },
+        "index": {
+            "MAGEOS_SEO_CMS_PAGE_CONFIG_STORE_ID": true,
+            "MAGEOS_SEO_CMS_PAGE_CONFIG_HREFLANG_GROUP": true
+        }
+    },
     "mageos_seo_faq": {
         "column": {
             "entity_id": true,
@@ -95,6 +146,27 @@
             "MAGEOS_SEO_FAQ_IDENTIFIER_STORE_IDX": true,
             "MAGEOS_SEO_FAQ_IDENTIFIER_STORE_ID": true,
             "MAGEOS_SEO_FAQ_STORE_ID": true
+        }
+    },
+    "mageos_faq": {
+        "column": {
+            "entity_id": true,
+            "identifier": true,
+            "store_id": true,
+            "question": true,
+            "answer": true,
+            "sort_order": true,
+            "is_active": true,
+            "updated_at": true
+        },
+        "constraint": {
+            "PRIMARY": true,
+            "MAGEOS_FAQ_STORE_ID_STORE_STORE_ID": true
+        },
+        "index": {
+            "MAGEOS_FAQ_IDENTIFIER_STORE_IDX": true,
+            "MAGEOS_FAQ_IDENTIFIER_STORE_ID": true,
+            "MAGEOS_FAQ_STORE_ID": true
         }
     }
 }

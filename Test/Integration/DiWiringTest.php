@@ -6,18 +6,21 @@ namespace MageOS\Seo\Test\Integration;
 
 use Magento\TestFramework\Helper\Bootstrap;
 use MageOS\Seo\Api\FaqCollectorInterface;
-use MageOS\Seo\Api\OrganisationRepositoryInterface;
+use MageOS\Seo\Api\OrganizationRepositoryInterface;
 use MageOS\Seo\Model\Faq\SourcePool as FaqSourcePool;
+use MageOS\Seo\Model\Feed\LlmsRebuildHandler;
 use MageOS\Seo\Model\Hreflang\ResolverPool as HreflangResolverPool;
-use MageOS\Seo\Model\Hreflang\SitemapGenerator as HreflangSitemapGenerator;
 use MageOS\Seo\Model\LlmsJsonl\JsonlBuilder;
 use MageOS\Seo\Model\LlmsTxt\LlmsTxtBuilder;
 use MageOS\Seo\Model\MetaTag\Compositor as MetaTagCompositor;
 use MageOS\Seo\Model\PageTitle\Compositor as PageTitleCompositor;
 use MageOS\Seo\Model\Product\Builder\AbstractBuilder;
 use MageOS\Seo\Model\Product\Builder\GenericProductBuilder;
+use MageOS\Seo\Model\Product\OfferBuilder;
 use MageOS\Seo\Model\Product\OfferEnricher\Pool as OfferEnricherPool;
 use MageOS\Seo\Model\Product\SchemaBuilderPool;
+use MageOS\Seo\Model\Product\Variant\ProductGroupBuilder;
+use MageOS\Seo\Model\Rebuild\HandlerPool as RebuildHandlerPool;
 use MageOS\Seo\Model\Review\AggregateRatingResolver;
 use MageOS\Seo\Model\RobotsMeta\Resolver as RobotsMetaResolver;
 use MageOS\Seo\Model\StructuredData\Compositor as StructuredDataCompositor;
@@ -33,10 +36,10 @@ use PHPUnit\Framework\TestCase;
  */
 class DiWiringTest extends TestCase
 {
-    public function testOrganisationRepositoryIsInstantiableViaDi(): void
+    public function testOrganizationRepositoryIsInstantiableViaDi(): void
     {
-        $instance = Bootstrap::getObjectManager()->get(OrganisationRepositoryInterface::class);
-        $this->assertInstanceOf(OrganisationRepositoryInterface::class, $instance);
+        $instance = Bootstrap::getObjectManager()->get(OrganizationRepositoryInterface::class);
+        $this->assertInstanceOf(OrganizationRepositoryInterface::class, $instance);
     }
 
     public function testStructuredDataCompositorIsInstantiableViaDi(): void
@@ -93,12 +96,6 @@ class DiWiringTest extends TestCase
         $this->assertInstanceOf(HreflangResolverPool::class, $instance);
     }
 
-    public function testHreflangSitemapGeneratorIsInstantiableViaDi(): void
-    {
-        $instance = Bootstrap::getObjectManager()->get(HreflangSitemapGenerator::class);
-        $this->assertInstanceOf(HreflangSitemapGenerator::class, $instance);
-    }
-
     public function testFaqSourcePoolIsInstantiableViaDi(): void
     {
         $instance = Bootstrap::getObjectManager()->get(FaqSourcePool::class);
@@ -117,31 +114,43 @@ class DiWiringTest extends TestCase
         $this->assertInstanceOf(JsonlBuilder::class, $instance);
     }
 
+    public function testTheLlmsDocumentsAreRegisteredWithTheRebuildQueue(): void
+    {
+        /** @var RebuildHandlerPool $pool */
+        $pool = Bootstrap::getObjectManager()->get(RebuildHandlerPool::class);
+        $this->assertInstanceOf(LlmsRebuildHandler::class, $pool->get('llms'));
+        $this->assertInstanceOf(LlmsRebuildHandler::class, $pool->get('jsonl'));
+        $this->assertSame(['llms', 'jsonl'], $pool->getGroups());
+    }
+
     public function testWellKnownEndpointPoolIsWiredWithBuiltinEndpoints(): void
     {
         /** @var WellKnownEndpointPool $pool */
         $pool = Bootstrap::getObjectManager()->get(WellKnownEndpointPool::class);
         $this->assertTrue($pool->has('ucp'));
-        $this->assertTrue($pool->has('ai-plugin.json'));
         $this->assertTrue($pool->has('security.txt'));
+        // Retired: see RetiredAiPluginManifestTest.
+        $this->assertFalse($pool->has('ai-plugin.json'));
     }
 
     /**
      * Guards against optional-constructor-argument regressions: the ObjectManager passes
      * the default for optional args unless di.xml configures them per consumer, so a
      * builder whose pool argument is optional silently loses every configured enricher.
-     * This asserts the DI-built builder actually holds the di.xml-configured pools.
+     * This asserts the DI-built builder actually holds the di.xml-configured pools — the
+     * enrichers through the offer builder, which a configurable's variants share.
      */
     public function testDiBuiltProductBuilderReceivesConfiguredEnrichersAndRatingProviders(): void
     {
         $builder = Bootstrap::getObjectManager()->get(GenericProductBuilder::class);
 
-        $pool = (new \ReflectionProperty(AbstractBuilder::class, 'offerEnricherPool'))->getValue($builder);
-        $this->assertInstanceOf(OfferEnricherPool::class, $pool);
-        $enrichers = (new \ReflectionProperty(OfferEnricherPool::class, 'enrichers'))->getValue($pool);
-        $this->assertArrayHasKey('itemCondition', $enrichers);
-        $this->assertArrayHasKey('returnPolicy', $enrichers);
-        $this->assertArrayHasKey('shippingDetails', $enrichers);
+        $this->assertConfiguredEnrichers(
+            (new \ReflectionProperty(AbstractBuilder::class, 'offerBuilder'))->getValue($builder)
+        );
+        $this->assertConfiguredEnrichers(
+            (new \ReflectionProperty(ProductGroupBuilder::class, 'offerBuilder'))
+                ->getValue(Bootstrap::getObjectManager()->get(ProductGroupBuilder::class))
+        );
 
         $resolver = (new \ReflectionProperty(AbstractBuilder::class, 'aggregateRatingResolver'))
             ->getValue($builder);
@@ -149,5 +158,22 @@ class DiWiringTest extends TestCase
         $providers = (new \ReflectionProperty(AggregateRatingResolver::class, 'providers'))
             ->getValue($resolver);
         $this->assertArrayHasKey('native', $providers);
+    }
+
+    /**
+     * Assert an offer builder holds the offer enrichers di.xml configures.
+     *
+     * @param mixed $offerBuilder
+     * @return void
+     */
+    private function assertConfiguredEnrichers(mixed $offerBuilder): void
+    {
+        $this->assertInstanceOf(OfferBuilder::class, $offerBuilder);
+        $pool = (new \ReflectionProperty(OfferBuilder::class, 'offerEnricherPool'))->getValue($offerBuilder);
+        $this->assertInstanceOf(OfferEnricherPool::class, $pool);
+        $enrichers = (new \ReflectionProperty(OfferEnricherPool::class, 'enrichers'))->getValue($pool);
+        $this->assertArrayHasKey('itemCondition', $enrichers);
+        $this->assertArrayHasKey('returnPolicy', $enrichers);
+        $this->assertArrayHasKey('shippingDetails', $enrichers);
     }
 }

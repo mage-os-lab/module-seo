@@ -49,7 +49,7 @@ class LlmsTxtRouterTest extends TestCase
     {
         // Path matches, but the module is already ours — already forwarded.
         $this->actionFactory->expects($this->never())->method('create');
-        $this->assertNull($this->router->match($this->request('/llms.txt', 'mageos-seo')));
+        $this->assertNull($this->router->match($this->request('/llms.txt', 'mageos-aeo')));
     }
 
     /**
@@ -71,7 +71,7 @@ class LlmsTxtRouterTest extends TestCase
     public function testMatchedPathForwardsToController(string $path, string $expectedController): void
     {
         $request = $this->request($path);
-        $request->expects($this->once())->method('setModuleName')->with('mageos-seo')->willReturnSelf();
+        $request->expects($this->once())->method('setModuleName')->with('mageos-aeo')->willReturnSelf();
         $request->expects($this->once())->method('setControllerName')->with($expectedController)->willReturnSelf();
         $request->expects($this->once())->method('setActionName')->with('index')->willReturnSelf();
         $request->method('setAlias')->willReturnSelf();

@@ -44,9 +44,9 @@ class ToolBuilder extends AbstractBuilder
     /**
      * @inheritdoc
      */
-    public function build(ProductInterface $product, array $enabledFields, array $overrides, array $variantData): array
+    public function build(ProductInterface $product, array $enabledFields, array $overrides): array
     {
-        $schema = $this->buildBase($product, $variantData);
+        $schema = $this->buildBase($product);
 
         if (\in_array('brand', $enabledFields, true)) {
             $brand = $overrides['brand'] ?? $this->attr($product, 'manufacturer') ?: $this->attr($product, 'brand');

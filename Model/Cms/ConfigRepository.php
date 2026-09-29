@@ -1,0 +1,251 @@
+<?php
+
+declare(strict_types=1);
+
+namespace MageOS\Seo\Model\Cms;
+
+use Magento\Framework\Data\Collection as DataCollection;
+use Magento\Framework\ObjectManager\ResetAfterRequestInterface;
+use MageOS\Seo\Model\CmsPageConfig;
+use MageOS\Seo\Model\ResourceModel\CmsPageConfig as CmsPageConfigResource;
+use MageOS\Seo\Model\ResourceModel\CmsPageConfig\CollectionFactory;
+
+/**
+ * Per-CMS-page SEO configuration, with store-view fallback.
+ *
+ * Deliberately simpler than the category equivalent: CMS pages form no tree, so there is nothing
+ * to inherit from and no source-order strategy to apply. The only fallback is scope — a store
+ * view's own row, then the global (store 0) row.
+ */
+class ConfigRepository implements ResetAfterRequestInterface
+{
+    /**
+     * Rows already read this request, keyed "{pageId}_{storeId}".
+     *
+     * @var array<string, mixed[]>
+     */
+    private array $cache = [];
+
+    /**
+     * @param CollectionFactory $collectionFactory
+     * @param CmsPageConfigResource $resource
+     */
+    public function __construct(
+        private readonly CollectionFactory     $collectionFactory,
+        private readonly CmsPageConfigResource $resource
+    ) {
+    }
+
+    /**
+     * Load the configuration for a CMS page, the store view's row winning over the global one.
+     *
+     * @param int $pageId
+     * @param int $storeId Store view ID (0 = global default)
+     * @return mixed[]
+     */
+    public function getForPage(int $pageId, int $storeId = 0): array
+    {
+        return $this->cache["{$pageId}_{$storeId}"] ??= $this->load([$pageId], $storeId)[$pageId];
+    }
+
+    /**
+     * Load several CMS pages' configuration in one query, each chosen as getForPage() chooses.
+     *
+     * Not memoised, for the reason ProductOverrideRepository::getForProducts() gives: the sitemap
+     * reads every page through this.
+     *
+     * @param int[] $pageIds
+     * @param int $storeId Store view ID (0 = global default)
+     * @return array<int,mixed[]> page ID => row, empty when the page has none, for every ID asked for
+     */
+    public function getForPages(array $pageIds, int $storeId = 0): array
+    {
+        return $this->load($pageIds, $storeId);
+    }
+
+    /**
+     * Read the given pages' rows for a store view and choose each page's.
+     *
+     * @param int[] $pageIds
+     * @param int $storeId
+     * @return array<int,mixed[]>
+     */
+    private function load(array $pageIds, int $storeId): array
+    {
+        $pageIds = array_values(array_unique(array_map('intval', $pageIds)));
+        if ($pageIds === []) {
+            return [];
+        }
+
+        $collection = $this->collectionFactory->create();
+        $collection->addFieldToFilter('page_id', ['in' => $pageIds]);
+        $collection->addFieldToFilter('store_id', $storeId > 0 ? ['in' => [0, $storeId]] : ['eq' => 0]);
+        // Global row first, so the rule below does not depend on the order the database returns.
+        $collection->setOrder('store_id', DataCollection::SORT_ORDER_ASC);
+
+        $rows = array_fill_keys($pageIds, []);
+
+        /** @var CmsPageConfig $config */
+        foreach ($collection as $config) {
+            $candidate = $config->getData();
+            $pageId    = (int) ($candidate['page_id'] ?? 0);
+
+            // The store view's own row wins; a row that sets nothing does not blank out the
+            // global one.
+            $isStoreRow = (int) ($candidate['store_id'] ?? 0) > 0;
+            if ($rows[$pageId] === [] || ($isStoreRow && $this->saysSomething($candidate))) {
+                $rows[$pageId] = $candidate;
+            }
+        }
+
+        return $rows;
+    }
+
+    /**
+     * The translation group a CMS page belongs to, or null when it has none.
+     *
+     * Read from the global row only: the group identifies the page, not a store view's presentation
+     * of it (see the column's comment in db_schema.xml).
+     *
+     * @param int $pageId
+     * @return string|null
+     */
+    public function getHreflangGroup(int $pageId): ?string
+    {
+        $group = (string) ($this->getForPage($pageId)['hreflang_group'] ?? '');
+
+        return $group === '' ? null : $group;
+    }
+
+    /**
+     * The translation groups of several CMS pages, in one query.
+     *
+     * @param int[] $pageIds
+     * @return array<int,string> page_id => group; pages in no group are absent
+     */
+    public function getHreflangGroups(array $pageIds): array
+    {
+        $pageIds = array_values(array_unique(array_map('intval', $pageIds)));
+        if ($pageIds === []) {
+            return [];
+        }
+
+        $collection = $this->collectionFactory->create();
+        $collection->addFieldToFilter('store_id', ['eq' => 0]);
+        $collection->addFieldToFilter('page_id', ['in' => $pageIds]);
+        $collection->addFieldToFilter('hreflang_group', ['neq' => '']);
+
+        $groups = [];
+        foreach ($collection as $config) {
+            $groups[(int) $config->getData('page_id')] = (string) $config->getData('hreflang_group');
+        }
+
+        return $groups;
+    }
+
+    /**
+     * IDs of the CMS pages in any of the given translation groups.
+     *
+     * @param string[] $groups Normalised translation groups
+     * @return int[]
+     */
+    public function getPageIdsInGroups(array $groups): array
+    {
+        $groups = array_values(array_unique(array_filter($groups, static fn ($group) => $group !== '')));
+        if ($groups === []) {
+            return [];
+        }
+
+        $collection = $this->collectionFactory->create();
+        $collection->addFieldToFilter('store_id', ['eq' => 0]);
+        $collection->addFieldToFilter('hreflang_group', ['in' => $groups]);
+
+        $pageIds = [];
+        foreach ($collection as $config) {
+            $pageIds[] = (int) $config->getData('page_id');
+        }
+
+        return $pageIds;
+    }
+
+    /**
+     * Save or update the configuration for a CMS page and store view.
+     *
+     * @param int $pageId
+     * @param mixed[] $data
+     * @param int $storeId Store view ID (0 = global default)
+     * @return void
+     */
+    public function save(int $pageId, array $data, int $storeId = 0): void
+    {
+        $collection = $this->collectionFactory->create();
+        $collection->addFieldToFilter('page_id', ['eq' => $pageId]);
+        $collection->addFieldToFilter('store_id', ['eq' => $storeId]);
+
+        /** @var CmsPageConfig $config An empty model when this page has no row yet */
+        $config = $collection->getFirstItem();
+        $config->addData($data);
+        $config->setData('page_id', $pageId);
+        $config->setData('store_id', $storeId);
+        // Let the database set updated_at: a value in the UPDATE statement takes precedence over
+        // the column's ON UPDATE CURRENT_TIMESTAMP, which would freeze it at the loaded value.
+        $config->unsetData('updated_at');
+
+        $this->resource->save($config);
+
+        $this->cache = [];
+    }
+
+    /**
+     * Remove every row of the given pages, across all store views.
+     *
+     * The table carries no foreign key to cms_page — see the schema comment — so deleting a page
+     * has to take its configuration with it here.
+     *
+     * @param int[] $pageIds
+     * @return int Number of rows removed
+     */
+    public function deleteForPages(array $pageIds): int
+    {
+        $pageIds = array_values(array_unique(array_map('intval', $pageIds)));
+        if ($pageIds === []) {
+            return 0;
+        }
+
+        $collection = $this->collectionFactory->create();
+        $collection->addFieldToFilter('page_id', ['in' => $pageIds]);
+
+        $deleted = 0;
+        foreach ($collection as $config) {
+            $this->resource->delete($config);
+            $deleted++;
+        }
+
+        if ($deleted > 0) {
+            $this->cache = [];
+        }
+
+        return $deleted;
+    }
+
+    /**
+     * Whether a row configures anything at all.
+     *
+     * @param mixed[] $row
+     * @return bool
+     */
+    private function saysSomething(array $row): bool
+    {
+        return ($row['robots_meta'] ?? null) !== null && $row['robots_meta'] !== '';
+    }
+
+    /**
+     * Clear the memoised rows between worker-mode requests.
+     *
+     * @return void
+     */
+    public function _resetState(): void // phpcs:ignore PSR2.Methods.MethodDeclaration.Underscore -- framework interface
+    {
+        $this->cache = [];
+    }
+}

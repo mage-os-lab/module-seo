@@ -4,12 +4,16 @@ declare(strict_types=1);
 
 namespace MageOS\Seo\Test\Unit\Model\Hreflang;
 
+use Magento\Framework\Event\ManagerInterface as EventManagerInterface;
 use Magento\Framework\View\Layout;
 use Magento\Framework\View\Layout\ProcessorInterface;
+use Magento\Store\Api\Data\StoreInterface;
+use Magento\Store\Model\StoreManagerInterface;
 use MageOS\Seo\Api\HreflangResolverInterface;
 use MageOS\Seo\Model\Config;
 use MageOS\Seo\Model\Hreflang\AlternateBuilder;
 use MageOS\Seo\Model\Hreflang\ResolverPool;
+use MageOS\Seo\Model\Hreflang\SelfReference;
 use MageOS\Seo\Model\Pool\HandleMatcher;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
@@ -61,19 +65,64 @@ class ResolverPoolTest extends TestCase
     }
 
     /**
-     * @param array<int, array{hreflang: string, url: string, store_id: int}> $links
+     * A store manager whose current store is the given store view, in website 1.
+     *
+     * @param int $storeId
+     * @return StoreManagerInterface
      */
-    private function pool(array $links): ResolverPool
+    private function storeManager(int $storeId = 1): StoreManagerInterface
+    {
+        $store = $this->createStub(StoreInterface::class);
+        $store->method('getId')->willReturn($storeId);
+        $store->method('getWebsiteId')->willReturn(1);
+
+        $storeManager = $this->createStub(StoreManagerInterface::class);
+        $storeManager->method('getStore')->willReturn($store);
+
+        return $storeManager;
+    }
+
+    /**
+     * The real builder, on a store in website 1 and an event manager with no observers.
+     *
+     * @return AlternateBuilder
+     */
+    private function alternateBuilder(): AlternateBuilder
+    {
+        return new AlternateBuilder(
+            $this->config,
+            $this->storeManager(),
+            $this->createStub(EventManagerInterface::class)
+        );
+    }
+
+    /**
+     * A pool with the given resolvers, serving the given store view.
+     *
+     * @param array<mixed> $resolvers
+     * @param int $currentStoreId
+     * @return ResolverPool
+     */
+    private function poolOf(array $resolvers, int $currentStoreId = 1): ResolverPool
     {
         return new ResolverPool(
             $this->layout,
             $this->config,
             new HandleMatcher(),
-            new AlternateBuilder($this->config),
-            [
-                $this->makeResolver(['catalog_product_view'], $links),
-            ]
+            $this->alternateBuilder(),
+            $this->storeManager($currentStoreId),
+            new SelfReference(),
+            $resolvers
         );
+    }
+
+    /**
+     * @param array<int, array{hreflang: string, url: string, store_id: int}> $links
+     * @param int $currentStoreId
+     */
+    private function pool(array $links, int $currentStoreId = 1): ResolverPool
+    {
+        return $this->poolOf([$this->makeResolver(['catalog_product_view'], $links)], $currentStoreId);
     }
 
     public function testSingleStoreReturnsEmpty(): void
@@ -172,42 +221,49 @@ class ResolverPoolTest extends TestCase
             $this->link('en-GB', 'https://uk/second', 1),
             $this->link('de-DE', 'https://de/second', 2),
         ]);
-        $pool = new ResolverPool(
-            $this->layout,
-            $this->config,
-            new HandleMatcher(),
-            new AlternateBuilder($this->config),
-            [$first, $second]
-        );
+        $pool = $this->poolOf([$first, $second]);
         $this->assertSame('https://uk/first', $pool->getLinks()[0]['url']);
     }
 
     public function testNonMatchingResolverIsSkipped(): void
     {
-        $pool = new ResolverPool(
-            $this->layout,
-            $this->config,
-            new HandleMatcher(),
-            new AlternateBuilder($this->config),
-            [
-                $this->makeResolver(['cms_page_view'], [
-                    $this->link('en-GB', 'https://uk/p', 1),
-                    $this->link('de-DE', 'https://de/p', 2),
-                ]),
-            ]
-        );
+        $this->config->method('isHreflangEnabled')->willReturn(true);
+        $pool = $this->poolOf([
+            $this->makeResolver(['cms_page_view'], [
+                $this->link('en-GB', 'https://uk/p', 1),
+                $this->link('de-DE', 'https://de/p', 2),
+            ]),
+        ]);
         $this->assertSame([], $pool->getLinks());
     }
 
     public function testNonResolverObjectsAreSkipped(): void
     {
-        $pool = new ResolverPool(
-            $this->layout,
-            $this->config,
-            new HandleMatcher(),
-            new AlternateBuilder($this->config),
-            [new \stdClass()]
-        );
+        $this->config->method('isHreflangEnabled')->willReturn(true);
+        $pool = $this->poolOf([new \stdClass()]);
         $this->assertSame([], $pool->getLinks());
+    }
+
+    /**
+     * An excluded store view has no link of its own; its pages must not declare the others.
+     */
+    public function testASetWithoutTheCurrentStoreViewIsNotDeclared(): void
+    {
+        $this->config->method('isHreflangEnabled')->willReturn(true);
+        $pool = $this->pool([
+            $this->link('en-GB', 'https://uk/p', 1),
+            $this->link('de-DE', 'https://de/p', 2),
+        ], 3);
+        $this->assertSame([], $pool->getLinks());
+    }
+
+    public function testASetIncludingTheCurrentStoreViewIsDeclaredFromAnyOfItsStoreViews(): void
+    {
+        $this->config->method('isHreflangEnabled')->willReturn(true);
+        $pool = $this->pool([
+            $this->link('en-GB', 'https://uk/p', 1),
+            $this->link('de-DE', 'https://de/p', 2),
+        ], 2);
+        $this->assertSame(['en-GB', 'de-DE'], array_column($pool->getLinks(), 'hreflang'));
     }
 }

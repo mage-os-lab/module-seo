@@ -1,6 +1,6 @@
 # MageOS_Seo
 
-A comprehensive Magento 2 **SEO + AEO + GEO** module: JSON-LD structured data, Open Graph / Twitter meta, canonical & robots management, hreflang, FAQ rich results, answer-engine identity (LocalBusiness / Article / Event / Speakable), and generative/agentic discoverability via `/llms.txt`, `/llms.jsonl`, AI-crawler robots directives, and `/.well-known/` manifests (UCP, ai-plugin.json, security.txt).
+A comprehensive Magento 2 **SEO + AEO + GEO** module: JSON-LD structured data, Open Graph / Twitter meta, canonical & robots management, hreflang, FAQ rich results, answer-engine identity (LocalBusiness / Article / Event / Speakable), and generative/agentic discoverability via `/llms.txt`, `/llms.jsonl`, AI-crawler robots directives, and `/.well-known/` manifests (UCP, security.txt).
 
 Every cross-cutting concern is built as an **extensible provider pool** — a second module contributes a provider through its own `di.xml` without ever editing this module.
 
@@ -20,24 +20,24 @@ Every cross-cutting concern is built as an **extensible provider pool** — a se
 
 - Organization, WebSite, BreadcrumbList, CollectionPage, and per-product schemas output as `<script type="application/ld+json">` in `<head>`, all cross-referenced by a shared `@id`.
 - **16 product schema templates** — GenericProduct, Food, Apparel, Jewelry, HomeDecor, Book, Software, Toy, HealthProduct, Cosmetics, Pet, ArtAndCraft, ElectronicsSimple, Tool, Stationery, LocalExperience.
-- **AggregateOffer** (lowPrice/highPrice) for configurable products.
+- **Configurable products as a ProductGroup** — each sellable child a variant with its own offer, `variesBy` from the product's own configurable attributes, variant URLs that preselect the options; above a configurable limit, one **AggregateOffer** (lowPrice/highPrice) over the children's prices.
 - **Aggregate ratings** — a priority pool with a native Magento reviews provider built in; review vendors (Yotpo, Trustpilot, …) plug in a higher-priority provider.
 - **Merchant policies** — shipping details, return policy, and item condition merged into product offers via an offer-enricher pool (required for Google Merchant free listings).
 
 ### Meta & crawl control
 
-- **Open Graph + Twitter** — og:title/description/image/type/site_name/locale and twitter:card on product, category, and site pages.
+- **Open Graph + Twitter** — og:title/description/image/type/site_name/locale on product, category, and site pages, and the matching X card tags: `summary_large_image` or `summary` by whether the page has an image, with the title, description and image repeated as `twitter:*`.
 - **Canonical URL management** — automatic canonicals on product, category, CMS, and home pages; deduplicates if one is already present.
 - **Robots meta pool** — global INDEX/FOLLOW defaults for product, category, **and CMS** pages, overridable per category/product, plus a pagination provider for `?p=N` pages and enriched directives (`max-snippet`, `max-image-preview`, `noarchive`, `noai`, …).
 
 ### Multistore
 
-- **hreflang** — `<head>` alternate links plus a dedicated `/hreflang-sitemap.xml`, with language-only and x-default handling. Resolvers are a pool (product/category/CMS built in; vendor/blog pages plug in).
+- **hreflang** — `<head>` alternate links, and the same alternates inline in `sitemap.xml`, with language-only and x-default handling. Resolvers are a pool (product/category/CMS built in; vendor/blog pages plug in).
 
 ### Answer-engine (AEO)
 
 - **FAQ subsystem** — managed FAQ records with a theme-agnostic `<details>` renderer, a Magento **Widget**, a native **Page Builder** content type, and a request-scoped collector that keeps FAQPage JSON-LD in parity with visible content. FAQ blocks carry cache identities, so FPC pages are purged automatically when a FAQ changes.
-- **LocalBusiness** — address/geo/contact/price-range fields on the Organisation record.
+- **LocalBusiness** — address, telephone and email on every organisation type; geo coordinates and price range for local businesses.
 - **Article / Event / Speakable** — bridge pools (empty by default) fed by blog/event modules, plus a configurable Speakable selector set.
 
 ### Generative / agentic (GEO)
@@ -45,20 +45,18 @@ Every cross-cutting concern is built as an **extensible provider pool** — a se
 - **`/llms.txt`** (concise) and **`/llms-full.txt`** (extended, with category tree) for LLM crawlers.
 - **`/llms.jsonl`** — NDJSON product catalogue feed for AI catalogue consumers (off by default).
 - **AI-crawler robots directives** — per-user-agent Allow/Disallow blocks appended to `robots.txt` for 14 known AI crawlers (off by default).
-- **`/.well-known/` registry** — `ucp` (Universal Commerce Protocol profile), `ai-plugin.json`, and `security.txt`, all served through a pluggable endpoint registry; ECDSA P-256 signing-key generation via CLI.
+- **`/.well-known/` registry** — `ucp` (Universal Commerce Protocol business profile) and `security.txt`, both served through a pluggable endpoint registry; ECDSA P-256 signing-key generation via CLI.
 
 ---
 
 ## Requirements
 
-- PHP 8.1 – 8.5
-- Magento Open Source / Mage-OS **2.4.6-p15 or newer** (`magento/framework
-  ^103.0.6-p15`), including 2.4.9 on PHP 8.5. The module runs unmodified across
-  the whole range: on versions below 2.4.7 a bundled
-  `Compat/ResetAfterRequestInterface` polyfill supplies the worker-mode reset
-  interface, and `Model/Cache/CleaningMode` supplies the full-page-cache
-  cleaning-mode identifier that 2.4.9's `Magento\Framework\Cache\CacheConstants`
-  provides.
+- PHP 8.3 – 8.5
+- Magento Open Source / Mage-OS **2.4.7 or newer** (`magento/framework
+  ^103.0.7`), including 2.4.9 on PHP 8.5. The module runs unmodified across the
+  whole range and carries no version polyfills: 2.4.7 is the first release with
+  `Magento\Framework\ObjectManager\ResetAfterRequestInterface`, which the
+  request-scoped services implement directly.
 - Magento MSI (`Inventory*`) modules — a hard dependency: product availability
   is resolved through the MSI service contracts.
 
@@ -99,18 +97,24 @@ Without a Name and URL saved, the Organization node in JSON-LD will render with 
 
 ## Admin configuration
 
-**Stores > Configuration > MageOS** holds three sections:
+**Stores > Configuration > MageOS** holds four sections:
 
 ### SEO Configuration (`mageos_seo_general`)
 
 | Group | Key settings | Default |
 | --- | --- | --- |
 | Open Graph Tags | Enable OG/Twitter tags | Yes |
-| Structured Data (JSON-LD) | Master switch, default product template, ItemList toggle & max, hasVariant max, priceValidUntil months, aggregate rating | Yes / GenericProduct |
-| AI Discoverability | `/llms.txt`, `/llms-full.txt`, `/llms.jsonl` | Yes / Yes / **No** |
-| Robots Meta | Product / category / **CMS** defaults, pagination policy | *(empty — Magento default applies)* |
+| Structured Data (JSON-LD) | Master switch, default product template, ItemList toggle & max, most variants per configurable product, aggregate rating | Yes / GenericProduct |
+| Robots Meta | Product / category / **CMS** / search results defaults, pagination policy | *(empty — Magento default applies)* |
 | Hreflang | Enable, language-only, sitemap | Yes |
 | Answer Engine (AEO) | Speakable toggle + CSS selectors | No |
+
+### AI Information & Crawlers (`mageos_aeo`)
+
+| Group | Key settings | Default |
+| --- | --- | --- |
+| AI Discoverability | `/llms.txt`, `/llms-full.txt`, `/llms.jsonl`, FAQ groups in the llms documents | Yes / Yes / **No** / `global` |
+| Feed Storage | Where the pre-generated feeds are written | *(empty — `var/mageos_aeo`)* |
 | AI Crawler robots.txt | Append directives, disallow list | **No** / CCBot,Bytespider |
 
 ### SEO Merchant Policies (`mageos_seo_merchant`)
@@ -121,14 +125,12 @@ Without a Name and URL saved, the Organization node in JSON-LD will render with 
 | Return Policy | `hasMerchantReturnPolicy` on offers | Off |
 | Shipping Details | `OfferShippingDetails` on offers | Off |
 
-### SEO Agentic Commerce / UCP (`mageos_seo_ucp`)
+### Agentic Commerce (UCP) (`mageos_agentic`)
 
 | Group | Purpose | Default |
 | --- | --- | --- |
-| UCP Profile | Serve `/.well-known/ucp` + merchant id/name | Off |
-| Capabilities | Advertise catalog/cart/checkout/identity/order APIs | All off |
+| UCP Profile | Serve `/.well-known/ucp`, declaring what installed modules register ([docs/ucp.md](docs/ucp.md)) | Off |
 | Signing Keys | Public JWK + encrypted private key (set by keygen CLI) | — |
-| AI Plugin Manifest | Serve `/.well-known/ai-plugin.json` | Off |
 | security.txt | Serve `/.well-known/security.txt` (RFC 9116) | Off |
 
 ---
@@ -150,18 +152,24 @@ Manage FAQs under **Marketing > SEO > FAQ Manager**. Each FAQ set has an identif
 
 Both render the same theme-agnostic `<details>/<summary>` markup (no JS) and feed a single request-scoped collector, so the emitted `FAQPage` JSON-LD always matches the visible questions — even under full-page / block cache.
 
+Each question shows the browser's own open/close triangle. Magento's LESS reset hides it on Luma and Blank (`summary { display: block; }`), so the module's `view/frontend/web/css/source/_module.less` puts it back for `.mageos-faq__question` only. Hyvä's Tailwind reset keeps it without help. To restyle, override `.mageos-faq__question` in your theme.
+
+The groups selected under **AI Information & Crawlers → AI Discoverability → FAQ Groups** (default `global`) also go into `/llms.txt` and `/llms-full.txt` — see [docs/llms-txt.md](docs/llms-txt.md#faq-section).
+
 ---
 
 ## AI discoverability
 
 | URL | Content | Default |
 | --- | --- | --- |
-| `/llms.txt` | Concise: org name, description, base URL, locale, schema types, AI contact | On |
-| `/llms-full.txt` | Extended: the above plus social profiles, full category tree, FAQ section | On |
+| `/llms.txt` | Concise: org name, description, base URL, locale, schema types, the first 5 FAQs of the selected groups, AI contact | On |
+| `/llms-full.txt` | Extended: the above plus social profiles, full category tree, every FAQ of the selected groups | On |
 | `/llms.jsonl` | NDJSON, one compact JSON-LD `Product` node per line | Off |
 | `robots.txt` additions | Per-user-agent Allow/Disallow for known AI crawlers | Off |
 
 `/llms.txt` content draws the organisation name and description from the Organisation record — **configure Organisation first** or these documents will be incomplete.
+
+These documents are pre-generated to files (by default `var/mageos_aeo/`) and served from there; web requests never build them. **Multi-server deployments** must point the web servers and the cron/consumer host at a shared mount, which takes one entry in each machine's `app/etc/env.php` as well as the admin setting — see [Storing the feeds outside var/](docs/feeds.md#storing-the-feeds-outside-var-multi-server).
 
 ---
 
@@ -171,18 +179,17 @@ A pluggable endpoint registry serves agentic-discovery manifests (all off by def
 
 | URL | Purpose |
 | --- | --- |
-| `/.well-known/ucp` | Universal Commerce Protocol profile — merchant identity, transports, advertised capabilities, public signing keys |
-| `/.well-known/ai-plugin.json` | OpenAI-style plugin manifest pointing at Magento's REST schema |
+| `/.well-known/ucp` | Universal Commerce Protocol business profile (UCP 2026-08-25): the services and capabilities installed modules register — none by default — and the public signing keys. See [docs/ucp.md](docs/ucp.md) |
 | `/.well-known/security.txt` | RFC 9116 security contact disclosure |
 
 ### Generate UCP signing keys
 
 ```bash
-bin/magento mageos:seo:ucp:keygen --website=1
+bin/magento ucp:keygen --website=1
 bin/magento cache:flush config
 ```
 
-This generates an ECDSA P-256 keypair, stores the private key **encrypted**, and stores/prints the public JWK. The private key is never printed and the served manifest is guaranteed never to contain it.
+This generates an ECDSA P-256 keypair, stores the private key **encrypted**, and stores/prints the public JWK, which the profile publishes in `keys`. The private key is never printed, and a stored key carrying private material makes the endpoint answer 500 rather than serve it.
 
 ---
 
@@ -228,14 +235,17 @@ Every cross-cutting concern is a provider pool wired via `di.xml`, so another mo
 | Product schema builders | `ProductSchemaBuilderInterface` | by template code |
 | Robots meta providers | `RobotsMetaProviderInterface` | first-wins by sortOrder |
 | Aggregate rating providers | `AggregateRatingProviderInterface` | highest-priority non-null |
-| Offer enrichers | `OfferEnricherInterface` | collect-all (merged into offers) |
+| Offer enrichers | `OfferEnricherInterface` | collect-all (merged into every product and variant offer) |
+| Variant URLs | `ProductVariantUrlResolverInterface` | one (di.xml preference) |
 | Hreflang resolvers | `HreflangResolverInterface` | collect-all |
 | Article / Event data providers | `ArticleDataProviderInterface` / `EventDataProviderInterface` | collect-all |
 | FAQ source providers | `FaqSourceProviderInterface` | collect-all |
 | llms.txt section providers | `SectionProviderInterface` | collect-all |
 | llms.jsonl line providers | `JsonlLineProviderInterface` | collect-all |
 | Well-known endpoints | `WellKnownEndpointInterface` | by path segment |
-| UCP capability providers | `UcpCapabilityProviderInterface` | collect-all |
+| Rebuild queue groups | `Api\Rebuild\GroupHandlerInterface` | by group name ([docs/extending.md](docs/extending.md#rebuilding-your-own-output-through-the-queue)) |
+| UCP capability providers | `UcpCapabilityProviderInterface` | collect-all, grouped by name ([docs/ucp.md](docs/ucp.md)) |
+| UCP service providers | `UcpServiceProviderInterface` | collect-all, one per transport binding |
 
 Example — add a robots-meta provider for blog pages from your module's `di.xml`:
 

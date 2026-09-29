@@ -32,7 +32,7 @@ class ArtAndCraftBuilder extends AbstractBuilder
         return [
             'artMedium'      => 'Art Medium (oil, watercolour, etc.)',
             'artworkSurface' => 'Surface / Support (canvas, paper, etc.)',
-            'creator'        => 'Creator (overridden by SellersSeo bridge)',
+            'creator'        => 'Creator (set as an override)',
             'width'          => 'Width',
             'height'         => 'Height',
             'depth'          => 'Depth',
@@ -46,9 +46,9 @@ class ArtAndCraftBuilder extends AbstractBuilder
     /**
      * @inheritdoc
      */
-    public function build(ProductInterface $product, array $enabledFields, array $overrides, array $variantData): array
+    public function build(ProductInterface $product, array $enabledFields, array $overrides): array
     {
-        $schema = $this->buildBase($product, $variantData);
+        $schema = $this->buildBase($product);
 
         $simpleFields = [
             'artMedium'      => ['art_medium'],
@@ -93,10 +93,10 @@ class ArtAndCraftBuilder extends AbstractBuilder
             }
         }
 
-        // creator — expected to be populated by SellersSeo bridge via overrides
-        // but we handle a fallback here if set manually
+        // creator — only from the category or product override; no attribute holds it
+        // schema.org's creator is a Person or an Organization, never text; an artist is a Person.
         if (\in_array('creator', $enabledFields, true) && !empty($overrides['creator'])) {
-            $schema['creator'] = $overrides['creator'];
+            $schema['creator'] = ['@type' => 'Person', 'name' => (string) $overrides['creator']];
         }
 
         return $this->applyOverrides($schema, $overrides);

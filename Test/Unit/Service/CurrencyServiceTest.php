@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace MageOS\Seo\Test\Unit\Service;
 
 use Magento\Directory\Model\Currency;
+use Magento\Framework\Locale\Resolver;
 use Magento\Store\Model\Store;
 use Magento\Store\Model\StoreManagerInterface;
 use MageOS\Seo\Service\CurrencyService;
@@ -17,6 +18,7 @@ class CurrencyServiceTest extends TestCase
     private Store&MockObject $store;
     private Currency&MockObject $currentCurrency;
     private Currency&MockObject $baseCurrency;
+    private Resolver&MockObject $locale;
     private CurrencyService $service;
 
     protected function setUp(): void
@@ -25,6 +27,7 @@ class CurrencyServiceTest extends TestCase
         $this->store           = $this->createMock(Store::class);
         $this->currentCurrency = $this->createMock(Currency::class);
         $this->baseCurrency    = $this->createMock(Currency::class);
+        $this->locale          = $this->createMock(Resolver::class);
 
         $this->store->method('getCurrentCurrencyCode')->willReturn('EUR');
         $this->store->method('getBaseCurrencyCode')->willReturn('GBP');
@@ -36,7 +39,12 @@ class CurrencyServiceTest extends TestCase
 
         $this->storeManager->method('getStore')->willReturn($this->store);
 
-        $this->service = new CurrencyService($this->storeManager);
+        $this->locale->method('getLocale')->willReturn('en_GB');
+
+        $this->service = new CurrencyService(
+            $this->storeManager,
+            $this->locale
+        );
     }
 
     public function testGetCurrentCurrencyCodeReturnsStoreCurrentCode(): void

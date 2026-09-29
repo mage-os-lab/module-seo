@@ -37,7 +37,7 @@ class SchemaBuilderPoolTest extends TestCase
         $builder  = $this->makeBuilder('Apparel', 'Clothing', [], $expected);
         $pool     = new SchemaBuilderPool(['Apparel' => $builder]);
 
-        $result = $pool->build('Apparel', $product, [], [], []);
+        $result = $pool->build('Apparel', $product, [], []);
         $this->assertSame($expected, $result);
     }
 
@@ -48,7 +48,7 @@ class SchemaBuilderPoolTest extends TestCase
         $generic  = $this->makeBuilder('GenericProduct', 'Generic Product', [], $expected);
         $pool     = new SchemaBuilderPool(['GenericProduct' => $generic]);
 
-        $result = $pool->build('UnknownTemplate', $product, [], [], []);
+        $result = $pool->build('UnknownTemplate', $product, [], []);
         $this->assertSame($expected, $result);
     }
 
@@ -57,7 +57,7 @@ class SchemaBuilderPoolTest extends TestCase
         $product = $this->createMock(ProductInterface::class);
         $pool    = new SchemaBuilderPool([]);
 
-        $result = $pool->build('Apparel', $product, [], [], []);
+        $result = $pool->build('Apparel', $product, [], []);
         $this->assertSame([], $result);
     }
 
@@ -66,17 +66,65 @@ class SchemaBuilderPoolTest extends TestCase
         $product       = $this->createMock(ProductInterface::class);
         $enabledFields = ['brand', 'color'];
         $overrides     = ['brand' => 'Acme'];
-        $variantData   = ['color' => 'Red'];
         $builder       = $this->createMock(ProductSchemaBuilderInterface::class);
         $builder->method('getTemplateCode')->willReturn('Apparel');
         $builder->expects($this->once())
             ->method('build')
-            ->with($product, $enabledFields, $overrides, $variantData)
+            ->with($product, $enabledFields, $overrides)
             ->willReturn(['@type' => 'Apparel']);
 
         $pool   = new SchemaBuilderPool(['Apparel' => $builder]);
-        $result = $pool->build('Apparel', $product, $enabledFields, $overrides, $variantData);
+        $result = $pool->build('Apparel', $product, $enabledFields, $overrides);
         $this->assertSame(['@type' => 'Apparel'], $result);
+    }
+
+    public function testAnOverrideForOneOfTheTemplatesFieldsTurnsThatFieldOn(): void
+    {
+        // So the template builds it in its own shape. A key the template does not know is left to
+        // be set on the node as given, and is not a field to turn on.
+        $this->assertEnabledFieldsPassed(
+            ['color', 'brand'],
+            ['color'],
+            ['brand' => 'Acme', 'name' => 'Own Name']
+        );
+    }
+
+    public function testAFieldAlreadyOnIsNotRepeated(): void
+    {
+        $this->assertEnabledFieldsPassed(['brand', 'color'], ['brand', 'color'], ['brand' => 'Acme']);
+    }
+
+    public function testTheFieldsReachTheTemplateAsAList(): void
+    {
+        // An already-enabled field overridden, then a new one: no gap in the list.
+        $this->assertEnabledFieldsPassed(['brand', 'color'], ['brand'], ['brand' => 'Acme', 'color' => 'Red']);
+    }
+
+    public function testAnEmptyOverrideTurnsNothingOn(): void
+    {
+        $this->assertEnabledFieldsPassed(['color'], ['color'], ['brand' => '', 'material' => null]);
+    }
+
+    /**
+     * Build through the pool and assert the enabled fields the template receives.
+     *
+     * @param string[] $expected
+     * @param string[] $enabledFields
+     * @param array<string,mixed> $overrides
+     * @return void
+     */
+    private function assertEnabledFieldsPassed(array $expected, array $enabledFields, array $overrides): void
+    {
+        $product = $this->createStub(ProductInterface::class);
+        $builder = $this->createMock(ProductSchemaBuilderInterface::class);
+        $builder->method('getAvailableFields')->willReturn(
+            ['brand' => 'Brand', 'color' => 'Colour', 'material' => 'Material']
+        );
+        $builder->expects($this->once())->method('build')
+            ->with($product, $expected, $overrides)
+            ->willReturn([]);
+
+        (new SchemaBuilderPool(['Apparel' => $builder]))->build('Apparel', $product, $enabledFields, $overrides);
     }
 
     public function testGetAvailableTemplatesReturnsAllRegistered(): void
@@ -138,7 +186,7 @@ class SchemaBuilderPoolTest extends TestCase
         $generic       = $this->makeBuilder('GenericProduct', 'Generic', [], $genericResult);
         $pool          = new SchemaBuilderPool(['Apparel' => $exact, 'GenericProduct' => $generic]);
 
-        $result = $pool->build('Apparel', $product, [], [], []);
+        $result = $pool->build('Apparel', $product, [], []);
         $this->assertSame($exactResult, $result);
     }
 }

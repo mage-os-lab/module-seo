@@ -23,6 +23,8 @@ use PHPUnit\Framework\TestCase;
 
 class BookBuilderTest extends TestCase
 {
+    use OfferBuilders;
+
     /**
      * @var Product&MockObject
      */
@@ -58,19 +60,21 @@ class BookBuilderTest extends TestCase
         $this->product->method('getId')->willReturn(21);
         $this->product->method('getProductUrl')->willReturn('https://example.com/a-novel');
         $this->product->method('getMediaGalleryImages')->willReturn(null);
-        $seoConfig->method('getPriceValidUntilMonths')->willReturn(3);
         $imageHelper->method('init')->willReturnSelf();
         $imageHelper->method('getUrl')->willReturn('');
         $availability->method('resolve')->willReturn(AvailabilityResolver::IN_STOCK);
 
         $this->builder = new BookBuilder(
             $storeManager,
-            $currencyService,
-            $availability,
             $imageHelper,
             $seoConfig,
-            $this->createMock(DateTime::class),
-            new OfferEnricherPool(),
+            $this->offerBuilder(
+                $storeManager,
+                $currencyService,
+                $availability,
+                $this->createMock(DateTime::class),
+                new OfferEnricherPool()
+            ),
             new AggregateRatingResolver(),
             new GtinValidator()
         );
@@ -90,7 +94,7 @@ class BookBuilderTest extends TestCase
     {
         // Book alone is a CreativeWork subtype and forfeits Product rich results;
         // Product must accompany it.
-        $schema = $this->builder->build($this->product, [], [], []);
+        $schema = $this->builder->build($this->product, [], []);
         $this->assertSame(['Product', 'Book'], $schema['@type']);
     }
 
@@ -100,7 +104,7 @@ class BookBuilderTest extends TestCase
         $this->product->method('getData')->willReturnCallback(
             static fn (string $key) => $key === 'isbn' ? '5901234123457' : null
         );
-        $schema = $this->builder->build($this->product, ['isbn'], [], []);
+        $schema = $this->builder->build($this->product, ['isbn'], []);
         $this->assertSame('5901234123457', $schema['isbn']);
         $this->assertSame('5901234123457', $schema['gtin13']);
     }
@@ -111,7 +115,7 @@ class BookBuilderTest extends TestCase
         $this->product->method('getData')->willReturnCallback(
             static fn (string $key) => $key === 'isbn' ? '0-306-40615-2' : null
         );
-        $schema = $this->builder->build($this->product, ['isbn'], [], []);
+        $schema = $this->builder->build($this->product, ['isbn'], []);
         $this->assertSame('0-306-40615-2', $schema['isbn']);
         $this->assertArrayNotHasKey('gtin13', $schema);
     }
@@ -121,7 +125,7 @@ class BookBuilderTest extends TestCase
         $this->product->method('getData')->willReturnCallback(
             static fn (string $key) => $key === 'author' ? 'Jane Doe' : null
         );
-        $schema = $this->builder->build($this->product, ['author'], [], []);
+        $schema = $this->builder->build($this->product, ['author'], []);
         $this->assertSame('Person', $schema['author']['@type']);
         $this->assertSame('Jane Doe', $schema['author']['name']);
     }
@@ -131,9 +135,21 @@ class BookBuilderTest extends TestCase
         $this->product->method('getData')->willReturnCallback(
             static fn (string $key) => $key === 'publisher' ? 'Acme Press' : null
         );
-        $schema = $this->builder->build($this->product, ['publisher'], [], []);
+        $schema = $this->builder->build($this->product, ['publisher'], []);
         $this->assertSame('Organization', $schema['publisher']['@type']);
         $this->assertSame('Acme Press', $schema['publisher']['name']);
+    }
+
+    public function testAuthorAndPublisherOverridesAreNodesToo(): void
+    {
+        $schema = $this->builder->build(
+            $this->product,
+            ['author', 'publisher'],
+            ['author' => 'Ann Author', 'publisher' => 'Big Press']
+        );
+
+        $this->assertSame(['@type' => 'Person', 'name' => 'Ann Author'], $schema['author']);
+        $this->assertSame(['@type' => 'Organization', 'name' => 'Big Press'], $schema['publisher']);
     }
 
     public function testBookFormatMappedToSchemaUri(): void
@@ -141,7 +157,7 @@ class BookBuilderTest extends TestCase
         $this->product->method('getData')->willReturnCallback(
             static fn (string $key) => $key === 'book_format' ? 'Hardcover' : null
         );
-        $schema = $this->builder->build($this->product, ['bookFormat'], [], []);
+        $schema = $this->builder->build($this->product, ['bookFormat'], []);
         $this->assertSame('https://schema.org/Hardcover', $schema['bookFormat']);
     }
 }

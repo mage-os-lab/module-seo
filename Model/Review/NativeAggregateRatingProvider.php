@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 namespace MageOS\Seo\Model\Review;
 
-use Magento\Framework\App\ResourceConnection;
+use Magento\Review\Model\ResourceModel\Review\Summary\CollectionFactory;
+use Magento\Review\Model\Review\Summary;
 use MageOS\Seo\Api\AggregateRatingProviderInterface;
 
 /**
@@ -17,14 +18,18 @@ class NativeAggregateRatingProvider implements AggregateRatingProviderInterface
 {
     /**
      * Review entity type id for products in review_entity / review_entity_summary.
+     *
+     * Resolving this from review_entity.entity_code would cost an uncached SELECT on every product
+     * page for a value seeded once at install; core's own Summary collection defaults to the same
+     * literal.
      */
     private const ENTITY_TYPE_PRODUCT = 1;
 
     /**
-     * @param ResourceConnection $resourceConnection
+     * @param CollectionFactory $collectionFactory
      */
     public function __construct(
-        private readonly ResourceConnection $resourceConnection
+        private readonly CollectionFactory $collectionFactory
     ) {
     }
 
@@ -33,27 +38,24 @@ class NativeAggregateRatingProvider implements AggregateRatingProviderInterface
      */
     public function getRating(int $productId, int $storeId): ?array
     {
-        $connection = $this->resourceConnection->getConnection();
-        $table      = $this->resourceConnection->getTableName('review_entity_summary');
+        $collection = $this->collectionFactory->create();
+        $collection->addEntityFilter($productId, self::ENTITY_TYPE_PRODUCT);
+        $collection->addStoreFilter($storeId);
 
-        $row = $connection->fetchRow(
-            $connection->select()
-                ->from($table, ['rating_summary', 'reviews_count'])
-                ->where('entity_pk_value = ?', $productId)
-                ->where('store_id = ?', $storeId)
-                ->where('entity_type = ?', self::ENTITY_TYPE_PRODUCT)
-        );
+        /** @var Summary $summary An empty model when this product has no summary row */
+        $summary      = $collection->getFirstItem();
+        $reviewsCount = (int) $summary->getReviewsCount();
 
-        if (!\is_array($row) || (int) ($row['reviews_count'] ?? 0) < 1) {
+        if ($reviewsCount < 1) {
             return null;
         }
 
         // rating_summary is a 0–100 percentage; convert to a 5-star scale.
-        $ratingValue = round(((float) $row['rating_summary']) / 20, 1);
+        $ratingValue = round(((float) $summary->getRatingSummary()) / 20, 1);
 
         return [
             'ratingValue' => (string) $ratingValue,
-            'reviewCount' => (string) (int) $row['reviews_count'],
+            'reviewCount' => (string) $reviewsCount,
             'bestRating'  => '5',
             'worstRating' => '1',
         ];

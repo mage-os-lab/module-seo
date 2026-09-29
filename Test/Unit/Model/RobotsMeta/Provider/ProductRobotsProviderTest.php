@@ -94,4 +94,34 @@ class ProductRobotsProviderTest extends TestCase
         $this->config->method('getRobotsProductDefault')->with(1)->willReturn('');
         $this->assertNull($this->provider->getRobots(1));
     }
+
+    /**
+     * The sitemap's question, for a chunk of products: each gets what its own page would.
+     */
+    public function testForProductsAppliesTheSameChainToEachProduct(): void
+    {
+        $this->overrideRepository->expects($this->once())
+            ->method('getForProducts')
+            ->with([5, 6, 7], 1)
+            ->willReturn([
+                5 => ['override_fields' => [], 'robots_meta' => 'NOINDEX,FOLLOW'],
+                6 => ['override_fields' => [], 'robots_meta' => null],
+                7 => ['override_fields' => [], 'robots_meta' => ''],
+            ]);
+        $this->config->method('getRobotsProductDefault')->with(1)->willReturn('INDEX,FOLLOW');
+
+        $this->assertSame(
+            [5 => 'NOINDEX,FOLLOW', 6 => 'INDEX,FOLLOW', 7 => 'INDEX,FOLLOW'],
+            $this->provider->forProducts([5, 6, 7], 1)
+        );
+    }
+
+    public function testForProductsGivesNullWhereNeitherOverrideNorDefaultSaysAnything(): void
+    {
+        $this->overrideRepository->method('getForProducts')
+            ->willReturn([5 => ['override_fields' => [], 'robots_meta' => null]]);
+        $this->config->method('getRobotsProductDefault')->willReturn('');
+
+        $this->assertSame([5 => null], $this->provider->forProducts([5], 1));
+    }
 }

@@ -6,36 +6,59 @@ namespace MageOS\Seo\Test\Unit\Setup;
 
 use Magento\Framework\Setup\ModuleContextInterface;
 use Magento\Framework\Setup\ModuleDataSetupInterface;
-use MageOS\Seo\Model\Feed\FeedInvalidator;
+use MageOS\Seo\Api\Rebuild\GroupHandlerInterface;
+use MageOS\Seo\Model\Rebuild\HandlerPool;
+use MageOS\Seo\Model\Rebuild\Invalidator;
 use MageOS\Seo\Setup\RecurringData;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
 
 class RecurringDataTest extends TestCase
 {
-    public function testEverySetupRunQueuesARebuildOfEveryFeed(): void
+    public function testEverySetupRunQueuesEveryRegisteredGroupAndOnlyTheSitemapsThatHaveNoFile(): void
     {
-        $invalidator = $this->createMock(FeedInvalidator::class);
-        $invalidator->expects($this->once())->method('invalidateLlms');
-        $invalidator->expects($this->once())->method('invalidateJsonl');
-        $invalidator->expects($this->once())->method('invalidateHreflangSitemap');
+        $queued      = [];
+        $invalidator = $this->createMock(Invalidator::class);
+        $invalidator->method('invalidate')->willReturnCallback(
+            static function (string $group) use (&$queued): void {
+                $queued[] = $group;
+            }
+        );
+        $invalidator->expects($this->once())->method('invalidateMissingSitemaps');
+        // The rest live in pub/, which a deployment does not clear, and core's cron regenerates them.
+        $invalidator->expects($this->never())->method('invalidateSitemap');
 
-        (new RecurringData($invalidator, $this->createStub(LoggerInterface::class)))->install(
+        (new RecurringData($invalidator, $this->pool(), $this->createStub(LoggerInterface::class)))->install(
+            $this->createStub(ModuleDataSetupInterface::class),
+            $this->createStub(ModuleContextInterface::class)
+        );
+
+        $this->assertSame(['one', 'two'], $queued);
+    }
+
+    public function testAFailureIsLoggedAndNeverBreaksSetup(): void
+    {
+        $invalidator = $this->createStub(Invalidator::class);
+        $invalidator->method('invalidate')->willThrowException(new \RuntimeException('no stores yet'));
+        $logger = $this->createMock(LoggerInterface::class);
+        $logger->expects($this->once())->method('error')->with($this->stringContains('no stores yet'));
+
+        (new RecurringData($invalidator, $this->pool(), $logger))->install(
             $this->createStub(ModuleDataSetupInterface::class),
             $this->createStub(ModuleContextInterface::class)
         );
     }
 
-    public function testAFailureIsLoggedAndNeverBreaksSetup(): void
+    /**
+     * A pool with one handler owning the groups `one` and `two`.
+     *
+     * @return HandlerPool
+     */
+    private function pool(): HandlerPool
     {
-        $invalidator = $this->createStub(FeedInvalidator::class);
-        $invalidator->method('invalidateLlms')->willThrowException(new \RuntimeException('no stores yet'));
-        $logger = $this->createMock(LoggerInterface::class);
-        $logger->expects($this->once())->method('error')->with($this->stringContains('no stores yet'));
+        $handler = $this->createStub(GroupHandlerInterface::class);
+        $handler->method('getGroups')->willReturn(['one', 'two']);
 
-        (new RecurringData($invalidator, $logger))->install(
-            $this->createStub(ModuleDataSetupInterface::class),
-            $this->createStub(ModuleContextInterface::class)
-        );
+        return new HandlerPool([$handler]);
     }
 }

@@ -139,6 +139,34 @@ class ProductOverrideRepositoryTest extends TestCase
     }
 
     /**
+     * The sitemap reads a chunk of products at once; each must come back as it does read alone.
+     *
+     * @return void
+     */
+    #[DataFixture(StoreFixture::class, as: 'store')]
+    #[DataFixture(ProductFixture::class, as: 'first')]
+    #[DataFixture(ProductFixture::class, as: 'second')]
+    public function testReadingSeveralProductsAgreesWithReadingEach(): void
+    {
+        $first      = $this->productId('first');
+        $second     = $this->productId('second');
+        $storeId    = (int) $this->fixture('store')->getId();
+        $repository = $this->repository();
+
+        $repository->save($first, 0, ['override_fields' => ['brand' => 'Acme'], 'robots_meta' => 'NOINDEX,FOLLOW']);
+        $repository->save($first, $storeId, ['override_fields' => ['color' => 'Red']]);
+        $repository->save($second, $storeId, ['robots_meta' => 'INDEX,NOFOLLOW']);
+
+        $several = $this->repository()->getForProducts([$first, $second, 999999], $storeId);
+
+        $this->assertSame('NOINDEX,FOLLOW', $several[$first]['robots_meta'], 'Inherited from the global row.');
+        $this->assertSame(['brand' => 'Acme', 'color' => 'Red'], $several[$first]['override_fields']);
+        $this->assertSame($this->repository()->getForProduct($first, $storeId), $several[$first]);
+        $this->assertSame($this->repository()->getForProduct($second, $storeId), $several[$second]);
+        $this->assertSame(['override_fields' => [], 'robots_meta' => null], $several[999999]);
+    }
+
+    /**
      * @return void
      */
     public function testAProductWithNoOverridesReadsAsTheEmptyMergedShape(): void

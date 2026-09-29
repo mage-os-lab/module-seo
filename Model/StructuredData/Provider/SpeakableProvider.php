@@ -5,21 +5,27 @@ declare(strict_types=1);
 namespace MageOS\Seo\Model\StructuredData\Provider;
 
 use MageOS\Seo\Api\StructuredDataProviderInterface;
-use MageOS\Seo\Model\Config;
+use MageOS\Seo\Model\Catalog\CurrentEntity;
+use MageOS\Seo\Model\StructuredData\SpeakableSpecification;
 
 /**
- * Emits Speakable structured data marking page sections for voice/audio assistants.
+ * A product page's WebPage node, carrying the page's SpeakableSpecification.
  *
- * Disabled by default. When enabled, outputs a WebPage node with a SpeakableSpecification listing
- * the configured CSS selectors.
+ * Speakable sits on the node that describes the page (see SpeakableSpecification). CMS pages,
+ * categories and blog posts have one of their own and carry it there. A product page has only the
+ * Product (or ProductGroup) node, and `speakable` isn't a Product property, so with Speakable on this
+ * gives the page a WebPage of its own: `{url}#webpage`, its `mainEntity` the product node
+ * (`{url}#product`). With Speakable off it emits nothing.
  */
 class SpeakableProvider implements StructuredDataProviderInterface
 {
     /**
-     * @param Config $seoConfig
+     * @param CurrentEntity $currentEntity
+     * @param SpeakableSpecification $speakable
      */
     public function __construct(
-        private readonly Config $seoConfig
+        private readonly CurrentEntity          $currentEntity,
+        private readonly SpeakableSpecification $speakable
     ) {
     }
 
@@ -28,7 +34,7 @@ class SpeakableProvider implements StructuredDataProviderInterface
      */
     public function getHandles(): array
     {
-        return ['*'];
+        return ['catalog_product_view'];
     }
 
     /**
@@ -36,22 +42,28 @@ class SpeakableProvider implements StructuredDataProviderInterface
      */
     public function getSchemas(): array
     {
-        if (!$this->seoConfig->isSpeakableEnabled()) {
+        $speakable = $this->speakable->get();
+        if ($speakable === null) {
             return [];
         }
 
-        $selectors = $this->seoConfig->getSpeakableCssSelectors();
-        if ($selectors === []) {
+        $product = $this->currentEntity->getProduct();
+        if ($product === null) {
             return [];
         }
+
+        /** @var \Magento\Catalog\Model\Product $product */
+        // The URL AbstractBuilder::buildBase() builds the product node's @id from.
+        $url = (string) $product->getProductUrl();
 
         return [[
-            '@context'  => 'https://schema.org',
-            '@type'     => 'WebPage',
-            'speakable' => [
-                '@type'       => 'SpeakableSpecification',
-                'cssSelector' => $selectors,
-            ],
+            '@context'   => 'https://schema.org',
+            '@type'      => 'WebPage',
+            '@id'        => $url . '#webpage',
+            'url'        => $url,
+            'name'       => (string) $product->getName(),
+            'mainEntity' => ['@id' => $url . '#product'],
+            'speakable'  => $speakable,
         ]];
     }
 }

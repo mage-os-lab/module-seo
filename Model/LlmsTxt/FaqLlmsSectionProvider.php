@@ -5,26 +5,30 @@ declare(strict_types=1);
 namespace MageOS\Seo\Model\LlmsTxt;
 
 use Magento\Store\Model\StoreManagerInterface;
+use MageOS\Seo\Model\Aeo\Config;
 use MageOS\Seo\Model\Faq\SourcePool;
 
 /**
- * Injects the global FAQ group into /llms.txt and /llms-full.txt as a markdown Q&A section.
+ * Injects the configured FAQ groups into /llms.txt and /llms-full.txt as a markdown Q&A section.
  *
- * Reads FAQs for the conventional "global" group identifier from the FAQ source pool. Page-specific
- * FAQs are intentionally excluded — llms.txt is a site-level summary.
+ * The groups are the store view's **FAQ Groups** setting (Config::getLlmsFaqGroups(), default
+ * `global`), read from the FAQ source pool in the setting's order. Other groups stay out: they are
+ * usually page-specific (a product's sizing questions), and llms.txt is a site-level summary. None
+ * selected, or none with entries, leaves the section out.
  */
 class FaqLlmsSectionProvider implements SectionProviderInterface
 {
-    private const GLOBAL_IDENTIFIER = 'global';
-    private const CONCISE_LIMIT     = 5;
+    private const CONCISE_LIMIT = 5;
 
     /**
      * @param SourcePool $sourcePool
      * @param StoreManagerInterface $storeManager
+     * @param Config $aeoConfig
      */
     public function __construct(
         private readonly SourcePool            $sourcePool,
-        private readonly StoreManagerInterface $storeManager
+        private readonly StoreManagerInterface $storeManager,
+        private readonly Config                $aeoConfig
     ) {
     }
 
@@ -45,7 +49,7 @@ class FaqLlmsSectionProvider implements SectionProviderInterface
     }
 
     /**
-     * Render the FAQ markdown section, optionally limited to the first $limit entries.
+     * Render the FAQ markdown section, optionally limited to the first $limit entries of all groups.
      *
      * @param int $limit 0 = no limit
      * @return string
@@ -53,7 +57,11 @@ class FaqLlmsSectionProvider implements SectionProviderInterface
     private function render(int $limit): string
     {
         $storeId = (int) $this->storeManager->getStore()->getId();
-        $faqs    = $this->sourcePool->getFaqs(self::GLOBAL_IDENTIFIER, $storeId);
+
+        $faqs = [];
+        foreach ($this->aeoConfig->getLlmsFaqGroups($storeId) as $group) {
+            $faqs = [...$faqs, ...$this->sourcePool->getFaqs($group, $storeId)];
+        }
         if ($faqs === []) {
             return '';
         }

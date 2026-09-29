@@ -14,7 +14,7 @@ use Magento\Ui\Component\Form\Field;
 use Magento\Ui\Component\Form\Fieldset;
 use Magento\Ui\DataProvider\Modifier\ModifierInterface;
 use MageOS\Seo\Model\Category\ConfigRepository;
-use MageOS\Seo\Model\Config\Source\RobotsMeta;
+use MageOS\Seo\Model\Config\Source\RobotsMeta\CategoryOverride as CategoryRobotsMeta;
 use MageOS\Seo\Model\Config\Source\SchemaTemplate;
 
 class SeoModifier implements ModifierInterface
@@ -23,14 +23,14 @@ class SeoModifier implements ModifierInterface
      * @param RequestInterface $request
      * @param ConfigRepository $categoryConfigRepository
      * @param SchemaTemplate $schemaTemplateSource
-     * @param RobotsMeta $robotsMetaSource
+     * @param CategoryRobotsMeta $robotsMetaSource
      * @param CategoryRepositoryInterface $categoryRepository
      */
     public function __construct(
         private readonly RequestInterface            $request,
         private readonly ConfigRepository            $categoryConfigRepository,
         private readonly SchemaTemplate              $schemaTemplateSource,
-        private readonly RobotsMeta                  $robotsMetaSource,
+        private readonly CategoryRobotsMeta          $robotsMetaSource,
         private readonly CategoryRepositoryInterface $categoryRepository,
     ) {
     }
@@ -95,10 +95,7 @@ class SeoModifier implements ModifierInterface
                 'robots_meta' => $this->buildSelectField(
                     'robots_meta',
                     __('Robots Meta'),
-                    array_merge(
-                        [['value' => '', 'label' => __('Use Global Default')]],
-                        $this->robotsMetaSource->toOptionArray()
-                    ),
+                    $this->robotsMetaSource->toOptionArray(),
                     null,
                     40
                 ),

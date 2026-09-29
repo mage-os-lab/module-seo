@@ -12,10 +12,12 @@ use Magento\Framework\Filesystem\Directory\WriteFactory;
 use Magento\Framework\Filesystem\Directory\WriteInterface;
 use Magento\Framework\Filesystem\DriverPool;
 use Magento\Framework\Filesystem\File\WriteInterface as FileWriteInterface;
-use MageOS\Seo\Model\Config;
+use MageOS\Seo\Model\Aeo\Config;
 use MageOS\Seo\Model\Feed\FeedStorage;
+use MageOS\Seo\Model\Feed\StorageDirectory;
 use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
+use Psr\Log\LoggerInterface;
 
 class FeedStorageTest extends TestCase
 {
@@ -59,7 +61,7 @@ class FeedStorageTest extends TestCase
             ->with(
                 $this->callback(static function (string $path) use (&$temporary): bool {
                     $temporary = $path;
-                    return (bool) preg_match('#^mageos_seo/store_1/\.[0-9a-f]{12}\.tmp$#', $path);
+                    return (bool) preg_match('#^mageos_aeo/store_1/\.[0-9a-f]{12}\.tmp$#', $path);
                 }),
                 'w'
             )
@@ -69,7 +71,7 @@ class FeedStorageTest extends TestCase
                 $this->callback(static function (string $path) use (&$temporary): bool {
                     return $path === $temporary;
                 }),
-                'mageos_seo/store_1/llms.txt'
+                'mageos_aeo/store_1/llms.txt'
             );
         $writeDir->expects($this->never())->method('delete');
         $writeDir->method('isExist')->willReturn(true);
@@ -86,52 +88,9 @@ class FeedStorageTest extends TestCase
 
         $this->assertSame(
             [
-                ['mageos_seo', 0o750],
-                ['mageos_seo/store_1', 0o750],
-                ['mageos_seo/store_1/llms.txt', 0o640],
-            ],
-            $modes
-        );
-    }
-
-    public function testCopyBetweenStoresReplacesTheTargetAtomically(): void
-    {
-        $this->config->method('getFeedStorageDir')->willReturn('');
-        $writeDir = $this->createMock(WriteInterface::class);
-        $this->filesystem->method('getDirectoryWrite')->willReturn($writeDir);
-        $writeDir->method('isExist')->willReturn(true);
-
-        $temporary = null;
-        $writeDir->expects($this->once())->method('copyFile')
-            ->with(
-                'mageos_seo/store_1/hreflang-sitemap-1.xml',
-                $this->callback(static function (string $path) use (&$temporary): bool {
-                    $temporary = $path;
-                    return str_starts_with($path, 'mageos_seo/store_2/.');
-                })
-            );
-        $writeDir->expects($this->once())->method('renameFile')
-            ->with(
-                $this->callback(static function (string $path) use (&$temporary): bool {
-                    return $path === $temporary;
-                }),
-                'mageos_seo/store_2/hreflang-sitemap-1.xml'
-            );
-        $modes = [];
-        $writeDir->method('changePermissions')->willReturnCallback(
-            static function (string $path, int $mode) use (&$modes): bool {
-                $modes[] = [$path, $mode];
-                return true;
-            }
-        );
-
-        $this->storage()->copyBetweenStores('hreflang-sitemap-1.xml', 1, 2);
-
-        $this->assertSame(
-            [
-                ['mageos_seo', 0o750],
-                ['mageos_seo/store_2', 0o750],
-                ['mageos_seo/store_2/hreflang-sitemap-1.xml', 0o640],
+                ['mageos_aeo', 0o750],
+                ['mageos_aeo/store_1', 0o750],
+                ['mageos_aeo/store_1/llms.txt', 0o640],
             ],
             $modes
         );
@@ -160,7 +119,7 @@ class FeedStorageTest extends TestCase
 
         $this->storage()->write('llms.txt', 1, 'the-body');
 
-        $this->assertSame(['create mageos_seo', 'create mageos_seo/store_1', 'open'], $calls);
+        $this->assertSame(['create mageos_aeo', 'create mageos_aeo/store_1', 'open'], $calls);
     }
 
     public function testPermissionFailuresDoNotFailTheWrite(): void
@@ -174,6 +133,23 @@ class FeedStorageTest extends TestCase
         $writeDir->expects($this->once())->method('renameFile');
 
         $this->storage()->write('llms.txt', 1, 'the-body');
+    }
+
+    public function testADirectoryTheInstallationDoesNotPermitIsIgnored(): void
+    {
+        // The admin field is validated on save, but a configuration row can arrive by other
+        // routes — a data patch, a deployment tool, a direct database write — so the value is
+        // checked again here. Refusing it falls back to var/mageos_aeo rather than failing.
+        $this->config->method('getFeedStorageDir')->willReturn('/etc');
+        $writeDir = $this->createMock(WriteInterface::class);
+        $this->filesystem->method('getDirectoryWrite')
+            ->willReturnMap([[DirectoryList::VAR_DIR, DriverPool::FILE, $writeDir]]);
+        // The mageos_aeo/ prefix is used only for the default location, so its presence below is
+        // what shows /etc was never handed to the write factory.
+        $writeDir->method('read')->willReturnMap([['mageos_aeo/store_1', ['mageos_aeo/store_1/llms.txt']]]);
+        $writeDir->expects($this->once())->method('delete')->with('mageos_aeo/store_1/llms.txt');
+
+        $this->storage(false)->deleteForStore('llms.txt', 1);
     }
 
     public function testWriteUsesCustomDirectoryWithoutThePrefix(): void
@@ -216,7 +192,7 @@ class FeedStorageTest extends TestCase
         $writeDir->method('renameFile')->willThrowException(new \RuntimeException('rename failed'));
         $writeDir->method('isExist')->willReturn(true);
         $writeDir->expects($this->once())->method('delete')
-            ->with($this->stringStartsWith('mageos_seo/store_1/.'));
+            ->with($this->stringStartsWith('mageos_aeo/store_1/.'));
 
         $this->expectExceptionMessage('rename failed');
         $this->storage()->write('llms.txt', 1, 'the-body');
@@ -228,8 +204,8 @@ class FeedStorageTest extends TestCase
         $readDir = $this->createStub(ReadInterface::class);
         $this->filesystem->method('getDirectoryRead')
             ->willReturnMap([[DirectoryList::VAR_DIR, DriverPool::FILE, $readDir]]);
-        $readDir->method('isFile')->willReturnMap([['mageos_seo/store_1/llms.txt', true]]);
-        $readDir->method('readFile')->willReturnMap([['mageos_seo/store_1/llms.txt', null, null, 'the-body']]);
+        $readDir->method('isFile')->willReturnMap([['mageos_aeo/store_1/llms.txt', true]]);
+        $readDir->method('readFile')->willReturnMap([['mageos_aeo/store_1/llms.txt', null, null, 'the-body']]);
 
         $this->assertSame('the-body', $this->storage()->read('llms.txt', 1));
     }
@@ -263,49 +239,25 @@ class FeedStorageTest extends TestCase
         // The store's directory is read and the entries are matched here, so the listing is
         // never one the framework cached earlier in the process.
         $writeDir->method('read')->willReturnMap([[
-            'mageos_seo/store_2',
+            'mageos_aeo/store_2',
             [
-                'mageos_seo/store_2/hreflang-sitemap.xml',
+                'mageos_aeo/store_2/llms.txt',
+                'mageos_aeo/store_2/llms-full.txt',
                 // Another store's files are in another directory; other feeds do not match.
-                'mageos_seo/store_2/llms.txt',
+                'mageos_aeo/store_2/llms.jsonl',
             ],
         ]]);
-        $writeDir->expects($this->once())->method('delete')
-            ->with('mageos_seo/store_2/hreflang-sitemap.xml');
-
-        $this->storage()->deleteForStore('hreflang-sitemap*.xml', 2);
-    }
-
-    public function testListForStoreReturnsFileNamesOfOneStore(): void
-    {
-        $this->config->method('getFeedStorageDir')->willReturn('');
-        $writeDir = $this->createStub(WriteInterface::class);
-        $this->filesystem->method('getDirectoryWrite')->willReturn($writeDir);
-        $writeDir->method('read')->willReturnMap([[
-            'mageos_seo/store_2',
-            [
-                'mageos_seo/store_2/hreflang-sitemap-1.xml',
-                'mageos_seo/store_2/hreflang-sitemap-2.xml',
-                // The index and the other feeds do not match the chunk pattern.
-                'mageos_seo/store_2/hreflang-sitemap.xml',
-                'mageos_seo/store_2/llms.txt',
-            ],
-        ]]);
-
-        $this->assertSame(
-            ['hreflang-sitemap-1.xml', 'hreflang-sitemap-2.xml'],
-            $this->storage()->listForStore('hreflang-sitemap-*.xml', 2)
+        $deleted = [];
+        $writeDir->expects($this->exactly(2))->method('delete')->willReturnCallback(
+            static function (string $path) use (&$deleted): bool {
+                $deleted[] = $path;
+                return true;
+            }
         );
-    }
 
-    public function testListForStoreIsEmptyOnFilesystemException(): void
-    {
-        $this->config->method('getFeedStorageDir')->willReturn('');
-        $writeDir = $this->createStub(WriteInterface::class);
-        $this->filesystem->method('getDirectoryWrite')->willReturn($writeDir);
-        $writeDir->method('read')->willThrowException(new \RuntimeException('io'));
+        $this->storage()->deleteForStore('llms*.txt', 2);
 
-        $this->assertSame([], $this->storage()->listForStore('hreflang-sitemap-*.xml', 2));
+        $this->assertSame(['mageos_aeo/store_2/llms.txt', 'mageos_aeo/store_2/llms-full.txt'], $deleted);
     }
 
     public function testListStoreDirectoriesReturnsTheStoreIdsThatHaveOne(): void
@@ -314,13 +266,13 @@ class FeedStorageTest extends TestCase
         $writeDir = $this->createStub(WriteInterface::class);
         $this->filesystem->method('getDirectoryWrite')->willReturn($writeDir);
         $writeDir->method('read')->willReturnMap([[
-            'mageos_seo',
+            'mageos_aeo',
             [
-                'mageos_seo/store_1',
-                'mageos_seo/store_12',
+                'mageos_aeo/store_1',
+                'mageos_aeo/store_12',
                 // Anything that is not a store directory is ignored.
-                'mageos_seo/store_notanumber',
-                'mageos_seo/README.md',
+                'mageos_aeo/store_notanumber',
+                'mageos_aeo/README.md',
             ],
         ]]);
 
@@ -342,8 +294,8 @@ class FeedStorageTest extends TestCase
         $this->config->method('getFeedStorageDir')->willReturn('');
         $writeDir = $this->createMock(WriteInterface::class);
         $this->filesystem->method('getDirectoryWrite')->willReturn($writeDir);
-        $writeDir->method('isExist')->willReturnMap([['mageos_seo/store_3', true]]);
-        $writeDir->expects($this->once())->method('delete')->with('mageos_seo/store_3');
+        $writeDir->method('isExist')->willReturnMap([['mageos_aeo/store_3', true]]);
+        $writeDir->expects($this->once())->method('delete')->with('mageos_aeo/store_3');
 
         $this->storage()->deleteStoreDirectory(3);
     }
@@ -386,10 +338,24 @@ class FeedStorageTest extends TestCase
     /**
      * Build the storage from the current collaborators.
      *
+     * The configured directory is permitted unless a test says otherwise; what makes a directory
+     * permitted at all is StorageDirectoryTest's subject, not this one's.
+     *
+     * @param bool $directoryAllowed
      * @return FeedStorage
      */
-    private function storage(): FeedStorage
+    private function storage(bool $directoryAllowed = true): FeedStorage
     {
-        return new FeedStorage($this->filesystem, $this->writeFactory, $this->readFactory, $this->config);
+        $storageDirectory = $this->createStub(StorageDirectory::class);
+        $storageDirectory->method('isAllowed')->willReturn($directoryAllowed);
+
+        return new FeedStorage(
+            $this->filesystem,
+            $this->writeFactory,
+            $this->readFactory,
+            $this->config,
+            $storageDirectory,
+            $this->createStub(LoggerInterface::class)
+        );
     }
 }

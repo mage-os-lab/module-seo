@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xsi:noNamespaceSchemaLocation="urn:magento:framework-message-queue:etc/communication.xsd">
-    <!-- Payload is the feed group name: llms | jsonl | hreflang -->
+    <!-- Payload is the feed group name: llms | jsonl | hreflang, or sitemap-{type} for a sitemap type -->
     <topic name="mageos.seo.feed.regenerate" request="string"/>
 </config>

@@ -4,23 +4,42 @@ declare(strict_types=1);
 
 namespace MageOS\Seo\Model\Faq;
 
-use Magento\Framework\App\ResourceConnection;
+use Magento\Framework\Data\Collection as DataCollection;
+use MageOS\Seo\Model\Faq as FaqModel;
+use MageOS\Seo\Model\ResourceModel\Faq\CollectionFactory;
 
 /**
- * Read access to FAQ entries by group identifier.
+ * Read access to FAQ entries by group identifier, and to the identifiers in use.
  *
- * Uses a direct connection query (consistent with the module's category/product override
- * repositories) so it is fast and unit-testable. Returns global (store 0) and store-specific rows
- * for the identifier, ordered by sort_order.
+ * Returns global (store 0) and store-specific rows for the identifier, ordered by sort order.
  */
 class Repository
 {
     /**
-     * @param ResourceConnection $resourceConnection
+     * @param CollectionFactory $collectionFactory
      */
     public function __construct(
-        private readonly ResourceConnection $resourceConnection
+        private readonly CollectionFactory $collectionFactory
     ) {
+    }
+
+    /**
+     * Return every FAQ group identifier in use, once each and sorted, across stores and states.
+     *
+     * A collection always selects the ID column, so a DISTINCT select would not collapse the rows;
+     * they are deduplicated here instead. The FAQ table is small, and this serves admin option lists.
+     *
+     * @return string[]
+     */
+    public function getIdentifiers(): array
+    {
+        $collection = $this->collectionFactory->create();
+        $collection->addFieldToSelect('identifier');
+
+        $identifiers = array_values(array_unique(array_map('strval', $collection->getColumnValues('identifier'))));
+        sort($identifiers, SORT_STRING);
+
+        return $identifiers;
     }
 
     /**
@@ -36,24 +55,25 @@ class Repository
             return [];
         }
 
-        $connection = $this->resourceConnection->getConnection();
-        $table      = $this->resourceConnection->getTableName('mageos_seo_faq');
+        $collection = $this->collectionFactory->create();
+        $collection->addFieldToFilter('identifier', ['eq' => $identifier]);
+        $collection->addFieldToFilter('store_id', ['in' => [0, $storeId]]);
+        $collection->addFieldToFilter('is_active', ['eq' => 1]);
+        $collection->setOrder('sort_order', DataCollection::SORT_ORDER_ASC);
+        // Entries sharing a sort_order would otherwise arrive in whatever order the storage engine
+        // chose, and this list is rendered into FAQPage JSON-LD that the page cache then keeps.
+        $collection->setOrder('entity_id', DataCollection::SORT_ORDER_ASC);
 
-        $rows = $connection->fetchAll(
-            $connection->select()
-                ->from($table, ['question', 'answer'])
-                ->where('identifier = ?', $identifier)
-                ->where('store_id IN (?)', [0, $storeId])
-                ->where('is_active = ?', 1)
-                ->order('sort_order ASC')
-        );
+        $faqs = [];
 
-        return array_map(
-            static fn (array $row): array => [
-                'question' => (string) $row['question'],
-                'answer'   => (string) $row['answer'],
-            ],
-            $rows
-        );
+        /** @var FaqModel $faq */
+        foreach ($collection as $faq) {
+            $faqs[] = [
+                'question' => $faq->getQuestion(),
+                'answer'   => $faq->getAnswer(),
+            ];
+        }
+
+        return $faqs;
     }
 }

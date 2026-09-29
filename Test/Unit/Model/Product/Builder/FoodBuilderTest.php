@@ -23,6 +23,8 @@ use PHPUnit\Framework\TestCase;
 
 class FoodBuilderTest extends TestCase
 {
+    use OfferBuilders;
+
     /**
      * @var Product&MockObject
      */
@@ -63,19 +65,21 @@ class FoodBuilderTest extends TestCase
         $this->product->method('getId')->willReturn(20);
         $this->product->method('getProductUrl')->willReturn('https://example.com/honey');
         $this->product->method('getMediaGalleryImages')->willReturn(null);
-        $seoConfig->method('getPriceValidUntilMonths')->willReturn(3);
         $imageHelper->method('init')->willReturnSelf();
         $imageHelper->method('getUrl')->willReturn('');
         $this->availabilityResolver->method('resolve')->willReturn(AvailabilityResolver::IN_STOCK);
 
         $this->builder = new FoodBuilder(
             $storeManager,
-            $currencyService,
-            $this->availabilityResolver,
             $imageHelper,
             $seoConfig,
-            $this->createMock(DateTime::class),
-            new OfferEnricherPool(),
+            $this->offerBuilder(
+                $storeManager,
+                $currencyService,
+                $this->availabilityResolver,
+                $this->createMock(DateTime::class),
+                new OfferEnricherPool()
+            ),
             new AggregateRatingResolver(),
             new GtinValidator()
         );
@@ -119,7 +123,7 @@ class FoodBuilderTest extends TestCase
     public function testBuildReturnsPlainProductType(): void
     {
         // "FoodProduct" is not a schema.org type; food items are plain Products.
-        $schema = $this->builder->build($this->product, [], [], []);
+        $schema = $this->builder->build($this->product, [], []);
         $this->assertSame('Product', $schema['@type']);
     }
 
@@ -128,7 +132,7 @@ class FoodBuilderTest extends TestCase
         $this->product->method('getData')->willReturnCallback(
             static fn (string $key) => $key === 'nutrition_info' ? 'Calories: 200 per 100g' : null
         );
-        $schema = $this->builder->build($this->product, ['nutritionInformation'], [], []);
+        $schema = $this->builder->build($this->product, ['nutritionInformation'], []);
 
         $this->assertArrayNotHasKey('nutritionInformation', $schema);
         $entry = $this->findAdditionalProperty($schema, 'nutritionInformation');
@@ -142,7 +146,7 @@ class FoodBuilderTest extends TestCase
         $this->product->method('getData')->willReturnCallback(
             static fn (string $key) => $key === 'allergens' ? 'Peanuts, Milk' : null
         );
-        $schema = $this->builder->build($this->product, ['containsAllergen'], [], []);
+        $schema = $this->builder->build($this->product, ['containsAllergen'], []);
 
         $entry = $this->findAdditionalProperty($schema, 'allergens');
         $this->assertNotNull($entry);
@@ -154,7 +158,7 @@ class FoodBuilderTest extends TestCase
         $this->product->method('getData')->willReturnCallback(
             static fn (string $key) => $key === 'is_alcoholic_beverage' ? 'yes' : null
         );
-        $schema = $this->builder->build($this->product, ['isAlcoholicBeverage'], [], []);
+        $schema = $this->builder->build($this->product, ['isAlcoholicBeverage'], []);
 
         $entry = $this->findAdditionalProperty($schema, 'alcoholicBeverage');
         $this->assertNotNull($entry);
@@ -166,7 +170,7 @@ class FoodBuilderTest extends TestCase
         $this->product->method('getData')->willReturnCallback(
             static fn (string $key) => $key === 'barcode' ? '5901234123457' : null
         );
-        $schema = $this->builder->build($this->product, ['gtin13'], [], []);
+        $schema = $this->builder->build($this->product, ['gtin13'], []);
         $this->assertSame('5901234123457', $schema['gtin13']);
     }
 
@@ -176,7 +180,7 @@ class FoodBuilderTest extends TestCase
         $this->product->method('getData')->willReturnCallback(
             static fn (string $key) => $key === 'barcode' ? '5901234123450' : null
         );
-        $schema = $this->builder->build($this->product, ['gtin13'], [], []);
+        $schema = $this->builder->build($this->product, ['gtin13'], []);
         $this->assertArrayNotHasKey('gtin13', $schema);
     }
 
@@ -189,7 +193,7 @@ class FoodBuilderTest extends TestCase
                 default             => null,
             }
         );
-        $schema = $this->builder->build($this->product, ['countryOfOrigin', 'weight'], [], []);
+        $schema = $this->builder->build($this->product, ['countryOfOrigin', 'weight'], []);
         $this->assertSame('FR', $schema['countryOfOrigin']);
         $this->assertSame('500g', $schema['weight']);
     }

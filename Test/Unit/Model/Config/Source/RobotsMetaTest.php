@@ -5,6 +5,10 @@ declare(strict_types=1);
 namespace MageOS\Seo\Test\Unit\Model\Config\Source;
 
 use MageOS\Seo\Model\Config\Source\RobotsMeta;
+use MageOS\Seo\Model\Config\Source\RobotsMeta\CategoryOverride;
+use MageOS\Seo\Model\Config\Source\RobotsMeta\CmsPageOverride;
+use MageOS\Seo\Model\Config\Source\RobotsMeta\ProductOverride;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 class RobotsMetaTest extends TestCase
@@ -19,10 +23,26 @@ class RobotsMetaTest extends TestCase
         $this->source = new RobotsMeta();
     }
 
-    public function testToOptionArrayReturnsAllOptions(): void
+    public function testEveryIndexFollowArchiveCombinationCanBeChosen(): void
+    {
+        // Replaces an assertion on the number of options, which said nothing about what a
+        // merchant can actually express. noarchive used to be offered only beside NOINDEX, so
+        // "index this page but keep no cached copy" could not be asked for at all.
+        $values = array_column($this->source->toOptionArray(), 'value');
+
+        foreach (['INDEX', 'NOINDEX'] as $index) {
+            foreach (['FOLLOW', 'NOFOLLOW'] as $follow) {
+                $this->assertContains("{$index},{$follow}", $values);
+                $this->assertContains("{$index},{$follow},noarchive", $values);
+            }
+        }
+    }
+
+    public function testTheFirstOptionDefersToMagento(): void
     {
         $options = $this->source->toOptionArray();
-        $this->assertCount(8, $options);
+
+        $this->assertSame('', $options[0]['value'], 'An empty value means "no override".');
     }
 
     public function testIncludesRichPreviewDirective(): void
@@ -87,5 +107,39 @@ class RobotsMetaTest extends TestCase
     {
         $values = array_column($this->source->toOptionArray(), 'value');
         $this->assertCount(\count($values), array_unique($values));
+    }
+
+    /**
+     * @return array<string, array{RobotsMeta, string}>
+     */
+    public static function formSourceProvider(): array
+    {
+        return [
+            'product'  => [new ProductOverride(), "Use the store's Product Pages default"],
+            'category' => [
+                new CategoryOverride(),
+                "Inherit (parent category, then the store's Category Pages default)",
+            ],
+            'CMS page' => [new CmsPageOverride(), "Use the store's CMS Pages default"],
+        ];
+    }
+
+    /**
+     * Each form's list says what an empty value falls back to there, once, and otherwise offers
+     * exactly the directives the store-level list does.
+     *
+     * @dataProvider formSourceProvider
+     */
+    #[DataProvider('formSourceProvider')]
+    public function testEachFormSaysWhereNoDirectiveFallsBackTo(RobotsMeta $source, string $emptyLabel): void
+    {
+        $options = $source->toOptionArray();
+        $empty   = array_values(array_filter($options, static fn (array $o): bool => $o['value'] === ''));
+
+        $this->assertSame([['value' => '', 'label' => $emptyLabel]], $empty);
+        $this->assertSame(
+            \array_slice($this->source->toOptionArray(), 1),
+            \array_slice($options, 1)
+        );
     }
 }

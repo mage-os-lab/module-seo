@@ -29,6 +29,8 @@ use PHPUnit\Framework\TestCase;
  */
 class StationeryBuilderTest extends TestCase
 {
+    use OfferBuilders;
+
     /**
      * @var Product&MockObject
      */
@@ -64,19 +66,21 @@ class StationeryBuilderTest extends TestCase
         $this->product->method('getId')->willReturn(33);
         $this->product->method('getProductUrl')->willReturn('https://example.com/notebook');
         $this->product->method('getMediaGalleryImages')->willReturn(null);
-        $seoConfig->method('getPriceValidUntilMonths')->willReturn(3);
         $imageHelper->method('init')->willReturnSelf();
         $imageHelper->method('getUrl')->willReturn('');
         $availability->method('resolve')->willReturn(AvailabilityResolver::IN_STOCK);
 
         $this->builder = new StationeryBuilder(
             $storeManager,
-            $currencyService,
-            $availability,
             $imageHelper,
             $seoConfig,
-            $this->createMock(DateTime::class),
-            new OfferEnricherPool(),
+            $this->offerBuilder(
+                $storeManager,
+                $currencyService,
+                $availability,
+                $this->createMock(DateTime::class),
+                new OfferEnricherPool()
+            ),
             new AggregateRatingResolver(),
             new GtinValidator()
         );
@@ -94,13 +98,13 @@ class StationeryBuilderTest extends TestCase
 
     public function testBuildReturnsPlainProductType(): void
     {
-        $schema = $this->builder->build($this->product, [], [], []);
+        $schema = $this->builder->build($this->product, [], []);
         $this->assertSame('Product', $schema['@type']);
     }
 
     public function testOfferNodeShape(): void
     {
-        $schema = $this->builder->build($this->product, [], [], []);
+        $schema = $this->builder->build($this->product, [], []);
         $this->assertSame('Offer', $schema['offers']['@type']);
         $this->assertSame('6.50', $schema['offers']['price']);
         $this->assertSame('GBP', $schema['offers']['priceCurrency']);
@@ -115,20 +119,20 @@ class StationeryBuilderTest extends TestCase
                 default    => null,
             }
         );
-        $schema = $this->builder->build($this->product, ['material', 'pattern'], [], []);
+        $schema = $this->builder->build($this->product, ['material', 'pattern'], []);
         $this->assertSame('Recycled Paper', $schema['material']);
         $this->assertSame('Dotted', $schema['pattern']);
     }
 
     public function testValidGtinFromOverrideIsEmitted(): void
     {
-        $schema = $this->builder->build($this->product, ['gtin13'], ['gtin13' => '5901234123457'], []);
+        $schema = $this->builder->build($this->product, ['gtin13'], ['gtin13' => '5901234123457']);
         $this->assertSame('5901234123457', $schema['gtin13']);
     }
 
     public function testInvalidGtinFromOverrideIsOmitted(): void
     {
-        $schema = $this->builder->build($this->product, ['gtin13'], ['gtin13' => '5901234123450'], []);
+        $schema = $this->builder->build($this->product, ['gtin13'], ['gtin13' => '5901234123450']);
         $this->assertArrayNotHasKey('gtin13', $schema);
     }
 
@@ -137,7 +141,7 @@ class StationeryBuilderTest extends TestCase
         $this->product->method('getData')->willReturnCallback(
             static fn (string $key) => $key === 'barcode' ? '5901234123457' : null
         );
-        $schema = $this->builder->build($this->product, ['gtin13'], [], []);
+        $schema = $this->builder->build($this->product, ['gtin13'], []);
         $this->assertSame('5901234123457', $schema['gtin13']);
     }
 
@@ -146,7 +150,7 @@ class StationeryBuilderTest extends TestCase
         $this->product->method('getData')->willReturnCallback(
             static fn (string $key) => $key === 'barcode' ? '5901234123450' : null
         );
-        $schema = $this->builder->build($this->product, ['gtin13'], [], []);
+        $schema = $this->builder->build($this->product, ['gtin13'], []);
         $this->assertArrayNotHasKey('gtin13', $schema);
     }
 }

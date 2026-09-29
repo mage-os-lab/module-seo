@@ -34,7 +34,7 @@
         -->
         <referenceContainer name="before.body.end">
             <block class="MageOS\Seo\Block\FaqJsonLd"
-                   name="mageos_seo.faq_json_ld"
+                   name="mageos_faq.json_ld"
                    template="MageOS_Seo::faq/json-ld.phtml"/>
         </referenceContainer>
     </body>

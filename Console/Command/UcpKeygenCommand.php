@@ -41,7 +41,7 @@ class UcpKeygenCommand extends Command
      */
     protected function configure(): void
     {
-        $this->setName('mageos:seo:ucp:keygen')
+        $this->setName('ucp:keygen')
             ->setDescription('Generate an ECDSA P-256 signing keypair for the UCP /.well-known/ucp profile')
             ->addOption(
                 self::OPTION_WEBSITE,
