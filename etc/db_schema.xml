@@ -8,22 +8,26 @@
         onCreate migrates data from the pre-release hyphenated names.
     -->
 
-    <!-- Organisation / site identity settings (scoped: default / websites / stores) -->
-    <table name="mageos_seo_organisation" resource="default" engine="innodb"
-           comment="MageOS SEO — Organisation schema settings (per scope)">
+    <!--
+        Organization / site identity settings (scoped: default / websites / stores).
+        Formerly mageos_seo_organisation. db_schema_whitelist.json keeps that name so
+        setup:upgrade drops the old table; its rows are not carried over.
+    -->
+    <table name="mageos_seo_organization" resource="default" engine="innodb"
+           comment="MageOS SEO — Organization schema settings (per scope)">
         <column xsi:type="int" name="entity_id" unsigned="true" nullable="false" identity="true" comment="Entity ID"/>
         <column xsi:type="varchar" name="scope" nullable="false" length="8" default="default"
                 comment="Config scope: default, websites, stores"/>
         <column xsi:type="int" name="scope_id" unsigned="true" nullable="false" default="0"
                 comment="Scope entity ID (0 for default scope)"/>
-        <column xsi:type="varchar" name="name" nullable="false" length="255" default="" comment="Organisation name"/>
+        <column xsi:type="varchar" name="name" nullable="false" length="255" default="" comment="Organization name"/>
         <column xsi:type="varchar" name="url" nullable="false" length="255" default=""
-                comment="Canonical organisation URL"/>
+                comment="Canonical organization URL"/>
         <column xsi:type="varchar" name="logo_path" nullable="true" length="255"
                 comment="Logo image path (media-relative)"/>
         <column xsi:type="smallint" name="logo_width" nullable="true" unsigned="true" comment="Logo width in pixels"/>
         <column xsi:type="smallint" name="logo_height" nullable="true" unsigned="true" comment="Logo height in pixels"/>
-        <column xsi:type="text" name="description" nullable="true" comment="Organisation description / tagline"/>
+        <column xsi:type="text" name="description" nullable="true" comment="Organization description / tagline"/>
         <column xsi:type="text" name="social_profiles" nullable="true" comment="JSON array of social profile URLs"/>
         <column xsi:type="text" name="contact_point" nullable="true"
                 comment="JSON object: contactType, email, availableLanguage"/>
@@ -54,7 +58,7 @@
             No foreign key on scope_id: it points at a website or a store view depending on the
             scope column, which no single constraint can express. core_config_data is built the
             same way, and core cleans it up in Website::beforeDelete() / Group::beforeDelete()
-            via clearScopeData(). MageOS\Seo\Observer\RemoveOrganisationOnScopeDelete does the
+            via clearScopeData(). MageOS\Seo\Observer\RemoveOrganizationOnScopeDelete does the
             equivalent for this table.
         -->
     </table>
@@ -184,8 +188,12 @@
         </index>
     </table>
 
-    <table name="mageos_seo_faq" resource="default" engine="innodb"
-           comment="MageOS SEO — FAQ entries (FAQPage structured data)">
+    <!--
+        Formerly mageos_seo_faq. db_schema_whitelist.json keeps that name so setup:upgrade drops
+        the old table; its rows are not carried over.
+    -->
+    <table name="mageos_faq" resource="default" engine="innodb"
+           comment="MageOS FAQ — FAQ entries (FAQPage structured data)">
         <column xsi:type="int" name="entity_id" unsigned="true" nullable="false" identity="true" comment="Entity ID"/>
         <column xsi:type="varchar" name="identifier" nullable="false" length="128"
                 comment="FAQ group identifier referenced by widgets / Page Builder"/>
@@ -202,7 +210,7 @@
         <constraint xsi:type="primary" referenceId="PRIMARY">
             <column name="entity_id"/>
         </constraint>
-        <index referenceId="MAGEOS_SEO_FAQ_IDENTIFIER_STORE_IDX" indexType="btree">
+        <index referenceId="MAGEOS_FAQ_IDENTIFIER_STORE_IDX" indexType="btree">
             <column name="identifier"/>
             <column name="store_id"/>
         </index>
@@ -210,10 +218,10 @@
             store_id sits second in the index above, so the foreign key needs its own.
             identifier is a free-text grouping key and references nothing.
         -->
-        <constraint xsi:type="foreign" referenceId="MAGEOS_SEO_FAQ_STORE_ID_STORE_STORE_ID"
-                    table="mageos_seo_faq" column="store_id"
+        <constraint xsi:type="foreign" referenceId="MAGEOS_FAQ_STORE_ID_STORE_STORE_ID"
+                    table="mageos_faq" column="store_id"
                     referenceTable="store" referenceColumn="store_id" onDelete="CASCADE"/>
-        <index referenceId="MAGEOS_SEO_FAQ_STORE_ID" indexType="btree">
+        <index referenceId="MAGEOS_FAQ_STORE_ID" indexType="btree">
             <column name="store_id"/>
         </index>
     </table>

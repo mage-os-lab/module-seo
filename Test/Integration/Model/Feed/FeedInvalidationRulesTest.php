@@ -50,7 +50,7 @@ use PHPUnit\Framework\TestCase;
  */
 class FeedInvalidationRulesTest extends TestCase
 {
-    private const JSONL_ENABLED = 'mageos_seo_general/llms_txt/jsonl_enabled';
+    private const JSONL_ENABLED = 'mageos_aeo/llms_txt/jsonl_enabled';
 
     /**
      * With the first build, which saving the test's sitemap entry queues: cleared around each check

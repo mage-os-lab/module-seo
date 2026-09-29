@@ -10,7 +10,7 @@ use Magento\Framework\Controller\Result\RawFactory;
 use Magento\Framework\Controller\Result\Redirect;
 use MageOS\Seo\Api\WellKnownEndpointInterface;
 use MageOS\Seo\Controller\Wellknown\Index;
-use MageOS\Seo\Model\Feed\CanonicalPathRedirect;
+use MageOS\Seo\Model\Router\CanonicalPathRedirect;
 use MageOS\Seo\Model\WellKnown\EndpointPool;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;

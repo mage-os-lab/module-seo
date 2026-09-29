@@ -8,8 +8,8 @@ The module serves two plain-text documents at well-known URLs so LLM crawlers an
 
 | URL | Content | Config toggle |
 |---|---|---|
-| `/llms.txt` | Concise: org name, description, base URL, locale, available schema types, the first 5 FAQs, AI contact email | Stores → Configuration → MageOS SEO → SEO → Enable /llms.txt |
-| `/llms-full.txt` | Extended: everything in the concise version plus social profiles, full category tree with product counts, full template list, every FAQ | Stores → Configuration → MageOS SEO → SEO → Enable /llms-full.txt |
+| `/llms.txt` | Concise: org name, description, base URL, locale, available schema types, the first 5 FAQs, AI contact email | Stores → Configuration → MageOS SEO → AI Information & Crawlers → Enable /llms.txt |
+| `/llms-full.txt` | Extended: everything in the concise version plus social profiles, full category tree with product counts, full template list, every FAQ | Stores → Configuration → MageOS SEO → AI Information & Crawlers → Enable /llms-full.txt |
 
 Both return `404` when their respective config toggle is off.
 
@@ -17,7 +17,7 @@ Both config toggles are per-store-view settings.
 
 A third document, `/llms.jsonl`, carries one compact JSON-LD `Product` node per line for the
 store's catalogue. It is **off by default** — turn it on per store view with
-`mageos_seo_general/llms_txt/jsonl_enabled`.
+`mageos_aeo/llms_txt/jsonl_enabled`.
 
 ---
 
@@ -78,7 +78,7 @@ Everything in `/llms.txt`, plus:
 
 No setup is required: a custom router serves `/llms.txt`, `/llms-full.txt` and
 `/llms.jsonl` directly. Do **not** add manual URL rewrites for these paths — the
-internal controller URLs (`/mageos-seo/...`) 301-redirect to the canonical paths,
+internal controller URLs (`/mageos-aeo/...`) 301-redirect to the canonical paths,
 so a rewrite would fight the router.
 
 ---
@@ -89,7 +89,7 @@ These documents are pre-generated to files and served from there; a web request 
 one. That machinery is documented once, in
 **[feeds.md](feeds.md)**: the queue consumer and the nightly cron, what triggers a rebuild, the
 24-hour cache policy, where the files are stored (including multi-server deployments and their
-`app/etc/env.php` entry), file permissions, and the `mageos:seo:feeds:regenerate` command.
+`app/etc/env.php` entry), file permissions, and the `seo:rebuild` command.
 
 Worth knowing here: a rebuild of `/llms.txt` and `/llms-full.txt` is queued when the Organisation
 settings or a FAQ change, when a category changes, and when a product is created, deleted or has
@@ -127,16 +127,18 @@ The address published for automated queries is the first of:
    defaults, so a distribution that ships a different placeholder is recognised too;
 3. none: the `## AI Contact` section is left out.
 
-`MageOS\Seo\Model\Organisation\ContactEmail` makes this choice for both documents. To publish a
+`MageOS\Seo\Model\Organization\ContactEmail` makes this choice for both documents. To publish a
 different address, set the Organisation's Contact Email.
 
 ### FAQ section
 
-The FAQs come from the groups selected under **Stores → Configuration → MageOS SEO → SEO → AI
-Discoverability (llms.txt) → FAQ Groups**, per store view:
+The FAQs come from the groups selected under **Stores → Configuration → MageOS SEO → AI
+Information & Crawlers → AI Discoverability (llms.txt) → FAQ Groups**, per store view:
 
 - the default is `global`, so a group of that name is included without configuring anything;
-- the list offers every group identifier in use, plus `global`;
+- the list offers every group identifier in use, plus `global`. That is every group any FAQ source
+  has: the FAQs under Marketing → SEO → FAQ Manager, and those of any other module that registers a
+  `FaqSourceProviderInterface` (its `getIdentifiers()`);
 - groups are read in the order the setting stores them — the list's alphabetical order when saved
   from the admin, the given order with `bin/magento config:set` — and each group's questions in their
   own sort order;

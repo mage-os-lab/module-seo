@@ -12,7 +12,7 @@ use Magento\Framework\View\Result\PageFactory;
 
 class Index extends Action implements HttpGetActionInterface
 {
-    public const ADMIN_RESOURCE = 'MageOS_Seo::faq';
+    public const ADMIN_RESOURCE = 'MageOS_Faq::faq';
 
     /**
      * @param Context $context
@@ -34,7 +34,7 @@ class Index extends Action implements HttpGetActionInterface
     {
         /** @var \Magento\Backend\Model\View\Result\Page $resultPage */
         $resultPage = $this->resultPageFactory->create();
-        $resultPage->setActiveMenu('MageOS_Seo::faq');
+        $resultPage->setActiveMenu('MageOS_Faq::faq');
         $resultPage->getConfig()->getTitle()->prepend((string) __('SEO — FAQ Manager'));
         return $resultPage;
     }

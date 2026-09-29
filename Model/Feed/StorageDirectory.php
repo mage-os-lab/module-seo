@@ -22,7 +22,7 @@ use Magento\Framework\Phrase;
  *  - inside the installation, only var/ — every other standard directory (app, bin, dev,
  *    generated, lib, pub, setup, update, vendor) and the root itself are refused, so no value can
  *    reach the codebase, and no dot directory (.git, .ssh, .magento) is reachable anywhere;
- *  - outside the installation, only a root listed in env.php under mageos_seo/feed_storage_roots,
+ *  - outside the installation, only a root listed in env.php under mageos_aeo/feed_storage_roots,
  *    which is deployment configuration an administrator cannot edit from the admin panel.
  *
  * Paths are resolved before they are judged, so a symlink inside var/ cannot stand for a target
@@ -33,7 +33,7 @@ class StorageDirectory
     /**
      * The deployment-config key holding the roots an installation permits.
      */
-    public const DEPLOYMENT_CONFIG_PATH = 'mageos_seo/feed_storage_roots';
+    public const DEPLOYMENT_CONFIG_PATH = 'mageos_aeo/feed_storage_roots';
 
     /**
      * @param DirectoryList $directoryList
@@ -50,7 +50,7 @@ class StorageDirectory
     /**
      * Whether a configured value may be used.
      *
-     * An empty value is the default: var/mageos_seo, which needs no configuration at all.
+     * An empty value is the default: var/mageos_aeo, which needs no configuration at all.
      *
      * @param string $path
      * @return bool

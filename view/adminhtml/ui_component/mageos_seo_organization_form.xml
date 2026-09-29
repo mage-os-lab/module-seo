@@ -1,0 +1,329 @@
+<?xml version="1.0"?>
+<form xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Ui:etc/ui_configuration.xsd">
+
+    <argument name="data" xsi:type="array">
+        <item name="js_config" xsi:type="array">
+            <item name="provider"
+            xsi:type="string">mageos_seo_organization_form.mageos_seo_organization_form_data_source</item>
+        </item>
+        <item name="label" xsi:type="string" translate="true">Organization Settings</item>
+        <item name="template" xsi:type="string">templates/form/collapsible</item>
+        <item name="reverseMetadataMerge" xsi:type="boolean">true</item>
+    </argument>
+
+    <settings>
+        <buttons>
+            <button name="save" class="MageOS\Seo\Block\Adminhtml\Organization\SaveButton"/>
+        </buttons>
+        <namespace>mageos_seo_organization_form</namespace>
+        <dataScope>data</dataScope>
+        <deps>
+            <dep>mageos_seo_organization_form.mageos_seo_organization_form_data_source</dep>
+        </deps>
+    </settings>
+
+    <dataSource name="mageos_seo_organization_form_data_source">
+        <argument name="data" xsi:type="array">
+            <item name="js_config" xsi:type="array">
+                <item name="component" xsi:type="string">Magento_Ui/js/form/provider</item>
+            </item>
+        </argument>
+        <settings>
+            <submitUrl path="mageos_seo/organization/save"/>
+        </settings>
+        <!--
+            The controllers declare the same resource, but a UI component's data is also reachable
+            through the generic mui/index/render endpoint, which checks this and not them.
+        -->
+        <aclResource>MageOS_Seo::organization</aclResource>
+        <dataProvider class="MageOS\Seo\Ui\DataProvider\OrganizationDataProvider"
+                      name="mageos_seo_organization_form_data_source">
+            <settings>
+                <requestFieldName>entity_id</requestFieldName>
+                <primaryFieldName>entity_id</primaryFieldName>
+            </settings>
+        </dataProvider>
+    </dataSource>
+
+    <!-- IDENTITY -->
+    <fieldset name="organization_identity">
+        <settings>
+            <label translate="true">Organization Identity</label>
+            <collapsible>false</collapsible>
+        </settings>
+
+        <field name="entity_id" formElement="hidden">
+            <settings><dataType>text</dataType></settings>
+        </field>
+
+        <field name="name" sortOrder="10" formElement="input">
+            <settings>
+                <label translate="true">Organization Name</label>
+                <dataType>text</dataType>
+                <validation><rule name="required-entry" xsi:type="boolean">true</rule></validation>
+            </settings>
+        </field>
+
+        <field name="url" sortOrder="20" formElement="input">
+            <settings>
+                <label translate="true">Canonical Site URL</label>
+                <dataType>text</dataType>
+                <notice translate="true">Full URL including https://. Used as the @id anchor in all schema.</notice>
+                <validation><rule name="required-entry" xsi:type="boolean">true</rule></validation>
+            </settings>
+        </field>
+
+        <field name="org_type" sortOrder="30" formElement="select">
+            <settings>
+                <label translate="true">Organization Type (schema.org)</label>
+                <dataType>text</dataType>
+            </settings>
+            <formElements>
+                <select>
+                    <settings>
+                        <options class="MageOS\Seo\Model\Config\Source\OrgType"/>
+                    </settings>
+                </select>
+            </formElements>
+        </field>
+
+        <field name="description" sortOrder="40" formElement="textarea">
+            <settings>
+                <label translate="true">Description / Tagline</label>
+                <dataType>text</dataType>
+                <notice translate="true"
+                >Short description used in the Organization schema and llms.txt. Max 300 characters.</notice>
+            </settings>
+        </field>
+    </fieldset>
+
+    <!-- LOGO -->
+    <fieldset name="organization_logo">
+        <settings>
+            <label translate="true">Logo</label>
+            <collapsible>true</collapsible>
+            <opened>true</opened>
+        </settings>
+
+        <!--
+            switcherConfig must live inside formElements > select > settings,
+            not inside the field's own settings block.
+        -->
+        <field name="use_design_logo" sortOrder="10" formElement="select">
+            <argument name="data" xsi:type="array">
+                <item name="config" xsi:type="array">
+                    <item name="component" xsi:type="string">MageOS_Seo/js/form/element/logo-source-select</item>
+                </item>
+            </argument>
+            <settings>
+                <label translate="true">Logo Source</label>
+                <dataType>text</dataType>
+                <notice translate="true"
+                >Use your existing Design logo, or upload a dedicated SEO logo (recommended: min 112x112px).</notice>
+            </settings>
+            <formElements>
+                <select>
+                    <settings>
+                        <options class="MageOS\Seo\Model\Config\Source\LogoSource"/>
+                    </settings>
+                </select>
+            </formElements>
+        </field>
+
+        <field name="logo_upload" sortOrder="20" formElement="fileUploader">
+            <settings>
+                <label translate="true">Custom SEO Logo</label>
+                <dataType>text</dataType>
+                <notice translate="true"
+                >Recommended: PNG, minimum 112x112px. Used in structured data and llms.txt.</notice>
+                <visible>false</visible>
+            </settings>
+            <formElements>
+                <fileUploader>
+                    <settings>
+                        <uploaderConfig>
+                            <param xsi:type="string" name="url">mageos_seo/organization/uploadLogo</param>
+                        </uploaderConfig>
+                        <allowedExtensions>jpg jpeg gif png</allowedExtensions>
+                        <maxFileSize>2097152</maxFileSize>
+                    </settings>
+                </fileUploader>
+            </formElements>
+        </field>
+
+        <field name="logo_width" sortOrder="30" formElement="input">
+            <settings>
+                <label translate="true">Logo Width (px)</label>
+                <dataType>text</dataType>
+                <notice translate="true">Used in the ImageObject schema node. Leave blank to omit.</notice>
+                <validation><rule name="validate-digits" xsi:type="boolean">true</rule></validation>
+            </settings>
+        </field>
+
+        <field name="logo_height" sortOrder="40" formElement="input">
+            <settings>
+                <label translate="true">Logo Height (px)</label>
+                <dataType>text</dataType>
+                <validation><rule name="validate-digits" xsi:type="boolean">true</rule></validation>
+            </settings>
+        </field>
+    </fieldset>
+
+    <!-- SOCIAL PROFILES & CONTACT -->
+    <fieldset name="organization_social">
+        <settings>
+            <label translate="true">Social Profiles &amp; Contact</label>
+            <collapsible>true</collapsible>
+        </settings>
+
+        <dynamicRows name="social_profiles" sortOrder="10">
+            <settings>
+                <label translate="true">Social Profile URLs</label>
+                <notice translate="true"
+                >Add one URL per row. These appear as sameAs links in Organization schema and in llms.txt.</notice>
+                <addButtonLabel translate="true">Add Social Profile</addButtonLabel>
+                <columnsHeader>false</columnsHeader>
+                <collapsibleHeader>false</collapsibleHeader>
+                <deleteProperty>delete</deleteProperty>
+                <deleteValue>true</deleteValue>
+                <additionalClasses>
+                    <class name="admin__field-wide">true</class>
+                </additionalClasses>
+                <componentType>dynamicRows</componentType>
+                <recordTemplate>record</recordTemplate>
+                <identificationProperty>id</identificationProperty>
+            </settings>
+            <container name="record" component="Magento_Ui/js/dynamic-rows/record">
+                <argument name="data" xsi:type="array">
+                    <item name="config" xsi:type="array">
+                        <item name="isTemplate" xsi:type="boolean">true</item>
+                        <item name="is_collection" xsi:type="boolean">true</item>
+                        <item name="componentType" xsi:type="string">container</item>
+                    </item>
+                </argument>
+                <field name="url" sortOrder="10" formElement="input">
+                    <argument name="data" xsi:type="array">
+                        <item name="config" xsi:type="array">
+                            <item name="fit" xsi:type="boolean">false</item>
+                        </item>
+                    </argument>
+                    <settings>
+                        <label translate="true">URL</label>
+                        <dataType>text</dataType>
+                        <validation>
+                            <rule name="required-entry" xsi:type="boolean">true</rule>
+                            <rule name="validate-url" xsi:type="boolean">true</rule>
+                        </validation>
+                    </settings>
+                </field>
+                <actionDelete sortOrder="20">
+                    <settings>
+                        <label translate="true">Delete</label>
+                        <dataType>text</dataType>
+                        <componentType>actionDelete</componentType>
+                    </settings>
+                </actionDelete>
+            </container>
+        </dynamicRows>
+
+        <field name="contact_contactType" sortOrder="20" formElement="input">
+            <settings>
+                <label translate="true">Contact Type</label>
+                <dataType>text</dataType>
+                <notice translate="true">e.g. "customer service"</notice>
+            </settings>
+        </field>
+
+        <field name="contact_email" sortOrder="30" formElement="input">
+            <settings>
+                <label translate="true">Contact Email</label>
+                <dataType>text</dataType>
+                <validation><rule name="validate-email" xsi:type="boolean">true</rule></validation>
+            </settings>
+        </field>
+
+        <field name="contact_availableLanguage" sortOrder="40" formElement="input">
+            <settings>
+                <label translate="true">Available Language</label>
+                <dataType>text</dataType>
+                <notice translate="true">e.g. "en" or "English"</notice>
+            </settings>
+        </field>
+    </fieldset>
+
+    <!-- LOCAL PRESENCE (LocalBusiness) -->
+    <fieldset name="organization_local_presence">
+        <settings>
+            <label translate="true">Local Presence (LocalBusiness)</label>
+            <collapsible>true</collapsible>
+        </settings>
+
+        <field name="street_address" sortOrder="10" formElement="input">
+            <settings>
+                <label translate="true">Street Address</label>
+                <dataType>text</dataType>
+                <notice translate="true"
+                >Address, telephone and email apply to every organization type; latitude, longitude and price range only to a local business (Organization Type: Local Business).</notice>
+            </settings>
+        </field>
+        <field name="address_locality" sortOrder="20" formElement="input">
+            <settings>
+                <label translate="true">City / Town</label>
+                <dataType>text</dataType>
+            </settings>
+        </field>
+        <field name="address_region" sortOrder="30" formElement="input">
+            <settings>
+                <label translate="true">Region / County / State</label>
+                <dataType>text</dataType>
+            </settings>
+        </field>
+        <field name="postal_code" sortOrder="40" formElement="input">
+            <settings>
+                <label translate="true">Postcode / ZIP</label>
+                <dataType>text</dataType>
+            </settings>
+        </field>
+        <field name="address_country" sortOrder="50" formElement="input">
+            <settings>
+                <label translate="true">Country (ISO 3166-1 alpha-2)</label>
+                <dataType>text</dataType>
+                <notice translate="true">Two-letter code, e.g. GB.</notice>
+            </settings>
+        </field>
+        <field name="telephone" sortOrder="60" formElement="input">
+            <settings>
+                <label translate="true">Telephone</label>
+                <dataType>text</dataType>
+            </settings>
+        </field>
+        <field name="email" sortOrder="70" formElement="input">
+            <settings>
+                <label translate="true">Email</label>
+                <dataType>text</dataType>
+                <validation><rule name="validate-email" xsi:type="boolean">true</rule></validation>
+            </settings>
+        </field>
+        <field name="latitude" sortOrder="80" formElement="input">
+            <settings>
+                <label translate="true">Latitude</label>
+                <dataType>text</dataType>
+            </settings>
+        </field>
+        <field name="longitude" sortOrder="90" formElement="input">
+            <settings>
+                <label translate="true">Longitude</label>
+                <dataType>text</dataType>
+            </settings>
+        </field>
+        <field name="price_range" sortOrder="100" formElement="input">
+            <settings>
+                <label translate="true">Price Range</label>
+                <dataType>text</dataType>
+                <notice translate="true">e.g. ££ or $$. Local business only.</notice>
+            </settings>
+        </field>
+    </fieldset>
+
+</form>

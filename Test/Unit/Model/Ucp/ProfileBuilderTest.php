@@ -161,7 +161,7 @@ class ProfileBuilderTest extends TestCase
         $logger = $this->createMock(LoggerInterface::class);
         $logger->expects($this->once())->method('error')->with(
             'MageOS_Seo: UCP signing key left out of /.well-known/ucp: the stored public JWK lacks kid. '
-            . 'Run bin/magento mageos:seo:ucp:keygen to replace it.'
+            . 'Run bin/magento ucp:keygen to replace it.'
         );
 
         $this->builder('{"kty":"OKP","crv":"Ed25519","x":"A"}', logger: $logger)->build();

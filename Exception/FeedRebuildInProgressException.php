@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace MageOS\Seo\Exception;
 
-use Magento\Framework\Exception\LocalizedException;
-
 /**
  * Raised when a feed rebuild is refused because another process is already building that group.
  *
@@ -15,6 +13,6 @@ use Magento\Framework\Exception\LocalizedException;
  * the same work; the CLI has an operator to tell. A null or an empty array would let all three
  * treat "someone else is building" as "there was nothing to build".
  */
-class FeedRebuildInProgressException extends LocalizedException
+class FeedRebuildInProgressException extends RebuildInProgressException
 {
 }

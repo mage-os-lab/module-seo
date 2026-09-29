@@ -23,7 +23,7 @@ use Magento\TestFramework\Fixture\DataFixtureStorageManager;
 use Magento\TestFramework\Helper\Bootstrap;
 use MageOS\Seo\Api\Data\FaqInterface;
 use MageOS\Seo\Api\FaqRepositoryInterface;
-use MageOS\Seo\Api\OrganisationRepositoryInterface;
+use MageOS\Seo\Api\OrganizationRepositoryInterface;
 use MageOS\Seo\Model\Category\ConfigRepository;
 use MageOS\Seo\Model\Category\ProductOverrideRepository;
 use MageOS\Seo\Model\Faq;
@@ -35,7 +35,7 @@ use PHPUnit\Framework\TestCase;
  * What happens to the module's own records when the things they describe are deleted.
  *
  * The catalogue and store-scoped tables carry foreign keys with ON DELETE CASCADE, so the
- * database removes their rows. mageos_seo_organisation cannot: its scope_id points at a website
+ * database removes their rows. mageos_seo_organization cannot: its scope_id points at a website
  * or a store view depending on the scope column, so an observer does it instead.
  *
  * Deleting a website or a store group is the case worth the setup here: core removes its store
@@ -121,15 +121,15 @@ class ScopeDeletionCleanupTest extends TestCase
         $productId  = (int) $this->fixture('product')->getId();
 
         $faqId = $this->seedStoreScopedRecords($storeId, $categoryId, $productId);
-        $this->saveOrganisation(ScopeInterface::SCOPE_WEBSITES, $websiteId);
+        $this->saveOrganization(ScopeInterface::SCOPE_WEBSITES, $websiteId);
 
         $this->deleteWebsite($websiteId);
 
         $this->assertStoreScopedRecordsAreGone($storeId, $categoryId, $productId, $faqId);
         $this->assertSame(
             0,
-            $this->organisationRepository()->get(ScopeInterface::SCOPE_WEBSITES, $websiteId)->getEntityId(),
-            'The website Organisation record is gone.'
+            $this->organizationRepository()->get(ScopeInterface::SCOPE_WEBSITES, $websiteId)->getEntityId(),
+            'The website Organization record is gone.'
         );
     }
 
@@ -175,7 +175,7 @@ class ScopeDeletionCleanupTest extends TestCase
     {
         $this->configRepository()->save($categoryId, ['robots_meta' => 'NOINDEX,FOLLOW'], $storeId);
         $this->overrideRepository()->save($productId, $storeId, ['robots_meta' => 'NOINDEX,FOLLOW']);
-        $this->saveOrganisation(ScopeInterface::SCOPE_STORES, $storeId);
+        $this->saveOrganization(ScopeInterface::SCOPE_STORES, $storeId);
 
         /** @var FaqInterface $faq */
         $faq = Bootstrap::getObjectManager()->create(Faq::class);
@@ -190,7 +190,7 @@ class ScopeDeletionCleanupTest extends TestCase
         $this->assertSame('NOINDEX,FOLLOW', $this->robotsOverride($productId, $storeId));
         $this->assertGreaterThan(
             0,
-            $this->organisationRepository()->get(ScopeInterface::SCOPE_STORES, $storeId)->getEntityId()
+            $this->organizationRepository()->get(ScopeInterface::SCOPE_STORES, $storeId)->getEntityId()
         );
 
         return $faq->getEntityId();
@@ -222,8 +222,8 @@ class ScopeDeletionCleanupTest extends TestCase
         );
         $this->assertSame(
             0,
-            $this->organisationRepository()->get(ScopeInterface::SCOPE_STORES, $storeId)->getEntityId(),
-            'Organisation record went with the store view.'
+            $this->organizationRepository()->get(ScopeInterface::SCOPE_STORES, $storeId)->getEntityId(),
+            'Organization record went with the store view.'
         );
 
         try {
@@ -249,18 +249,18 @@ class ScopeDeletionCleanupTest extends TestCase
     }
 
     /**
-     * Store an Organisation record for one scope.
+     * Store an Organization record for one scope.
      *
      * @param string $scope
      * @param int $scopeId
      * @return void
      */
-    private function saveOrganisation(string $scope, int $scopeId): void
+    private function saveOrganization(string $scope, int $scopeId): void
     {
-        $repository   = $this->organisationRepository();
-        $organisation = $repository->get($scope, $scopeId);
-        $organisation->setName('Scope ' . $scope . ' ' . $scopeId);
-        $repository->save($organisation);
+        $repository   = $this->organizationRepository();
+        $organization = $repository->get($scope, $scopeId);
+        $organization->setName('Scope ' . $scope . ' ' . $scopeId);
+        $repository->save($organization);
     }
 
     /**
@@ -318,11 +318,11 @@ class ScopeDeletionCleanupTest extends TestCase
     }
 
     /**
-     * @return OrganisationRepositoryInterface
+     * @return OrganizationRepositoryInterface
      */
-    private function organisationRepository(): OrganisationRepositoryInterface
+    private function organizationRepository(): OrganizationRepositoryInterface
     {
-        return Bootstrap::getObjectManager()->get(OrganisationRepositoryInterface::class);
+        return Bootstrap::getObjectManager()->get(OrganizationRepositoryInterface::class);
     }
 
     /**

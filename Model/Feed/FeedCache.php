@@ -23,9 +23,9 @@ class FeedCache
      */
     public const CACHE_CONTROL = 'public, max-age=86400, s-maxage=86400';
 
-    public const TAG_LLMS       = 'MAGEOS_SEO_LLMS';
-    public const TAG_LLMS_FULL  = 'MAGEOS_SEO_LLMS_FULL';
-    public const TAG_LLMS_JSONL = 'MAGEOS_SEO_LLMS_JSONL';
+    public const TAG_LLMS       = 'MAGEOS_AEO_LLMS';
+    public const TAG_LLMS_FULL  = 'MAGEOS_AEO_LLMS_FULL';
+    public const TAG_LLMS_JSONL = 'MAGEOS_AEO_LLMS_JSONL';
 
     private const GROUP_TAGS = [
         FeedRegenerator::GROUP_LLMS  => [self::TAG_LLMS, self::TAG_LLMS_FULL],

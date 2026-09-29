@@ -63,8 +63,8 @@ class RegenerateFeedsCommandTest extends TestCase
     {
         $commands = Bootstrap::getObjectManager()->get(CommandListInterface::class)->getCommands();
 
-        $this->assertArrayHasKey('mageos_seo_feeds_regenerate', $commands);
-        $this->assertInstanceOf(RegenerateFeedsCommand::class, $commands['mageos_seo_feeds_regenerate']);
+        $this->assertArrayHasKey('mageos_seo_rebuild', $commands);
+        $this->assertInstanceOf(RegenerateFeedsCommand::class, $commands['mageos_seo_rebuild']);
     }
 
     /**

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace MageOS\Seo\Test\Unit\Model\Sitemap;
 
 use MageOS\Seo\Api\Sitemap\RebuildRequesterInterface;
-use MageOS\Seo\Model\Feed\FeedInvalidator;
+use MageOS\Seo\Model\Rebuild\Invalidator;
 use MageOS\Seo\Model\Sitemap\Rebuilder;
 use MageOS\Seo\Model\Sitemap\RebuildRequester;
 use PHPUnit\Framework\TestCase;
@@ -14,7 +14,7 @@ class RebuildRequesterTest extends TestCase
 {
     public function testATypeAProviderHasIsQueued(): void
     {
-        $invalidator = $this->createMock(FeedInvalidator::class);
+        $invalidator = $this->createMock(Invalidator::class);
         $invalidator->expects($this->once())->method('invalidateSitemap')->with('blog-posts');
 
         $this->requester($invalidator)->request('blog-posts');
@@ -22,7 +22,7 @@ class RebuildRequesterTest extends TestCase
 
     public function testEveryTypeIsQueuedAsOne(): void
     {
-        $invalidator = $this->createMock(FeedInvalidator::class);
+        $invalidator = $this->createMock(Invalidator::class);
         $invalidator->expects($this->once())->method('invalidateSitemap')->with(RebuildRequesterInterface::ALL_TYPES);
 
         $this->requester($invalidator)->request(RebuildRequesterInterface::ALL_TYPES);
@@ -30,7 +30,7 @@ class RebuildRequesterTest extends TestCase
 
     public function testATypeNoProviderHasIsRefusedWhereItIsAskedFor(): void
     {
-        $invalidator = $this->createMock(FeedInvalidator::class);
+        $invalidator = $this->createMock(Invalidator::class);
         $invalidator->expects($this->never())->method('invalidateSitemap');
 
         $this->expectException(\InvalidArgumentException::class);
@@ -42,10 +42,10 @@ class RebuildRequesterTest extends TestCase
     /**
      * A requester over a generator that writes pages and blog posts.
      *
-     * @param FeedInvalidator $invalidator
+     * @param Invalidator $invalidator
      * @return RebuildRequester
      */
-    private function requester(FeedInvalidator $invalidator): RebuildRequester
+    private function requester(Invalidator $invalidator): RebuildRequester
     {
         $rebuilder = $this->createStub(Rebuilder::class);
         $rebuilder->method('types')->willReturn(['pages', 'blog-posts']);

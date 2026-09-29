@@ -7,7 +7,7 @@
         and the page would be FPC-cached without its FAQPage JSON-LD. The full page cache
         already caches the rendered output.
     -->
-    <widget id="mageos_seo_faq_list"
+    <widget id="mageos_faq_list"
             class="MageOS\Seo\Block\Widget\FaqList"
             is_email_compatible="false">
         <label translate="true">SEO FAQ List</label>

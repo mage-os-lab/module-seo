@@ -8,7 +8,7 @@ use Magento\Framework\DataObject\IdentityInterface;
 use Magento\Framework\View\Element\Template;
 use Magento\Framework\View\Element\Template\Context;
 use MageOS\Seo\Model\Config;
-use MageOS\Seo\Model\Organisation;
+use MageOS\Seo\Model\Organization;
 use MageOS\Seo\Model\StructuredData\Compositor;
 
 class JsonLd extends Template implements IdentityInterface
@@ -62,12 +62,12 @@ class JsonLd extends Template implements IdentityInterface
      * @inheritdoc
      *
      * This block sits in layout on every page (default.xml) and renders the
-     * Organisation-derived schema, so every FPC entry carries the Organisation
-     * cache tag; saving Organisation settings purges those pages automatically.
+     * Organization-derived schema, so every FPC entry carries the Organization
+     * cache tag; saving Organization settings purges those pages automatically.
      * Identities are collected from layout blocks regardless of rendered output.
      */
     public function getIdentities(): array
     {
-        return [Organisation::CACHE_TAG];
+        return [Organization::CACHE_TAG];
     }
 }

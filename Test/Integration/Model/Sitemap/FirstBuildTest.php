@@ -13,7 +13,7 @@ use Magento\TestFramework\Fixture\DataFixture;
 use Magento\TestFramework\Helper\Bootstrap;
 use MageOS\Seo\Model\Config;
 use MageOS\Seo\Model\Config\Source\SitemapGenerator;
-use MageOS\Seo\Model\Feed\RegenerateConsumer;
+use MageOS\Seo\Model\Rebuild\RegenerateConsumer;
 use MageOS\Seo\Setup\RecurringData;
 use PHPUnit\Framework\TestCase;
 

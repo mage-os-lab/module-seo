@@ -85,9 +85,21 @@ become public contract.
   capability entry is checked against the UCP 2026-08-25 business schema (`Model\Ucp\EntryValidator`),
   including the namespace binding of its `schema` URL. An entry that fails is logged with its
   provider and the reasons, and left out. See `docs/ucp.md`.
+- `Api\Rebuild\GroupHandlerInterface` (`@api`) and `Model\Rebuild\HandlerPool`: a module hands
+  its own pre-generated output to the rebuild queue the sitemaps and the llms documents use.
+  - The queue collapses repeated requests, skips a group no store view can build, and re-queues a
+    rebuild refused as already running.
+  - `mageos:seo:feeds:regenerate` and every setup run pick the groups up.
+  - `Exception\RebuildInProgressException` is the common parent of the "already running" refusals.
+
+  See `docs/extending.md#rebuilding-your-own-output-through-the-queue`.
 
 ### Removed
 
+- `Setup\Patch\Data\RenameOrganisationTypes` and `ResourceModel\Organisation::renameOrgType()`,
+  its only user. The patch renamed stored `EducationalOrg` / `GovernmentOrg` types to their
+  schema.org names; the table it worked on is dropped by the Organization rename (see Changed), so
+  it could never match a row again.
 - **Structured Data → Price Valid Until (months)** (`mageos_seo_general/structured_data/price_valid_until_months`),
   with `Model\Config::getPriceValidUntilMonths()` and `Config::XML_SD_PRICE_VALID_UNTIL_MONTHS`: no
   synthetic `priceValidUntil` is made any more (see Changed). Its "0 omits the date" never worked —
@@ -148,6 +160,11 @@ become public contract.
 
 ### Fixed
 
+- Saving or deleting a FAQ or the Organisation anywhere but the admin form — the REST API, an
+  import, a data patch — left `/llms.txt` and `/llms-full.txt` stale until the nightly rebuild:
+  only the admin controllers asked for a rebuild. The models now dispatch their own events
+  (`mageos_seo_faq_save_after` / `_delete_after`, `mageos_seo_organisation_save_after` /
+  `_delete_after`), and those queue it, however the save was made.
 - `/.well-known/ucp` did not follow UCP.
   - **Before:**
     - it served `$schema` (`https://json-schema.org`, which is not a schema), `version`,
@@ -396,6 +413,128 @@ become public contract.
 
 ### Changed
 
+- **Breaking: the FAQ, the llms documents and the agentic commerce profile use their own
+  prefixes** — `mageos_faq`, `mageos_aeo` and `mageos_agentic` — ahead of their move to MageOS_Faq,
+  MageOS_Aeo and MageOS_Agentic. Nothing is migrated: after upgrading, enter the moved settings
+  again and grant admin roles the new resources. MageOS_Seo keeps `mageos_seo`, including the
+  rebuild queue (`mageos.seo.feed.regenerate`).
+  - **CLI commands, one colon each:**
+    - `mageos:seo:feeds:regenerate` becomes **`seo:rebuild`** (MageOS_Seo's, like the rebuild layer
+      it drives); its `-g` groups are unchanged;
+    - `mageos:seo:ucp:keygen` becomes **`ucp:keygen`**;
+    - with no feed group registered, a plain `seo:rebuild` says there is nothing to rebuild and
+      how to rebuild the sitemaps, instead of printing "Done." having done nothing. Sitemaps are
+      still rebuilt from the command only when asked for with `-g`.
+  - **FAQ:**
+    - the table `mageos_seo_faq` becomes `mageos_faq`; `setup:upgrade` creates it empty and drops
+      the old one with its rows;
+    - the ACL resource and menu item `MageOS_Seo::faq` become `MageOS_Faq::faq`, still under
+      Marketing → SEO;
+    - the admin moves to `mageos_faq/faq/*`, with the layout handles `mageos_faq_faq_index` /
+      `_edit` and the UI components `mageos_faq_listing` / `mageos_faq_form`;
+    - the cache tag is `mageos_faq` (and `mageos_faq_group_<identifier>`), and the model events
+      are `mageos_faq_save_after` / `_delete_after`;
+    - the widget id is `mageos_faq_list`;
+    - the Page Builder content type is `mageos_faq`, in core's "Add Content" section; the
+      "MageOS SEO" section is gone. Page Builder content saved with the old type no longer
+      renders;
+    - the list markup's CSS classes are `mageos-faq`, `mageos-faq__heading`, `__item`,
+      `__question` and `__answer`. A theme that styled `.mageos-seo-faq*` must follow.
+  - **The llms documents and AI crawler directives:**
+    - their settings move from the SEO section to their own, **AI Information & Crawlers**:
+      `mageos_seo_general/{llms_txt,feeds,ai_robots}/*` become `mageos_aeo/{llms_txt,feeds,ai_robots}/*`,
+      under the ACL resource `MageOS_Aeo::config`;
+    - the `env.php` key for storage outside `var/` is `mageos_aeo/feed_storage_roots`, and the
+      default directory is `var/mageos_aeo/`. `var/mageos_seo/` is no longer read or cleaned, and can
+      be deleted;
+    - the cache tags are `MAGEOS_AEO_LLMS`, `MAGEOS_AEO_LLMS_FULL` and `MAGEOS_AEO_LLMS_JSONL`, the
+      nightly cron job is `mageos_aeo_regenerate_feeds`, and the rebuild lock is
+      `mageos_aeo_feed_rebuild`;
+    - the internal URLs are `mageos-aeo/…` (they 301 to the documents), and the observer and plugin
+      names in events.xml and di.xml carry `mageos_aeo_`.
+  - **Agentic commerce:**
+    - the section becomes **Agentic Commerce (UCP)**, `mageos_agentic/{general,signing,security_txt}/*`
+      (was `mageos_seo_ucp`), under `MageOS_Agentic::config`. Keys made with the old command are
+      not carried over: run `bin/magento ucp:keygen` again;
+    - the internal URL is `mageos-agentic/wellknown/index/…` (it 301s to the document).
+  - **The shared frontName `mageos-seo` is gone:** nothing in MageOS_Seo answers on it any more.
+- **Breaking: Organisation is Organization in code**, matching the admin, whose labels are now US
+  English ("Organization", "Organization Settings"). Storefront output is unchanged; it already
+  said Organization.
+  - **Classes** (`Organisation` → `Organization` in each name): `Api\Data\OrganizationInterface`,
+    `Api\OrganizationRepositoryInterface`, `Model\Organization`, `Model\OrganizationRepository`,
+    `Model\Organization\{ContactEmail,UrlValidator}`, `Model\ResourceModel\Organization` and its
+    `Collection`, `Model\StructuredData\OrganizationId`,
+    `Model\StructuredData\Provider\OrganizationProvider`,
+    `Observer\RemoveOrganizationOnScopeDelete`, `Ui\DataProvider\OrganizationDataProvider`, and the
+    admin `Controller\Adminhtml\Organization\*` and `Block\Adminhtml\Organization\SaveButton`.
+    Constructor parameters follow (`$organizationRepository`, `$organizationId`).
+  - **The table** `mageos_seo_organisation` becomes `mageos_seo_organization`, and **nothing is
+    migrated**: `setup:upgrade` creates the new table empty and drops the old one with its rows.
+    Enter the Organization settings again after upgrading.
+  - **The ACL resource** `MageOS_Seo::organisation` becomes `MageOS_Seo::organization`. A role
+    that granted the old one must grant the new one.
+  - **Admin URLs** `mageos_seo/organisation/*` become `mageos_seo/organization/*`, with the layout
+    handle `mageos_seo_organization_edit` and the UI component `mageos_seo_organization_form`.
+  - **The cache tag** is `mageos_seo_organization`.
+  - **Events** are `mageos_seo_organization_save_after` / `_delete_after`, and carry the model
+    under `organization` as well as `data_object`. The observer names in events.xml follow.
+  - **The structured-data provider** is registered in the compositor's pool as `organization`.
+- The llms documents', feed storage's and AI crawler directives' settings are read by a class of
+  their own, `Model\Aeo\Config`, instead of `Model\Config`.
+  - **Moved with the same names:** `isLlmsTxtEnabled()`, `isLlmsFullTxtEnabled()`,
+    `isLlmsJsonlEnabled()`, `getLlmsFaqGroups()`, `getFeedStorageDir()`, `isAiRobotsEnabled()`,
+    `getAiDisallowedBots()`, and the constants `XML_LLMS_ENABLED`, `XML_LLMS_FULL_ENABLED`,
+    `XML_LLMS_JSONL_ENABLED`, `XML_LLMS_FAQ_GROUPS`, `XML_FEEDS_STORAGE_DIR`,
+    `XML_AI_ROBOTS_ENABLED` and `XML_AI_ROBOTS_DISALLOWED`.
+  - **Constructors changed:** these now take `Model\Aeo\Config` instead of `Model\Config`:
+    - the `llms.txt`, `llms-full.txt` and `llms.jsonl` controllers;
+    - `Feed\FeedRegenerator`, `Feed\FeedStorage` and `Feed\LlmsInvalidationPolicy`;
+    - `LlmsTxt\FaqLlmsSectionProvider`;
+    - `Plugin\Robots\AppendAiDirectivesPlugin`.
+
+  The configuration paths, their scopes and what each getter returns are unchanged.
+- The paths served as public documents are registered rather than hard-coded.
+  `Model\Router\PublicPaths` takes them as `paths` and `prefixes` arguments in di.xml, and its
+  `LLMS_ROUTES`, `WELL_KNOWN_PREFIX` and `MODULE_FRONT_NAME` constants are gone.
+  - The llms route map is now `Router\LlmsTxtRouter`'s own constant, and the `.well-known/` prefix
+    is `Router\WellKnownRouter::PREFIX`.
+  - `Model\Feed\CanonicalPathRedirect` moves to `Model\Router\CanonicalPathRedirect`.
+
+  The same paths get no session and the same redirects as before. A module serving its own public
+  documents registers its paths in `PublicPaths` to keep sessions off them too.
+- **Breaking for custom FAQ sources:** `Api\FaqSourceProviderInterface` gains
+  `getIdentifiers(): string[]`, the group identifiers the source has FAQs for. A source that cannot
+  list them returns `[]`.
+  - `Model\Faq\SourcePool::getIdentifiers()` merges every source's.
+  - The llms FAQ Groups setting (`Config\Source\FaqGroups`, whose constructor now takes the pool
+    instead of `Faq\Repository`) offers them. So another module's FAQ groups can be chosen too,
+    where before only the FAQ table's were listed.
+- The rebuild queue is generic, and no longer names the llms documents.
+  - **Moved to `Model\Rebuild`:**
+    - `Model\Feed\RegenerationRequester` and `Model\Feed\RegenerateConsumer` move there; the
+      consumer's handler in `queue_consumer.xml` follows;
+    - `Model\Feed\FeedInvalidator` becomes `Model\Rebuild\Invalidator`. Its
+      `invalidateLlms()` / `invalidateJsonl()` are replaced by `invalidate(string $group)` for any
+      registered group.
+  - **Split:**
+    - `Model\Feed\InvalidationPolicy` becomes `Model\Sitemap\InvalidationPolicy`,
+      `Model\Feed\LlmsInvalidationPolicy` and `Model\Rebuild\ChangeInspector`;
+    - `Plugin\Catalog\Product\Action\InvalidateFeedsOnMassAttributeUpdate` becomes
+      `InvalidateSitemapOnMassAttributeUpdate` and `InvalidateJsonlOnMassAttributeUpdate`.
+  - **Now registered, not hard-coded:** the llms documents register with the queue as
+    `Model\Feed\LlmsRebuildHandler`, and the regenerate command and `Setup\RecurringData` read
+    their groups from the pool.
+  - **Constructors changed:**
+    - `RegenerateConsumer` takes the `HandlerPool`;
+    - `RegenerateFeedsCommand` takes the `HandlerPool` instead of `FeedRegenerator`;
+    - `RecurringData` takes the `Invalidator` and the `HandlerPool`;
+    - the FAQ Save and Delete and the Organisation Save admin controllers no longer take
+      `FeedInvalidator` (see Fixed).
+
+  The groups, the queue topic, what counts as a relevant change, and what the command does are
+  unchanged. Its help now lists the registered groups (`llms, jsonl`) instead of the llms file
+  names.
 - `Api\UcpCapabilityProviderInterface::getCapabilityData()` returns **one** capability entry
   (`version`, `schema`, …). It is listed under `getCapabilityKey()` along with any other provider's
   entries for that name, where before it was merged into the manifest as given. Constructors

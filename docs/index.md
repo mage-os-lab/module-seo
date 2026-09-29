@@ -64,21 +64,21 @@ After installing and running `bin/magento setup:upgrade`:
 
 | Table | Purpose |
 |---|---|
-| `mageos_seo_organisation` | Organisation identity settings, one row per scope (store/website/default) |
+| `mageos_seo_organization` | Organisation identity settings, one row per scope (store/website/default) |
 | `mageos_seo_category_config` | Per-category SEO overrides, one row per category per store view |
 | `mageos_seo_product_override` | Per-product field overrides, one row per product per store view |
-| `mageos_seo_faq` | FAQ entries, grouped by identifier, one row per entry per store view |
+| `mageos_faq` | FAQ entries, grouped by identifier, one row per entry per store view |
 
 Records go when what they describe goes. `mageos_seo_category_config`,
-`mageos_seo_product_override` and `mageos_seo_faq` carry foreign keys with `ON DELETE CASCADE`
+`mageos_seo_product_override` and `mageos_faq` carry foreign keys with `ON DELETE CASCADE`
 to `catalog_category_entity`, `catalog_product_entity` and `store`, so deleting a category, a
 product or a store view removes its SEO records with it — including when a deleted website or
 store group takes its store views down with it, which happens in the database without any event
 a module could observe.
 
-`mageos_seo_organisation` is the exception: its `scope_id` points at a website or a store view
+`mageos_seo_organization` is the exception: its `scope_id` points at a website or a store view
 depending on the `scope` column, which no single foreign key can express (`core_config_data` is
-built the same way). `MageOS\Seo\Observer\RemoveOrganisationOnScopeDelete` clears it instead,
+built the same way). `MageOS\Seo\Observer\RemoveOrganizationOnScopeDelete` clears it instead,
 exactly as core clears its configuration table from `Website::beforeDelete()` and
 `Group::beforeDelete()`.
 
@@ -96,9 +96,9 @@ All paths live under `mageos_seo_general/`:
 | `mageos_seo_general/structured_data/category_item_list_enabled` | 1 | ItemList on category pages |
 | `mageos_seo_general/structured_data/category_item_list_max` | 36 | Max items in ItemList |
 | `mageos_seo_general/structured_data/has_variant_max` | 50 | Most sellable children a configurable product may have and still be a ProductGroup of its variants; more gets one AggregateOffer (0 = always the AggregateOffer). Global only. See [structured-data.md](structured-data.md#configurable-products) |
-| `mageos_seo_general/feeds/storage_dir` | *(empty)* | Where the pre-generated feeds are written; empty = `var/mageos_seo`. Restricted: inside the installation only `var/`, and anywhere else only under a root declared in `app/etc/env.php` as `mageos_seo/feed_storage_roots` — see [feeds.md](feeds.md#storing-the-feeds-outside-var-multi-server) |
-| `mageos_seo_general/llms_txt/enabled` | 1 | Serve /llms.txt |
-| `mageos_seo_general/llms_txt/full_enabled` | 1 | Serve /llms-full.txt |
+| `mageos_aeo/feeds/storage_dir` | *(empty)* | Where the pre-generated feeds are written; empty = `var/mageos_aeo`. Restricted: inside the installation only `var/`, and anywhere else only under a root declared in `app/etc/env.php` as `mageos_aeo/feed_storage_roots` — see [feeds.md](feeds.md#storing-the-feeds-outside-var-multi-server) |
+| `mageos_aeo/llms_txt/enabled` | 1 | Serve /llms.txt |
+| `mageos_aeo/llms_txt/full_enabled` | 1 | Serve /llms-full.txt |
 | `mageos_seo_general/robots_meta/product_default` | *(empty)* | Default for product pages (empty = Magento's Design → Search Engine Robots setting) |
 | `mageos_seo_general/robots_meta/category_default` | *(empty)* | Default for category pages (empty = Magento's Design → Search Engine Robots setting) |
 | `mageos_seo_general/robots_meta/search_default` | *(empty)* | Default for search result pages, quick and advanced (empty = Magento's Design → Search Engine Robots setting). See [robots-meta.md](robots-meta.md#global-defaults) on robots meta against robots.txt |

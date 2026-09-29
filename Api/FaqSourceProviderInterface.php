@@ -23,4 +23,15 @@ interface FaqSourceProviderInterface
      * @return array<int, array{question: string, answer: string}>
      */
     public function getFaqs(string $identifier, int $storeId): array;
+
+    /**
+     * The group identifiers this source has FAQs for, in any store view.
+     *
+     * Offered as the groups a store can choose from — the llms documents' FAQ Groups setting, for
+     * one — so a source's FAQs can be picked by group without knowing where they come from. A
+     * source that cannot list its groups returns [].
+     *
+     * @return string[]
+     */
+    public function getIdentifiers(): array;
 }

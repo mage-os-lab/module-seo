@@ -3,8 +3,8 @@
         xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Cron:etc/crontab.xsd">
     <group id="default">
         <!-- Nightly pre-generation of llms.txt / llms-full.txt / llms.jsonl to
-             var/mageos_seo files; controllers serve the files. -->
-        <job name="mageos_seo_regenerate_feeds" instance="MageOS\Seo\Cron\RegenerateFeeds" method="execute">
+             var/mageos_aeo files; controllers serve the files. -->
+        <job name="mageos_aeo_regenerate_feeds" instance="MageOS\Seo\Cron\RegenerateFeeds" method="execute">
             <schedule>30 2 * * *</schedule>
         </job>
     </group>

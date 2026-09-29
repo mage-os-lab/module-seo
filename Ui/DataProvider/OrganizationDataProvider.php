@@ -1,0 +1,199 @@
+<?php
+
+declare(strict_types=1);
+
+namespace MageOS\Seo\Ui\DataProvider;
+
+use Magento\Framework\App\Config\ScopeConfigInterface;
+use Magento\Framework\App\RequestInterface;
+use Magento\Framework\Filesystem\Io\File as IoFile;
+use Magento\Framework\UrlInterface;
+use Magento\Store\Model\ScopeInterface;
+use Magento\Store\Model\StoreManagerInterface;
+use Magento\Ui\DataProvider\AbstractDataProvider;
+use MageOS\Seo\Api\OrganizationRepositoryInterface;
+use MageOS\Seo\Model\ResourceModel\Organization\CollectionFactory;
+
+class OrganizationDataProvider extends AbstractDataProvider
+{
+    /**
+     * Config path for the design logo set in Stores > Design > Logo.
+     */
+    private const DESIGN_LOGO_CONFIG_PATH = 'design/header/logo_src';
+
+    /** @var array<int, mixed> */
+    private array $loadedData = [];
+
+    /**
+     * @param string $name
+     * @param string $primaryFieldName
+     * @param string $requestFieldName
+     * @param CollectionFactory $collectionFactory
+     * @param OrganizationRepositoryInterface $organizationRepository
+     * @param ScopeConfigInterface $scopeConfig
+     * @param StoreManagerInterface $storeManager
+     * @param IoFile $ioFile
+     * @param RequestInterface $request
+     * @param UrlInterface $urlBuilder
+     * @param mixed[] $meta
+     * @param mixed[] $data
+     */
+    public function __construct(
+        string                                           $name,
+        string                                           $primaryFieldName,
+        string                                           $requestFieldName,
+        CollectionFactory                                $collectionFactory,
+        private readonly OrganizationRepositoryInterface $organizationRepository,
+        private readonly ScopeConfigInterface            $scopeConfig,
+        private readonly StoreManagerInterface           $storeManager,
+        private readonly IoFile                          $ioFile,
+        private readonly RequestInterface                $request,
+        private readonly UrlInterface                    $urlBuilder,
+        array                                            $meta = [],
+        array                                            $data = []
+    ) {
+        parent::__construct($name, $primaryFieldName, $requestFieldName, $meta, $data);
+        $this->collection = $collectionFactory->create();
+    }
+
+    /**
+     * Return form data hydrated from the Organization record for the current scope.
+     *
+     * Keyed by entity_id — the UI component form provider maps this to the form's
+     * dataScope="data" automatically via the primaryFieldName entity_id binding.
+     *
+     * @return mixed[]
+     */
+    public function getData(): array
+    {
+        if (!empty($this->loadedData)) {
+            return $this->loadedData;
+        }
+
+        [$scope, $scopeId] = $this->resolveScopeFromRequest();
+        $org               = $this->organizationRepository->get($scope, $scopeId);
+        $contactPoint      = $org->getContactPoint();
+
+        // Convert flat URL array to dynamicRows row objects
+        $socialProfileRows = array_map(
+            static fn (string $url) => ['url' => $url, 'delete' => ''],
+            array_filter($org->getSocialProfiles())
+        );
+
+        // Determine logo source toggle value
+        $storedLogoPath = $org->getLogoPath();
+        $designLogoPath = $this->resolveDesignLogoUrl();
+        $useDesignLogo  = ($storedLogoPath === '' || $storedLogoPath === $designLogoPath) ? '1' : '0';
+
+        // Populate the uploader field when a custom logo is stored
+        $logoUpload = [];
+        if ($useDesignLogo === '0' && $storedLogoPath !== '') {
+            $pathInfo = $this->ioFile->getPathInfo($storedLogoPath);
+            $logoUpload = [
+                [
+                    'url'         => $storedLogoPath,
+                    'name'        => $pathInfo['basename'] ?? '',
+                    'type'        => 'image/' . strtolower($pathInfo['extension'] ?? ''),
+                    'size'        => 0,
+                    'previewType' => 'image',
+                ],
+            ];
+        }
+
+        $entityId = (int) ($org->getEntityId());
+
+        $this->loadedData[$entityId] = [
+            'entity_id'                => $entityId,
+            'name'                     => $org->getName(),
+            'url'                      => $org->getUrl(),
+            'org_type'                 => $org->getOrgType(),
+            'description'              => $org->getDescription(),
+            'use_design_logo'          => $useDesignLogo,
+            'logo_upload'              => $logoUpload,
+            'logo_width'               => $org->getLogoWidth() ?: '',
+            'logo_height'              => $org->getLogoHeight() ?: '',
+            'social_profiles'          => array_values($socialProfileRows),
+            'contact_contactType'      => $contactPoint['contactType'] ?? '',
+            'contact_email'            => $contactPoint['email'] ?? '',
+            'contact_availableLanguage' => $contactPoint['availableLanguage'] ?? '',
+            'street_address'           => $org->getAddress()['street_address'],
+            'address_locality'         => $org->getAddress()['address_locality'],
+            'address_region'           => $org->getAddress()['address_region'],
+            'postal_code'              => $org->getAddress()['postal_code'],
+            'address_country'          => $org->getAddress()['address_country'],
+            'telephone'                => $org->getTelephone(),
+            'email'                    => $org->getEmail(),
+            'latitude'                 => $org->getLatitude(),
+            'longitude'                => $org->getLongitude(),
+            'price_range'              => $org->getPriceRange(),
+        ];
+
+        return $this->loadedData;
+    }
+
+    /**
+     * Return data source config with a scope-aware submit URL.
+     *
+     * @return mixed[]
+     */
+    public function getConfigData(): array
+    {
+        [$scope, $scopeId] = $this->resolveScopeFromRequest();
+        $params = match ($scope) {
+            'stores'   => ['store'   => $scopeId],
+            'websites' => ['website' => $scopeId],
+            default    => [],
+        };
+
+        return array_merge(
+            parent::getConfigData(),
+            ['submit_url' => $this->urlBuilder->getUrl('mageos_seo/organization/save', $params)]
+        );
+    }
+
+    /**
+     * Resolve scope + scopeId from the current request.
+     *
+     * Priority: store param → website param → global default.
+     *
+     * @return array{string, int}
+     */
+    private function resolveScopeFromRequest(): array
+    {
+        $store = $this->request->getParam('store');
+        if ($store !== null) {
+            return ['stores', (int) $store];
+        }
+        $website = $this->request->getParam('website');
+        if ($website !== null) {
+            return ['websites', (int) $website];
+        }
+        return ['default', 0];
+    }
+
+    /**
+     * Resolve the absolute URL of the current design logo from store config.
+     *
+     * @return string
+     */
+    private function resolveDesignLogoUrl(): string
+    {
+        $logoFile = (string) $this->scopeConfig->getValue(
+            self::DESIGN_LOGO_CONFIG_PATH,
+            ScopeInterface::SCOPE_STORE
+        );
+
+        if ($logoFile === '') {
+            return '';
+        }
+
+        try {
+            $mediaUrl = (string) $this->storeManager->getStore()->getBaseUrl(
+                \Magento\Framework\UrlInterface::URL_TYPE_MEDIA
+            );
+            return rtrim($mediaUrl, '/') . '/logo/' . ltrim($logoFile, '/');
+        } catch (\Exception) {
+            return '';
+        }
+    }
+}

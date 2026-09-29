@@ -6,7 +6,7 @@ namespace MageOS\Seo\Test\Unit\Model\LlmsTxt;
 
 use Magento\Store\Api\Data\StoreInterface;
 use Magento\Store\Model\StoreManagerInterface;
-use MageOS\Seo\Model\Config;
+use MageOS\Seo\Model\Aeo\Config;
 use MageOS\Seo\Model\Faq\SourcePool;
 use MageOS\Seo\Model\LlmsTxt\FaqLlmsSectionProvider;
 use PHPUnit\Framework\MockObject\Stub;

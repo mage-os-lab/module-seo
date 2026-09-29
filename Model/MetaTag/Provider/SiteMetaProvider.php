@@ -6,7 +6,7 @@ namespace MageOS\Seo\Model\MetaTag\Provider;
 
 use Magento\Store\Model\StoreManagerInterface;
 use MageOS\Seo\Api\MetaTagProviderInterface;
-use MageOS\Seo\Api\OrganisationRepositoryInterface;
+use MageOS\Seo\Api\OrganizationRepositoryInterface;
 use MageOS\Seo\Model\Config;
 
 /**
@@ -21,12 +21,12 @@ class SiteMetaProvider implements MetaTagProviderInterface
     /**
      * @param Config $seoConfig
      * @param StoreManagerInterface $storeManager
-     * @param OrganisationRepositoryInterface $organisationRepository
+     * @param OrganizationRepositoryInterface $organizationRepository
      */
     public function __construct(
         private readonly Config                          $seoConfig,
         private readonly StoreManagerInterface           $storeManager,
-        private readonly OrganisationRepositoryInterface $organisationRepository
+        private readonly OrganizationRepositoryInterface $organizationRepository
     ) {
     }
 
@@ -50,7 +50,7 @@ class SiteMetaProvider implements MetaTagProviderInterface
         $store     = $this->storeManager->getStore();
         $storeId   = (int) $store->getId();
         $websiteId = (int) $this->storeManager->getWebsite()->getId();
-        $org       = $this->organisationRepository->getForScope($storeId, $websiteId);
+        $org       = $this->organizationRepository->getForScope($storeId, $websiteId);
 
         $siteName = $org->getName() ?: (string) $store->getName();
         $locale   = $this->seoConfig->getLocaleCode($storeId);

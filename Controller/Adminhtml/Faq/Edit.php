@@ -15,7 +15,7 @@ use MageOS\Seo\Api\FaqRepositoryInterface;
 
 class Edit extends Action implements HttpGetActionInterface
 {
-    public const ADMIN_RESOURCE = 'MageOS_Seo::faq';
+    public const ADMIN_RESOURCE = 'MageOS_Faq::faq';
 
     /**
      * @param Context $context
@@ -50,7 +50,7 @@ class Edit extends Action implements HttpGetActionInterface
 
         /** @var \Magento\Backend\Model\View\Result\Page $resultPage */
         $resultPage = $this->resultPageFactory->create();
-        $resultPage->setActiveMenu('MageOS_Seo::faq');
+        $resultPage->setActiveMenu('MageOS_Faq::faq');
         $resultPage->getConfig()->getTitle()->prepend(
             $entityId !== 0 ? (string) __('Edit FAQ') : (string) __('New FAQ')
         );

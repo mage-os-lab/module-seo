@@ -7,7 +7,7 @@ namespace MageOS\Seo\Test\Unit\Plugin\Sitemap;
 use Magento\Framework\Model\AbstractModel;
 use Magento\Sitemap\Model\ResourceModel\Sitemap as SitemapResource;
 use Magento\Sitemap\Model\Sitemap;
-use MageOS\Seo\Model\Feed\FeedInvalidator;
+use MageOS\Seo\Model\Rebuild\Invalidator;
 use MageOS\Seo\Model\Sitemap\RebuildableSitemaps;
 use MageOS\Seo\Plugin\Sitemap\QueueFirstBuild;
 use PHPUnit\Framework\TestCase;
@@ -17,7 +17,7 @@ class QueueFirstBuildTest extends TestCase
 {
     public function testAnEntryRebuiltOnChangeWithNoFileQueuesItsFirstBuild(): void
     {
-        $invalidator = $this->createMock(FeedInvalidator::class);
+        $invalidator = $this->createMock(Invalidator::class);
         $invalidator->expects($this->once())->method('invalidateMissingSitemaps');
 
         $this->afterSave($this->sitemaps(true, true), $invalidator);
@@ -25,7 +25,7 @@ class QueueFirstBuildTest extends TestCase
 
     public function testAnEntryThatHasItsFileQueuesNothing(): void
     {
-        $invalidator = $this->createMock(FeedInvalidator::class);
+        $invalidator = $this->createMock(Invalidator::class);
         $invalidator->expects($this->never())->method('invalidateMissingSitemaps');
 
         $this->afterSave($this->sitemaps(true, false), $invalidator);
@@ -33,7 +33,7 @@ class QueueFirstBuildTest extends TestCase
 
     public function testAnEntryNotRebuiltOnChangeQueuesNothing(): void
     {
-        $invalidator = $this->createMock(FeedInvalidator::class);
+        $invalidator = $this->createMock(Invalidator::class);
         $invalidator->expects($this->never())->method('invalidateMissingSitemaps');
 
         $this->afterSave($this->sitemaps(false, true), $invalidator);
@@ -46,7 +46,7 @@ class QueueFirstBuildTest extends TestCase
         $sitemaps = $this->createMock(RebuildableSitemaps::class);
         $sitemaps->expects($this->once())->method('_resetState');
 
-        $this->afterSave($sitemaps, $this->createStub(FeedInvalidator::class));
+        $this->afterSave($sitemaps, $this->createStub(Invalidator::class));
     }
 
     public function testAFailureIsLoggedAndTheSaveStands(): void
@@ -59,7 +59,7 @@ class QueueFirstBuildTest extends TestCase
 
         $this->assertSame(
             $result,
-            (new QueueFirstBuild($sitemaps, $this->createStub(FeedInvalidator::class), $logger))->afterSave(
+            (new QueueFirstBuild($sitemaps, $this->createStub(Invalidator::class), $logger))->afterSave(
                 $this->createStub(SitemapResource::class),
                 $result,
                 $this->createStub(Sitemap::class)
@@ -74,7 +74,7 @@ class QueueFirstBuildTest extends TestCase
 
         (new QueueFirstBuild(
             $sitemaps,
-            $this->createStub(FeedInvalidator::class),
+            $this->createStub(Invalidator::class),
             $this->createStub(LoggerInterface::class)
         ))->afterSave(
             $this->createStub(SitemapResource::class),
@@ -87,10 +87,10 @@ class QueueFirstBuildTest extends TestCase
      * Run the plugin after a sitemap's save.
      *
      * @param RebuildableSitemaps $sitemaps
-     * @param FeedInvalidator $invalidator
+     * @param Invalidator $invalidator
      * @return void
      */
-    private function afterSave(RebuildableSitemaps $sitemaps, FeedInvalidator $invalidator): void
+    private function afterSave(RebuildableSitemaps $sitemaps, Invalidator $invalidator): void
     {
         (new QueueFirstBuild($sitemaps, $invalidator, $this->createStub(LoggerInterface::class)))->afterSave(
             $this->createStub(SitemapResource::class),

@@ -57,11 +57,11 @@ class FormDataProvider extends AbstractDataProvider
             $this->loadedData[(int) $faq->getId()] = $faq->getData();
         }
 
-        $persisted = $this->dataPersistor->get('mageos_seo_faq');
+        $persisted = $this->dataPersistor->get('mageos_faq');
         if (!empty($persisted)) {
             $faqId = (int) ($persisted['entity_id'] ?? 0);
             $this->loadedData[$faqId] = $persisted;
-            $this->dataPersistor->clear('mageos_seo_faq');
+            $this->dataPersistor->clear('mageos_faq');
         }
 
         return $this->loadedData;

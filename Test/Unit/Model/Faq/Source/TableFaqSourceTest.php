@@ -19,4 +19,12 @@ class TableFaqSourceTest extends TestCase
 
         $this->assertSame($faqs, (new TableFaqSource($repository))->getFaqs('shipping', 2));
     }
+
+    public function testTheGroupsAreTheTables(): void
+    {
+        $repository = $this->createStub(Repository::class);
+        $repository->method('getIdentifiers')->willReturn(['global', 'shipping']);
+
+        $this->assertSame(['global', 'shipping'], (new TableFaqSource($repository))->getIdentifiers());
+    }
 }

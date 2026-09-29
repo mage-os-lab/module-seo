@@ -7,7 +7,7 @@ namespace MageOS\Seo\Plugin\Sitemap;
 use Magento\Framework\Model\AbstractModel;
 use Magento\Sitemap\Model\ResourceModel\Sitemap as SitemapResource;
 use Magento\Sitemap\Model\Sitemap;
-use MageOS\Seo\Model\Feed\FeedInvalidator;
+use MageOS\Seo\Model\Rebuild\Invalidator;
 use MageOS\Seo\Model\Sitemap\RebuildableSitemaps;
 use Psr\Log\LoggerInterface;
 
@@ -28,12 +28,12 @@ class QueueFirstBuild
 {
     /**
      * @param RebuildableSitemaps $rebuildableSitemaps
-     * @param FeedInvalidator $feedInvalidator
+     * @param Invalidator $invalidator
      * @param LoggerInterface $logger
      */
     public function __construct(
         private readonly RebuildableSitemaps $rebuildableSitemaps,
-        private readonly FeedInvalidator     $feedInvalidator,
+        private readonly Invalidator         $invalidator,
         private readonly LoggerInterface     $logger
     ) {
     }
@@ -59,7 +59,7 @@ class QueueFirstBuild
             if ($this->rebuildableSitemaps->isRebuiltOnChange($object)
                 && $this->rebuildableSitemaps->isMissing($object)
             ) {
-                $this->feedInvalidator->invalidateMissingSitemaps();
+                $this->invalidator->invalidateMissingSitemaps();
             }
         } catch (\Throwable $e) {
             // The entry is saved; its first build waits for the next change or setup run.

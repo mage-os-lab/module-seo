@@ -9,11 +9,10 @@ use Magento\Framework\Data\OptionSourceInterface;
 class OrgType implements OptionSourceInterface
 {
     /**
-     * Return schema.org organisation type options.
+     * Return schema.org organization type options.
      *
      * Each value is emitted as the Organization node's @type, so each must be a schema.org type
-     * name. (EducationalOrg and GovernmentOrg, offered before, were not; the data patch
-     * RenameOrganisationTypes renames stored rows.)
+     * name.
      *
      * @return mixed[]
      */

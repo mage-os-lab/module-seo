@@ -8,7 +8,7 @@ use Magento\Store\Model\App\Emulation;
 use Magento\Store\Model\Store;
 use Magento\Store\Model\StoreManagerInterface;
 use MageOS\Seo\Exception\FeedRebuildInProgressException;
-use MageOS\Seo\Model\Config;
+use MageOS\Seo\Model\Aeo\Config;
 use MageOS\Seo\Model\Feed\FeedCache;
 use MageOS\Seo\Model\Feed\FeedFileWriter;
 use MageOS\Seo\Model\Feed\FeedRegenerator;

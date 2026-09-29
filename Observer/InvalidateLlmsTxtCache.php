@@ -6,25 +6,27 @@ namespace MageOS\Seo\Observer;
 
 use Magento\Framework\Event\Observer;
 use Magento\Framework\Event\ObserverInterface;
-use MageOS\Seo\Model\Feed\FeedInvalidator;
 use MageOS\Seo\Model\Feed\FeedRegenerator;
-use MageOS\Seo\Model\Feed\InvalidationPolicy;
+use MageOS\Seo\Model\Feed\LlmsInvalidationPolicy;
+use MageOS\Seo\Model\Rebuild\Invalidator;
 
 /**
  * Queues a rebuild of /llms.txt and /llms-full.txt when their source data changes.
  *
- * Registered for category saves, and for product saves that change category product counts
- * (see InvalidationPolicy).
+ * Registered for category saves, product saves that change category product counts, the
+ * configuration the documents show (see LlmsInvalidationPolicy), and the save and delete of a FAQ or
+ * of the Organization — through their models' own events, so every way of saving them counts, not
+ * only the admin form.
  */
 class InvalidateLlmsTxtCache implements ObserverInterface
 {
     /**
-     * @param FeedInvalidator $feedInvalidator
-     * @param InvalidationPolicy $invalidationPolicy
+     * @param Invalidator $invalidator
+     * @param LlmsInvalidationPolicy $invalidationPolicy
      */
     public function __construct(
-        private readonly FeedInvalidator    $feedInvalidator,
-        private readonly InvalidationPolicy $invalidationPolicy
+        private readonly Invalidator            $invalidator,
+        private readonly LlmsInvalidationPolicy $invalidationPolicy
     ) {
     }
 
@@ -37,7 +39,7 @@ class InvalidateLlmsTxtCache implements ObserverInterface
     public function execute(Observer $observer): void
     {
         if ($this->invalidationPolicy->isRelevantChange(FeedRegenerator::GROUP_LLMS, $observer->getEvent())) {
-            $this->feedInvalidator->invalidateLlms();
+            $this->invalidator->invalidate(FeedRegenerator::GROUP_LLMS);
         }
     }
 }

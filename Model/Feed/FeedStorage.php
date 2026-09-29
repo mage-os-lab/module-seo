@@ -10,21 +10,21 @@ use Magento\Framework\Filesystem\Directory\ReadFactory;
 use Magento\Framework\Filesystem\Directory\ReadInterface;
 use Magento\Framework\Filesystem\Directory\WriteFactory;
 use Magento\Framework\Filesystem\Directory\WriteInterface;
-use MageOS\Seo\Model\Config;
+use MageOS\Seo\Model\Aeo\Config;
 use Psr\Log\LoggerInterface;
 
 /**
  * File storage for pre-generated SEO feeds (llms.txt, llms-full.txt, llms.jsonl), one
  * directory per store view.
  *
- * Defaults to var/mageos_seo/store_<id>/; a custom absolute directory can be
- * configured (mageos_seo_general/feeds/storage_dir) so multi-server deployments
+ * Defaults to var/mageos_aeo/store_<id>/; a custom absolute directory can be
+ * configured (mageos_aeo/feeds/storage_dir) so multi-server deployments
  * can point web servers and the cron/consumer host at a shared mount — var/ is
  * host-local on scaled setups.
  */
 class FeedStorage
 {
-    private const DEFAULT_BASE_DIR = 'mageos_seo';
+    private const DEFAULT_BASE_DIR = 'mageos_aeo';
 
     /**
      * Feed files: owner read/write, group read, nothing for others. Replacing a file needs
@@ -42,7 +42,7 @@ class FeedStorage
      * @param Filesystem $filesystem
      * @param WriteFactory $writeFactory
      * @param ReadFactory $readFactory
-     * @param Config $seoConfig
+     * @param Config $aeoConfig
      * @param StorageDirectory $storageDirectory
      * @param LoggerInterface $logger
      */
@@ -50,7 +50,7 @@ class FeedStorage
         private readonly Filesystem       $filesystem,
         private readonly WriteFactory     $writeFactory,
         private readonly ReadFactory      $readFactory,
-        private readonly Config           $seoConfig,
+        private readonly Config           $aeoConfig,
         private readonly StorageDirectory $storageDirectory,
         private readonly LoggerInterface  $logger
     ) {
@@ -61,21 +61,21 @@ class FeedStorage
      *
      * The admin field is validated on save, but a configuration row can arrive another way — a
      * data patch, a deployment tool, a direct database write — so the value is checked again here,
-     * where it turns into a directory handle. Refusing it falls back to var/mageos_seo rather than
+     * where it turns into a directory handle. Refusing it falls back to var/mageos_aeo rather than
      * failing: the feeds keep working, in the one place every installation can write.
      *
      * @return string
      */
     private function configuredDirectory(): string
     {
-        $configured = $this->seoConfig->getFeedStorageDir();
+        $configured = $this->aeoConfig->getFeedStorageDir();
         if ($configured === '' || $this->storageDirectory->isAllowed($configured)) {
             return $configured;
         }
 
         $this->logger->error(
             'MageOS_Seo: the configured feed storage directory is not permitted and was ignored;'
-            . ' falling back to var/mageos_seo.',
+            . ' falling back to var/mageos_aeo.',
             ['storage_dir' => $configured]
         );
 

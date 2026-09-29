@@ -14,25 +14,22 @@ use Magento\Framework\Exception\NoSuchEntityException;
 use MageOS\Seo\Api\Data\FaqInterface;
 use MageOS\Seo\Api\FaqRepositoryInterface;
 use MageOS\Seo\Model\FaqFactory;
-use MageOS\Seo\Model\Feed\FeedInvalidator;
 
 class Save extends Action implements HttpPostActionInterface
 {
-    public const ADMIN_RESOURCE = 'MageOS_Seo::faq';
+    public const ADMIN_RESOURCE = 'MageOS_Faq::faq';
 
     /**
      * @param Context $context
      * @param FaqRepositoryInterface $faqRepository
      * @param FaqFactory $faqFactory
      * @param DataPersistorInterface $dataPersistor
-     * @param FeedInvalidator $feedInvalidator
      */
     public function __construct(
         Context                                 $context,
         private readonly FaqRepositoryInterface $faqRepository,
         private readonly FaqFactory             $faqFactory,
-        private readonly DataPersistorInterface $dataPersistor,
-        private readonly FeedInvalidator        $feedInvalidator
+        private readonly DataPersistorInterface $dataPersistor
     ) {
         parent::__construct($context);
     }
@@ -58,13 +55,12 @@ class Save extends Action implements HttpPostActionInterface
         try {
             $faq = $entityId !== 0 ? $this->faqRepository->getById($entityId) : $this->faqFactory->create();
             $this->populate($faq, $data);
+            // Cached pages purge via the model's identities; the feeds that show FAQs queue their
+            // own rebuild from the model's save event.
             $this->faqRepository->save($faq);
-            // Cached pages purge via the model's identities; bridge providers may embed
-            // FAQ content in llms.txt, so those feed files regenerate too.
-            $this->feedInvalidator->invalidateLlms();
 
             $this->messageManager->addSuccessMessage((string) __('The FAQ entry has been saved.'));
-            $this->dataPersistor->clear('mageos_seo_faq');
+            $this->dataPersistor->clear('mageos_faq');
 
             if ($this->getRequest()->getParam('back') !== null) {
                 return $resultRedirect->setPath('*/*/edit', ['entity_id' => $faq->getEntityId()]);
@@ -75,7 +71,7 @@ class Save extends Action implements HttpPostActionInterface
             return $resultRedirect->setPath('*/*/');
         } catch (\Exception $e) {
             $this->messageManager->addErrorMessage($e->getMessage());
-            $this->dataPersistor->set('mageos_seo_faq', $data);
+            $this->dataPersistor->set('mageos_faq', $data);
             $back = $entityId !== 0 ? ['entity_id' => $entityId] : [];
             return $resultRedirect->setPath('*/*/edit', $back);
         }

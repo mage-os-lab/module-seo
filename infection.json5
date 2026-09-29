@@ -6,7 +6,7 @@
     // the collection-backed repositories (their WHERE clauses and per-row
     // ordering are invisible to a doubled collection, so those mutants are
     // unkillable in unit tests by design), schema/meta providers, the
-    // llms.txt/llms.jsonl builders and the Organisation repository. Infection
+    // llms.txt/llms.jsonl builders and the Organization repository. Infection
     // cannot boot Magento to run those suites locally. Catalog/CurrentEntity is
     // pure Registry delegation. Cron/ is outside the scanned directories.
     //
@@ -29,8 +29,8 @@
             "LlmsJsonl/JsonlBuilder.php",
             "LlmsTxt",
             "MetaTag/Provider",
-            "Organisation.php",
-            "OrganisationRepository.php",
+            "Organization.php",
+            "OrganizationRepository.php",
             "Review/NativeAggregateRatingProvider.php",
             "StructuredData/Provider/CategorySchemaProvider.php",
             "StructuredData/Provider/CmsPageSchemaProvider.php",

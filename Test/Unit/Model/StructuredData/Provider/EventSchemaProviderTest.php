@@ -10,7 +10,7 @@ use Magento\Store\Api\Data\StoreInterface;
 use Magento\Store\Model\StoreManagerInterface;
 use MageOS\Seo\Api\EventDataProviderInterface;
 use MageOS\Seo\Model\Pool\HandleMatcher;
-use MageOS\Seo\Model\StructuredData\OrganisationId;
+use MageOS\Seo\Model\StructuredData\OrganizationId;
 use MageOS\Seo\Model\StructuredData\Provider\EventSchemaProvider;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
@@ -28,9 +28,9 @@ class EventSchemaProviderTest extends TestCase
     private Layout&MockObject $layout;
 
     /**
-     * @var OrganisationId&MockObject
+     * @var OrganizationId&MockObject
      */
-    private OrganisationId&MockObject $organisationId;
+    private OrganizationId&MockObject $organizationId;
 
     protected function setUp(): void
     {
@@ -38,8 +38,8 @@ class EventSchemaProviderTest extends TestCase
         $this->layoutUpdate = $this->createMock(ProcessorInterface::class);
         $this->layout->method('getUpdate')->willReturn($this->layoutUpdate);
         $this->layoutUpdate->method('getHandles')->willReturn(['events_view']);
-        $this->organisationId = $this->createMock(OrganisationId::class);
-        $this->organisationId->method('getId')->willReturn('https://acme.com/#organization');
+        $this->organizationId = $this->createMock(OrganizationId::class);
+        $this->organizationId->method('getId')->willReturn('https://acme.com/#organization');
     }
 
     /**
@@ -69,7 +69,7 @@ class EventSchemaProviderTest extends TestCase
         return new EventSchemaProvider(
             $this->layout,
             $storeManager,
-            $this->organisationId,
+            $this->organizationId,
             new HandleMatcher(),
             $providers
         );

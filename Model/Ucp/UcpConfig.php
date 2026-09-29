@@ -15,14 +15,14 @@ use Magento\Store\Model\ScopeInterface;
  */
 class UcpConfig
 {
-    public const XML_UCP_ENABLED           = 'mageos_seo_ucp/general/enabled';
-    public const XML_UCP_SIGNING_JWK       = 'mageos_seo_ucp/signing/public_key_jwk';
-    public const XML_UCP_SIGNING_PRIVATE   = 'mageos_seo_ucp/signing/private_key';
+    public const XML_UCP_ENABLED           = 'mageos_agentic/general/enabled';
+    public const XML_UCP_SIGNING_JWK       = 'mageos_agentic/signing/public_key_jwk';
+    public const XML_UCP_SIGNING_PRIVATE   = 'mageos_agentic/signing/private_key';
 
-    public const XML_SECURITY_TXT_ENABLED  = 'mageos_seo_ucp/security_txt/enabled';
-    public const XML_SECURITY_TXT_CONTACT  = 'mageos_seo_ucp/security_txt/contact_email';
-    public const XML_SECURITY_TXT_EXPIRES  = 'mageos_seo_ucp/security_txt/expires';
-    public const XML_SECURITY_TXT_POLICY   = 'mageos_seo_ucp/security_txt/policy_url';
+    public const XML_SECURITY_TXT_ENABLED  = 'mageos_agentic/security_txt/enabled';
+    public const XML_SECURITY_TXT_CONTACT  = 'mageos_agentic/security_txt/contact_email';
+    public const XML_SECURITY_TXT_EXPIRES  = 'mageos_agentic/security_txt/expires';
+    public const XML_SECURITY_TXT_POLICY   = 'mageos_agentic/security_txt/policy_url';
 
     /**
      * @param ScopeConfigInterface $scopeConfig

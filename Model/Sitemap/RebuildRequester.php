@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace MageOS\Seo\Model\Sitemap;
 
 use MageOS\Seo\Api\Sitemap\RebuildRequesterInterface;
-use MageOS\Seo\Model\Feed\FeedInvalidator;
+use MageOS\Seo\Model\Rebuild\Invalidator;
 
 /**
  * Queues a sitemap type's rebuild for another module, through the same path this module's own
- * change observers take (Feed\FeedInvalidator).
+ * change observers take (Rebuild\Invalidator).
  *
  * A type no registered provider has is refused where it is asked for. Queued, it would reach the
  * consumer, which can only log it and drop it — a misspelt type would never rebuild anything, and
@@ -19,11 +19,11 @@ class RebuildRequester implements RebuildRequesterInterface
 {
     /**
      * @param Rebuilder $rebuilder
-     * @param FeedInvalidator $feedInvalidator
+     * @param Invalidator $invalidator
      */
     public function __construct(
         private readonly Rebuilder       $rebuilder,
-        private readonly FeedInvalidator $feedInvalidator
+        private readonly Invalidator $invalidator
     ) {
     }
 
@@ -41,6 +41,6 @@ class RebuildRequester implements RebuildRequesterInterface
             ));
         }
 
-        $this->feedInvalidator->invalidateSitemap($type);
+        $this->invalidator->invalidateSitemap($type);
     }
 }

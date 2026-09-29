@@ -71,8 +71,8 @@ the checkout capability:
 
 ## Enabling it
 
-**Stores → Configuration → MageOS SEO → SEO Agentic Commerce (UCP) → UCP Profile → Enable UCP Profile**
-(`mageos_seo_ucp/general/enabled`, per website, default No). When it's disabled, the URL answers
+**Stores → Configuration → MageOS SEO → Agentic Commerce (UCP) → UCP Profile → Enable UCP Profile**
+(`mageos_agentic/general/enabled`, per website, default No). When it's disabled, the URL answers
 404.
 
 UCP places requirements on how the profile is served:
@@ -80,7 +80,7 @@ UCP places requirements on how the profile is served:
 - **HTTPS.** UCP requires every published artifact to be served over HTTPS. Serve the store
   over HTTPS in production.
 - **No redirect.** A plain `GET /.well-known/ucp` answers 200 directly. The module 301s only
-  variants of it: a query string, or the internal `/mageos-seo/wellknown/index` URL. Don't add a
+  variants of it: a query string, or the internal `/mageos-agentic/wellknown/index` URL. Don't add a
   web-server or CDN redirect in front of the canonical URL, such as `http → https`, `www`, or a
   trailing slash. Agents are required not to follow one.
 - **Cacheable.** The response carries `Cache-Control: public, max-age=300`. UCP requires `public`
@@ -198,7 +198,7 @@ UCP uses the business's public keys to verify its signed webhooks and messages. 
 per website:
 
 ```bash
-bin/magento mageos:seo:ucp:keygen --website=1
+bin/magento ucp:keygen --website=1
 bin/magento cache:flush config
 ```
 

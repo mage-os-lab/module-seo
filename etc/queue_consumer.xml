@@ -15,5 +15,5 @@
     -->
     <consumer name="mageosSeoFeedRegenerate"
               queue="mageos.seo.feed.regenerate"
-              handler="MageOS\Seo\Model\Feed\RegenerateConsumer::process"/>
+              handler="MageOS\Seo\Model\Rebuild\RegenerateConsumer::process"/>
 </config>

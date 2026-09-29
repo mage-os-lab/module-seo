@@ -139,7 +139,7 @@ class ProfileBuilder
     {
         $this->logger->error(\sprintf(
             'MageOS_Seo: UCP signing key left out of /.well-known/ucp: the stored public JWK %s. '
-            . 'Run bin/magento mageos:seo:ucp:keygen to replace it.',
+            . 'Run bin/magento ucp:keygen to replace it.',
             $reason
         ));
     }

@@ -17,7 +17,15 @@ use Magento\Framework\App\RouterInterface;
  */
 class LlmsTxtRouter implements RouterInterface
 {
-    private const ROUTES = PublicPaths::LLMS_ROUTES;
+    /**
+     * Request path => the controller that answers it. The same paths are registered as public in
+     * di.xml (Router\PublicPaths), so no session is started for them.
+     */
+    private const ROUTES = [
+        'llms.txt'      => ['module' => 'mageos-aeo', 'controller' => 'llms',      'action' => 'index'],
+        'llms-full.txt' => ['module' => 'mageos-aeo', 'controller' => 'llmsfull',  'action' => 'index'],
+        'llms.jsonl'    => ['module' => 'mageos-aeo', 'controller' => 'llmsjsonl', 'action' => 'index'],
+    ];
 
     /**
      * @param ActionFactory $actionFactory
@@ -44,7 +52,7 @@ class LlmsTxtRouter implements RouterInterface
 
         // Prevent infinite loop — if the module has already been set to ours
         // by a previous iteration, this router has already matched and forwarded.
-        if ($request->getModuleName() === 'mageos-seo') {
+        if ($request->getModuleName() === 'mageos-aeo') {
             return null;
         }
 

@@ -8,7 +8,7 @@ use Magento\Framework\App\Area;
 use Magento\Store\Model\App\Emulation;
 use Magento\Store\Model\StoreManagerInterface;
 use MageOS\Seo\Exception\FeedRebuildInProgressException;
-use MageOS\Seo\Model\Config;
+use MageOS\Seo\Model\Aeo\Config;
 use MageOS\Seo\Model\LlmsJsonl\JsonlBuilder;
 use MageOS\Seo\Model\LlmsTxt\LlmsTxtBuilder;
 use Psr\Log\LoggerInterface;
@@ -39,7 +39,7 @@ class FeedRegenerator
     /**
      * @param StoreManagerInterface $storeManager
      * @param Emulation $emulation
-     * @param Config $seoConfig
+     * @param Config $aeoConfig
      * @param LlmsTxtBuilder $llmsTxtBuilder
      * @param JsonlBuilder $jsonlBuilder
      * @param FeedStorage $feedStorage
@@ -50,7 +50,7 @@ class FeedRegenerator
     public function __construct(
         private readonly StoreManagerInterface $storeManager,
         private readonly Emulation             $emulation,
-        private readonly Config                $seoConfig,
+        private readonly Config                $aeoConfig,
         private readonly LlmsTxtBuilder        $llmsTxtBuilder,
         private readonly JsonlBuilder          $jsonlBuilder,
         private readonly FeedStorage           $feedStorage,
@@ -167,19 +167,19 @@ class FeedRegenerator
             $this->writeOrRemove(
                 self::FILE_LLMS,
                 $storeId,
-                $this->seoConfig->isLlmsTxtEnabled($storeId),
+                $this->aeoConfig->isLlmsTxtEnabled($storeId),
                 fn (): string => $this->llmsTxtBuilder->buildConcise()
             );
             $this->writeOrRemove(
                 self::FILE_LLMS_FULL,
                 $storeId,
-                $this->seoConfig->isLlmsFullTxtEnabled($storeId),
+                $this->aeoConfig->isLlmsFullTxtEnabled($storeId),
                 fn (): string => $this->llmsTxtBuilder->buildFull()
             );
         }
 
         if ($group === null || $group === self::GROUP_JSONL) {
-            if ($this->seoConfig->isLlmsJsonlEnabled($storeId)) {
+            if ($this->aeoConfig->isLlmsJsonlEnabled($storeId)) {
                 $this->writeStream(self::FILE_JSONL, $storeId, $this->jsonlBuilder->stream());
             } else {
                 $this->feedStorage->deleteForStore(self::FILE_JSONL, $storeId);

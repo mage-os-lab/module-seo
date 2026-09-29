@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace MageOS\Seo\Model\LlmsTxt;
 
 use Magento\Store\Model\StoreManagerInterface;
-use MageOS\Seo\Model\Config;
+use MageOS\Seo\Model\Aeo\Config;
 use MageOS\Seo\Model\Faq\SourcePool;
 
 /**
@@ -23,12 +23,12 @@ class FaqLlmsSectionProvider implements SectionProviderInterface
     /**
      * @param SourcePool $sourcePool
      * @param StoreManagerInterface $storeManager
-     * @param Config $seoConfig
+     * @param Config $aeoConfig
      */
     public function __construct(
         private readonly SourcePool            $sourcePool,
         private readonly StoreManagerInterface $storeManager,
-        private readonly Config                $seoConfig
+        private readonly Config                $aeoConfig
     ) {
     }
 
@@ -59,7 +59,7 @@ class FaqLlmsSectionProvider implements SectionProviderInterface
         $storeId = (int) $this->storeManager->getStore()->getId();
 
         $faqs = [];
-        foreach ($this->seoConfig->getLlmsFaqGroups($storeId) as $group) {
+        foreach ($this->aeoConfig->getLlmsFaqGroups($storeId) as $group) {
             $faqs = [...$faqs, ...$this->sourcePool->getFaqs($group, $storeId)];
         }
         if ($faqs === []) {

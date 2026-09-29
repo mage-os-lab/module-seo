@@ -48,12 +48,12 @@ coordinates and a price range filled in for a non-local type are kept in the rec
 published.
 
 **A LocalBusiness subtype set in code.** The admin offers `LocalBusiness`. A module that stores a
-more specific subtype (`Store`, `Restaurant`, …) through `OrganisationInterface::setOrgType()`
+more specific subtype (`Store`, `Restaurant`, …) through `OrganizationInterface::setOrgType()`
 adds it to the list of local business types from its own `di.xml`, so `geo` and `priceRange` apply
 to it too:
 
 ```xml
-<type name="MageOS\Seo\Model\StructuredData\Provider\OrganisationProvider">
+<type name="MageOS\Seo\Model\StructuredData\Provider\OrganizationProvider">
     <arguments>
         <argument name="localBusinessTypes" xsi:type="array">
             <item name="Store" xsi:type="string">Store</item>
@@ -62,16 +62,11 @@ to it too:
 </type>
 ```
 
-**Renamed types.** Earlier versions offered `EducationalOrg` and `GovernmentOrg`, which are not
-schema.org types. The data patch `RenameOrganisationTypes` renames stored records to
-`EducationalOrganization` and `GovernmentOrganization` on `setup:upgrade`, and reverting it
-renames them back.
-
 ---
 
 ## Multi-store scoping
 
-Organisation settings are stored per scope in the `mageos_seo_organisation` table, using the same `scope` / `scope_id` pattern as Magento system config:
+Organisation settings are stored per scope in the `mageos_seo_organization` table, using the same `scope` / `scope_id` pattern as Magento system config:
 
 | Scope | scope column | scope_id column |
 |---|---|---|
@@ -83,7 +78,7 @@ Organisation settings are stored per scope in the `mageos_seo_organisation` tabl
 
 **Deleting a scope:** because `scope_id` means a website ID in one row and a store view ID in
 the next, the table carries no foreign key to clean up after itself — `core_config_data` has the
-same problem. `MageOS\Seo\Observer\RemoveOrganisationOnScopeDelete` removes the records of a
+same problem. `MageOS\Seo\Observer\RemoveOrganizationOnScopeDelete` removes the records of a
 store view, store group or website as it is deleted, inside the same transaction, which is also
 the last moment a website still knows which store views were its own: core removes them with a
 database-level cascade that dispatches no `store_delete` event.
@@ -142,7 +137,7 @@ record is still worth saving.
 
 ## What happens if Organisation is left blank
 
-- The `OrganisationProvider` returns an empty schema array — no `Organization` or `WebSite` nodes are output in JSON-LD.
+- The `OrganizationProvider` returns an empty schema array — no `Organization` or `WebSite` nodes are output in JSON-LD.
 - `/llms.txt` uses the store name as the heading but omits the description and social profiles.
 - Google Search Console and schema validators will not flag errors, but rich results that depend on the `Organization` node will not be eligible.
 

@@ -30,7 +30,7 @@ class RebuildLock
     /**
      * Prefixed so the name is recognisable in a lock store shared with the rest of the install.
      */
-    private const NAME = 'mageos_seo_feed_rebuild';
+    private const NAME = 'mageos_aeo_feed_rebuild';
 
     /**
      * @param LockManagerInterface $lockManager

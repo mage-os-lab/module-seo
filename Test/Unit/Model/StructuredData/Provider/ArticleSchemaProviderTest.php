@@ -10,7 +10,7 @@ use Magento\Store\Api\Data\StoreInterface;
 use Magento\Store\Model\StoreManagerInterface;
 use MageOS\Seo\Api\ArticleDataProviderInterface;
 use MageOS\Seo\Model\Pool\HandleMatcher;
-use MageOS\Seo\Model\StructuredData\OrganisationId;
+use MageOS\Seo\Model\StructuredData\OrganizationId;
 use MageOS\Seo\Model\StructuredData\Provider\ArticleSchemaProvider;
 use MageOS\Seo\Model\StructuredData\SpeakableSpecification;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -29,9 +29,9 @@ class ArticleSchemaProviderTest extends TestCase
     private Layout&MockObject $layout;
 
     /**
-     * @var OrganisationId&MockObject
+     * @var OrganizationId&MockObject
      */
-    private OrganisationId&MockObject $organisationId;
+    private OrganizationId&MockObject $organizationId;
 
     protected function setUp(): void
     {
@@ -39,8 +39,8 @@ class ArticleSchemaProviderTest extends TestCase
         $this->layoutUpdate = $this->createMock(ProcessorInterface::class);
         $this->layout->method('getUpdate')->willReturn($this->layoutUpdate);
         $this->layoutUpdate->method('getHandles')->willReturn(['blog_post_view']);
-        $this->organisationId = $this->createMock(OrganisationId::class);
-        $this->organisationId->method('getId')->willReturn('https://acme.com/#organization');
+        $this->organizationId = $this->createMock(OrganizationId::class);
+        $this->organizationId->method('getId')->willReturn('https://acme.com/#organization');
     }
 
     /**
@@ -73,7 +73,7 @@ class ArticleSchemaProviderTest extends TestCase
         return new ArticleSchemaProvider(
             $this->layout,
             $storeManager,
-            $this->organisationId,
+            $this->organizationId,
             new HandleMatcher(),
             $speakableSpecification,
             $providers
@@ -108,7 +108,7 @@ class ArticleSchemaProviderTest extends TestCase
         $this->assertSame([], $schemas);
     }
 
-    public function testBuildsBlogPostingWithOrganisationReferences(): void
+    public function testBuildsBlogPostingWithOrganizationReferences(): void
     {
         $article = [
             'headline'      => 'The Best Markets',

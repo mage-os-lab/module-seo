@@ -57,7 +57,8 @@ class NoSessionForPublicFeedsTest extends TestCase
             'llms.jsonl'          => ['/llms.jsonl'],
             'well-known document' => ['/.well-known/security.txt'],
             'well-known root'     => ['/.well-known/ucp'],
-            'internal route'      => ['/mageos-seo/llms/index'],
+            'llms internal route' => ['/mageos-aeo/llms/index'],
+            'well-known internal' => ['/mageos-agentic/wellknown/index/endpoint/ucp'],
             'no leading slash'    => ['llms.txt'],
         ];
     }
@@ -90,7 +91,14 @@ class NoSessionForPublicFeedsTest extends TestCase
         $request = $this->createStub(HttpRequest::class);
         $request->method('getPathInfo')->willReturn($path);
 
-        return new NoSessionForPublicFeeds($request, new PublicPaths());
+        // As this module's di.xml registers them.
+        return new NoSessionForPublicFeeds(
+            $request,
+            new PublicPaths(
+                ['llms.txt', 'llms-full.txt', 'llms.jsonl'],
+                ['.well-known/', 'mageos-aeo/', 'mageos-agentic/']
+            )
+        );
     }
 
     /**

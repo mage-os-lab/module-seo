@@ -31,12 +31,12 @@ class LlmsConfigInvalidationTest extends TestCase
     public function testConfigurationTheDocumentsReadQueuesTheLlmsRebuild(): void
     {
         $changes = [
-            'general/locale/code'                    => 'en_GB',
-            'trans_email/ident_support/email'        => 'help@shop.test',
-            'mageos_seo_general/llms_txt/faq_groups' => 'global,shipping',
+            'general/locale/code'             => 'en_GB',
+            'trans_email/ident_support/email' => 'help@shop.test',
+            'mageos_aeo/llms_txt/faq_groups'  => 'global,shipping',
             // Flipped: installs differ on whether rewrites are on.
-            'web/seo/use_rewrites'                   => $this->current('web/seo/use_rewrites') === '1' ? '0' : '1',
-            'catalog/seo/category_url_suffix'        => '.htm',
+            'web/seo/use_rewrites'            => $this->current('web/seo/use_rewrites') === '1' ? '0' : '1',
+            'catalog/seo/category_url_suffix' => '.htm',
         ];
 
         foreach ($changes as $path => $value) {

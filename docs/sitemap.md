@@ -215,8 +215,8 @@ A rebuild follows Magento's own save events, so a change made around them is not
 They reach the sitemap at its next generation, or rebuild it now:
 
 ```bash
-bin/magento mageos:seo:feeds:regenerate -g sitemap-products    # one kind of page
-bin/magento mageos:seo:feeds:regenerate -g 'sitemap-*'         # every kind (quote the *)
+bin/magento seo:rebuild -g sitemap-products    # one kind of page
+bin/magento seo:rebuild -g 'sitemap-*'         # every kind (quote the *)
 ```
 
 The command rebuilds in its own process — no queue consumer needed — every sitemap on an active

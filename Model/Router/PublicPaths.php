@@ -5,37 +5,35 @@ declare(strict_types=1);
 namespace MageOS\Seo\Model\Router;
 
 /**
- * The paths this module serves directly, in one place.
+ * The paths served directly as public documents — the llms files, the `/.well-known/` documents and
+ * their internal controller URLs — as the modules that serve them register them.
  *
- * Two routers own the forwarding, but they are not the only code that has to recognise these
+ * The routers own the forwarding, but they are not the only code that has to recognise these
  * requests: a session must not be started for them, because starting one sets a session cookie and
  * makes PHP emit no-cache headers on a response meant to be shared-cached for a day. That decision
- * happens before routing, so it cannot ask the routers — hence this class, which each of them uses
- * too, so there is a single answer to "is this one of ours".
+ * happens before routing, so it cannot ask the routers — hence this registry, which a module that
+ * serves such documents adds its paths to from its own di.xml:
+ *
+ * - `paths`: exact request paths, such as `llms.txt`;
+ * - `prefixes`: path prefixes ending in `/`, such as `.well-known/` — every path under one is
+ *   public, the bare prefix is not (nothing is served there).
+ *
+ * Paths are compared without surrounding slashes.
  */
 class PublicPaths
 {
     /**
-     * Request path => the controller that answers it.
+     * @param string[] $paths Exact request paths, without surrounding slashes
+     * @param string[] $prefixes Path prefixes, each ending in `/`
      */
-    public const LLMS_ROUTES = [
-        'llms.txt'      => ['module' => 'mageos-seo', 'controller' => 'llms',      'action' => 'index'],
-        'llms-full.txt' => ['module' => 'mageos-seo', 'controller' => 'llmsfull',  'action' => 'index'],
-        'llms.jsonl'    => ['module' => 'mageos-seo', 'controller' => 'llmsjsonl', 'action' => 'index'],
-    ];
+    public function __construct(
+        private readonly array $paths = [],
+        private readonly array $prefixes = []
+    ) {
+    }
 
     /**
-     * Everything under the agentic-discovery prefix.
-     */
-    public const WELL_KNOWN_PREFIX = '.well-known/';
-
-    /**
-     * The front name the routers forward to, shared by every controller here.
-     */
-    public const MODULE_FRONT_NAME = 'mageos-seo';
-
-    /**
-     * Whether a request path is one this module serves.
+     * Whether a request path is one a module registered as public.
      *
      * @param string $pathInfo Raw path info, with or without surrounding slashes
      * @return bool
@@ -43,11 +41,16 @@ class PublicPaths
     public function isPublicPath(string $pathInfo): bool
     {
         $path = trim($pathInfo, '/');
+        if (\in_array($path, $this->paths, true)) {
+            return true;
+        }
 
-        return isset(self::LLMS_ROUTES[$path])
-            || str_starts_with($path, self::WELL_KNOWN_PREFIX)
-            // The internal controller URLs, which the canonical-path redirect sends back to the
-            // paths above: they must not start a session on the way through either.
-            || str_starts_with($path, self::MODULE_FRONT_NAME . '/');
+        foreach ($this->prefixes as $prefix) {
+            if (str_starts_with($path, $prefix)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

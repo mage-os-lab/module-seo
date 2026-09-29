@@ -47,7 +47,7 @@ class StorageDirectoryTest extends TestCase
         // Beside the installation, not inside it: that is what a shared mount is.
         $this->outside = $this->base . '/mnt/feeds';
 
-        mkdir($this->root . '/var/mageos_seo', 0o775, true);
+        mkdir($this->root . '/var/mageos_aeo', 0o775, true);
         mkdir($this->root . '/app/etc', 0o775, true);
         mkdir($this->root . '/pub/media', 0o775, true);
         mkdir($this->root . '/var/.hidden', 0o775, true);
@@ -61,14 +61,14 @@ class StorageDirectoryTest extends TestCase
 
     public function testNoConfiguredDirectoryIsAllowed(): void
     {
-        // The default: var/mageos_seo, which needs no configuration.
+        // The default: var/mageos_aeo, which needs no configuration.
         $this->assertTrue($this->storageDirectory()->isAllowed(''));
         $this->assertTrue($this->storageDirectory()->isAllowed('   '));
     }
 
     public function testADirectoryInsideVarIsAllowed(): void
     {
-        $this->assertTrue($this->storageDirectory()->isAllowed($this->root . '/var/mageos_seo'));
+        $this->assertTrue($this->storageDirectory()->isAllowed($this->root . '/var/mageos_aeo'));
     }
 
     public function testEveryOtherInstallationDirectoryIsRefused(): void
@@ -88,7 +88,7 @@ class StorageDirectoryTest extends TestCase
 
     public function testARelativePathOrOneWithParentSegmentsIsRefused(): void
     {
-        $this->assertFalse($this->storageDirectory()->isAllowed('var/mageos_seo'));
+        $this->assertFalse($this->storageDirectory()->isAllowed('var/mageos_aeo'));
         $this->assertFalse($this->storageDirectory()->isAllowed($this->root . '/var/../app'));
     }
 
@@ -146,7 +146,7 @@ class StorageDirectoryTest extends TestCase
     {
         $storageDirectory = $this->storageDirectory([$this->root . '/var']);
 
-        $this->assertTrue($storageDirectory->isAllowed($this->root . '/var/mageos_seo'));
+        $this->assertTrue($storageDirectory->isAllowed($this->root . '/var/mageos_aeo'));
     }
 
     public function testValidateExplainsTheRefusal(): void
@@ -168,8 +168,11 @@ class StorageDirectoryTest extends TestCase
             fn (string $code): string => $code === DirectoryList::VAR_DIR ? $this->root . '/var' : $this->root
         );
 
+        // Only the documented env.php key answers, so a test that declares roots also pins the key.
         $deploymentConfig = $this->createStub(DeploymentConfig::class);
-        $deploymentConfig->method('get')->willReturn($declaredRoots === [] ? null : $declaredRoots);
+        $deploymentConfig->method('get')->willReturnMap([
+            ['mageos_aeo/feed_storage_roots', null, $declaredRoots === [] ? null : $declaredRoots],
+        ]);
 
         // The real driver: these rules are about what is on disk, so stubbing it would only
         // restate the expectations back to the test.

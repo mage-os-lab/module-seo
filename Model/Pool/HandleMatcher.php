@@ -16,7 +16,7 @@ namespace MageOS\Seo\Model\Pool;
  *
  * Denied handles exist because '*' was reaching pages nobody had in mind. Cart, checkout,
  * customer account and login-as-customer pages are uncacheable, so a wildcard provider's work —
- * for the Organisation providers, up to three queries each — is repeated on every single
+ * for the Organization providers, up to three queries each — is repeated on every single
  * request, to emit Organization, WebSite and Speakable nodes onto a form. The deny list is
  * declared in di.xml so an integration can extend or empty it.
  *

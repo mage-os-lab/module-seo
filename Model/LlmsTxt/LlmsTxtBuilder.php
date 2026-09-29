@@ -8,9 +8,9 @@ use Magento\Catalog\Model\ResourceModel\Category\CollectionFactory as CategoryCo
 use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Store\Model\ScopeInterface;
 use Magento\Store\Model\StoreManagerInterface;
-use MageOS\Seo\Api\OrganisationRepositoryInterface;
+use MageOS\Seo\Api\OrganizationRepositoryInterface;
 use MageOS\Seo\Model\Config;
-use MageOS\Seo\Model\Organisation\ContactEmail;
+use MageOS\Seo\Model\Organization\ContactEmail;
 use MageOS\Seo\Model\Product\SchemaBuilderPool;
 
 /**
@@ -24,13 +24,13 @@ use MageOS\Seo\Model\Product\SchemaBuilderPool;
  * without coupling this class to those modules.
  *
  * The locale is the store view's configured one (Config::getLocaleCode()); the line is left out
- * when there is none. The AI contact is Organisation\ContactEmail's; the section is left out when
+ * when there is none. The AI contact is Organization\ContactEmail's; the section is left out when
  * there is none.
  */
 class LlmsTxtBuilder
 {
     /**
-     * @param OrganisationRepositoryInterface $organisationRepository
+     * @param OrganizationRepositoryInterface $organizationRepository
      * @param StoreManagerInterface $storeManager
      * @param ScopeConfigInterface $scopeConfig
      * @param CategoryCollectionFactory $categoryCollectionFactory
@@ -40,7 +40,7 @@ class LlmsTxtBuilder
      * @param \MageOS\Seo\Model\LlmsTxt\SectionProviderInterface[] $sectionProviders
      */
     public function __construct(
-        private readonly OrganisationRepositoryInterface $organisationRepository,
+        private readonly OrganizationRepositoryInterface $organizationRepository,
         private readonly StoreManagerInterface           $storeManager,
         private readonly ScopeConfigInterface            $scopeConfig,
         private readonly CategoryCollectionFactory       $categoryCollectionFactory,
@@ -62,7 +62,7 @@ class LlmsTxtBuilder
         $store     = $this->storeManager->getStore();
         $storeId   = (int) $store->getId();
         $websiteId = (int) $this->storeManager->getWebsite()->getId();
-        $org       = $this->organisationRepository->getForScope($storeId, $websiteId);
+        $org       = $this->organizationRepository->getForScope($storeId, $websiteId);
         $baseUrl   = rtrim((string) $store->getBaseUrl(), '/');
         $name      = $org->getName() ?: (string) $store->getName();
 
@@ -125,7 +125,7 @@ class LlmsTxtBuilder
         $store     = $this->storeManager->getStore();
         $storeId   = (int) $store->getId();
         $websiteId = (int) $this->storeManager->getWebsite()->getId();
-        $org       = $this->organisationRepository->getForScope($storeId, $websiteId);
+        $org       = $this->organizationRepository->getForScope($storeId, $websiteId);
         $baseUrl   = rtrim((string) $store->getBaseUrl(), '/');
         $name      = $org->getName() ?: (string) $store->getName();
 

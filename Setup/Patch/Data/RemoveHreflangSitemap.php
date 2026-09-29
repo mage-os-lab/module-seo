@@ -7,7 +7,7 @@ namespace MageOS\Seo\Setup\Patch\Data;
 use Magento\Framework\Setup\Patch\DataPatchInterface;
 use MageOS\Seo\Model\Feed\FeedCache;
 use MageOS\Seo\Model\Feed\FeedStorage;
-use MageOS\Seo\Model\Feed\RegenerationRequester;
+use MageOS\Seo\Model\Rebuild\RegenerationRequester;
 use Psr\Log\LoggerInterface;
 
 /**

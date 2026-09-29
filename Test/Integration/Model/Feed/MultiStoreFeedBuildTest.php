@@ -43,7 +43,7 @@ class MultiStoreFeedBuildTest extends TestCase
      *
      * @return void
      */
-    #[Config('mageos_seo_general/llms_txt/jsonl_enabled', 1, ScopeInterface::SCOPE_STORE, 'default')]
+    #[Config('mageos_aeo/llms_txt/jsonl_enabled', 1, ScopeInterface::SCOPE_STORE, 'default')]
     #[DataFixture(ProductFixture::class, as: 'product')]
     public function testJsonlIsWrittenAsOneJsonObjectPerLine(): void
     {

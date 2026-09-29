@@ -9,7 +9,7 @@ use Magento\Store\Model\StoreManagerInterface;
 use MageOS\Seo\Api\ArticleDataProviderInterface;
 use MageOS\Seo\Api\StructuredDataProviderInterface;
 use MageOS\Seo\Model\Pool\HandleMatcher;
-use MageOS\Seo\Model\StructuredData\OrganisationId;
+use MageOS\Seo\Model\StructuredData\OrganizationId;
 use MageOS\Seo\Model\StructuredData\SpeakableSpecification;
 
 /**
@@ -17,7 +17,7 @@ use MageOS\Seo\Model\StructuredData\SpeakableSpecification;
  *
  * Iterates the registered ArticleDataProviderInterface pool (empty by default) and emits a node for
  * the first provider that has an article for the current page. Author and publisher both reference
- * the shared Organisation @id. With Speakable on, the BlogPosting carries the page's
+ * the shared Organization @id. With Speakable on, the BlogPosting carries the page's
  * SpeakableSpecification — Google's primary use of it.
  */
 class ArticleSchemaProvider implements StructuredDataProviderInterface
@@ -25,7 +25,7 @@ class ArticleSchemaProvider implements StructuredDataProviderInterface
     /**
      * @param LayoutInterface $layout
      * @param StoreManagerInterface $storeManager
-     * @param OrganisationId $organisationId
+     * @param OrganizationId $organizationId
      * @param HandleMatcher $handleMatcher
      * @param SpeakableSpecification $speakable
      * @param array<mixed> $dataProviders
@@ -33,7 +33,7 @@ class ArticleSchemaProvider implements StructuredDataProviderInterface
     public function __construct(
         private readonly LayoutInterface        $layout,
         private readonly StoreManagerInterface  $storeManager,
-        private readonly OrganisationId         $organisationId,
+        private readonly OrganizationId         $organizationId,
         private readonly HandleMatcher          $handleMatcher,
         private readonly SpeakableSpecification $speakable,
         private readonly array                  $dataProviders = []
@@ -81,7 +81,7 @@ class ArticleSchemaProvider implements StructuredDataProviderInterface
      */
     private function build(array $article, int $storeId): array
     {
-        $orgId = $this->organisationId->getId($storeId);
+        $orgId = $this->organizationId->getId($storeId);
 
         $node = [
             '@context'      => 'https://schema.org',

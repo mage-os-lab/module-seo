@@ -18,7 +18,11 @@ use MageOS\Seo\Model\WellKnown\EndpointPool;
  */
 class WellKnownRouter implements RouterInterface
 {
-    private const PREFIX = PublicPaths::WELL_KNOWN_PREFIX;
+    /**
+     * Everything under the agentic-discovery prefix. Registered as public in di.xml
+     * (Router\PublicPaths), so no session is started for these documents.
+     */
+    public const PREFIX = '.well-known/';
 
     /**
      * @param ActionFactory $actionFactory
@@ -46,7 +50,7 @@ class WellKnownRouter implements RouterInterface
         }
 
         // Prevent an infinite loop once this router has already forwarded the request.
-        if ($request->getModuleName() === 'mageos-seo') {
+        if ($request->getModuleName() === 'mageos-agentic') {
             return null;
         }
 
@@ -55,7 +59,7 @@ class WellKnownRouter implements RouterInterface
             return null;
         }
 
-        $request->setModuleName('mageos-seo')
+        $request->setModuleName('mageos-agentic')
             ->setControllerName('wellknown')
             ->setActionName('index')
             ->setParam('endpoint', $name)

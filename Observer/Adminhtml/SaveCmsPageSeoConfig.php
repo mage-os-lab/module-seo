@@ -127,7 +127,7 @@ class SaveCmsPageSeoConfig implements ObserverInterface
      * Every page of a group lists the others in its head. Nothing about the other pages changed,
      * so the save's own cache tags do not reach them. (The sitemap needs nothing here: saving the
      * group is a change to this module's CMS page settings, which queues the pages' rebuild — see
-     * Feed\InvalidationPolicy.)
+     * Sitemap\InvalidationPolicy.)
      *
      * @param int $pageId
      * @param string|null $previousGroup

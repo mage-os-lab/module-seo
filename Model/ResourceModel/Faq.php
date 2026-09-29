@@ -15,6 +15,6 @@ class Faq extends AbstractDb
      */
     protected function _construct(): void
     {
-        $this->_init('mageos_seo_faq', 'entity_id');
+        $this->_init('mageos_faq', 'entity_id');
     }
 }

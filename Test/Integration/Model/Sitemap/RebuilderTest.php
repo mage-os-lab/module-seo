@@ -19,7 +19,7 @@ use MageOS\Seo\Exception\SitemapRebuildInProgressException;
 use MageOS\Seo\Model\Category\ProductOverrideRepository;
 use MageOS\Seo\Model\Config;
 use MageOS\Seo\Model\Config\Source\SitemapGenerator;
-use MageOS\Seo\Model\Feed\RegenerateConsumer;
+use MageOS\Seo\Model\Rebuild\RegenerateConsumer;
 use MageOS\Seo\Model\Sitemap\GenerationLock;
 use MageOS\Seo\Model\Sitemap\Generator;
 use MageOS\Seo\Model\Sitemap\Rebuilder;

@@ -7,8 +7,8 @@ namespace MageOS\Seo\Test\Unit\Model\MetaTag\Provider;
 use Magento\Store\Api\Data\StoreInterface;
 use Magento\Store\Api\Data\WebsiteInterface;
 use Magento\Store\Model\StoreManagerInterface;
-use MageOS\Seo\Api\Data\OrganisationInterface;
-use MageOS\Seo\Api\OrganisationRepositoryInterface;
+use MageOS\Seo\Api\Data\OrganizationInterface;
+use MageOS\Seo\Api\OrganizationRepositoryInterface;
 use MageOS\Seo\Model\Config;
 use MageOS\Seo\Model\MetaTag\Provider\SiteMetaProvider;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -27,9 +27,9 @@ class SiteMetaProviderTest extends TestCase
     private StoreManagerInterface&MockObject $storeManager;
 
     /**
-     * @var OrganisationRepositoryInterface&MockObject
+     * @var OrganizationRepositoryInterface&MockObject
      */
-    private OrganisationRepositoryInterface&MockObject $repository;
+    private OrganizationRepositoryInterface&MockObject $repository;
 
     /**
      * @var StoreInterface&MockObject
@@ -45,7 +45,7 @@ class SiteMetaProviderTest extends TestCase
     {
         $this->config       = $this->createMock(Config::class);
         $this->storeManager = $this->createMock(StoreManagerInterface::class);
-        $this->repository   = $this->createMock(OrganisationRepositoryInterface::class);
+        $this->repository   = $this->createMock(OrganizationRepositoryInterface::class);
 
         $this->store = $this->createMock(StoreInterface::class);
         $this->store->method('getId')->willReturn(1);
@@ -64,7 +64,7 @@ class SiteMetaProviderTest extends TestCase
 
     private function withOrgName(string $name): void
     {
-        $org = $this->createMock(OrganisationInterface::class);
+        $org = $this->createMock(OrganizationInterface::class);
         $org->method('getName')->willReturn($name);
         $this->repository->method('getForScope')->willReturn($org);
     }

@@ -47,7 +47,7 @@ Built-in providers, in order:
 
 | Provider | Handle | Output |
 |---|---|---|
-| `OrganisationProvider` | `*` | Organization node + WebSite node with SearchAction |
+| `OrganizationProvider` | `*` | Organization node + WebSite node with SearchAction |
 | `BreadcrumbListProvider` | `*` | BreadcrumbList (reads layout breadcrumbs block) |
 | `CategorySchemaProvider` | `catalog_category_view` | CollectionPage + optional ItemList |
 | `ProductSchemaProvider` | `catalog_product_view` | Dispatches to template builder pool |
@@ -216,7 +216,7 @@ This prevents `</script>` injection within JSON-LD. Do not bypass this or add yo
 
 All JSON-LD output is fully FPC-cacheable. The `Block\JsonLd` block has no `cacheable="false"` attribute. Data is URL-keyed; Varnish and the FPC cache one variant per unique URL, so paginated category pages (`?p=2`) get their own correct cache entries.
 
-Organisation data is cached via the standard config cache — changing Organisation settings invalidates the config cache which flushes the FPC.
+Organisation data is not configuration: it comes from its own table, `mageos_seo_organization`. `Block\JsonLd` sits on every page and carries the Organisation cache tag (`Model\Organization::CACHE_TAG`, `mageos_seo_organization`), so every cached page is tagged with it. Saving or deleting an Organisation record cleans that tag — core's `AbstractModel` dispatches `clean_cache_by_tags` after either — and the FPC and Varnish drop every page that showed the old values. No cache type is invalidated and nothing needs flushing by hand.
 
 ---
 

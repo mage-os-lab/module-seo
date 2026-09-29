@@ -6,11 +6,11 @@ namespace MageOS\Seo\Observer;
 
 use Magento\Framework\Event\Observer;
 use Magento\Framework\Event\ObserverInterface;
-use MageOS\Seo\Model\Feed\FeedInvalidator;
-use MageOS\Seo\Model\Feed\InvalidationPolicy;
+use MageOS\Seo\Model\Rebuild\Invalidator;
+use MageOS\Seo\Model\Sitemap\InvalidationPolicy;
 
 /**
- * Queues a rebuild of the sitemap types a change can alter (see InvalidationPolicy).
+ * Queues a rebuild of the sitemap types a change can alter (see Sitemap\InvalidationPolicy).
  *
  * Registered for the catalogue, CMS, store and configuration events in etc/events.xml, and for the
  * save and delete of this module's own per-entity settings — the robots directive decides whether
@@ -19,11 +19,11 @@ use MageOS\Seo\Model\Feed\InvalidationPolicy;
 class InvalidateSitemap implements ObserverInterface
 {
     /**
-     * @param FeedInvalidator $feedInvalidator
+     * @param Invalidator $invalidator
      * @param InvalidationPolicy $invalidationPolicy
      */
     public function __construct(
-        private readonly FeedInvalidator    $feedInvalidator,
+        private readonly Invalidator        $invalidator,
         private readonly InvalidationPolicy $invalidationPolicy
     ) {
     }
@@ -37,7 +37,7 @@ class InvalidateSitemap implements ObserverInterface
     public function execute(Observer $observer): void
     {
         foreach ($this->invalidationPolicy->sitemapTypesAffectedBy($observer->getEvent()) as $type) {
-            $this->feedInvalidator->invalidateSitemap($type);
+            $this->invalidator->invalidateSitemap($type);
         }
     }
 }

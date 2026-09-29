@@ -14,7 +14,8 @@ use PHPUnit\Framework\TestCase;
 /**
  * What each setting reads, at which scope, and how its raw value becomes the answer.
  *
- * `has_variant_max`, the locale and the llms FAQ groups have tests of their own.
+ * `has_variant_max` and the locale have tests of their own; the llms, feed storage and AI crawler
+ * settings are Model\Aeo\Config's (Test\Unit\Model\Aeo\ConfigTest).
  */
 class ConfigTest extends TestCase
 {
@@ -71,9 +72,6 @@ class ConfigTest extends TestCase
                 [self::STORE_ID],
                 $store,
             ],
-            'llms.txt'            => ['isLlmsTxtEnabled', Config::XML_LLMS_ENABLED, [self::STORE_ID], $store],
-            'llms-full.txt'       => ['isLlmsFullTxtEnabled', Config::XML_LLMS_FULL_ENABLED, [self::STORE_ID], $store],
-            'llms.jsonl'          => ['isLlmsJsonlEnabled', Config::XML_LLMS_JSONL_ENABLED, [self::STORE_ID], $store],
             'paginated robots'    => [
                 'isPaginatedRobotsEnabled',
                 Config::XML_ROBOTS_PAGINATED_ENABLED,
@@ -111,12 +109,6 @@ class ConfigTest extends TestCase
                 Config::XML_HREFLANG_SAME_WEBSITE_ONLY,
                 [],
                 $default,
-            ],
-            'ai robots'           => [
-                'isAiRobotsEnabled',
-                Config::XML_AI_ROBOTS_ENABLED,
-                [],
-                [ScopeInterface::SCOPE_STORE, null],
             ],
         ];
     }
@@ -164,18 +156,6 @@ class ConfigTest extends TestCase
         $this->assertSame([$path, ScopeInterface::SCOPE_STORE, 1], end($this->reads));
         $this->assertFalse($this->config([$path => SitemapGenerator::MAGENTO])->isSitemapGeneratorEnabled(1));
         $this->assertFalse($this->config([])->isSitemapGeneratorEnabled(1));
-    }
-
-    public function testTheFeedStorageDirectoryIsTrimmedAndReadAtDefaultScope(): void
-    {
-        $config = $this->config([Config::XML_FEEDS_STORAGE_DIR => " /mnt/feeds \n"]);
-
-        $this->assertSame('/mnt/feeds', $config->getFeedStorageDir());
-        $this->assertSame(
-            [Config::XML_FEEDS_STORAGE_DIR, ScopeConfigInterface::SCOPE_TYPE_DEFAULT, null],
-            end($this->reads)
-        );
-        $this->assertSame('', $this->config([])->getFeedStorageDir());
     }
 
     public function testTheCategoryItemListMaxFallsBackTo36AndIsAtLeastOne(): void
@@ -246,18 +226,6 @@ class ConfigTest extends TestCase
         );
         $this->assertSame([$path, ScopeInterface::SCOPE_STORE, self::STORE_ID], end($this->reads));
         $this->assertSame([], $this->config([])->getSpeakableCssSelectors(self::STORE_ID));
-    }
-
-    public function testTheDisallowedAiBotsAreAListForTheCurrentStore(): void
-    {
-        $path = Config::XML_AI_ROBOTS_DISALLOWED;
-
-        $this->assertSame(
-            ['CCBot', 'Bytespider'],
-            $this->config([$path => ' CCBot, ,Bytespider '])->getAiDisallowedBots()
-        );
-        $this->assertSame([$path, ScopeInterface::SCOPE_STORE, null], end($this->reads));
-        $this->assertSame([], $this->config([])->getAiDisallowedBots());
     }
 
     /**

@@ -20,7 +20,7 @@ use MageOS\Seo\Model\Config;
  * uses this module's generator — generated before or not: one with no file is written whole.
  *
  * A change rebuilds those whose store view also has Rebuild on Change on. A rebuild asked for by
- * hand (`mageos:seo:feeds:regenerate -g sitemap-…`) takes every one that can be rebuilt, as
+ * hand (`seo:rebuild -g sitemap-…`) takes every one that can be rebuilt, as
  * `indexer:reindex` runs whatever an indexer's mode.
  *
  * A sitemap is missing when its index file is not in pub/ — never generated, or its files have
@@ -28,7 +28,7 @@ use MageOS\Seo\Model\Config;
  * a Site Map entry is saved and after every setup run, so they do not wait for the next change.
  *
  * One definition for the questions asked of it: which sitemaps to rebuild (Rebuilder), and whether
- * a change is worth queueing at all (Feed\InvalidationPolicy) — so a change is never queued for
+ * a change is worth queueing at all (InvalidationPolicy) — so a change is never queued for
  * sitemaps the rebuild would then skip, or skipped for ones it would rebuild.
  */
 class RebuildableSitemaps implements ResetAfterRequestInterface

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace MageOS\Seo\Test\Unit\Plugin\Robots;
 
-use MageOS\Seo\Model\Config;
+use MageOS\Seo\Model\Aeo\Config;
 use MageOS\Seo\Model\Config\Source\AiBots;
 use MageOS\Seo\Plugin\Robots\AppendAiDirectivesPlugin;
 use PHPUnit\Framework\MockObject\MockObject;

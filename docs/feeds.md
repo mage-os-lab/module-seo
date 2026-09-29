@@ -19,7 +19,7 @@ they are stored and what they cost. What each document *contains* is in the page
 
 ## Generation & cache
 
-The documents are **pre-generated to files** (default `var/mageos_seo/store_<id>/`),
+The documents are **pre-generated to files** (default `var/mageos_aeo/store_<id>/`),
 mirroring core `Magento_Sitemap`. Two background processes write them:
 
 - the `mageosSeoFeedRegenerate` **queue consumer** rebuilds a feed group whenever it
@@ -27,7 +27,7 @@ mirroring core `Magento_Sitemap`. Two background processes write them:
   manager e.g. supervisor). Duplicate invalidations are collapsed: at most one build
   per feed group is queued at a time, and changes arriving during a build queue
   exactly one follow-up rebuild;
-- the `mageos_seo_regenerate_feeds` **cron job** (nightly) does a full rebuild as a
+- the `mageos_aeo_regenerate_feeds` **cron job** (nightly) does a full rebuild as a
   safety net for changes that carry no invalidation event.
 
 Web requests **never** build the documents. An invalidation only queues a rebuild: the
@@ -36,7 +36,7 @@ Each file is written to a temporary file and renamed into place, so a request ne
 sees a partially written document. When a file does not exist yet (fresh install, new
 store view), the controller queues a rebuild and answers `503` with `Retry-After`
 until the consumer has written it. Requests with query strings — and the internal
-`/mageos-seo/...` controller URLs — are 301-redirected to the canonical path so they
+`/mageos-aeo/...` controller URLs — are 301-redirected to the canonical path so they
 cannot be used to force cache misses.
 
 A queued rebuild that the consumer has not picked up within one hour is queued again,
@@ -46,7 +46,7 @@ see that warning, the consumer is not running: check your cron or process manage
 ### Only one rebuild runs at a time
 
 Three things write the same files — the consumer, the nightly cron and
-`bin/magento mageos:seo:feeds:regenerate` — and none of them is guaranteed to be alone:
+`bin/magento seo:rebuild` — and none of them is guaranteed to be alone:
 `consumers_runner` can be configured to run several processes of a consumer, and on a
 multi-server install the cron runs on every node. A shared lock
 (`Magento\Framework\Lock\LockManagerInterface`, so it spans processes and hosts) lets one
@@ -76,8 +76,8 @@ endpoints read session state.
 
 Responses are served with `Cache-Control: public, max-age=86400, s-maxage=86400`, so
 browsers, Varnish and the built-in full page cache keep them for **24 hours**. They
-are tagged `MAGEOS_SEO_LLMS` (`/llms.txt`), `MAGEOS_SEO_LLMS_FULL` (`/llms-full.txt`) and
-`MAGEOS_SEO_LLMS_JSONL` (`/llms.jsonl`). After rebuilding a feed group, the consumer and the
+are tagged `MAGEOS_AEO_LLMS` (`/llms.txt`), `MAGEOS_AEO_LLMS_FULL` (`/llms-full.txt`) and
+`MAGEOS_AEO_LLMS_JSONL` (`/llms.jsonl`). After rebuilding a feed group, the consumer and the
 cron purge that group's tags, so cached copies are replaced as soon as the new files exist.
 (The retired `/hreflang-sitemap.xml` was tagged `MAGEOS_SEO_HREFLANG_SITEMAP`; the upgrade that
 retires it purges that tag once, along with its files.)
@@ -103,7 +103,7 @@ retires it purges that tag once, along with its files.)
 | Mass website assignment change | always | always |
 | Organisation settings saved | always | — |
 | FAQ saved or deleted | always | — |
-| Configuration saved: locale, Customer Support email, the llms settings (`mageos_seo_general/llms_txt/`), `web/`, `catalog/seo/` | when the value changes | — |
+| Configuration saved: locale, Customer Support email, the llms settings (`mageos_aeo/llms_txt/`), `web/`, `catalog/seo/` | when the value changes | — |
 
 Mass actions — the admin grid's "Update attributes", mass enable/disable and mass website
 assignment, and anything else going through `Magento\Catalog\Model\Product\Action` — write
@@ -114,13 +114,17 @@ event for websites).
 Deleting a store view also removes that store's feed directory. Deleting a **store group or a
 website** takes its store views with it in the database, without dispatching a `store_delete`
 event for any of them; their feed directories are removed by the next full rebuild (the nightly
-cron, or `mageos:seo:feeds:regenerate` with no `-g`), which sweeps directories whose store view
+cron, or `seo:rebuild` with no `-g`), which sweeps directories whose store view
 no longer exists. Until then nothing serves them: a request resolves feeds for the current store
 view, and theirs is gone.
 
 A feed that no store view can build is never queued: `/llms.jsonl` while it is disabled in
 every store view (the default), `/llms.txt` + `/llms-full.txt` when both are disabled
-everywhere. The logic lives in `MageOS\Seo\Model\Feed\InvalidationPolicy`.
+everywhere. The logic lives in `MageOS\Seo\Model\Feed\LlmsInvalidationPolicy`.
+
+A FAQ or the Organisation queues the llms documents through its model's own save and delete
+events (`mageos_faq_*`, `mageos_seo_organization_*`), so a save from the admin, the REST API, an
+import or a data patch counts alike.
 
 Changes that no event reports — native CSV imports, direct database writes, configuration
 changes — are picked up by the nightly rebuild.
@@ -147,7 +151,7 @@ The XML sitemaps are streamed the same way, a page of the catalogue at a time; s
 
 ## Where the files are stored
 
-`mageos_seo_general/feeds/storage_dir` is empty by default, which means `var/mageos_seo`.
+`mageos_aeo/feeds/storage_dir` is empty by default, which means `var/mageos_aeo`.
 Because it is an absolute path set from the admin panel, what it may point at is restricted:
 
 - **inside the installation, `var/` only.** The root itself and every other standard
@@ -162,12 +166,12 @@ Because it is an absolute path set from the admin panel, what it may point at is
 The rules are applied twice: when the value is saved, with the reason shown in the admin, and
 again when it is read — a row can reach `core_config_data` from a data patch, a deployment tool
 or straight from the database, and a directory these rules refuse is never written to however it
-arrived. A refused value is logged and the feeds fall back to `var/mageos_seo` rather than
+arrived. A refused value is logged and the feeds fall back to `var/mageos_aeo` rather than
 failing.
 
 ### Permissions
 
-Feed files are written with mode `0640` and the feed directories (`var/mageos_seo/` and
+Feed files are written with mode `0640` and the feed directories (`var/mageos_aeo/` and
 each `store_<id>/`) with `0750`, whatever the process umask. The user running cron and
 the consumer and the web server's PHP user must therefore be the same user or share a
 group — Magento's standard file-ownership model. With a custom `storage_dir`, the root
@@ -187,9 +191,9 @@ return [
     'db' => [ /* ... */ ],
 
     // Roots the SEO feeds may be stored under, in addition to var/.
-    'mageos_seo' => [
+    'mageos_aeo' => [
         'feed_storage_roots' => [
-            '/mnt/shared/mageos-seo',
+            '/mnt/shared/mageos-aeo',
         ],
     ],
 
@@ -197,8 +201,9 @@ return [
 ];
 ```
 
-Then set **Stores → Configuration → MageOS SEO → Feeds → Storage Directory** to that path, or
-anything below it — `/mnt/shared/mageos-seo/site-a` is accepted by the same entry.
+Then set **Stores → Configuration → MageOS SEO → AI Information & Crawlers → Feed Storage →
+Storage Directory** to that path, or
+anything below it — `/mnt/shared/mageos-aeo/site-a` is accepted by the same entry.
 
 Setting it up:
 
@@ -235,8 +240,8 @@ To rebuild immediately — in a deployment script, or after changing feed config
 run:
 
 ```bash
-bin/magento mageos:seo:feeds:regenerate            # every feed, every active store view
-bin/magento mageos:seo:feeds:regenerate -g llms    # one group: llms | jsonl
+bin/magento seo:rebuild            # every feed, every active store view
+bin/magento seo:rebuild -g llms    # one group: llms | jsonl
 ```
 
 The same command rebuilds a kind of page in the XML sitemaps, `-g sitemap-products` and so on;

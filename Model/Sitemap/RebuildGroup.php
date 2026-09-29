@@ -9,7 +9,7 @@ use MageOS\Seo\Api\Sitemap\RebuildRequesterInterface;
 /**
  * The queue group that rebuilds one type of every sitemap: `sitemap-{type}`.
  *
- * Sitemap rebuilds share the feeds' queue (Feed\RegenerationRequester), whose message is a group
+ * Sitemap rebuilds share the feeds' queue (Rebuild\RegenerationRequester), whose message is a group
  * name, so a sitemap type travels as `sitemap-pages`, `sitemap-products`, or `sitemap-{type}` for
  * another module's own type — and `sitemap-*` for every type, after a change that can alter every
  * URL. One place builds and reads the name — whoever requests a rebuild and the consumer that

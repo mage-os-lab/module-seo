@@ -53,4 +53,32 @@ class SourcePoolTest extends TestCase
     {
         $this->assertSame([], (new SourcePool([new \stdClass(), 'nope']))->getFaqs('x', 1));
     }
+
+    public function testTheGroupsAreEverySourcesSortedOnceEach(): void
+    {
+        $pool = new SourcePool([
+            $this->sourceWithGroups(['shipping', 'global']),
+            new \stdClass(),
+            $this->sourceWithGroups(['returns', 'shipping']),
+        ]);
+
+        $this->assertSame(['global', 'returns', 'shipping'], $pool->getIdentifiers());
+    }
+
+    public function testAnEmptyPoolHasNoGroups(): void
+    {
+        $this->assertSame([], (new SourcePool([]))->getIdentifiers());
+    }
+
+    /**
+     * @param string[] $identifiers
+     * @return FaqSourceProviderInterface
+     */
+    private function sourceWithGroups(array $identifiers): FaqSourceProviderInterface
+    {
+        $source = $this->createStub(FaqSourceProviderInterface::class);
+        $source->method('getIdentifiers')->willReturn($identifiers);
+
+        return $source;
+    }
 }

@@ -6,8 +6,9 @@ namespace MageOS\Seo\Test\Integration;
 
 use Magento\TestFramework\Helper\Bootstrap;
 use MageOS\Seo\Api\FaqCollectorInterface;
-use MageOS\Seo\Api\OrganisationRepositoryInterface;
+use MageOS\Seo\Api\OrganizationRepositoryInterface;
 use MageOS\Seo\Model\Faq\SourcePool as FaqSourcePool;
+use MageOS\Seo\Model\Feed\LlmsRebuildHandler;
 use MageOS\Seo\Model\Hreflang\ResolverPool as HreflangResolverPool;
 use MageOS\Seo\Model\LlmsJsonl\JsonlBuilder;
 use MageOS\Seo\Model\LlmsTxt\LlmsTxtBuilder;
@@ -19,6 +20,7 @@ use MageOS\Seo\Model\Product\OfferBuilder;
 use MageOS\Seo\Model\Product\OfferEnricher\Pool as OfferEnricherPool;
 use MageOS\Seo\Model\Product\SchemaBuilderPool;
 use MageOS\Seo\Model\Product\Variant\ProductGroupBuilder;
+use MageOS\Seo\Model\Rebuild\HandlerPool as RebuildHandlerPool;
 use MageOS\Seo\Model\Review\AggregateRatingResolver;
 use MageOS\Seo\Model\RobotsMeta\Resolver as RobotsMetaResolver;
 use MageOS\Seo\Model\StructuredData\Compositor as StructuredDataCompositor;
@@ -34,10 +36,10 @@ use PHPUnit\Framework\TestCase;
  */
 class DiWiringTest extends TestCase
 {
-    public function testOrganisationRepositoryIsInstantiableViaDi(): void
+    public function testOrganizationRepositoryIsInstantiableViaDi(): void
     {
-        $instance = Bootstrap::getObjectManager()->get(OrganisationRepositoryInterface::class);
-        $this->assertInstanceOf(OrganisationRepositoryInterface::class, $instance);
+        $instance = Bootstrap::getObjectManager()->get(OrganizationRepositoryInterface::class);
+        $this->assertInstanceOf(OrganizationRepositoryInterface::class, $instance);
     }
 
     public function testStructuredDataCompositorIsInstantiableViaDi(): void
@@ -110,6 +112,15 @@ class DiWiringTest extends TestCase
     {
         $instance = Bootstrap::getObjectManager()->get(JsonlBuilder::class);
         $this->assertInstanceOf(JsonlBuilder::class, $instance);
+    }
+
+    public function testTheLlmsDocumentsAreRegisteredWithTheRebuildQueue(): void
+    {
+        /** @var RebuildHandlerPool $pool */
+        $pool = Bootstrap::getObjectManager()->get(RebuildHandlerPool::class);
+        $this->assertInstanceOf(LlmsRebuildHandler::class, $pool->get('llms'));
+        $this->assertInstanceOf(LlmsRebuildHandler::class, $pool->get('jsonl'));
+        $this->assertSame(['llms', 'jsonl'], $pool->getGroups());
     }
 
     public function testWellKnownEndpointPoolIsWiredWithBuiltinEndpoints(): void

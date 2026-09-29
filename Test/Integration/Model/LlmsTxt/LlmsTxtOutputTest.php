@@ -9,11 +9,11 @@ use Magento\Store\Model\StoreManagerInterface;
 use Magento\TestFramework\Fixture\Config;
 use Magento\TestFramework\Helper\Bootstrap;
 use MageOS\Seo\Api\FaqRepositoryInterface;
-use MageOS\Seo\Api\OrganisationRepositoryInterface;
+use MageOS\Seo\Api\OrganizationRepositoryInterface;
 use MageOS\Seo\Model\Faq;
 use MageOS\Seo\Model\Feed\FeedRegenerator;
 use MageOS\Seo\Model\Feed\FeedStorage;
-use MageOS\Seo\Model\OrganisationRepository;
+use MageOS\Seo\Model\OrganizationRepository;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -28,10 +28,10 @@ use PHPUnit\Framework\TestCase;
 class LlmsTxtOutputTest extends TestCase
 {
     private const SUPPORT_EMAIL = 'trans_email/ident_support/email';
-    private const FAQ_GROUPS    = 'mageos_seo_general/llms_txt/faq_groups';
+    private const FAQ_GROUPS    = 'mageos_aeo/llms_txt/faq_groups';
 
     /**
-     * Remove the files the tests wrote, and the Organisations the rolled-back saves left memoised.
+     * Remove the files the tests wrote, and the Organizations the rolled-back saves left memoised.
      *
      * @return void
      */
@@ -40,7 +40,7 @@ class LlmsTxtOutputTest extends TestCase
         $this->storage()->deleteForStore('llms*', $this->storeId());
         $this->storage()->deleteForStore('.*.tmp', $this->storeId());
         Bootstrap::getObjectManager()->removeSharedInstance(FeedStorage::class);
-        Bootstrap::getObjectManager()->get(OrganisationRepository::class)->_resetState();
+        Bootstrap::getObjectManager()->get(OrganizationRepository::class)->_resetState();
     }
 
     /**
@@ -58,14 +58,14 @@ class LlmsTxtOutputTest extends TestCase
     }
 
     /**
-     * The Organisation's contact email is the AI contact, ahead of the store's support email.
+     * The Organization's contact email is the AI contact, ahead of the store's support email.
      *
      * @return void
      */
     #[Config(self::SUPPORT_EMAIL, 'help@shop.test', ScopeInterface::SCOPE_STORE, 'default')]
-    public function testTheAiContactIsTheOrganisationContactEmail(): void
+    public function testTheAiContactIsTheOrganizationContactEmail(): void
     {
-        $this->organisationContact('ai@shop.test');
+        $this->organizationContact('ai@shop.test');
 
         [$concise, $full] = $this->build();
 
@@ -75,12 +75,12 @@ class LlmsTxtOutputTest extends TestCase
     }
 
     /**
-     * Without an Organisation contact, the store's configured support email is the AI contact.
+     * Without an Organization contact, the store's configured support email is the AI contact.
      *
      * @return void
      */
     #[Config(self::SUPPORT_EMAIL, 'help@shop.test', ScopeInterface::SCOPE_STORE, 'default')]
-    public function testWithoutAnOrganisationContactTheConfiguredSupportEmailIsUsed(): void
+    public function testWithoutAnOrganizationContactTheConfiguredSupportEmailIsUsed(): void
     {
         [$concise, $full] = $this->build();
 
@@ -174,17 +174,17 @@ class LlmsTxtOutputTest extends TestCase
     }
 
     /**
-     * Save the default-scope Organisation with a contact point email.
+     * Save the default-scope Organization with a contact point email.
      *
      * @param string $email
      * @return void
      */
-    private function organisationContact(string $email): void
+    private function organizationContact(string $email): void
     {
-        $repository   = Bootstrap::getObjectManager()->get(OrganisationRepositoryInterface::class);
-        $organisation = $repository->get();
-        $organisation->setContactPoint(['email' => $email]);
-        $repository->save($organisation);
+        $repository   = Bootstrap::getObjectManager()->get(OrganizationRepositoryInterface::class);
+        $organization = $repository->get();
+        $organization->setContactPoint(['email' => $email]);
+        $repository->save($organization);
     }
 
     /**

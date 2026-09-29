@@ -16,7 +16,20 @@ class Faq extends AbstractModel implements FaqInterface, IdentityInterface
      * are purged automatically when a FAQ is saved or deleted (AbstractModel
      * dispatches clean_cache_by_tags with this model's identities).
      */
-    public const CACHE_TAG = 'mageos_seo_faq';
+    public const CACHE_TAG = 'mageos_faq';
+
+    /**
+     * Saves and deletes dispatch `mageos_faq_save_after` / `_delete_after`, so whatever shows
+     * FAQs elsewhere (the llms documents, for one) can react to any save — admin, API, import.
+     *
+     * @var string
+     */
+    protected $_eventPrefix = 'mageos_faq';
+
+    /**
+     * @var string
+     */
+    protected $_eventObject = 'faq';
 
     /**
      * Initialize resource model.

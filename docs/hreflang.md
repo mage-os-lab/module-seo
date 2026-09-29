@@ -229,5 +229,5 @@ the dedicated file is gone: the path answers 404, with no redirect.
   (`Setup\Patch\Data\RemoveHreflangSitemap`). With feed storage in a host-local `var/`, only the
   host that runs `setup:upgrade` is cleaned; the files on the others can no longer be reached and
   can be deleted by hand.
-- `mageos:seo:feeds:regenerate -g hreflang` is gone; `-g sitemap-…` rebuilds the XML sitemaps
+- `seo:rebuild -g hreflang` is gone; `-g sitemap-…` rebuilds the XML sitemaps
   (see [sitemap.md](sitemap.md#changes-that-are-not-seen)).

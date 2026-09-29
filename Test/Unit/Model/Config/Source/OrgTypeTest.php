@@ -8,7 +8,7 @@ use MageOS\Seo\Model\Config\Source\OrgType;
 use PHPUnit\Framework\TestCase;
 
 /**
- * The organisation types offered in the admin, each emitted as the Organization node's @type.
+ * The organization types offered in the admin, each emitted as the Organization node's @type.
  */
 class OrgTypeTest extends TestCase
 {

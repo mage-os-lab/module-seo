@@ -18,7 +18,7 @@ use MageOS\Seo\Block\Widget\FaqList;
  */
 class FaqRenderer
 {
-    private const CONTENT_TYPE_MARKER = 'data-content-type="mageos_seo_faq"';
+    private const CONTENT_TYPE_MARKER = 'data-content-type="mageos_faq"';
 
     /**
      * @param LayoutInterface $layout
@@ -42,7 +42,7 @@ class FaqRenderer
         }
 
         $rendered = preg_replace_callback(
-            '/<div([^>]*data-content-type="mageos_seo_faq"[^>]*)><\/div>/s',
+            '/<div([^>]*data-content-type="mageos_faq"[^>]*)><\/div>/s',
             fn (array $matches): string => $this->renderBlock($matches[1]),
             $result
         );
@@ -67,7 +67,7 @@ class FaqRenderer
         try {
             $block = $this->layout->createBlock(
                 FaqList::class,
-                'mageos_seo_faq_pb_' . substr(hash('sha256', $identifier . '|' . $heading), 0, 16),
+                'mageos_faq_pb_' . substr(hash('sha256', $identifier . '|' . $heading), 0, 16),
                 ['data' => ['identifier' => $identifier, 'heading' => $heading]]
             );
             return $block->toHtml();

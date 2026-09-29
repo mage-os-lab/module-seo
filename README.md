@@ -97,7 +97,7 @@ Without a Name and URL saved, the Organization node in JSON-LD will render with 
 
 ## Admin configuration
 
-**Stores > Configuration > MageOS** holds three sections:
+**Stores > Configuration > MageOS** holds four sections:
 
 ### SEO Configuration (`mageos_seo_general`)
 
@@ -105,10 +105,16 @@ Without a Name and URL saved, the Organization node in JSON-LD will render with 
 | --- | --- | --- |
 | Open Graph Tags | Enable OG/Twitter tags | Yes |
 | Structured Data (JSON-LD) | Master switch, default product template, ItemList toggle & max, most variants per configurable product, aggregate rating | Yes / GenericProduct |
-| AI Discoverability | `/llms.txt`, `/llms-full.txt`, `/llms.jsonl`, FAQ groups in the llms documents | Yes / Yes / **No** / `global` |
 | Robots Meta | Product / category / **CMS** / search results defaults, pagination policy | *(empty — Magento default applies)* |
 | Hreflang | Enable, language-only, sitemap | Yes |
 | Answer Engine (AEO) | Speakable toggle + CSS selectors | No |
+
+### AI Information & Crawlers (`mageos_aeo`)
+
+| Group | Key settings | Default |
+| --- | --- | --- |
+| AI Discoverability | `/llms.txt`, `/llms-full.txt`, `/llms.jsonl`, FAQ groups in the llms documents | Yes / Yes / **No** / `global` |
+| Feed Storage | Where the pre-generated feeds are written | *(empty — `var/mageos_aeo`)* |
 | AI Crawler robots.txt | Append directives, disallow list | **No** / CCBot,Bytespider |
 
 ### SEO Merchant Policies (`mageos_seo_merchant`)
@@ -119,7 +125,7 @@ Without a Name and URL saved, the Organization node in JSON-LD will render with 
 | Return Policy | `hasMerchantReturnPolicy` on offers | Off |
 | Shipping Details | `OfferShippingDetails` on offers | Off |
 
-### SEO Agentic Commerce / UCP (`mageos_seo_ucp`)
+### Agentic Commerce (UCP) (`mageos_agentic`)
 
 | Group | Purpose | Default |
 | --- | --- | --- |
@@ -146,9 +152,9 @@ Manage FAQs under **Marketing > SEO > FAQ Manager**. Each FAQ set has an identif
 
 Both render the same theme-agnostic `<details>/<summary>` markup (no JS) and feed a single request-scoped collector, so the emitted `FAQPage` JSON-LD always matches the visible questions — even under full-page / block cache.
 
-Each question shows the browser's own open/close triangle. Magento's LESS reset hides it on Luma and Blank (`summary { display: block; }`), so the module's `view/frontend/web/css/source/_module.less` puts it back for `.mageos-seo-faq__question` only. Hyvä's Tailwind reset keeps it without help. To restyle, override `.mageos-seo-faq__question` in your theme.
+Each question shows the browser's own open/close triangle. Magento's LESS reset hides it on Luma and Blank (`summary { display: block; }`), so the module's `view/frontend/web/css/source/_module.less` puts it back for `.mageos-faq__question` only. Hyvä's Tailwind reset keeps it without help. To restyle, override `.mageos-faq__question` in your theme.
 
-The groups selected under **AI Discoverability → FAQ Groups** (default `global`) also go into `/llms.txt` and `/llms-full.txt` — see [docs/llms-txt.md](docs/llms-txt.md#faq-section).
+The groups selected under **AI Information & Crawlers → AI Discoverability → FAQ Groups** (default `global`) also go into `/llms.txt` and `/llms-full.txt` — see [docs/llms-txt.md](docs/llms-txt.md#faq-section).
 
 ---
 
@@ -163,7 +169,7 @@ The groups selected under **AI Discoverability → FAQ Groups** (default `global
 
 `/llms.txt` content draws the organisation name and description from the Organisation record — **configure Organisation first** or these documents will be incomplete.
 
-These documents are pre-generated to files (by default `var/mageos_seo/`) and served from there; web requests never build them. **Multi-server deployments** must point the web servers and the cron/consumer host at a shared mount, which takes one entry in each machine's `app/etc/env.php` as well as the admin setting — see [Storing the feeds outside var/](docs/feeds.md#storing-the-feeds-outside-var-multi-server).
+These documents are pre-generated to files (by default `var/mageos_aeo/`) and served from there; web requests never build them. **Multi-server deployments** must point the web servers and the cron/consumer host at a shared mount, which takes one entry in each machine's `app/etc/env.php` as well as the admin setting — see [Storing the feeds outside var/](docs/feeds.md#storing-the-feeds-outside-var-multi-server).
 
 ---
 
@@ -179,7 +185,7 @@ A pluggable endpoint registry serves agentic-discovery manifests (all off by def
 ### Generate UCP signing keys
 
 ```bash
-bin/magento mageos:seo:ucp:keygen --website=1
+bin/magento ucp:keygen --website=1
 bin/magento cache:flush config
 ```
 
@@ -237,6 +243,7 @@ Every cross-cutting concern is a provider pool wired via `di.xml`, so another mo
 | llms.txt section providers | `SectionProviderInterface` | collect-all |
 | llms.jsonl line providers | `JsonlLineProviderInterface` | collect-all |
 | Well-known endpoints | `WellKnownEndpointInterface` | by path segment |
+| Rebuild queue groups | `Api\Rebuild\GroupHandlerInterface` | by group name ([docs/extending.md](docs/extending.md#rebuilding-your-own-output-through-the-queue)) |
 | UCP capability providers | `UcpCapabilityProviderInterface` | collect-all, grouped by name ([docs/ucp.md](docs/ucp.md)) |
 | UCP service providers | `UcpServiceProviderInterface` | collect-all, one per transport binding |
 

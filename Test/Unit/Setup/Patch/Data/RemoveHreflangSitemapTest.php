@@ -6,7 +6,7 @@ namespace MageOS\Seo\Test\Unit\Setup\Patch\Data;
 
 use MageOS\Seo\Model\Feed\FeedCache;
 use MageOS\Seo\Model\Feed\FeedStorage;
-use MageOS\Seo\Model\Feed\RegenerationRequester;
+use MageOS\Seo\Model\Rebuild\RegenerationRequester;
 use MageOS\Seo\Setup\Patch\Data\RemoveHreflangSitemap;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
