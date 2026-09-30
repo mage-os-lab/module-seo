@@ -8,6 +8,7 @@ use Magento\Framework\App\ActionFactory;
 use Magento\Framework\App\ActionInterface;
 use Magento\Framework\App\RequestInterface;
 use Magento\Framework\App\RouterInterface;
+use MageOS\Seo\Model\Aeo\Config;
 
 /**
  * Intercepts requests for /llms.txt and /llms-full.txt and forwards them
@@ -28,10 +29,22 @@ class LlmsTxtRouter implements RouterInterface
     ];
 
     /**
+     * Config check per path. A disabled file is not claimed, so the request falls
+     * through to the other routers (a static file, another module, or the 404 page).
+     */
+    private const ENABLED_CHECKS = [
+        'llms.txt'      => 'isLlmsTxtEnabled',
+        'llms-full.txt' => 'isLlmsFullTxtEnabled',
+        'llms.jsonl'    => 'isLlmsJsonlEnabled',
+    ];
+
+    /**
      * @param ActionFactory $actionFactory
+     * @param Config $aeoConfig
      */
     public function __construct(
-        private readonly ActionFactory $actionFactory
+        private readonly ActionFactory $actionFactory,
+        private readonly Config $aeoConfig
     ) {
     }
 
@@ -53,6 +66,11 @@ class LlmsTxtRouter implements RouterInterface
         // Prevent infinite loop — if the module has already been set to ours
         // by a previous iteration, this router has already matched and forwarded.
         if ($request->getModuleName() === 'mageos-aeo') {
+            return null;
+        }
+
+        // Claim the path only while the file is enabled for the current store.
+        if (!$this->aeoConfig->{self::ENABLED_CHECKS[$path]}()) {
             return null;
         }
 
