@@ -79,6 +79,22 @@ class ProductLineBuilderTest extends TestCase
         $this->assertSame('https://schema.org/OutOfStock', $node['offers']['availability']);
     }
 
+    public function testLongDescriptionIsCutAtAWordBoundaryOnOneLine(): void
+    {
+        $long = "<p>Hand thrown\n\n   stoneware</p>" . str_repeat(' glazed mug', 40);
+        $this->product->method('__call')->willReturnCallback(
+            fn (string $m) => $m === 'getShortDescription' ? $long : null
+        );
+
+        $description = $this->builder->build($this->product, true)['description'];
+
+        $this->assertStringStartsWith('Hand thrown stoneware glazed mug', $description);
+        $this->assertStringEndsWith('…', $description);
+        $this->assertLessThanOrEqual(301, mb_strlen($description));
+        $this->assertMatchesRegularExpression('/(glazed|mug)…$/', $description, 'No split word');
+        $this->assertStringNotContainsString("\n", $description);
+    }
+
     public function testDescriptionStrippedAndTruncated(): void
     {
         $this->product->method('__call')->willReturnCallback(
