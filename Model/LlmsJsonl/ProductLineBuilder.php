@@ -92,9 +92,10 @@ class ProductLineBuilder
         } catch (\Exception) { // phpcs:ignore Magento2.CodeAnalysis.EmptyBlock.DetectedCatch -- fall back to 0
             $value = 0.0;
         }
-        // PriceInfo amounts are base currency; convert so the amount matches the
-        // display currency code emitted with it.
-        return number_format($this->currencyService->convertFromBase((float) $value), 2, '.', '');
+        // PriceInfo amounts are already in the current (display) currency — core
+        // RegularPrice / SpecialPrice::getValue() convert with PriceCurrency — which is
+        // the priceCurrency emitted with them. Converting again would apply the rate twice.
+        return number_format((float) $value, 2, '.', '');
     }
 
     /**
