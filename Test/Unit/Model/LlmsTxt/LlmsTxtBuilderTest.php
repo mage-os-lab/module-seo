@@ -16,6 +16,7 @@ use MageOS\Seo\Api\OrganizationRepositoryInterface;
 use MageOS\Seo\Model\Config;
 use MageOS\Seo\Model\LlmsTxt\LlmsTxtBuilder;
 use MageOS\Seo\Model\LlmsTxt\SectionProviderInterface;
+use MageOS\Seo\Model\LlmsTxt\SitemapUrlResolver;
 use MageOS\Seo\Model\Organization\ContactEmail;
 use MageOS\Seo\Model\Product\SchemaBuilderPool;
 use PHPUnit\Framework\Attributes\Group;
@@ -70,6 +71,8 @@ class LlmsTxtBuilderTest extends TestCase
      * @var StoreManagerInterface&MockObject
      */
     private StoreManagerInterface&MockObject $storeManager;
+
+    private ?string $sitemapUrl = 'https://shop.test/media/sitemap.xml';
 
     protected function setUp(): void
     {
@@ -218,6 +221,27 @@ class LlmsTxtBuilderTest extends TestCase
         $this->assertLlmsTxtFormat($document);
     }
 
+    public function testSitemapLinkUsesTheConfiguredSitemap(): void
+    {
+        $document = $this->builder()->buildConcise();
+
+        $this->assertStringContainsString(
+            '- [Sitemap](https://shop.test/media/sitemap.xml): XML sitemap of indexable pages',
+            $document
+        );
+        $this->assertStringNotContainsString('https://shop.test/sitemap.xml', $document);
+    }
+
+    public function testNoSitemapLinkWithoutAGeneratedSitemap(): void
+    {
+        $this->sitemapUrl = null;
+
+        $document = $this->builder()->buildConcise();
+
+        $this->assertStringNotContainsString('[Sitemap]', $document);
+        $this->assertLlmsTxtFormat($document);
+    }
+
     /**
      * @param SectionProviderInterface[] $providers
      * @return LlmsTxtBuilder
@@ -230,6 +254,8 @@ class LlmsTxtBuilderTest extends TestCase
         $seoConfig->method('getLocaleCode')->willReturnMap([[1, 'en_GB']]);
         $contactEmail = $this->createMock(ContactEmail::class);
         $contactEmail->method('get')->willReturn('support@shop.test');
+        $sitemapResolver = $this->createMock(SitemapUrlResolver::class);
+        $sitemapResolver->method('getUrl')->willReturn($this->sitemapUrl);
 
         return new LlmsTxtBuilder(
             $repository,
@@ -239,6 +265,7 @@ class LlmsTxtBuilderTest extends TestCase
             $this->builderPool,
             $seoConfig,
             $contactEmail,
+            $sitemapResolver,
             $providers
         );
     }

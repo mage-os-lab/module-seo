@@ -66,6 +66,9 @@ Frequently asked questions:
 - [Sitemap](https://example.com/sitemap.xml): XML sitemap of indexable pages
 ```
 
+The Sitemap link points at the sitemap configured under Marketing → Site Map, and is left
+out when the store view has none.
+
 The locale line is left out when the store view has no locale configured, the FAQ list when the
 selected groups have no questions (the first 5 are shown), and the contact line when there is none
 (see [Data sources](#data-sources)).
@@ -132,6 +135,7 @@ Both documents draw data from:
 |---|---|
 | Organisation name, description, URL, social profiles | Organisation record (store-scoped, same fallback as JSON-LD) |
 | Locale | The store view's **General → Locale Options → Locale** (`general/locale/code`) |
+| Sitemap link | Core's URL of the store view's most recently generated sitemap under **Marketing → Site Map**; left out when there is none. A new sitemap is picked up on the next rebuild (the nightly cron at the latest) |
 | Schema template list | `SchemaBuilderPool::getAvailableTemplates()` |
 | Category tree | Live `catalog_category_entity` collection, active categories only, level > 1 |
 | FAQs | The groups selected under **FAQ Groups** (see [FAQ section](#faq-section)) |

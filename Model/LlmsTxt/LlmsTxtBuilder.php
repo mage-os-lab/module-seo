@@ -77,6 +77,7 @@ class LlmsTxtBuilder
      * @param SchemaBuilderPool $builderPool
      * @param Config $seoConfig
      * @param ContactEmail $contactEmail
+     * @param SitemapUrlResolver $sitemapUrlResolver
      * @param \MageOS\Seo\Model\LlmsTxt\SectionProviderInterface[] $sectionProviders
      */
     public function __construct(
@@ -87,6 +88,7 @@ class LlmsTxtBuilder
         private readonly SchemaBuilderPool               $builderPool,
         private readonly Config                          $seoConfig,
         private readonly ContactEmail                    $contactEmail,
+        private readonly SitemapUrlResolver              $sitemapUrlResolver,
         private readonly array                           $sectionProviders = []
     ) {
     }
@@ -159,12 +161,13 @@ class LlmsTxtBuilder
             $blocks[] = $details;
         }
 
-        $keyUrls = [
-            '## Key URLs',
-            '',
-            "- [Home]({$baseUrl}/): Store front page",
-            "- [Sitemap]({$baseUrl}/sitemap.xml): XML sitemap of indexable pages",
-        ];
+        $keyUrls = ['## Key URLs', '', "- [Home]({$baseUrl}/): Store front page"];
+        // The configured sitemap location (Marketing → Site Map), not a guessed /sitemap.xml.
+        $sitemapUrl = $this->sitemapUrlResolver->getUrl($store);
+        if ($sitemapUrl !== null) {
+            $keyUrls[] = '- [Sitemap](' . strtr($sitemapUrl, self::URL_REPLACEMENTS) . ')'
+                . ': XML sitemap of indexable pages';
+        }
         $blocks[] = implode("\n", $keyUrls);
 
         if ($full) {
