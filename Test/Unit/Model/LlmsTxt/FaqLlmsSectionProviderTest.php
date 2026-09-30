@@ -44,10 +44,44 @@ class FaqLlmsSectionProviderTest extends TestCase
 
         $section = $this->provider(['global'])->getFullSection();
 
-        $this->assertStringContainsString('## Frequently Asked Questions', $section);
-        $this->assertStringContainsString('**Q1**', $section);
-        $this->assertStringContainsString('A1', $section);
-        $this->assertStringContainsString('**Q2**', $section);
+        $this->assertStringContainsString('- **Q1** A1', $section);
+        $this->assertStringContainsString('- **Q2** A2', $section);
+    }
+
+    public function testSectionHasNoHeadingSoItLandsBeforeTheFirstH2(): void
+    {
+        $this->sourcePool->method('getFaqs')->willReturnMap([
+            ['global', 1, [['question' => 'Q1', 'answer' => 'A1']]],
+        ]);
+
+        $section = $this->provider(['global'])->getFullSection();
+
+        $this->assertDoesNotMatchRegularExpression('/^#/m', $section);
+        $this->assertStringStartsWith('Frequently asked questions:', $section);
+    }
+
+    public function testHtmlAndLineBreaksAreReducedToOneLine(): void
+    {
+        $this->sourcePool->method('getFaqs')->willReturnMap([
+            ['global', 1, [[
+                'question' => "Do you ship\nabroad?",
+                'answer'   => "<p>Yes.</p>\n<p>We ship to the EU &amp; the UK.</p>",
+            ]]],
+        ]);
+
+        $section = $this->provider(['global'])->getFullSection();
+
+        $this->assertStringContainsString('- **Do you ship abroad?** Yes. We ship to the EU & the UK.', $section);
+        $this->assertCount(3, explode("\n", $section));
+    }
+
+    public function testAsterisksInQuestionsAreEscaped(): void
+    {
+        $this->sourcePool->method('getFaqs')->willReturnMap([
+            ['global', 1, [['question' => 'What is 2*3?', 'answer' => '6']]],
+        ]);
+
+        $this->assertStringContainsString('- **What is 2\\*3?** 6', $this->provider(['global'])->getFullSection());
     }
 
     public function testConciseSectionLimitsToFiveEntries(): void
