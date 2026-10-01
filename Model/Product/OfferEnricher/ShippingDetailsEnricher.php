@@ -11,14 +11,19 @@ use MageOS\Seo\Api\OfferEnricherInterface;
 use MageOS\Seo\Service\CurrencyService;
 
 /**
- * Adds an OfferShippingDetails node (single domestic zone) to the Offer from store configuration.
+ * Adds an OfferShippingDetails node (one rate and delivery time) to the Offer from store configuration.
  *
  * Drives the "Free shipping" / "Arrives in N days" Shopping signals. Opt-in; emits nothing unless
  * enabled. Currency follows the current store display currency.
+ *
+ * Destinations: one DefinedRegion per chosen country. Worldwide shipping gives none: "If no
+ * shipping destination is specified, the shipping conditions are applicable to all shipping
+ * destinations worldwide" (Google's shipping-policy reference).
  */
 class ShippingDetailsEnricher implements OfferEnricherInterface
 {
     private const XML_ENABLED       = 'mageos_seo_merchant/shipping/enabled';
+    private const XML_WORLDWIDE     = 'mageos_seo_merchant/shipping/worldwide';
     private const XML_LABEL         = 'mageos_seo_merchant/shipping/label';
     private const XML_COUNTRY       = 'mageos_seo_merchant/shipping/destination_country';
     private const XML_RATE          = 'mageos_seo_merchant/shipping/rate';
@@ -30,10 +35,12 @@ class ShippingDetailsEnricher implements OfferEnricherInterface
     /**
      * @param ScopeConfigInterface $scopeConfig
      * @param CurrencyService $currencyService
+     * @param CountryList $countryList
      */
     public function __construct(
         private readonly ScopeConfigInterface $scopeConfig,
-        private readonly CurrencyService      $currencyService
+        private readonly CurrencyService      $currencyService,
+        private readonly CountryList          $countryList
     ) {
     }
 
@@ -60,12 +67,10 @@ class ShippingDetailsEnricher implements OfferEnricherInterface
             $shipping['shippingLabel'] = $label;
         }
 
-        $country = $this->value(self::XML_COUNTRY, $storeId);
-        if ($country !== '') {
-            $shipping['shippingDestination'] = [
-                '@type'          => 'DefinedRegion',
-                'addressCountry' => $country,
-            ];
+        $regions = $this->destinations($storeId);
+        if ($regions !== []) {
+            // One region as an object, as before; several as an array.
+            $shipping['shippingDestination'] = \count($regions) === 1 ? $regions[0] : $regions;
         }
 
         $deliveryTime = $this->buildDeliveryTime($storeId);
@@ -82,6 +87,26 @@ class ShippingDetailsEnricher implements OfferEnricherInterface
     public function getSortOrder(): int
     {
         return 100;
+    }
+
+    /**
+     * One DefinedRegion per chosen country; none when shipping is worldwide.
+     *
+     * Worldwide ignores countries still stored from before it was set.
+     *
+     * @param int $storeId
+     * @return array<int, array{'@type': string, addressCountry: string}>
+     */
+    private function destinations(int $storeId): array
+    {
+        if ($this->scopeConfig->isSetFlag(self::XML_WORLDWIDE, ScopeInterface::SCOPE_STORE, $storeId)) {
+            return [];
+        }
+
+        return array_map(
+            static fn (string $country): array => ['@type' => 'DefinedRegion', 'addressCountry' => $country],
+            $this->countryList->fromConfig($this->value(self::XML_COUNTRY, $storeId))
+        );
     }
 
     /**

@@ -15,10 +15,20 @@ use MageOS\Seo\Api\OfferEnricherInterface;
  * Required for Google Merchant free-listing eligibility and the "30-day returns" badge. Emits
  * nothing unless explicitly enabled, and omits individual fields that are not configured so a
  * partially-configured store still produces valid schema.
+ *
+ * Countries: Google reads up to 50 as `applicableCountry`, and has no value for every country. A
+ * worldwide policy lists none, and the policy page link (`merchantReturnLink`) is what Google reads
+ * instead.
  */
 class ReturnPolicyEnricher implements OfferEnricherInterface
 {
+    /**
+     * The most countries Google reads in applicableCountry ("You can specify up to 50 countries").
+     */
+    public const MAX_COUNTRIES = 50;
+
     private const XML_ENABLED         = 'mageos_seo_merchant/return/enabled';
+    private const XML_WORLDWIDE       = 'mageos_seo_merchant/return/worldwide';
     private const XML_COUNTRY         = 'mageos_seo_merchant/return/applicable_country';
     private const XML_POLICY_CATEGORY = 'mageos_seo_merchant/return/policy_category';
     private const XML_DAYS            = 'mageos_seo_merchant/return/days';
@@ -31,9 +41,11 @@ class ReturnPolicyEnricher implements OfferEnricherInterface
 
     /**
      * @param ScopeConfigInterface $scopeConfig
+     * @param CountryList $countryList
      */
     public function __construct(
-        private readonly ScopeConfigInterface $scopeConfig
+        private readonly ScopeConfigInterface $scopeConfig,
+        private readonly CountryList          $countryList
     ) {
     }
 
@@ -48,9 +60,10 @@ class ReturnPolicyEnricher implements OfferEnricherInterface
 
         $policy = ['@type' => 'MerchantReturnPolicy'];
 
-        $country = $this->value(self::XML_COUNTRY, $storeId);
-        if ($country !== '') {
-            $policy['applicableCountry'] = $country;
+        $countries = $this->countries($storeId);
+        if ($countries !== []) {
+            // One country as a value, as in Google's examples; several as an array.
+            $policy['applicableCountry'] = \count($countries) === 1 ? $countries[0] : $countries;
         }
 
         $category = $this->value(self::XML_POLICY_CATEGORY, $storeId);
@@ -91,6 +104,28 @@ class ReturnPolicyEnricher implements OfferEnricherInterface
     public function getSortOrder(): int
     {
         return 100;
+    }
+
+    /**
+     * The countries to list: none when the policy applies worldwide, otherwise the first 50 chosen.
+     *
+     * A worldwide policy ignores countries still stored from before it was set. Above 50, the save
+     * told the admin that only the first 50 in the list are output (Config\Backend\ReturnCountries).
+     *
+     * @param int $storeId
+     * @return string[]
+     */
+    private function countries(int $storeId): array
+    {
+        if ($this->scopeConfig->isSetFlag(self::XML_WORLDWIDE, ScopeInterface::SCOPE_STORE, $storeId)) {
+            return [];
+        }
+
+        return \array_slice(
+            $this->countryList->fromConfig($this->value(self::XML_COUNTRY, $storeId)),
+            0,
+            self::MAX_COUNTRIES
+        );
     }
 
     /**

@@ -180,6 +180,26 @@ become public contract.
   given and the storefront quietly built GenericProduct instead. It is now a select of the
   registered templates, GenericProduct first, so a stored code no template has is shown as
   GenericProduct, the template the storefront uses for it. Stored values are unchanged.
+- The return policy's **Applicable Country** and the shipping details' **Destination Country**
+  were one typed ISO code each. They reached the structured data as entered, so `gb`, `UK` or
+  `England` went to Google, and a shop selling to several countries could name only one.
+  - Both are now **Applicable Countries** and **Destination Countries**: multiselects of Magento's
+    country list, as core's Allow Countries is. One country is output as before; several are output
+    as a list (`"applicableCountry": ["DE", "AT", "CH"]`, and one `DefinedRegion` each in
+    `shippingDestination`).
+  - **Applies Worldwide** and **Ships Worldwide** hide the countries.
+    - Worldwide shipping gives no `shippingDestination`, which Google reads as every country.
+    - Google has no worldwide value for returns, so a worldwide return policy lists no countries.
+      Its Returns Policy URL (`merchantReturnLink`) is what Google reads instead.
+  - Google reads at most 50 return countries. A larger selection is saved, the admin is told on
+    save, and the first 50 in the list are output.
+  - A stored code the list doesn't have isn't selected, and saving the section clears it, so check
+    the countries after upgrading.
+- security.txt's **Expires** was a typed timestamp, written out as entered, and could be left
+  empty, although RFC 9116 requires it. It is now a calendar date. While security.txt is served,
+  the date is required and must be after today. It is served as the end of that day, UTC
+  (`2027-01-01T23:59:59Z`). Check it after upgrading: a timestamp saved before shows as its date,
+  and is stored as one when the section is saved.
 - Saving or deleting a FAQ or the Organisation anywhere but the admin form — the REST API, an
   import, a data patch — left `/llms.txt` and `/llms-full.txt` stale until the nightly rebuild:
   only the admin controllers asked for a rebuild. The models now dispatch their own events
