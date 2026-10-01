@@ -53,8 +53,39 @@ class LlmsTxtOutputTest extends TestCase
     {
         [$concise, $full] = $this->build();
 
-        $this->assertStringContainsString("> Locale: en_GB\n", $concise);
-        $this->assertStringContainsString("> Locale: en_GB\n", $full);
+        $this->assertStringContainsString("\n- Locale: en_GB\n", $concise);
+        $this->assertStringContainsString("\n- Locale: en_GB\n", $full);
+    }
+
+    /**
+     * The served /llms.txt passes Lighthouse's llms-txt checks (an H1, a markdown link, at least
+     * 50 characters), and every line under an H2 is a "- [name](url)" item, as the llms.txt
+     * format and its reference parser require.
+     *
+     * @return void
+     */
+    public function testTheConciseDocumentFollowsTheLlmsTxtFormat(): void
+    {
+        [$concise] = $this->build();
+
+        $this->assertMatchesRegularExpression('/^\s*#\s+.+/m', $concise);
+        $this->assertMatchesRegularExpression('/\[.+\]\(.+\)/', $concise);
+        $this->assertGreaterThanOrEqual(50, \strlen($concise));
+
+        $underH2 = false;
+        foreach (explode("\n", $concise) as $line) {
+            if (str_starts_with($line, '## ')) {
+                $underH2 = true;
+                continue;
+            }
+            if ($underH2 && trim($line) !== '') {
+                $this->assertMatchesRegularExpression(
+                    '/^\s*-\s*\[[^\]]+\]\([^)\s]+\)(?::\s*.*)?$/',
+                    $line,
+                    'Only "- [name](url)" items may follow an H2.'
+                );
+            }
+        }
     }
 
     /**
@@ -69,8 +100,8 @@ class LlmsTxtOutputTest extends TestCase
 
         [$concise, $full] = $this->build();
 
-        $this->assertStringContainsString("## AI Contact\nai@shop.test\n", $concise);
-        $this->assertStringContainsString('Preferred contact for automated queries: ai@shop.test', $full);
+        $this->assertStringContainsString("- Contact for automated queries: <ai@shop.test>\n", $concise);
+        $this->assertStringContainsString("- Contact for automated queries: <ai@shop.test>\n", $full);
         $this->assertStringNotContainsString('help@shop.test', $concise . $full);
     }
 
@@ -84,8 +115,8 @@ class LlmsTxtOutputTest extends TestCase
     {
         [$concise, $full] = $this->build();
 
-        $this->assertStringContainsString("## AI Contact\nhelp@shop.test\n", $concise);
-        $this->assertStringContainsString('Preferred contact for automated queries: help@shop.test', $full);
+        $this->assertStringContainsString("- Contact for automated queries: <help@shop.test>\n", $concise);
+        $this->assertStringContainsString("- Contact for automated queries: <help@shop.test>\n", $full);
     }
 
     /**
@@ -97,7 +128,7 @@ class LlmsTxtOutputTest extends TestCase
     {
         [$concise, $full] = $this->build();
 
-        $this->assertStringNotContainsString('## AI Contact', $concise . $full);
+        $this->assertStringNotContainsString('Contact for automated queries', $concise . $full);
         $this->assertStringNotContainsString('support@example.com', $concise . $full);
     }
 
@@ -114,8 +145,8 @@ class LlmsTxtOutputTest extends TestCase
         [$concise, $full] = $this->build();
 
         foreach ([$concise, $full] as $document) {
-            $this->assertStringContainsString("## Frequently Asked Questions\n", $document);
-            $this->assertStringContainsString('**Do you ship worldwide?**', $document);
+            $this->assertStringContainsString("Frequently asked questions:\n", $document);
+            $this->assertStringContainsString('- **Do you ship worldwide?** ', $document);
             $this->assertStringNotContainsString('How long does delivery take?', $document);
         }
     }
@@ -154,7 +185,7 @@ class LlmsTxtOutputTest extends TestCase
 
         [$concise, $full] = $this->build();
 
-        $this->assertStringNotContainsString('## Frequently Asked Questions', $concise . $full);
+        $this->assertStringNotContainsString('Frequently asked questions:', $concise . $full);
     }
 
     /**
