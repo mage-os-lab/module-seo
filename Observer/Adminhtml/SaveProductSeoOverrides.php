@@ -9,7 +9,7 @@ use Magento\Framework\App\RequestInterface;
 use Magento\Framework\Event\Observer;
 use Magento\Framework\Event\ObserverInterface;
 use Magento\Framework\Message\ManagerInterface;
-use MageOS\Seo\Model\Category\ProductOverrideRepository;
+use MageOS\Seo\Model\Product\OverrideRepository;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -30,13 +30,13 @@ class SaveProductSeoOverrides implements ObserverInterface
 {
     /**
      * @param RequestInterface $request
-     * @param ProductOverrideRepository $productOverrideRepository
+     * @param OverrideRepository $productOverrideRepository
      * @param ManagerInterface $messageManager
      * @param LoggerInterface $logger
      */
     public function __construct(
         private readonly RequestInterface          $request,
-        private readonly ProductOverrideRepository $productOverrideRepository,
+        private readonly OverrideRepository $productOverrideRepository,
         private readonly ManagerInterface          $messageManager,
         private readonly LoggerInterface           $logger
     ) {

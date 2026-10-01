@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace MageOS\Seo\Model\Category;
+namespace MageOS\Seo\Model\Product;
 
 use Magento\Framework\Data\Collection as DataCollection;
 use Magento\Framework\ObjectManager\ResetAfterRequestInterface;
@@ -10,7 +10,10 @@ use MageOS\Seo\Model\ProductOverride;
 use MageOS\Seo\Model\ResourceModel\ProductOverride as ProductOverrideResource;
 use MageOS\Seo\Model\ResourceModel\ProductOverride\CollectionFactory;
 
-class ProductOverrideRepository implements ResetAfterRequestInterface
+/**
+ * Reads, merges and saves a product's SEO overrides and robots directive per store view.
+ */
+class OverrideRepository implements ResetAfterRequestInterface
 {
     /** @var array<string, mixed[]> */
     private array $cache = [];

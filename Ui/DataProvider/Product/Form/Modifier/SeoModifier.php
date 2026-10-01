@@ -11,8 +11,8 @@ use Magento\Ui\Component\Form\Element\Textarea;
 use Magento\Ui\Component\Form\Field;
 use Magento\Ui\Component\Form\Fieldset;
 use Magento\Ui\DataProvider\Modifier\ModifierInterface;
-use MageOS\Seo\Model\Category\ProductOverrideRepository;
 use MageOS\Seo\Model\Config\Source\RobotsMeta\ProductOverride as ProductRobotsMeta;
+use MageOS\Seo\Model\Product\OverrideRepository;
 
 class SeoModifier implements ModifierInterface
 {
@@ -29,12 +29,12 @@ class SeoModifier implements ModifierInterface
 
     /**
      * @param RequestInterface $request
-     * @param ProductOverrideRepository $productOverrideRepository
+     * @param OverrideRepository $productOverrideRepository
      * @param ProductRobotsMeta $robotsMetaSource
      */
     public function __construct(
         private readonly RequestInterface          $request,
-        private readonly ProductOverrideRepository $productOverrideRepository,
+        private readonly OverrideRepository $productOverrideRepository,
         private readonly ProductRobotsMeta         $robotsMetaSource
     ) {
     }

@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace MageOS\Seo\Model\Category;
 
 use Magento\Framework\ObjectManager\ResetAfterRequestInterface;
-use MageOS\Seo\Model\CategoryConfig;
 use MageOS\Seo\Model\Category\Inheritance\OrderPool;
+use MageOS\Seo\Model\CategoryConfig;
 use MageOS\Seo\Model\Config as SeoConfig;
 use MageOS\Seo\Model\ResourceModel\CategoryConfig as CategoryConfigResource;
 use MageOS\Seo\Model\ResourceModel\CategoryConfig\CollectionFactory;
@@ -43,6 +43,9 @@ class ConfigRepository implements ResetAfterRequestInterface
      * template if the category itself has none. Ancestor lookup also respects
      * $storeId, and the whole path is read in one query.
      *
+     * `enabled_fields` and `override_fields` come back decoded, as arrays. A category with no
+     * configuration anywhere on its path is an empty array.
+     *
      * @param int $categoryId
      * @param string[] $categoryPath Array of ancestor IDs from root to leaf (e.g. ['1','2','3','14'])
      * @param int $storeId Store view ID (0 = global default)
@@ -70,7 +73,10 @@ class ConfigRepository implements ResetAfterRequestInterface
             $sources[] = $rows[$source['category_id']][$source['store_id']] ?? [];
         }
 
+        // Decoded after resolving, so inheritance still sees the stored values; an empty row stays
+        // empty, which callers read as "nothing configured".
         $row = $this->resolver->resolve($sources);
+        $row = $row === [] ? [] : $this->decode($row);
 
         $this->cache[$cacheKey] = $row;
         return $row;
@@ -174,7 +180,7 @@ class ConfigRepository implements ResetAfterRequestInterface
      * @param mixed[] $row
      * @return mixed[]
      */
-    public function decode(array $row): array
+    private function decode(array $row): array
     {
         if (!empty($row['enabled_fields'])) {
             $decoded = json_decode((string) $row['enabled_fields'], true);

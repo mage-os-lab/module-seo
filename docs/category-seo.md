@@ -18,15 +18,17 @@ The tab is injected into the standard category edit form at the bottom of the ta
 
 Which of the 16 product schema templates to use for products in this category. For example, assign `Apparel` to a clothing category so that Google can read size, color, and material from your products.
 
-Leave blank to inherit from the nearest ancestor category that has a template set, or fall back to the global default template configured at **Stores → Configuration → MageOS → SEO → Default Product Schema Template**.
+Choose **Inherit (parent category, then the store's default template)** to inherit from the nearest ancestor category that has a template set, or fall back to the default template configured at **Stores → Configuration → MageOS → SEO → Structured Data → Default Product Schema Template**.
 
 See [product-schema-templates.md](product-schema-templates.md) for the full template list and what each one outputs.
 
 ### Enabled Optional Fields
 
-A multiselect of the optional schema fields available for the selected template. Only enabled fields are read from product attributes and included in the schema output. Fields left out are omitted entirely — Google marks thinly-populated fields as invalid, so it is better to enable fewer fields that are consistently populated than to enable many with gaps.
+A multiselect of the optional schema fields of the template in effect for this category. Only enabled fields are read from product attributes and included in the schema output. Fields left out are omitted entirely — Google marks thinly-populated fields as invalid, so it is better to enable fewer fields that are consistently populated than to enable many with gaps.
 
-The available options change based on which template is selected. After changing the template, save the category and reopen it to see the updated field list.
+The template in effect is the one the storefront uses for this category in the store view being edited: the category's own, else the one it inherits, else the store's default template, else Generic Product. The list is built when the form opens, so after changing the template, save the category to see the new template's fields.
+
+A field enabled under an earlier template that the current one does not offer stays stored, and is listed after the template's own fields marked **(not a field of this template)**. Clear it unless you mean to keep it: some are still read whatever the template — `gtin13`, for example, supplies each variant's GTIN when a configurable product is described as a product group.
 
 ### ItemList Schema on Category Pages
 

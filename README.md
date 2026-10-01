@@ -137,7 +137,7 @@ Without a Name and URL saved, the Organization node in JSON-LD will render with 
 
 ## Per-category & per-product SEO
 
-In the **category** edit form, an **Advanced SEO** fieldset adds: schema template, enabled optional fields, field overrides, ItemList toggle, and robots meta. Template/field settings inherit from ancestor categories when unset.
+In the **category** edit form, an **SEO (Structured Data)** fieldset adds: schema template, enabled optional fields, field overrides, ItemList toggle, and robots meta. Template/field settings inherit from ancestor categories when unset.
 
 In the **product** edit form, an **Advanced SEO** tab adds store-specific field overrides and a robots-meta override.
 
@@ -240,7 +240,7 @@ Every cross-cutting concern is a provider pool wired via `di.xml`, so another mo
 | Hreflang resolvers | `HreflangResolverInterface` | collect-all |
 | Article / Event data providers | `ArticleDataProviderInterface` / `EventDataProviderInterface` | collect-all |
 | FAQ source providers | `FaqSourceProviderInterface` | collect-all |
-| llms.txt section providers | `SectionProviderInterface` | collect-all |
+| llms.txt section providers | `LlmsTxtSectionProviderInterface` | collect-all |
 | llms.jsonl line providers | `JsonlLineProviderInterface` | collect-all |
 | Well-known endpoints | `WellKnownEndpointInterface` | by path segment |
 | Rebuild queue groups | `Api\Rebuild\GroupHandlerInterface` | by group name ([docs/extending.md](docs/extending.md#rebuilding-your-own-output-through-the-queue)) |

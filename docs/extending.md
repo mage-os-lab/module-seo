@@ -12,7 +12,7 @@ All major composition points are exposed as injectable arrays in `di.xml`. Bridg
 | New OG / meta tags on any page | `MetaTagProviderInterface` | `Model\MetaTag\Compositor` → `providers` array |
 | Custom page `<title>` provider | `PageTitleProviderInterface` | `Model\PageTitle\Compositor` → `providers` array |
 | New product schema template | `ProductSchemaBuilderInterface` | `Model\Product\SchemaBuilderPool` → `builders` array |
-| Extra content in `/llms.txt` | `SectionProviderInterface` | `Model\LlmsTxt\LlmsTxtBuilder` → `sectionProviders` array |
+| Extra content in `/llms.txt` | `LlmsTxtSectionProviderInterface` | `Model\LlmsTxt\LlmsTxtBuilder` → `sectionProviders` array |
 | Your own pre-generated output, rebuilt on change | `Api\Rebuild\GroupHandlerInterface` | `Model\Rebuild\HandlerPool` → `handlers` array |
 
 ---
@@ -272,6 +272,75 @@ the first time it is asked.
 
 For a new **type of page in the XML sitemaps**, use `Api\Sitemap\RebuildRequesterInterface`
 instead. See [sitemap.md](sitemap.md).
+
+---
+
+## Repository API
+
+Everything under `Api/` is marked `@api`: it is the module's contract, and Magento's
+backward-compatibility promise covers it and nothing else. Code outside `Api/` can change in any
+release.
+
+### Listing FAQ entries
+
+`FaqRepositoryInterface::getList()` takes Magento's standard search criteria and returns a page of
+entries with the total that matched:
+
+```php
+$criteria = $this->searchCriteriaBuilder
+    ->addFilter('identifier', 'shipping')
+    ->addFilter('is_active', 1)
+    ->setSortOrders([$this->sortOrderBuilder->setField('sort_order')->setAscendingDirection()->create()])
+    ->setPageSize(20)
+    ->setCurrentPage(1)
+    ->create();
+
+$results = $this->faqRepository->getList($criteria);
+$results->getTotalCount();   // every match, not just this page
+$results->getItems();        // \MageOS\Seo\Api\Data\FaqInterface[]
+```
+
+To show the FAQs of a group on a page, you don't need this: `FaqSourceProviderInterface` and the
+FAQ widget already do that, store view by store view. `getList()` is for your own code working with
+the entries themselves: an export, an integration, an admin tool.
+
+### Adding fields to an FAQ or the Organization
+
+`FaqInterface` and `OrganizationInterface` are extensible. Declare your field in your module's
+`etc/extension_attributes.xml`, and it appears on every model through `getExtensionAttributes()`:
+
+```xml
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:framework:Api/etc/extension_attributes.xsd">
+    <extension_attributes for="MageOS\Seo\Api\Data\FaqInterface">
+        <attribute code="helpful_votes" type="int"/>
+    </extension_attributes>
+</config>
+```
+
+```php
+$faq->getExtensionAttributes()->getHelpfulVotes();
+```
+
+`getExtensionAttributes()` never returns null: the object is created on first read. Filling and
+storing your field is your module's job, as with any extension attribute: a plugin on the
+repository, or a `<join>` in the declaration. `getList()` runs the join processor, so a joined field
+arrives filled in and can be filtered and sorted on.
+
+### Errors
+
+The repositories throw Magento's standard exceptions, so a caller can tell a missing record from a
+failed write:
+
+| Method | Throws |
+|---|---|
+| `FaqRepositoryInterface::getById()` | `NoSuchEntityException` |
+| `FaqRepositoryInterface::save()` | `CouldNotSaveException` |
+| `FaqRepositoryInterface::delete()`, `deleteById()` | `CouldNotDeleteException` (and `NoSuchEntityException` for an unknown ID) |
+| `OrganizationRepositoryInterface::save()` | `CouldNotSaveException` |
+| `OrganizationRepositoryInterface::deleteForScope()` | `CouldNotDeleteException` |
+
+The database's own error is kept as the exception's `getPrevious()`.
 
 ---
 

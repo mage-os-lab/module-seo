@@ -177,6 +177,18 @@ class SchemaBuilderPoolTest extends TestCase
         $this->assertSame([], $pool->getAvailableFields('bad'));
     }
 
+    public function testHasOnlyTemplatesWithABuilder(): void
+    {
+        $pool = new SchemaBuilderPool([
+            'Apparel' => $this->makeBuilder('Apparel', 'Clothing', []),
+            'bad'     => new \stdClass(),
+        ]);
+
+        $this->assertTrue($pool->has('Apparel'));
+        $this->assertFalse($pool->has('bad'));
+        $this->assertFalse($pool->has('UnknownTemplate'));
+    }
+
     public function testBuildPrefersExactTemplateOverGenericFallback(): void
     {
         $exactResult   = ['@type' => 'Apparel'];

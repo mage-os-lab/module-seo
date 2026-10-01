@@ -150,7 +150,7 @@ a product's sizing questions, a returns page — and llms.txt is a summary of th
 groups that answer site-wide questions.
 
 To build the section some other way, replace the `faq` section provider in your module's `di.xml`
-with your own `SectionProviderInterface` implementation (see below):
+with your own `LlmsTxtSectionProviderInterface` implementation (see below):
 
 ```xml
 <type name="MageOS\Seo\Model\LlmsTxt\LlmsTxtBuilder">
@@ -166,11 +166,11 @@ with your own `SectionProviderInterface` implementation (see below):
 
 ## Adding content from a bridge module
 
-Register a `SectionProviderInterface` implementation in your bridge module's `di.xml`:
+Register a `LlmsTxtSectionProviderInterface` implementation in your bridge module's `di.xml`:
 
 ```php
 // MyModule/Model/LlmsTxt/MySectionProvider.php
-class MySectionProvider implements \MageOS\Seo\Model\LlmsTxt\SectionProviderInterface
+class MySectionProvider implements \MageOS\Seo\Api\LlmsTxtSectionProviderInterface
 {
     public function getConciseSection(): string
     {

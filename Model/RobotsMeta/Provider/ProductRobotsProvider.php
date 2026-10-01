@@ -6,8 +6,8 @@ namespace MageOS\Seo\Model\RobotsMeta\Provider;
 
 use MageOS\Seo\Api\RobotsMetaProviderInterface;
 use MageOS\Seo\Model\Catalog\CurrentEntity;
-use MageOS\Seo\Model\Category\ProductOverrideRepository;
 use MageOS\Seo\Model\Config;
+use MageOS\Seo\Model\Product\OverrideRepository;
 
 /**
  * Robots meta for product pages: per-product override, falling back to the configured default.
@@ -19,12 +19,12 @@ class ProductRobotsProvider implements RobotsMetaProviderInterface
 {
     /**
      * @param CurrentEntity $currentEntity
-     * @param ProductOverrideRepository $productOverrideRepository
+     * @param OverrideRepository $productOverrideRepository
      * @param Config $seoConfig
      */
     public function __construct(
         private readonly CurrentEntity $currentEntity,
-        private readonly ProductOverrideRepository $productOverrideRepository,
+        private readonly OverrideRepository $productOverrideRepository,
         private readonly Config                    $seoConfig
     ) {
     }

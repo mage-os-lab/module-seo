@@ -11,6 +11,8 @@ namespace MageOS\Seo\Api;
  * wins. The native Magento reviews provider ships as a low-priority fallback; a third-party review
  * system (Yotpo, Trustpilot, Okendo, …) registers a higher-priority provider in its own di.xml to
  * take over — MageOS_Seo is never modified.
+ *
+ * @api
  */
 interface AggregateRatingProviderInterface
 {

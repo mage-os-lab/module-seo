@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace MageOS\Seo\Test\Unit\Model\Faq;
 
 use MageOS\Seo\Model\Faq;
-use MageOS\Seo\Model\Faq\Repository;
+use MageOS\Seo\Model\Faq\GroupReader;
 use MageOS\Seo\Model\ResourceModel\Faq\Collection;
 use MageOS\Seo\Model\ResourceModel\Faq\CollectionFactory;
 use PHPUnit\Framework\Attributes\Group;
@@ -19,7 +19,7 @@ use PHPUnit\Framework\TestCase;
  * @group magento-generated
  */
 #[Group('magento-generated')]
-class RepositoryTest extends TestCase
+class GroupReaderTest extends TestCase
 {
     /**
      * Rows the next collection yields, as raw table rows.
@@ -59,7 +59,7 @@ class RepositoryTest extends TestCase
 
     public function testReturnsEmptyForBlankIdentifierWithoutQuerying(): void
     {
-        $this->assertSame([], $this->repository()->getByIdentifier('', 1));
+        $this->assertSame([], $this->groupReader()->getByIdentifier('', 1));
         $this->assertSame(0, $this->created, 'A blank identifier must not reach the database.');
     }
 
@@ -75,18 +75,18 @@ class RepositoryTest extends TestCase
                 ['question' => 'Q1', 'answer' => 'A1'],
                 ['question' => 'Q2', 'answer' => 'A2'],
             ],
-            $this->repository()->getByIdentifier('shipping', 1)
+            $this->groupReader()->getByIdentifier('shipping', 1)
         );
     }
 
     public function testReturnsEmptyWhenNoRows(): void
     {
-        $this->assertSame([], $this->repository()->getByIdentifier('shipping', 1));
+        $this->assertSame([], $this->groupReader()->getByIdentifier('shipping', 1));
     }
 
     public function testQueriesTheGroupAtTheStoreViewAndTheGlobalScope(): void
     {
-        $this->repository()->getByIdentifier('shipping', 3);
+        $this->groupReader()->getByIdentifier('shipping', 3);
 
         $this->assertSame(['eq' => 'shipping'], $this->filters['identifier']);
         $this->assertSame(['in' => [0, 3]], $this->filters['store_id']);
@@ -95,18 +95,18 @@ class RepositoryTest extends TestCase
 
     public function testOrdersBySortOrderThenEntityId(): void
     {
-        $this->repository()->getByIdentifier('shipping', 1);
+        $this->groupReader()->getByIdentifier('shipping', 1);
 
         // The second key breaks ties, so a cached FAQPage node does not reorder between renders.
         $this->assertSame(['sort_order' => 'ASC', 'entity_id' => 'ASC'], $this->orders);
     }
 
     /**
-     * The repository over a collection factory that records what it was asked for.
+     * The reader over a collection factory that records what it was asked for.
      *
-     * @return Repository
+     * @return GroupReader
      */
-    private function repository(): Repository
+    private function groupReader(): GroupReader
     {
         $collectionFactory = $this->createStub(CollectionFactory::class);
         $collectionFactory->method('create')->willReturnCallback(
@@ -116,7 +116,7 @@ class RepositoryTest extends TestCase
             }
         );
 
-        return new Repository($collectionFactory);
+        return new GroupReader($collectionFactory);
     }
 
     /**

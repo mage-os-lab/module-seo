@@ -2,9 +2,16 @@
 
 declare(strict_types=1);
 
-namespace MageOS\Seo\Model\LlmsTxt;
+namespace MageOS\Seo\Api;
 
-interface SectionProviderInterface
+/**
+ * Contributes a section to /llms.txt (concise) and /llms-full.txt (full). Register an
+ * implementation in Model\LlmsTxt\LlmsTxtBuilder's `sectionProviders` argument via your own di.xml;
+ * sections appear in the order registered.
+ *
+ * @api
+ */
+interface LlmsTxtSectionProviderInterface
 {
     /**
      * Return a concise section string for /llms.txt.

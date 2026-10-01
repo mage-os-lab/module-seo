@@ -6,6 +6,12 @@ namespace MageOS\Seo\Api;
 
 use MageOS\Seo\Api\Data\OrganizationInterface;
 
+/**
+ * Reads the Organization record of a scope (exactly, or through the store view → website → default
+ * fallback), saves it, and deletes the records of scopes that go away.
+ *
+ * @api
+ */
 interface OrganizationRepositoryInterface
 {
     /**
@@ -36,6 +42,7 @@ interface OrganizationRepositoryInterface
      * Persist the Organization settings record.
      *
      * @param \MageOS\Seo\Api\Data\OrganizationInterface $organization
+     * @throws \Magento\Framework\Exception\CouldNotSaveException
      * @return \MageOS\Seo\Api\Data\OrganizationInterface
      */
     public function save(OrganizationInterface $organization): OrganizationInterface;
@@ -52,6 +59,7 @@ interface OrganizationRepositoryInterface
      * @param array<int|string> $scopeIds Website or store IDs; an empty list deletes nothing.
      *                                    Values are cast to int, so IDs read from a request or
      *                                    a model's data are accepted as they come.
+     * @throws \Magento\Framework\Exception\CouldNotDeleteException
      * @return int Number of records deleted.
      */
     public function deleteForScope(string $scope, array $scopeIds): int;

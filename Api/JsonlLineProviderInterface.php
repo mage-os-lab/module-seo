@@ -9,6 +9,8 @@ namespace MageOS\Seo\Api;
  *
  * Called once after all product lines are generated. A bridge module (e.g. a marketplace) registers
  * an implementation in the pool via its own di.xml to append vendor LocalBusiness lines, etc.
+ *
+ * @api
  */
 interface JsonlLineProviderInterface
 {

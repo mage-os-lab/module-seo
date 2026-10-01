@@ -8,6 +8,7 @@ use Magento\Catalog\Model\ResourceModel\Category\CollectionFactory as CategoryCo
 use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Store\Model\ScopeInterface;
 use Magento\Store\Model\StoreManagerInterface;
+use MageOS\Seo\Api\LlmsTxtSectionProviderInterface;
 use MageOS\Seo\Api\OrganizationRepositoryInterface;
 use MageOS\Seo\Model\Config;
 use MageOS\Seo\Model\Organization\ContactEmail;
@@ -37,7 +38,7 @@ class LlmsTxtBuilder
      * @param SchemaBuilderPool $builderPool
      * @param Config $seoConfig
      * @param ContactEmail $contactEmail
-     * @param \MageOS\Seo\Model\LlmsTxt\SectionProviderInterface[] $sectionProviders
+     * @param \MageOS\Seo\Api\LlmsTxtSectionProviderInterface[] $sectionProviders
      */
     public function __construct(
         private readonly OrganizationRepositoryInterface $organizationRepository,
@@ -94,7 +95,7 @@ class LlmsTxtBuilder
 
         // Section providers (concise mode)
         foreach ($this->sectionProviders as $provider) {
-            if ($provider instanceof SectionProviderInterface) {
+            if ($provider instanceof LlmsTxtSectionProviderInterface) {
                 $section = $provider->getConciseSection();
                 if ($section !== '') {
                     $lines[] = $section;
@@ -185,7 +186,7 @@ class LlmsTxtBuilder
 
         // Section providers (full mode — vendors, etc.)
         foreach ($this->sectionProviders as $provider) {
-            if ($provider instanceof SectionProviderInterface) {
+            if ($provider instanceof LlmsTxtSectionProviderInterface) {
                 $section = $provider->getFullSection();
                 if ($section !== '') {
                     $lines[] = $section;

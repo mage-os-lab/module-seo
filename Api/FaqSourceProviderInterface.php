@@ -10,6 +10,8 @@ namespace MageOS\Seo\Api;
  * Sources form a collect-all pool so FAQs can come from the module's own table, from product
  * attributes, or from a third-party FAQ extension. A bridge registers its source in the pool via
  * its own di.xml — MageOS_Seo is never modified.
+ *
+ * @api
  */
 interface FaqSourceProviderInterface
 {

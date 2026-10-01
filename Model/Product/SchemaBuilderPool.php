@@ -86,4 +86,15 @@ class SchemaBuilderPool
         }
         return [];
     }
+
+    /**
+     * Whether a builder is registered for a template code.
+     *
+     * @param string $templateCode
+     * @return bool
+     */
+    public function has(string $templateCode): bool
+    {
+        return ($this->builders[$templateCode] ?? null) instanceof ProductSchemaBuilderInterface;
+    }
 }

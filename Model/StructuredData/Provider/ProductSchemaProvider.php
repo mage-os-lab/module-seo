@@ -9,10 +9,10 @@ use MageOS\Seo\Api\StructuredDataProviderInterface;
 use MageOS\Seo\Model\Catalog\CurrentEntity;
 use MageOS\Seo\Model\Category\ConfigRepository as CategoryConfigRepository;
 use MageOS\Seo\Model\Category\PathResolver as CategoryPathResolver;
-use MageOS\Seo\Model\Category\ProductOverrideRepository;
-use MageOS\Seo\Model\Config;
+use MageOS\Seo\Model\Product\OverrideRepository;
 use MageOS\Seo\Model\Product\SchemaBuilderPool;
 use MageOS\Seo\Model\Product\SchemaRegistry;
+use MageOS\Seo\Model\Product\SchemaTemplateResolver;
 use MageOS\Seo\Model\Product\Variant\ProductGroupBuilder;
 
 class ProductSchemaProvider implements StructuredDataProviderInterface
@@ -22,9 +22,9 @@ class ProductSchemaProvider implements StructuredDataProviderInterface
      * @param SchemaBuilderPool $builderPool
      * @param SchemaRegistry $schemaRegistry
      * @param CategoryConfigRepository $categoryConfigRepository
-     * @param ProductOverrideRepository $productOverrideRepository
+     * @param OverrideRepository $productOverrideRepository
      * @param StoreManagerInterface $storeManager
-     * @param Config $seoConfig
+     * @param SchemaTemplateResolver $templateResolver
      * @param CategoryPathResolver $categoryPathResolver
      * @param ProductGroupBuilder $productGroupBuilder
      */
@@ -33,9 +33,9 @@ class ProductSchemaProvider implements StructuredDataProviderInterface
         private readonly SchemaBuilderPool         $builderPool,
         private readonly SchemaRegistry            $schemaRegistry,
         private readonly CategoryConfigRepository  $categoryConfigRepository,
-        private readonly ProductOverrideRepository $productOverrideRepository,
+        private readonly OverrideRepository $productOverrideRepository,
         private readonly StoreManagerInterface     $storeManager,
-        private readonly Config                    $seoConfig,
+        private readonly SchemaTemplateResolver    $templateResolver,
         private readonly CategoryPathResolver      $categoryPathResolver,
         private readonly ProductGroupBuilder       $productGroupBuilder
     ) {
@@ -71,15 +71,8 @@ class ProductSchemaProvider implements StructuredDataProviderInterface
             $this->categoryPathResolver->forCategoryId($categoryId, $storeId),
             $storeId
         );
-        $categoryRow  = $this->categoryConfigRepository->decode($categoryRow);
 
-        $templateCode  = $categoryRow['schema_template'] ?? '';
-        if ($templateCode === '') {
-            $templateCode = $this->seoConfig->getDefaultProductTemplate($storeId);
-        }
-        if ($templateCode === '') {
-            $templateCode = 'GenericProduct';
-        }
+        $templateCode = $this->templateResolver->resolve((string) ($categoryRow['schema_template'] ?? ''), $storeId);
 
         $enabledFields   = $categoryRow['enabled_fields'] ?? [];
         $categoryOverrides = $categoryRow['override_fields'] ?? [];

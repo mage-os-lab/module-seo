@@ -10,6 +10,8 @@ namespace MageOS\Seo\Api;
  * The Seo module defines the contract and the schema provider; a bridge module for whatever blog
  * extension is installed implements this interface and registers it in the ArticleSchemaProvider
  * pool via its own di.xml. MageOS_Seo is never modified.
+ *
+ * @api
  */
 interface ArticleDataProviderInterface
 {

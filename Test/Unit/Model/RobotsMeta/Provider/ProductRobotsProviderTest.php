@@ -6,8 +6,8 @@ namespace MageOS\Seo\Test\Unit\Model\RobotsMeta\Provider;
 
 use Magento\Catalog\Api\Data\ProductInterface;
 use MageOS\Seo\Model\Catalog\CurrentEntity;
-use MageOS\Seo\Model\Category\ProductOverrideRepository;
 use MageOS\Seo\Model\Config;
+use MageOS\Seo\Model\Product\OverrideRepository;
 use MageOS\Seo\Model\RobotsMeta\Provider\ProductRobotsProvider;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
@@ -20,9 +20,9 @@ class ProductRobotsProviderTest extends TestCase
     private CurrentEntity&MockObject $currentEntity;
 
     /**
-     * @var ProductOverrideRepository&MockObject
+     * @var OverrideRepository&MockObject
      */
-    private ProductOverrideRepository&MockObject $overrideRepository;
+    private OverrideRepository&MockObject $overrideRepository;
 
     /**
      * @var Config&MockObject
@@ -37,7 +37,7 @@ class ProductRobotsProviderTest extends TestCase
     protected function setUp(): void
     {
         $this->currentEntity           = $this->createMock(CurrentEntity::class);
-        $this->overrideRepository = $this->createMock(ProductOverrideRepository::class);
+        $this->overrideRepository = $this->createMock(OverrideRepository::class);
         $this->config             = $this->createMock(Config::class);
         $this->provider           = new ProductRobotsProvider(
             $this->currentEntity,

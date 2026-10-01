@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace MageOS\Seo\Test\Integration\Model\Category;
+namespace MageOS\Seo\Test\Integration\Model\Product;
 
 use Magento\Catalog\Test\Fixture\Product as ProductFixture;
 use Magento\Store\Test\Fixture\Store as StoreFixture;
 use Magento\TestFramework\Fixture\DataFixture;
 use Magento\TestFramework\Fixture\DataFixtureStorageManager;
 use Magento\TestFramework\Helper\Bootstrap;
-use MageOS\Seo\Model\Category\ProductOverrideRepository;
+use MageOS\Seo\Model\Product\OverrideRepository;
 use MageOS\Seo\Model\ResourceModel\ProductOverride\CollectionFactory;
 use PHPUnit\Framework\TestCase;
 
@@ -19,7 +19,7 @@ use PHPUnit\Framework\TestCase;
  * @magentoAppArea adminhtml
  * @magentoDbIsolation disabled
  */
-class ProductOverrideRepositoryTest extends TestCase
+class OverrideRepositoryTest extends TestCase
 {
     /**
      * Product IDs whose overrides this test wrote.
@@ -180,11 +180,11 @@ class ProductOverrideRepositoryTest extends TestCase
     /**
      * A repository with an empty read cache.
      *
-     * @return ProductOverrideRepository
+     * @return OverrideRepository
      */
-    private function repository(): ProductOverrideRepository
+    private function repository(): OverrideRepository
     {
-        return Bootstrap::getObjectManager()->create(ProductOverrideRepository::class);
+        return Bootstrap::getObjectManager()->create(OverrideRepository::class);
     }
 
     /**

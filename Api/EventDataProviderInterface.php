@@ -9,6 +9,8 @@ namespace MageOS\Seo\Api;
  *
  * The Seo module defines the contract and the schema provider; a bridge events module implements
  * this interface and registers it in the EventSchemaProvider pool via its own di.xml.
+ *
+ * @api
  */
 interface EventDataProviderInterface
 {

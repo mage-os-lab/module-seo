@@ -23,8 +23,8 @@ use Magento\TestFramework\Fixture\DataFixture;
 use Magento\TestFramework\Fixture\DataFixtureStorageManager;
 use Magento\TestFramework\TestCase\AbstractBackendController;
 use MageOS\Seo\Model\Category\ConfigRepository;
-use MageOS\Seo\Model\Category\ProductOverrideRepository;
 use MageOS\Seo\Model\Cms\ConfigRepository as CmsConfigRepository;
+use MageOS\Seo\Model\Product\OverrideRepository;
 
 /**
  * Round trip of the category "SEO (Structured Data)", product "Advanced SEO" and CMS page
@@ -202,7 +202,7 @@ class SeoFieldsetPersistenceTest extends AbstractBackendController
     {
         $productId = $this->fixtureId('product');
         $this->productIds[] = $productId;
-        $this->_objectManager->get(ProductOverrideRepository::class)->save($productId, 0, [
+        $this->_objectManager->get(OverrideRepository::class)->save($productId, 0, [
             'override_fields' => ['color' => 'Midnight Blue'],
             'robots_meta'     => 'NOINDEX,FOLLOW',
         ]);
@@ -822,17 +822,26 @@ class SeoFieldsetPersistenceTest extends AbstractBackendController
                 ->where('store_id = ?', $storeId)
         );
 
-        return \is_array($row) ? $this->_objectManager->get(ConfigRepository::class)->decode($row) : [];
+        if (!\is_array($row)) {
+            return [];
+        }
+        // The raw row, as stored: decoded here, since the repository only decodes what it resolves.
+        foreach (['enabled_fields', 'override_fields'] as $field) {
+            $decoded     = json_decode((string) ($row[$field] ?? ''), true);
+            $row[$field] = \is_array($decoded) ? $decoded : [];
+        }
+
+        return $row;
     }
 
     /**
      * A product override repository without memoised rows from earlier reads.
      *
-     * @return ProductOverrideRepository
+     * @return OverrideRepository
      */
-    private function freshProductOverrides(): ProductOverrideRepository
+    private function freshProductOverrides(): OverrideRepository
     {
-        return $this->_objectManager->create(ProductOverrideRepository::class);
+        return $this->_objectManager->create(OverrideRepository::class);
     }
 
     /**

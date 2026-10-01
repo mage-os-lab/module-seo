@@ -10,6 +10,8 @@ namespace MageOS\Seo\Api;
  * Implementations are registered in the well-known endpoint pool (etc/di.xml) keyed by their
  * path segment. A separate module can serve a new /.well-known/* document by adding its own
  * implementation to the pool via its di.xml — MageOS_Seo never needs editing.
+ *
+ * @api
  */
 interface WellKnownEndpointInterface
 {

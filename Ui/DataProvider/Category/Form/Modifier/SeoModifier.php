@@ -15,23 +15,29 @@ use Magento\Ui\Component\Form\Fieldset;
 use Magento\Ui\DataProvider\Modifier\ModifierInterface;
 use MageOS\Seo\Model\Category\ConfigRepository;
 use MageOS\Seo\Model\Config\Source\RobotsMeta\CategoryOverride as CategoryRobotsMeta;
-use MageOS\Seo\Model\Config\Source\SchemaTemplate;
+use MageOS\Seo\Model\Config\Source\SchemaTemplate\CategoryOverride as CategorySchemaTemplate;
+use MageOS\Seo\Model\Product\SchemaBuilderPool;
+use MageOS\Seo\Model\Product\SchemaTemplateResolver;
 
 class SeoModifier implements ModifierInterface
 {
     /**
      * @param RequestInterface $request
      * @param ConfigRepository $categoryConfigRepository
-     * @param SchemaTemplate $schemaTemplateSource
+     * @param CategorySchemaTemplate $schemaTemplateSource
      * @param CategoryRobotsMeta $robotsMetaSource
      * @param CategoryRepositoryInterface $categoryRepository
+     * @param SchemaTemplateResolver $templateResolver
+     * @param SchemaBuilderPool $builderPool
      */
     public function __construct(
         private readonly RequestInterface            $request,
         private readonly ConfigRepository            $categoryConfigRepository,
-        private readonly SchemaTemplate              $schemaTemplateSource,
+        private readonly CategorySchemaTemplate      $schemaTemplateSource,
         private readonly CategoryRobotsMeta          $robotsMetaSource,
         private readonly CategoryRepositoryInterface $categoryRepository,
+        private readonly SchemaTemplateResolver      $templateResolver,
+        private readonly SchemaBuilderPool           $builderPool,
     ) {
     }
 
@@ -70,14 +76,16 @@ class SeoModifier implements ModifierInterface
                         'data' => [
                             'config' => [
                                 'label'         => __('Enabled Optional Fields'),
-                                'notice'        => __('Optional schema fields to output.'
-                                    . ' Available fields change based on the selected template.'),
+                                'notice'        => __('Optional schema fields to output, from the template in effect.'
+                                    . " After changing the template, save the category to list the new template's"
+                                    . ' fields.'),
                                 'componentType' => Field::NAME,
                                 'formElement'   => 'multiselect',
                                 'dataType'      => Text::NAME,
                                 'dataScope'     => 'mageos_seo_enabled_fields',
                                 'sortOrder'     => 20,
                             ],
+                            'options' => $this->enabledFieldOptions(),
                         ],
                     ],
                 ],
@@ -134,23 +142,11 @@ class SeoModifier implements ModifierInterface
             return $data;
         }
 
-        // Admin category pages pass the selected store view as the "store" request
-        // parameter; the adminhtml current store is always store 0, so reading the
-        // store manager here would always show the default-scope values.
-        $storeId = max(0, (int) $this->request->getParam('store', 0));
+        $config = $this->resolvedConfig();
 
-        // Pass the ancestor path so inherited values (nearest configured ancestor)
-        // are displayed in the form exactly as the frontend will resolve them.
-        $categoryPath = [];
-        try {
-            $categoryPath = explode('/', (string) $this->categoryRepository->get($categoryId)->getPath());
-        } catch (NoSuchEntityException) { // phpcs:ignore Magento2.CodeAnalysis.EmptyBlock.DetectedCatch
-        }
-
-        $config = $this->categoryConfigRepository->getForCategory($categoryId, $categoryPath, $storeId);
-        $config = $this->categoryConfigRepository->decode($config);
-
-        if (empty($config)) {
+        // Nothing configured on the category or its ancestors: the fields keep their empty
+        // defaults ("Use Global Setting", none selected), which is what this would set them to.
+        if ($config === []) {
             return $data;
         }
 
@@ -163,6 +159,74 @@ class SeoModifier implements ModifierInterface
             : '';
 
         return $data;
+    }
+
+    /**
+     * The optional fields of the template in effect, as multiselect options.
+     *
+     * The template is the one the storefront uses for this category and store view: the category's
+     * own or inherited one, else the store view's default. A code the category has selected that
+     * this template does not offer, kept from a template it used before, is listed after them so it
+     * can be seen and cleared. It is not inert: ProductGroupBuilder reads gtin13 whatever the
+     * template.
+     *
+     * @return array<int, array{value: string, label: string}>
+     */
+    private function enabledFieldOptions(): array
+    {
+        $config   = $this->resolvedConfig();
+        $template = $this->templateResolver->resolve((string) ($config['schema_template'] ?? ''), $this->storeId());
+        $fields   = $this->builderPool->getAvailableFields($template);
+
+        $options = [];
+        foreach ($fields as $code => $label) {
+            $options[] = ['value' => (string) $code, 'label' => (string) $label];
+        }
+        foreach (array_unique(array_map('strval', $config['enabled_fields'] ?? [])) as $code) {
+            if (!isset($fields[$code])) {
+                $options[] = ['value' => $code, 'label' => (string) __('%1 (not a field of this template)', $code)];
+            }
+        }
+
+        return $options;
+    }
+
+    /**
+     * The category's SEO settings as the storefront resolves them, in the store view being edited.
+     *
+     * Inherited values are included (the nearest configured ancestor), so the form shows what the
+     * storefront will use. Empty for a new category, and for one with nothing configured on its
+     * path.
+     *
+     * @return mixed[]
+     */
+    private function resolvedConfig(): array
+    {
+        $categoryId = (int) $this->request->getParam('id');
+        if ($categoryId <= 0) {
+            return [];
+        }
+
+        $categoryPath = [];
+        try {
+            $categoryPath = explode('/', (string) $this->categoryRepository->get($categoryId)->getPath());
+        } catch (NoSuchEntityException) { // phpcs:ignore Magento2.CodeAnalysis.EmptyBlock.DetectedCatch
+        }
+
+        return $this->categoryConfigRepository->getForCategory($categoryId, $categoryPath, $this->storeId());
+    }
+
+    /**
+     * The store view being edited.
+     *
+     * Admin category pages pass it as the "store" request parameter; the adminhtml current store is
+     * always store 0, so the store manager would always give the default scope.
+     *
+     * @return int
+     */
+    private function storeId(): int
+    {
+        return max(0, (int) $this->request->getParam('store', 0));
     }
 
     /**

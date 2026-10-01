@@ -69,12 +69,9 @@ class ConfigRepositoryTest extends TestCase
 
         $this->assertSame('generic', $row['schema_template']);
         $this->assertSame('NOINDEX,FOLLOW', $row['robots_meta']);
-        // Array keys from the admin form must not leak into the stored JSON.
-        $this->assertSame('["brand","sku"]', $row['enabled_fields']);
-
-        $decoded = $this->repository()->decode($row);
-        $this->assertSame(['brand', 'sku'], $decoded['enabled_fields']);
-        $this->assertSame(['brand' => 'Acme'], $decoded['override_fields']);
+        // Decoded for the caller; and a list, so the admin form's array keys never reached storage.
+        $this->assertSame(['brand', 'sku'], $row['enabled_fields']);
+        $this->assertSame(['brand' => 'Acme'], $row['override_fields']);
     }
 
     /**

@@ -4,6 +4,12 @@ declare(strict_types=1);
 
 namespace MageOS\Seo\Api;
 
+/**
+ * Proposes the page title for the layout handles it names; the page title compositor takes the
+ * highest-priority non-empty answer. Register an implementation via your own di.xml.
+ *
+ * @api
+ */
 interface PageTitleProviderInterface
 {
     /**

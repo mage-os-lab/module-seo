@@ -6,6 +6,12 @@ namespace MageOS\Seo\Api;
 
 use Magento\Catalog\Api\Data\ProductInterface;
 
+/**
+ * Builds the Product node for one product schema template (Apparel, Food, …), which a category
+ * selects. Register a new template in the schema builder pool via your own di.xml.
+ *
+ * @api
+ */
 interface ProductSchemaBuilderInterface
 {
     /**

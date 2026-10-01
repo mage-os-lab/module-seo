@@ -83,7 +83,7 @@ For `select` / `dropdown` attributes, the builder resolves the label text rather
 
 ## Setting the default template
 
-When a product's category has no template configured, the **Default Product Schema Template** setting is used. Default: `GenericProduct`.
+When a product's category has no template configured, the **Default Product Schema Template** setting is used. Default: `GenericProduct`. It lists the registered templates; a stored code no template is registered for (one whose module has been removed, say) is treated as `GenericProduct`, and the setting shows it as that.
 
 Change it at: **Stores → Configuration → MageOS → SEO → Structured Data → Default Product Schema Template**
 

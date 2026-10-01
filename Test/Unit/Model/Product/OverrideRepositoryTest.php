@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace MageOS\Seo\Test\Unit\Model\Category;
+namespace MageOS\Seo\Test\Unit\Model\Product;
 
 use Magento\Framework\Model\AbstractModel;
-use MageOS\Seo\Model\Category\ProductOverrideRepository;
+use MageOS\Seo\Model\Product\OverrideRepository;
 use MageOS\Seo\Model\ProductOverride;
 use MageOS\Seo\Model\ResourceModel\ProductOverride as ProductOverrideResource;
 use MageOS\Seo\Model\ResourceModel\ProductOverride\Collection;
@@ -21,7 +21,7 @@ use PHPUnit\Framework\TestCase;
  * @group magento-generated
  */
 #[Group('magento-generated')]
-class ProductOverrideRepositoryTest extends TestCase
+class OverrideRepositoryTest extends TestCase
 {
     /**
      * Rows the next collection yields, as raw table rows.
@@ -199,9 +199,9 @@ class ProductOverrideRepositoryTest extends TestCase
     /**
      * The repository over a collection factory that records filters and yields the set rows.
      *
-     * @return ProductOverrideRepository
+     * @return OverrideRepository
      */
-    private function repository(): ProductOverrideRepository
+    private function repository(): OverrideRepository
     {
         $collectionFactory = $this->createStub(CollectionFactory::class);
         $collectionFactory->method('create')->willReturnCallback(fn (): Collection => $this->collection());
@@ -214,7 +214,7 @@ class ProductOverrideRepositoryTest extends TestCase
             }
         );
 
-        return new ProductOverrideRepository($collectionFactory, $resource);
+        return new OverrideRepository($collectionFactory, $resource);
     }
 
     /**

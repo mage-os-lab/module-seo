@@ -11,6 +11,8 @@ namespace MageOS\Seo\Api;
  * with the highest sortOrder that returns a non-empty value wins. A second module can add robots
  * meta support for a new page type (blog post, vendor profile, …) simply by registering an
  * implementation of this interface in its own di.xml — MageOS_Seo is never modified.
+ *
+ * @api
  */
 interface RobotsMetaProviderInterface
 {

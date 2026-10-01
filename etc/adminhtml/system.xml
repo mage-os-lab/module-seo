@@ -32,11 +32,11 @@ category pages.</comment>
                     <label>Enable JSON-LD Output</label>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                 </field>
-                <field id="default_product_template" translate="label comment" type="text"
+                <field id="default_product_template" translate="label comment" type="select"
                        sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Default Product Schema Template</label>
-                    <comment>Used for products in categories with no template configured.
-Default: GenericProduct.</comment>
+                    <comment>Used for products in categories with no template configured.</comment>
+                    <source_model>MageOS\Seo\Model\Config\Source\SchemaTemplate</source_model>
                 </field>
                 <field id="category_item_list_enabled" translate="label comment" type="select"
                        sortOrder="30" showInDefault="1" showInWebsite="1" showInStore="1">

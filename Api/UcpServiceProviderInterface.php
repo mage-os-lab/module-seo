@@ -10,6 +10,8 @@ namespace MageOS\Seo\Api;
  * A module that serves a UCP service registers a provider per transport binding in its own di.xml
  * (the `providers` argument of MageOS\Seo\Model\Ucp\ServicePool). Bindings sharing a service key
  * are listed together under it, as UCP 2026-08-25 requires.
+ *
+ * @api
  */
 interface UcpServiceProviderInterface
 {

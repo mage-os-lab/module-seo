@@ -4,7 +4,16 @@ declare(strict_types=1);
 
 namespace MageOS\Seo\Api\Data;
 
-interface FaqInterface
+use Magento\Framework\Api\ExtensibleDataInterface;
+
+/**
+ * An FAQ entry: one question and its answer in a group, for a store view (0 = all store views).
+ *
+ * Extensible: other modules add fields through extension_attributes.xml.
+ *
+ * @api
+ */
+interface FaqInterface extends ExtensibleDataInterface
 {
     public const ENTITY_ID  = 'entity_id';
     public const IDENTIFIER  = 'identifier';
@@ -110,4 +119,19 @@ interface FaqInterface
      * @return \MageOS\Seo\Api\Data\FaqInterface
      */
     public function setIsActive(bool $isActive): FaqInterface;
+
+    /**
+     * The fields other modules add through extension_attributes.xml.
+     *
+     * @return \MageOS\Seo\Api\Data\FaqExtensionInterface|null
+     */
+    public function getExtensionAttributes(): ?FaqExtensionInterface;
+
+    /**
+     * Set the fields other modules add.
+     *
+     * @param \MageOS\Seo\Api\Data\FaqExtensionInterface $extensionAttributes
+     * @return \MageOS\Seo\Api\Data\FaqInterface
+     */
+    public function setExtensionAttributes(FaqExtensionInterface $extensionAttributes): FaqInterface;
 }

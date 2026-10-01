@@ -5,11 +5,12 @@ declare(strict_types=1);
 namespace MageOS\Seo\Model;
 
 use Magento\Framework\DataObject\IdentityInterface;
-use Magento\Framework\Model\AbstractModel;
+use Magento\Framework\Model\AbstractExtensibleModel;
+use MageOS\Seo\Api\Data\FaqExtensionInterface;
 use MageOS\Seo\Api\Data\FaqInterface;
 use MageOS\Seo\Model\ResourceModel\Faq as FaqResource;
 
-class Faq extends AbstractModel implements FaqInterface, IdentityInterface
+class Faq extends AbstractExtensibleModel implements FaqInterface, IdentityInterface
 {
     /**
      * Cache tag prefix; FAQ-rendering blocks emit matching identities so FPC pages
@@ -161,5 +162,26 @@ class Faq extends AbstractModel implements FaqInterface, IdentityInterface
     public function setIsActive(bool $isActive): FaqInterface
     {
         return $this->setData(self::IS_ACTIVE, $isActive ? 1 : 0);
+    }
+
+    /**
+     * @inheritdoc
+     *
+     * AbstractExtensibleModel creates the object on first read, so a caller never meets null.
+     */
+    public function getExtensionAttributes(): ?FaqExtensionInterface
+    {
+        /** @var FaqExtensionInterface|null $extensionAttributes */
+        $extensionAttributes = $this->_getExtensionAttributes();
+
+        return $extensionAttributes;
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function setExtensionAttributes(FaqExtensionInterface $extensionAttributes): FaqInterface
+    {
+        return $this->_setExtensionAttributes($extensionAttributes);
     }
 }

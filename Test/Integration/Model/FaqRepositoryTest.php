@@ -4,16 +4,23 @@ declare(strict_types=1);
 
 namespace MageOS\Seo\Test\Integration\Model;
 
+use Magento\Framework\Api\SearchCriteriaBuilder;
+use Magento\Framework\Api\SearchCriteriaInterface;
+use Magento\Framework\Api\SortOrderBuilder;
 use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\TestFramework\Helper\Bootstrap;
+use MageOS\Seo\Api\Data\FaqExtensionInterface;
 use MageOS\Seo\Api\Data\FaqInterface;
+use MageOS\Seo\Api\Data\FaqSearchResultsInterface;
 use MageOS\Seo\Api\FaqRepositoryInterface;
 use MageOS\Seo\Model\Faq;
-use MageOS\Seo\Model\Faq\Repository as FaqReadRepository;
 use MageOS\Seo\Model\FaqRepository;
 use PHPUnit\Framework\TestCase;
 
 /**
+ * The service-contract repository. Reading a group for display is Faq\GroupReader's
+ * (Test\Integration\Model\Faq\GroupReaderTest).
+ *
  * @magentoAppArea adminhtml
  * @magentoDbIsolation enabled
  */
@@ -24,18 +31,12 @@ class FaqRepositoryTest extends TestCase
      */
     private ?FaqRepositoryInterface $repository = null;
 
-    /**
-     * @var FaqReadRepository
-     */
-    private ?FaqReadRepository $readRepository = null;
-
     protected function setUp(): void
     {
         parent::setUp();
         $om = Bootstrap::getObjectManager();
         $this->repository = $om->get(FaqRepositoryInterface::class)
             ?? $om->create(FaqRepository::class);
-        $this->readRepository = $om->get(FaqReadRepository::class);
     }
 
     private function newFaq(string $identifier, string $question, string $answer): FaqInterface
@@ -88,51 +89,86 @@ class FaqRepositoryTest extends TestCase
         $this->repository->getById($id);
     }
 
-    public function testReadByIdentifierReturnsActiveOrdered(): void
+    public function testGetListFiltersSortsAndPages(): void
     {
-        // Saved out of order, so passing means the sort_order is what ordered them.
-        $this->repository->save($this->sorted($this->newFaq('faqgrp', 'Second', 'A2'), 2));
-        $this->repository->save($this->sorted($this->newFaq('faqgrp', 'First', 'A1'), 1));
-        $inactive = $this->newFaq('faqgrp', 'Hidden', 'A3');
-        $inactive->setIsActive(false);
-        $this->repository->save($inactive);
-
-        $faqs      = $this->readRepository->getByIdentifier('faqgrp', 1);
-        $questions = array_column($faqs, 'question');
-
-        $this->assertSame(['First', 'Second'], $questions);
-        $this->assertNotContains('Hidden', $questions);
-    }
-
-    public function testEntriesSharingASortOrderComeBackInAStableOrder(): void
-    {
-        // Equal sort_order values leave the order to the storage engine unless something breaks
-        // the tie, and this list is rendered into FAQPage JSON-LD that the page cache keeps.
-        foreach (['Alpha', 'Bravo', 'Charlie'] as $question) {
-            $this->repository->save($this->sorted($this->newFaq('tiegrp', $question, 'A'), 5));
+        $group = 'getlist-' . uniqid();
+        // Saved out of order, so the order that comes back is the sort's.
+        foreach ([3 => 'Third', 1 => 'First', 2 => 'Second'] as $sortOrder => $question) {
+            $this->repository->save($this->sorted($this->newFaq($group, $question, 'A'), $sortOrder));
         }
+        $this->repository->save($this->newFaq('elsewhere-' . uniqid(), 'Not in the group', 'A'));
 
-        $questions = array_column($this->readRepository->getByIdentifier('tiegrp', 1), 'question');
+        $firstPage = $this->repository->getList($this->criteria($group, 2, 1));
+        $lastPage  = $this->repository->getList($this->criteria($group, 2, 2));
 
-        $this->assertSame(['Alpha', 'Bravo', 'Charlie'], $questions);
+        $this->assertInstanceOf(FaqSearchResultsInterface::class, $firstPage);
+        $this->assertSame(3, $firstPage->getTotalCount(), 'The total counts every match, not one page.');
+        $this->assertSame(['First', 'Second'], $this->questions($firstPage->getItems()));
+        $this->assertSame(['Third'], $this->questions($lastPage->getItems()));
     }
 
-    public function testIdentifiersAreListedOnceEachAndSorted(): void
+    public function testGetListHandsBackTheCriteriaItWasGiven(): void
     {
-        $this->repository->save($this->newFaq('zz-returns', 'Q1', 'A'));
-        $this->repository->save($this->newFaq('zz-returns', 'Q2', 'A'));
-        $inactive = $this->newFaq('zz-delivery', 'Q3', 'A');
-        $inactive->setIsActive(false);
-        $this->repository->save($inactive);
+        $criteria = $this->criteria('getlist-' . uniqid(), 10, 1);
 
-        $identifiers = $this->readRepository->getIdentifiers();
+        $this->assertSame($criteria, $this->repository->getList($criteria)->getSearchCriteria());
+    }
 
-        $this->assertSame(1, \count(array_keys($identifiers, 'zz-returns', true)));
-        $this->assertContains('zz-delivery', $identifiers, 'A group whose entries are all inactive is still a group.');
-        $this->assertSame(array_values(array_unique($identifiers)), $identifiers);
-        $sorted = $identifiers;
-        sort($sorted, SORT_STRING);
-        $this->assertSame($sorted, $identifiers);
+    public function testGetListWithoutCriteriaFindsEverySavedEntry(): void
+    {
+        $saved = $this->repository->save($this->newFaq('getlist-' . uniqid(), 'Anyone?', 'A'));
+
+        $criteria = Bootstrap::getObjectManager()->create(SearchCriteriaBuilder::class)->create();
+        $ids      = array_map(
+            static fn (FaqInterface $faq): int => $faq->getEntityId(),
+            $this->repository->getList($criteria)->getItems()
+        );
+
+        $this->assertContains($saved->getEntityId(), $ids);
+    }
+
+    public function testAFaqCarriesExtensionAttributes(): void
+    {
+        // Other modules add fields to the FAQ through extension_attributes.xml.
+        $saved = $this->repository->save($this->newFaq('ext-' . uniqid(), 'Q', 'A'));
+
+        $this->assertInstanceOf(
+            FaqExtensionInterface::class,
+            $this->repository->getById($saved->getEntityId())->getExtensionAttributes()
+        );
+    }
+
+    /**
+     * Criteria for one group, by sort order, a page at a time.
+     *
+     * @param string $identifier
+     * @param int $pageSize
+     * @param int $page
+     * @return SearchCriteriaInterface
+     */
+    private function criteria(string $identifier, int $pageSize, int $page): SearchCriteriaInterface
+    {
+        $objectManager = Bootstrap::getObjectManager();
+        $sortOrder     = $objectManager->create(SortOrderBuilder::class)
+            ->setField('sort_order')
+            ->setAscendingDirection()
+            ->create();
+
+        return $objectManager->create(SearchCriteriaBuilder::class)
+            ->addFilter('identifier', $identifier)
+            ->setSortOrders([$sortOrder])
+            ->setPageSize($pageSize)
+            ->setCurrentPage($page)
+            ->create();
+    }
+
+    /**
+     * @param FaqInterface[] $faqs
+     * @return string[]
+     */
+    private function questions(array $faqs): array
+    {
+        return array_values(array_map(static fn (FaqInterface $faq): string => $faq->getQuestion(), $faqs));
     }
 
     /**

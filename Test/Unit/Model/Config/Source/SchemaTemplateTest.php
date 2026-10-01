@@ -5,16 +5,17 @@ declare(strict_types=1);
 namespace MageOS\Seo\Test\Unit\Model\Config\Source;
 
 use MageOS\Seo\Model\Config\Source\SchemaTemplate;
+use MageOS\Seo\Model\Config\Source\SchemaTemplate\CategoryOverride;
 use MageOS\Seo\Model\Product\SchemaBuilderPool;
-use PHPUnit\Framework\MockObject\MockObject;
+use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
 
 class SchemaTemplateTest extends TestCase
 {
     /**
-     * @var SchemaBuilderPool&MockObject
+     * @var SchemaBuilderPool&Stub
      */
-    private SchemaBuilderPool&MockObject $pool;
+    private SchemaBuilderPool&Stub $pool;
 
     /**
      * @var SchemaTemplate
@@ -23,38 +24,53 @@ class SchemaTemplateTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->pool   = $this->createMock(SchemaBuilderPool::class);
+        $this->pool   = $this->createStub(SchemaBuilderPool::class);
         $this->source = new SchemaTemplate($this->pool);
     }
 
-    public function testFirstOptionIsInheritDefault(): void
-    {
-        $this->pool->method('getAvailableTemplates')->willReturn([]);
-        $options = $this->source->toOptionArray();
-        $this->assertSame('', $options[0]['value']);
-        $this->assertStringContainsString('Inherit', $options[0]['label']);
-    }
-
-    public function testBuilderTemplatesAreAppendedAfterDefault(): void
+    /**
+     * The store's default template is always a template: there is nothing above it to inherit.
+     */
+    public function testListsTheRegisteredTemplatesWithNoEmptyOption(): void
     {
         $this->pool->method('getAvailableTemplates')->willReturn([
             'GenericProduct' => 'Generic Product',
             'Apparel'        => 'Clothing & Apparel',
         ]);
-        $options = $this->source->toOptionArray();
-        $this->assertCount(3, $options);
-        $this->assertSame('GenericProduct', $options[1]['value']);
-        $this->assertSame('Generic Product', $options[1]['label']);
-        $this->assertSame('Apparel', $options[2]['value']);
-        $this->assertSame('Clothing & Apparel', $options[2]['label']);
+
+        $this->assertSame(
+            [
+                ['value' => 'GenericProduct', 'label' => 'Generic Product'],
+                ['value' => 'Apparel', 'label' => 'Clothing & Apparel'],
+            ],
+            $this->source->toOptionArray()
+        );
     }
 
-    public function testOnlyDefaultOptionWhenPoolIsEmpty(): void
+    /**
+     * A select shows a stored value it does not list as its first option, and a save stores that
+     * option. GenericProduct is what the storefront builds for a code no builder has, so with it
+     * first such a value is shown, and kept, as what already happens.
+     */
+    public function testTheGenericTemplateComesFirstAndTheRestKeepTheirOrder(): void
+    {
+        $this->pool->method('getAvailableTemplates')->willReturn([
+            'Apparel'        => 'Clothing & Apparel',
+            'GenericProduct' => 'Generic Product',
+            'Book'           => 'Book',
+        ]);
+
+        $this->assertSame(
+            ['GenericProduct', 'Apparel', 'Book'],
+            array_column($this->source->toOptionArray(), 'value')
+        );
+    }
+
+    public function testAnEmptyPoolListsNothing(): void
     {
         $this->pool->method('getAvailableTemplates')->willReturn([]);
-        $options = $this->source->toOptionArray();
-        $this->assertCount(1, $options);
-        $this->assertSame('', $options[0]['value']);
+
+        $this->assertSame([], $this->source->toOptionArray());
     }
 
     public function testEachOptionHasValueAndLabelKeys(): void
@@ -81,5 +97,25 @@ class SchemaTemplateTest extends TestCase
         foreach (array_keys($templates) as $code) {
             $this->assertContains($code, $values);
         }
+    }
+
+    /**
+     * The category form's list says what an empty value falls back to, once, and otherwise offers
+     * exactly the templates the store-level list does.
+     */
+    public function testTheCategoryFormListsOneInheritOptionFirstThenTheSameTemplates(): void
+    {
+        $this->pool->method('getAvailableTemplates')->willReturn([
+            'Apparel'        => 'Clothing & Apparel',
+            'GenericProduct' => 'Generic Product',
+        ]);
+
+        $options = (new CategoryOverride($this->pool))->toOptionArray();
+
+        $this->assertSame(
+            ['value' => '', 'label' => "Inherit (parent category, then the store's default template)"],
+            $options[0]
+        );
+        $this->assertSame($this->source->toOptionArray(), \array_slice($options, 1));
     }
 }

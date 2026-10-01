@@ -14,6 +14,15 @@ become public contract.
 
 ### Added
 
+- **`FaqRepositoryInterface::getList(SearchCriteriaInterface)`**, returning the new
+  `Api\Data\FaqSearchResultsInterface`: FAQ entries by Magento's standard search criteria, with the
+  total that matched. Extension attributes declared with a `<join>` are joined in. See
+  `docs/extending.md#repository-api`.
+- **Extension attributes on `FaqInterface` and `OrganizationInterface`.** Both extend
+  `ExtensibleDataInterface`, so other modules add fields through `extension_attributes.xml`.
+  `getExtensionAttributes()` never returns null.
+- **`@api` on every interface under `Api/`**, which marks the module's contract, and a unit test
+  that fails if an interface there lacks it.
 - Configurable products are described as a `ProductGroup` of their variants, per Google's
   product-variant guidance, when they have up to **Most Variants per Configurable Product**
   (`has_variant_max`, default 50) sellable children: `productGroupID`, `variesBy`, and one
@@ -160,6 +169,17 @@ become public contract.
 
 ### Fixed
 
+- The category form's **Enabled Optional Fields** multiselect had no options, so no field could be
+  chosen there, and a template's optional fields reached the storefront only through override
+  values. It now lists the fields of the template in effect for the category and store view being
+  edited: the category's own or inherited template, else the store's default. A field stored
+  under an earlier template is listed too, marked "(not a field of this template)", so it can be
+  cleared. Which template is in effect is decided in one place,
+  `Model\Product\SchemaTemplateResolver`, for the form and the storefront alike.
+- The store's **Default Product Schema Template** was a text field, so a mistyped code was saved as
+  given and the storefront quietly built GenericProduct instead. It is now a select of the
+  registered templates, GenericProduct first, so a stored code no template has is shown as
+  GenericProduct, the template the storefront uses for it. Stored values are unchanged.
 - Saving or deleting a FAQ or the Organisation anywhere but the admin form — the REST API, an
   import, a data patch — left `/llms.txt` and `/llms-full.txt` stale until the nightly rebuild:
   only the admin controllers asked for a rebuild. The models now dispatch their own events
@@ -413,6 +433,38 @@ become public contract.
 
 ### Changed
 
+- **`Model\Config\Source\SchemaTemplate` lists the templates only,** GenericProduct first, for the
+  store's default. The category form's list, with its inherit option ("Inherit (parent category,
+  then the store's default template)", which was "-- Inherit / Use Global Default --"), is the new
+  `SchemaTemplate\CategoryOverride`. `ProductSchemaProvider` takes a `SchemaTemplateResolver` in
+  place of `Model\Config`, and the category form's `SeoModifier` takes the resolver and the builder
+  pool.
+- **Breaking: `Model\Category\ProductOverrideRepository` is now `Model\Product\OverrideRepository`**,
+  beside the product's other models; it never had anything to do with categories. Its methods are
+  unchanged. Code that injects it, or names it in di.xml, must follow.
+- **Breaking: `Model\Faq\Repository` is now `Model\Faq\GroupReader`,** which says what it is: the
+  storefront's reader of a FAQ group, behind `TableFaqSource`. `Api\FaqRepositoryInterface` remains
+  the repository.
+- **Breaking: `Model\Category\ConfigRepository::getForCategory()` returns `enabled_fields` and
+  `override_fields` decoded,** as arrays, as `Product\OverrideRepository` already did, and
+  `decode()` is private. A caller that decoded the result itself must drop that step.
+- **`etc/db_schema_whitelist.json` is regenerated.** Magento looks its index and constraint
+  entries up by their generated names, so the hand-written reference IDs it carried never matched
+  and are gone. The generated name of `mageos_seo_cms_page_config`'s unique key, which was
+  missing, is added. The retired `mageos_seo_organisation` and `mageos_seo_faq` stay listed, so an
+  upgrade still drops them.
+- **Breaking: `Model\LlmsTxt\SectionProviderInterface` is now `Api\LlmsTxtSectionProviderInterface`**
+  (`@api`), beside the module's other extension points. A section provider must implement the new
+  name; `LlmsTxtBuilder` skips anything else.
+- **`Model\Faq` and `Model\Organization` extend `AbstractExtensibleModel`,** so their constructors
+  take `ExtensionAttributesFactory` and `AttributeValueFactory` after the registry. Code that
+  builds them through the object manager is unaffected.
+- **`FaqRepository`'s constructor** takes the FAQ collection factory, the extension attributes join
+  processor, the search criteria collection processor and the search results factory.
+- **`OrganizationRepositoryInterface` throws Magento's standard exceptions,** as the FAQ repository
+  does: `save()` throws `CouldNotSaveException` (a model that isn't an `AbstractModel` used to be
+  an `\InvalidArgumentException`, and a database failure came through raw), and `deleteForScope()`
+  throws `CouldNotDeleteException`. The original error is the exception's `getPrevious()`.
 - **Breaking: the FAQ, the llms documents and the agentic commerce profile use their own
   prefixes** — `mageos_faq`, `mageos_aeo` and `mageos_agentic` — ahead of their move to MageOS_Faq,
   MageOS_Aeo and MageOS_Agentic. Nothing is migrated: after upgrading, enter the moved settings

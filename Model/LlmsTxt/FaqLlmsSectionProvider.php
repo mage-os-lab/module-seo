@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace MageOS\Seo\Model\LlmsTxt;
 
 use Magento\Store\Model\StoreManagerInterface;
+use MageOS\Seo\Api\LlmsTxtSectionProviderInterface;
 use MageOS\Seo\Model\Aeo\Config;
 use MageOS\Seo\Model\Faq\SourcePool;
 
@@ -16,7 +17,7 @@ use MageOS\Seo\Model\Faq\SourcePool;
  * usually page-specific (a product's sizing questions), and llms.txt is a site-level summary. None
  * selected, or none with entries, leaves the section out.
  */
-class FaqLlmsSectionProvider implements SectionProviderInterface
+class FaqLlmsSectionProvider implements LlmsTxtSectionProviderInterface
 {
     private const CONCISE_LIMIT = 5;
 

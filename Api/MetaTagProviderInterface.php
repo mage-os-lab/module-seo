@@ -4,6 +4,12 @@ declare(strict_types=1);
 
 namespace MageOS\Seo\Api;
 
+/**
+ * Contributes meta tags (Open Graph, X, description) to the page's <head> for the layout handles it
+ * names. Register an implementation in the meta tag compositor's pool via your own di.xml.
+ *
+ * @api
+ */
 interface MetaTagProviderInterface
 {
     /**

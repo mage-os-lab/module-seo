@@ -20,9 +20,9 @@ use Magento\TestFramework\Fixture\DataFixtureStorageManager;
 use Magento\TestFramework\Helper\Bootstrap;
 use MageOS\Seo\Api\Sitemap\RebuildRequesterInterface;
 use MageOS\Seo\Model\Category\ConfigRepository as CategoryConfigRepository;
-use MageOS\Seo\Model\Category\ProductOverrideRepository;
 use MageOS\Seo\Model\Cms\ConfigRepository as CmsConfigRepository;
 use MageOS\Seo\Model\Config;
+use MageOS\Seo\Model\Product\OverrideRepository;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -135,7 +135,7 @@ class SitemapInvalidationRulesTest extends TestCase
         $pageId     = $this->newPage();
         $om         = Bootstrap::getObjectManager();
 
-        $products = $om->get(ProductOverrideRepository::class);
+        $products = $om->get(OverrideRepository::class);
         $this->assertQueuedBy([], fn () => $products->save($productId, 0, ['override_fields' => ['brand' => 'A']]));
         $this->assertQueuedBy(
             ['sitemap-products'],
