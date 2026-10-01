@@ -143,14 +143,27 @@ class OfferBuilderTest extends TestCase
         $this->assertSame('Offer', $offer['@type']);
     }
 
-    public function testTheRangeIsInTheDisplayCurrency(): void
+    /**
+     * PriceInfo amounts are already in the display currency (core RegularPrice /
+     * SpecialPrice / CatalogRulePrice convert with PriceCurrency), so a base→display rate
+     * must not be applied to them again.
+     */
+    public function testTheRangeIsNotConvertedASecondTime(): void
     {
         $children = [$this->product('simple', 10), $this->product('simple', 50)];
 
         $offer = $this->offerBuilder($children, rate: 2.0)->build($this->product('configurable', 10), self::URL);
 
-        $this->assertSame('20.00', $offer['lowPrice']);
-        $this->assertSame('100.00', $offer['highPrice']);
+        $this->assertSame('10.00', $offer['lowPrice']);
+        $this->assertSame('50.00', $offer['highPrice']);
+    }
+
+    public function testThePriceIsNotConvertedASecondTime(): void
+    {
+        $offer = $this->offerBuilder(rate: 2.0)->build($this->product('simple', 12.5), self::URL);
+
+        $this->assertSame('12.50', $offer['price']);
+        $this->assertSame('GBP', $offer['priceCurrency']);
     }
 
     public function testChildrenAreLookedUpForAConfigurableOnly(): void

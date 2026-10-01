@@ -71,6 +71,21 @@ class ProductLineBuilderTest extends TestCase
         $this->assertSame('https://schema.org/InStock', $node['offers']['availability']);
     }
 
+    public function testPriceInfoAmountIsNotConvertedASecondTime(): void
+    {
+        // PriceInfo amounts are already in the display currency; a base→display rate
+        // of 2 must not be applied to them again.
+        $storeManager = $this->createStub(StoreManagerInterface::class);
+        $storeManager->method('getStore')->willReturn($this->store);
+        $currency = $this->createStub(CurrencyService::class);
+        $currency->method('getCurrentCurrencyCode')->willReturn('GBP');
+        $currency->method('convertFromBase')->willReturnCallback(static fn (float $a): float => $a * 2);
+
+        $node = (new ProductLineBuilder($storeManager, $currency))->build($this->product, true);
+
+        $this->assertSame('29.99', $node['offers']['price']);
+    }
+
     public function testOutOfStockAvailability(): void
     {
         // Salability is supplied by the caller (batch-resolved via MSI in

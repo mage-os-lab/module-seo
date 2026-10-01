@@ -89,12 +89,16 @@ class OfferBuilder
     /**
      * Resolve the scalar price value: the product's final price, in the display currency.
      *
+     * PriceInfo amounts are already in the current (display) currency: core RegularPrice,
+     * SpecialPrice and CatalogRulePrice::getValue() convert with PriceCurrency. They are used as
+     * they are; converting again would apply the rate twice.
+     *
      * @param ProductInterface $product
      * @return string
      */
     private function resolvePrice(ProductInterface $product): string
     {
-        return number_format($this->currencyService->convertFromBase($this->finalPrice($product)), 2, '.', '');
+        return number_format($this->finalPrice($product), 2, '.', '');
     }
 
     /**
@@ -124,11 +128,12 @@ class OfferBuilder
             return null;
         }
 
-        // PriceInfo amounts are base currency; convert so lowPrice/highPrice match
-        // the display currency code emitted alongside them.
+        // PriceInfo amounts are already in the current (display) currency: core
+        // RegularPrice / SpecialPrice / CatalogRulePrice::getValue() convert with PriceCurrency.
+        // Converting again would apply the rate twice.
         return [
-            'low'  => $this->currencyService->convertFromBase($min),
-            'high' => $this->currencyService->convertFromBase($max),
+            'low'  => $min,
+            'high' => $max,
         ];
     }
 
