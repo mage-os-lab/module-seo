@@ -259,8 +259,9 @@ class LlmsTxtBuilder
     /**
      * Build the category tree section for the current store's tree only.
      *
-     * Returns '' when there are no categories or they cannot be read: an H2 may
-     * hold only link items, so there is no place for an "unavailable" note.
+     * Returns '' when the store has no visible categories. A failure to read them is
+     * not caught: FeedRegenerator logs the store's failed build and keeps the previous
+     * file, which is better than publishing a file without its category tree.
      *
      * @param string $baseUrl
      * @return string
@@ -269,56 +270,52 @@ class LlmsTxtBuilder
     {
         $items = [];
 
-        try {
-            /** @var \Magento\Store\Model\Store $store */
-            $store   = $this->storeManager->getStore();
-            $storeId = (int) $store->getId();
-            $rootId  = (int) $store->getRootCategoryId();
+        /** @var \Magento\Store\Model\Store $store */
+        $store   = $this->storeManager->getStore();
+        $storeId = (int) $store->getId();
+        $rootId  = (int) $store->getRootCategoryId();
 
-            $collection = $this->categoryCollectionFactory->create();
-            // Store scoping is essential: without setStoreId + the root-path filter
-            // this would list every website's categories (including hidden B2B or
-            // staging trees) and pair their url_path with this store's base URL.
-            $collection->setStoreId($storeId)
-                ->addAttributeToSelect(['name', 'url_path', 'is_active'])
-                ->addPathsFilter(['1/' . $rootId . '/'])
-                ->addAttributeToFilter('is_active', (string) 1)
-                ->addAttributeToFilter('level', ['gt' => 1])
-                ->setOrder('path', 'ASC');
+        $collection = $this->categoryCollectionFactory->create();
+        // Store scoping is essential: without setStoreId + the root-path filter
+        // this would list every website's categories (including hidden B2B or
+        // staging trees) and pair their url_path with this store's base URL.
+        $collection->setStoreId($storeId)
+            ->addAttributeToSelect(['name', 'url_path', 'is_active'])
+            ->addPathsFilter(['1/' . $rootId . '/'])
+            ->addAttributeToFilter('is_active', (string) 1)
+            ->addAttributeToFilter('level', ['gt' => 1])
+            ->setOrder('path', 'ASC');
 
-            // One grouped query for all product counts. Direct assignment counts only:
-            // anchor roll-up counts cost one query per category.
-            $collection->loadProductCount($collection->getItems(), true, false);
+        // One grouped query for all product counts. Direct assignment counts only:
+        // anchor roll-up counts cost one query per category.
+        $collection->loadProductCount($collection->getItems(), true, false);
 
-            $urlSuffix = (string) $this->scopeConfig->getValue(
-                'catalog/seo/category_url_suffix',
-                ScopeInterface::SCOPE_STORE,
-                $storeId
-            );
+        $urlSuffix = (string) $this->scopeConfig->getValue(
+            'catalog/seo/category_url_suffix',
+            ScopeInterface::SCOPE_STORE,
+            $storeId
+        );
 
-            // Children of a disabled subtree are individually still is_active=1, so
-            // only emit categories whose full ancestor chain has been emitted.
-            $visible = [$rootId => true];
-            foreach ($collection as $category) {
-                $parentId = (int) $category->getParentId();
-                if (!isset($visible[$parentId])) {
-                    continue;
-                }
-                $visible[(int) $category->getId()] = true;
-
-                $level  = max(0, (int) $category->getLevel() - 2);
-                $indent = str_repeat('  ', $level);
-                $url    = strtr(
-                    $baseUrl . '/' . ltrim((string) $category->getUrlPath(), '/') . $urlSuffix,
-                    self::URL_REPLACEMENTS
-                );
-                $label  = $this->linkLabel((string) $category->getName());
-                $count  = (int) $category->getProductCount();
-                $note   = $count > 0 ? ": {$count} products" : '';
-                $items[] = "{$indent}- [{$label}]({$url}){$note}";
+        // Children of a disabled subtree are individually still is_active=1, so
+        // only emit categories whose full ancestor chain has been emitted.
+        $visible = [$rootId => true];
+        foreach ($collection as $category) {
+            $parentId = (int) $category->getParentId();
+            if (!isset($visible[$parentId])) {
+                continue;
             }
-        } catch (\Exception) { // phpcs:ignore Magento2.CodeAnalysis.EmptyBlock.DetectedCatch -- section omitted
-            return '';
+            $visible[(int) $category->getId()] = true;
+
+            $level  = max(0, (int) $category->getLevel() - 2);
+            $indent = str_repeat('  ', $level);
+            $url    = strtr(
+                $baseUrl . '/' . ltrim((string) $category->getUrlPath(), '/') . $urlSuffix,
+                self::URL_REPLACEMENTS
+            );
+            $label  = $this->linkLabel((string) $category->getName());
+            $count  = (int) $category->getProductCount();
+            $note   = $count > 0 ? ": {$count} products" : '';
+            $items[] = "{$indent}- [{$label}]({$url}){$note}";
         }
 
         if ($items === []) {

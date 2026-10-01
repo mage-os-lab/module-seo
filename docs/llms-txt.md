@@ -94,7 +94,8 @@ Everything in `/llms.txt`, plus:
   - [Men's](https://example.com/clothing/mens.html): 97 products
 ```
 
-The section is left out when the store has no visible categories or they cannot be read.
+The section is left out when the store has no visible categories. If they cannot be read, the
+store's build fails: FeedRegenerator logs it and keeps serving the previous file.
 
 - Any sections contributed by bridge modules
 

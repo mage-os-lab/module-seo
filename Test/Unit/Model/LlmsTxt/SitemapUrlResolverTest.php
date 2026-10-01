@@ -75,4 +75,15 @@ class SitemapUrlResolverTest extends TestCase
         $this->assertNull($this->resolve([]));
         $this->assertNull($this->resolve([$this->sitemap('/', '', '')]));
     }
+
+    public function testAReadFailureIsNotSwallowed(): void
+    {
+        $factory = $this->createMock(CollectionFactory::class);
+        $factory->method('create')->willThrowException(new \RuntimeException('db down'));
+        $store = $this->createStub(StoreInterface::class);
+
+        $this->expectException(\RuntimeException::class);
+
+        (new SitemapUrlResolver($factory))->getUrl($store);
+    }
 }

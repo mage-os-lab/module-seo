@@ -196,10 +196,24 @@ class LlmsTxtBuilderTest extends TestCase
         $this->assertStringNotContainsString('Hidden', $document);
     }
 
-    public function testCategorySectionOmittedWhenCategoriesCannotBeRead(): void
+    public function testACategoryReadFailureIsNotSwallowed(): void
     {
+        // FeedRegenerator logs a store's failed build and keeps the previous file;
+        // publishing a document without its category tree would hide the failure.
         $factory = $this->createMock(CategoryCollectionFactory::class);
         $factory->method('create')->willThrowException(new \RuntimeException('db down'));
+        $this->categoryCollectionFactory = $factory;
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('db down');
+
+        $this->builder()->buildFull();
+    }
+
+    public function testNoCategoryTreeWhenTheStoreHasNoVisibleCategories(): void
+    {
+        $factory = $this->createMock(CategoryCollectionFactory::class);
+        $factory->method('create')->willReturn($this->categoryCollection([]));
         $this->categoryCollectionFactory = $factory;
 
         $document = $this->builder()->buildFull();
