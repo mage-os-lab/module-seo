@@ -71,10 +71,11 @@ class ProductMetaProvider implements MetaTagProviderInterface
         $price    = '';
         $currency = $this->currencyService->getCurrentCurrencyCode();
         try {
-            $baseAmount = (float) $product->getPriceInfo()->getPrice('final_price')->getValue();
-            // PriceInfo amounts are base currency; convert so product:price:amount
-            // matches the display currency code emitted with it.
-            $price = number_format($this->currencyService->convertFromBase($baseAmount), 2, '.', '');
+            // PriceInfo amounts are already in the current (display) currency: core
+            // RegularPrice / SpecialPrice / CatalogRulePrice::getValue() convert with PriceCurrency.
+            // Converting again would apply the rate twice.
+            $amount = (float) $product->getPriceInfo()->getPrice('final_price')->getValue();
+            $price  = number_format($amount, 2, '.', '');
         } catch (\Exception) { // phpcs:ignore Magento2.CodeAnalysis.EmptyBlock.DetectedCatch
         }
 

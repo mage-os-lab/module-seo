@@ -12,6 +12,16 @@ Pre-release review hardening pass (July 2026). Breaking renames are included
 deliberately: nothing has shipped yet, so names are settled now, before they
 become public contract.
 
+### Fixed — prices
+
+- **Prices were converted to the display currency twice** in product JSON-LD offers
+  (`price`, `lowPrice`/`highPrice`), the Open Graph `product:price:amount` tag and
+  `/llms.jsonl`, when the display currency differs from the base currency. PriceInfo
+  amounts are already in the current currency — core `RegularPrice::getValue()` calls
+  `PriceCurrency::convert()`, `SpecialPrice` and `CatalogRulePrice` call
+  `convertAndRound()` — so the conversion added for display-currency prices applied the
+  rate a second time. They are now used as they are.
+
 ### Added
 
 - Configurable products are described as a `ProductGroup` of their variants, per Google's
