@@ -22,6 +22,7 @@ The SEO module provides structured data (JSON-LD), Open Graph meta tags, canonic
 | [UCP Profile](ucp.md) | `/.well-known/ucp` — what it declares, registering a UCP service or capability, signing keys | Developer |
 | [Pre-generated Feeds](feeds.md) | The machinery behind the three llms documents: rebuilds, caching, storage, multi-server, CLI | Developer / DevOps |
 | [Extending the Module](extending.md) | Adding providers, builders, and section content | Developer |
+| [Translations](translations.md) | The shipped locales, what is translated, overriding a phrase, adding a locale | Admin / developer |
 
 ---
 

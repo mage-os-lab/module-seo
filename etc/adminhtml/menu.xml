@@ -4,6 +4,7 @@
     <menu>
         <add id="MageOS_Seo::seo"
              title="SEO"
+             translate="title"
              module="MageOS_Seo"
              sortOrder="85"
              parent="Magento_Backend::marketing"
@@ -11,6 +12,7 @@
 
         <add id="MageOS_Seo::organization"
              title="Organization"
+             translate="title"
              module="MageOS_Seo"
              sortOrder="10"
              parent="MageOS_Seo::seo"
@@ -19,6 +21,7 @@
 
         <add id="MageOS_Faq::faq"
              title="FAQ Manager"
+             translate="title"
              module="MageOS_Seo"
              sortOrder="15"
              parent="MageOS_Seo::seo"
@@ -27,6 +30,7 @@
 
         <add id="MageOS_Seo::config_link"
              title="Configuration"
+             translate="title"
              module="MageOS_Seo"
              sortOrder="20"
              parent="MageOS_Seo::seo"

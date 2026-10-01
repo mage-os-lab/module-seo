@@ -26,16 +26,20 @@ interface ProductSchemaBuilderInterface
     /**
      * Human-readable label for admin dropdowns.
      *
+     * Translated: return `(string) __('…')`. It is shown in the admin's language in the template
+     * selects, and in the store view's language in /llms-full.txt.
+     *
      * @return string
      */
     public function getLabel(): string;
 
     /**
-     * Return the list of optional field codes this template exposes.
+     * Return the optional fields this template exposes, as field code => label.
      *
-     * These are shown as a multiselect in the category SEO tab.
+     * The category SEO tab lists them in its Enabled Optional Fields multiselect. Labels are
+     * translated, as getLabel() is; the codes are not.
      *
-     * @return string[]
+     * @return array<string, string>
      */
     public function getAvailableFields(): array;
 

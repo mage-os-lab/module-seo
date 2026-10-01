@@ -21,7 +21,7 @@ class LocalExperienceBuilder extends AbstractBuilder
      */
     public function getLabel(): string
     {
-        return 'Experience / Voucher / Workshop';
+        return (string) __('Experience / Voucher / Workshop');
     }
 
     /**
@@ -30,12 +30,12 @@ class LocalExperienceBuilder extends AbstractBuilder
     public function getAvailableFields(): array
     {
         return [
-            'organizer'           => 'Organiser (set as an override)',
-            'availabilityStarts'  => 'Availability Starts (YYYY-MM-DD)',
-            'availabilityEnds'    => 'Availability Ends (YYYY-MM-DD)',
-            'location'            => 'Location / Venue',
-            'duration'            => 'Duration',
-            'gtin13'              => 'GTIN / EAN',
+            'organizer'           => (string) __('Organizer (set as an override)'),
+            'availabilityStarts'  => (string) __('Availability Starts (YYYY-MM-DD)'),
+            'availabilityEnds'    => (string) __('Availability Ends (YYYY-MM-DD)'),
+            'location'            => (string) __('Location / Venue'),
+            'duration'            => (string) __('Duration'),
+            'gtin13'              => (string) __('GTIN / EAN'),
         ];
     }
 

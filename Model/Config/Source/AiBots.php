@@ -21,13 +21,13 @@ class AiBots implements OptionSourceInterface
     public function toOptionArray(): array
     {
         return [
-            ['value' => 'GPTBot',              'label' => 'GPTBot (OpenAI training)'],
-            ['value' => 'ChatGPT-User',        'label' => 'ChatGPT-User (OpenAI live)'],
-            ['value' => 'OAI-SearchBot',       'label' => 'OAI-SearchBot (OpenAI search)'],
+            ['value' => 'GPTBot',              'label' => (string) __('GPTBot (OpenAI training)')],
+            ['value' => 'ChatGPT-User',        'label' => (string) __('ChatGPT-User (OpenAI live)')],
+            ['value' => 'OAI-SearchBot',       'label' => (string) __('OAI-SearchBot (OpenAI search)')],
             ['value' => 'ClaudeBot',           'label' => 'ClaudeBot (Anthropic)'],
             ['value' => 'anthropic-ai',        'label' => 'anthropic-ai (Anthropic)'],
             ['value' => 'PerplexityBot',       'label' => 'PerplexityBot (Perplexity)'],
-            ['value' => 'Google-Extended',     'label' => 'Google-Extended (Gemini training)'],
+            ['value' => 'Google-Extended',     'label' => (string) __('Google-Extended (Gemini training)')],
             ['value' => 'Applebot-Extended',   'label' => 'Applebot-Extended (Apple)'],
             ['value' => 'Meta-ExternalAgent',  'label' => 'Meta-ExternalAgent (Meta)'],
             ['value' => 'Amazonbot',           'label' => 'Amazonbot (Amazon)'],

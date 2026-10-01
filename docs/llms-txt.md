@@ -50,6 +50,10 @@ The `> Locale:` line is left out when the store view has no locale configured, t
 the selected groups have no questions, and the AI contact when there is none (see
 [Data sources](#data-sources)).
 
+The document's own headings and labels ("Key URLs", "Base URL", "AI Contact" and so on) are in the
+store view's language, the language of everything it lists; the example above is in English. See
+[Translations](translations.md).
+
 ---
 
 ## Content of /llms-full.txt

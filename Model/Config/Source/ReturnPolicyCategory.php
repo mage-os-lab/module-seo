@@ -19,9 +19,18 @@ class ReturnPolicyCategory implements OptionSourceInterface
     public function toOptionArray(): array
     {
         return [
-            ['value' => 'https://schema.org/MerchantReturnFiniteReturnWindow', 'label' => 'Finite return window'],
-            ['value' => 'https://schema.org/MerchantReturnUnlimitedWindow',    'label' => 'Unlimited return window'],
-            ['value' => 'https://schema.org/MerchantReturnNotPermitted',       'label' => 'Returns not permitted'],
+            [
+                'value' => 'https://schema.org/MerchantReturnFiniteReturnWindow',
+                'label' => (string) __('Finite return window'),
+            ],
+            [
+                'value' => 'https://schema.org/MerchantReturnUnlimitedWindow',
+                'label' => (string) __('Unlimited return window'),
+            ],
+            [
+                'value' => 'https://schema.org/MerchantReturnNotPermitted',
+                'label' => (string) __('Returns not permitted'),
+            ],
         ];
     }
 }

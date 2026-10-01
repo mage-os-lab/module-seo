@@ -71,7 +71,7 @@ class FaqLlmsSectionProvider implements LlmsTxtSectionProviderInterface
             $faqs = \array_slice($faqs, 0, $limit);
         }
 
-        $lines = ['## Frequently Asked Questions', ''];
+        $lines = ['## ' . __('Frequently Asked Questions'), ''];
         foreach ($faqs as $faq) {
             $lines[] = '**' . $faq['question'] . '**';
             $lines[] = $faq['answer'];

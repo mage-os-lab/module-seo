@@ -19,12 +19,12 @@ class OrgType implements OptionSourceInterface
     public function toOptionArray(): array
     {
         return [
-            ['value' => 'Organization',            'label' => 'Organization (generic)'],
-            ['value' => 'Corporation',             'label' => 'Corporation'],
-            ['value' => 'LocalBusiness',           'label' => 'Local Business'],
-            ['value' => 'NGO',                     'label' => 'NGO / Charity'],
-            ['value' => 'EducationalOrganization', 'label' => 'Educational Organization'],
-            ['value' => 'GovernmentOrganization',  'label' => 'Government Organization'],
+            ['value' => 'Organization',            'label' => (string) __('Organization (generic)')],
+            ['value' => 'Corporation',             'label' => (string) __('Corporation')],
+            ['value' => 'LocalBusiness',           'label' => (string) __('Local Business')],
+            ['value' => 'NGO',                     'label' => (string) __('NGO / Charity')],
+            ['value' => 'EducationalOrganization', 'label' => (string) __('Educational Organization')],
+            ['value' => 'GovernmentOrganization',  'label' => (string) __('Government Organization')],
         ];
     }
 }

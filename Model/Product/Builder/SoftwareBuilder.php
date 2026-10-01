@@ -21,7 +21,7 @@ class SoftwareBuilder extends AbstractBuilder
      */
     public function getLabel(): string
     {
-        return 'Software / Digital Download';
+        return (string) __('Software / Digital Download');
     }
 
     /**
@@ -30,11 +30,11 @@ class SoftwareBuilder extends AbstractBuilder
     public function getAvailableFields(): array
     {
         return [
-            'brand'               => 'Brand / Publisher',
-            'operatingSystem'     => 'Operating System',
-            'applicationCategory' => 'Application Category',
-            'softwareVersion'     => 'Version',
-            'gtin13'              => 'GTIN / EAN',
+            'brand'               => (string) __('Brand / Publisher'),
+            'operatingSystem'     => (string) __('Operating System'),
+            'applicationCategory' => (string) __('Application Category'),
+            'softwareVersion'     => (string) __('Version'),
+            'gtin13'              => (string) __('GTIN / EAN'),
         ];
     }
 

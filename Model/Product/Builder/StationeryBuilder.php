@@ -21,7 +21,7 @@ class StationeryBuilder extends AbstractBuilder
      */
     public function getLabel(): string
     {
-        return 'Stationery & Paper Goods';
+        return (string) __('Stationery & Paper Goods');
     }
 
     /**
@@ -30,15 +30,15 @@ class StationeryBuilder extends AbstractBuilder
     public function getAvailableFields(): array
     {
         return [
-            'brand'        => 'Brand',
-            'gtin13'       => 'GTIN / EAN',
-            'color'        => 'Colour',
-            'material'     => 'Material / Paper Type',
-            'pattern'      => 'Pattern / Design',
-            'numberOfPages' => 'Number of Pages',
-            'weight'       => 'Weight',
-            'width'        => 'Width',
-            'height'       => 'Height',
+            'brand'        => (string) __('Brand'),
+            'gtin13'       => (string) __('GTIN / EAN'),
+            'color'        => (string) __('Color'),
+            'material'     => (string) __('Material / Paper Type'),
+            'pattern'      => (string) __('Pattern / Design'),
+            'numberOfPages' => (string) __('Number of Pages'),
+            'weight'       => (string) __('Weight'),
+            'width'        => (string) __('Width'),
+            'height'       => (string) __('Height'),
         ];
     }
 

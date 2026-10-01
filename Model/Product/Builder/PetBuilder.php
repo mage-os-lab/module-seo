@@ -21,7 +21,7 @@ class PetBuilder extends AbstractBuilder
      */
     public function getLabel(): string
     {
-        return 'Pet Products';
+        return (string) __('Pet Products');
     }
 
     /**
@@ -30,14 +30,14 @@ class PetBuilder extends AbstractBuilder
     public function getAvailableFields(): array
     {
         return [
-            'brand'                => 'Brand',
-            'gtin13'               => 'GTIN / EAN',
-            'targetSpecies'        => 'Target Species (dog, cat, etc.)',
-            'nutritionInformation' => 'Nutrition Information',
-            'material'             => 'Ingredients / Material',
-            'weight'               => 'Weight',
-            'color'                => 'Colour',
-            'warning'              => 'Safety / Allergy Warning',
+            'brand'                => (string) __('Brand'),
+            'gtin13'               => (string) __('GTIN / EAN'),
+            'targetSpecies'        => (string) __('Target Species (dog, cat, etc.)'),
+            'nutritionInformation' => (string) __('Nutrition Information'),
+            'material'             => (string) __('Ingredients / Material'),
+            'weight'               => (string) __('Weight'),
+            'color'                => (string) __('Color'),
+            'warning'              => (string) __('Safety / Allergy Warning'),
         ];
     }
 

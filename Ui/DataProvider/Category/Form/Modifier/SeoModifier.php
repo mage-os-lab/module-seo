@@ -77,8 +77,7 @@ class SeoModifier implements ModifierInterface
                             'config' => [
                                 'label'         => __('Enabled Optional Fields'),
                                 'notice'        => __('Optional schema fields to output, from the template in effect.'
-                                    . " After changing the template, save the category to list the new template's"
-                                    . ' fields.'),
+                                    . ' After changing the template, save the category to list its fields.'),
                                 'componentType' => Field::NAME,
                                 'formElement'   => 'multiselect',
                                 'dataType'      => Text::NAME,

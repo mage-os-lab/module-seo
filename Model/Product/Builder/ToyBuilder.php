@@ -21,7 +21,7 @@ class ToyBuilder extends AbstractBuilder
      */
     public function getLabel(): string
     {
-        return 'Toy & Game';
+        return (string) __('Toy & Game');
     }
 
     /**
@@ -30,15 +30,15 @@ class ToyBuilder extends AbstractBuilder
     public function getAvailableFields(): array
     {
         return [
-            'brand'             => 'Brand',
-            'gtin13'            => 'GTIN / EAN',
-            'suggestedAge'      => 'Suggested Minimum Age (years)',
-            'suggestedMaxAge'   => 'Suggested Maximum Age (years)',
-            'playerCount'       => 'Number of Players',
-            'material'          => 'Material',
-            'color'             => 'Colour',
-            'batteriesRequired' => 'Batteries Required',
-            'warning'           => 'Safety Warning',
+            'brand'             => (string) __('Brand'),
+            'gtin13'            => (string) __('GTIN / EAN'),
+            'suggestedAge'      => (string) __('Suggested Minimum Age (years)'),
+            'suggestedMaxAge'   => (string) __('Suggested Maximum Age (years)'),
+            'playerCount'       => (string) __('Number of Players'),
+            'material'          => (string) __('Material'),
+            'color'             => (string) __('Color'),
+            'batteriesRequired' => (string) __('Batteries Required'),
+            'warning'           => (string) __('Safety Warning'),
         ];
     }
 

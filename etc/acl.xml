@@ -4,14 +4,15 @@
     <acl>
         <resources>
             <resource id="Magento_Backend::admin">
-                <resource id="MageOS_Seo::seo" title="SEO" sortOrder="80">
-                    <resource id="MageOS_Seo::organization" title="Organization Settings" sortOrder="10"/>
-                    <resource id="MageOS_Faq::faq" title="FAQ Manager" sortOrder="15"/>
-                    <resource id="MageOS_Seo::config" title="SEO Configuration" sortOrder="20"/>
+                <resource id="MageOS_Seo::seo" title="SEO" translate="title" sortOrder="80">
+                    <resource id="MageOS_Seo::organization" title="Organization Settings" translate="title"
+                              sortOrder="10"/>
+                    <resource id="MageOS_Faq::faq" title="FAQ Manager" translate="title" sortOrder="15"/>
+                    <resource id="MageOS_Seo::config" title="SEO Configuration" translate="title" sortOrder="20"/>
                     <resource id="MageOS_Aeo::config" title="AI Information &amp; Crawlers Configuration"
-                              sortOrder="30"/>
+                              translate="title" sortOrder="30"/>
                     <resource id="MageOS_Agentic::config" title="Agentic Commerce (UCP) Configuration"
-                              sortOrder="40"/>
+                              translate="title" sortOrder="40"/>
                 </resource>
             </resource>
         </resources>

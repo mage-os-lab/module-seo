@@ -47,6 +47,10 @@ Every cross-cutting concern is built as an **extensible provider pool** — a se
 - **AI-crawler robots directives** — per-user-agent Allow/Disallow blocks appended to `robots.txt` for 14 known AI crawlers (off by default).
 - **`/.well-known/` registry** — `ucp` (Universal Commerce Protocol business profile) and `security.txt`, both served through a pluggable endpoint registry; ECDSA P-256 signing-key generation via CLI.
 
+### Translations
+
+- **en_US** (the source), **en_GB** and **nl_NL**. The admin follows the admin user's locale; the llms documents are written in each store view's language. See [docs/translations.md](docs/translations.md).
+
 ---
 
 ## Requirements

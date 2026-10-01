@@ -1,0 +1,524 @@
+"Add New FAQ","Add New FAQ"
+Back,Back
+Delete,Delete
+"Are you sure you want to delete this FAQ?","Are you sure you want to delete this FAQ?"
+Save,Save
+"No FAQ specified to delete.","No FAQ specified to delete."
+"The FAQ entry has been deleted.","The FAQ entry has been deleted."
+"This FAQ no longer exists.","This FAQ no longer exists."
+"Edit FAQ","Edit FAQ"
+"New FAQ","New FAQ"
+"SEO — FAQ Manager","SEO — FAQ Manager"
+"The FAQ entry has been saved.","The FAQ entry has been saved."
+"Identifier, question and answer are required.","Identifier, question and answer are required."
+"SEO — Organization Settings","SEO — Organization Settings"
+"No data received.","No data received."
+"The organization URL must be an http:// or https:// address.","The organization URL must be an http:// or https:// address."
+"The logo URL must be an http:// or https:// address or a media path.","The logo URL must be an http:// or https:// address or a media path."
+"These social profiles were not saved — a profile must be an http:// or https:// address: %1","These social profiles were not saved — a profile must be an http:// or https:// address: %1"
+"Organization settings have been saved.","Organization settings have been saved."
+"Could not save: %1","Could not save: %1"
+"File upload failed.","File upload failed."
+"Upload failed. Please try again.","Upload failed. Please try again."
+"The uploaded file is not a valid image.","The uploaded file is not a valid image."
+"Category first — a category's own settings win, then its nearest ancestor's","Category first — a category's own settings win, then its nearest ancestor's"
+"Store view first — any setting for this store view wins over any global one","Store view first — any setting for this store view wins over any global one"
+"These hreflang codes are not valid: %1. Use a two-letter language, optionally followed by a four-letter script and a two-letter region — for example en, en-GB or zh-Hant-TW.","These hreflang codes are not valid: %1. Use a two-letter language, optionally followed by a four-letter script and a two-letter region — for example en, en-GB or zh-Hant-TW."
+"Each hreflang code can be listed once: %1.","Each hreflang code can be listed once: %1."
+"These regions are not ISO 3166-1 country codes: %1. The United Kingdom, for instance, is GB rather than UK.","These regions are not ISO 3166-1 country codes: %1. The United Kingdom, for instance, is GB rather than UK."
+"Google reads at most %1 return countries. %2 are selected, so only the first %1 in the list are output. Choose Applies Worldwide to cover every country.","Google reads at most %1 return countries. %2 are selected, so only the first %1 in the list are output. Choose Applies Worldwide to cover every country."
+"security.txt needs an Expires date: RFC 9116 requires one.","security.txt needs an Expires date: RFC 9116 requires one."
+"The security.txt Expires date is not a date: %1. Choose one from the calendar.","The security.txt Expires date is not a date: %1. Choose one from the calendar."
+"The security.txt Expires date must be after today: after it, the file is stale and should not be used (RFC 9116).","The security.txt Expires date must be after today: after it, the file is stale and should not be used (RFC 9116)."
+"GPTBot (OpenAI training)","GPTBot (OpenAI training)"
+"ChatGPT-User (OpenAI live)","ChatGPT-User (OpenAI live)"
+"OAI-SearchBot (OpenAI search)","OAI-SearchBot (OpenAI search)"
+"Google-Extended (Gemini training)","Google-Extended (Gemini training)"
+New,New
+Refurbished,Refurbished
+Used,Used
+Damaged,Damaged
+"Use Design Logo (from Stores > Design > Logo)","Use Design Logo (from Stores > Design > Logo)"
+"Upload Custom SEO Logo","Upload Custom SEO Logo"
+"Organization (generic)","Organization (generic)"
+Corporation,Corporation
+"Local Business","Local Business"
+"NGO / Charity","NGO / Charity"
+"Educational Organization","Educational Organization"
+"Government Organization","Government Organization"
+"Full refund","Full refund"
+Exchange,Exchange
+"Store credit","Store credit"
+"Free return","Free return"
+"Customer pays return shipping","Customer pays return shipping"
+"Return shipping fees apply","Return shipping fees apply"
+"By mail","By mail"
+"In store","In store"
+"At kiosk","At kiosk"
+"Finite return window","Finite return window"
+"Unlimited return window","Unlimited return window"
+"Returns not permitted","Returns not permitted"
+"INDEX, FOLLOW (rich previews: max-image-preview:large, max-snippet:-1)","INDEX, FOLLOW (rich previews: max-image-preview:large, max-snippet:-1)"
+"NOINDEX, NOFOLLOW, noai, noimageai (block AI training)","NOINDEX, NOFOLLOW, noai, noimageai (block AI training)"
+"Use Magento Default (no override)","Use Magento Default (no override)"
+"Inherit (parent category, then the store's Category Pages default)","Inherit (parent category, then the store's Category Pages default)"
+"Use the store's CMS Pages default","Use the store's CMS Pages default"
+"Use the store's Product Pages default","Use the store's Product Pages default"
+"Inherit (parent category, then the store's default template)","Inherit (parent category, then the store's default template)"
+"MageOS SEO","MageOS SEO"
+Magento,Magento
+"FAQ with id ""%1"" does not exist.","FAQ with id ""%1"" does not exist."
+"FAQ model must extend AbstractModel.","FAQ model must extend AbstractModel."
+"Could not save the FAQ: %1","Could not save the FAQ: %1"
+"Could not delete the FAQ: %1","Could not delete the FAQ: %1"
+"A feed rebuild is already running; this one was not started.","A feed rebuild is already running; this one was not started."
+"The feed storage directory must be an absolute path.","The feed storage directory must be an absolute path."
+"The feed storage directory must not contain "".."".","The feed storage directory must not contain ""..""."
+"The feed storage directory must not contain hidden directories.","The feed storage directory must not contain hidden directories."
+"The feed storage directory does not exist: %1","The feed storage directory does not exist: %1"
+"The feed storage directory is not a writable directory: %1","The feed storage directory is not a writable directory: %1"
+"Inside the installation only var/ may be used. To store feeds elsewhere, add the directory to ""%1"" in app/etc/env.php.","Inside the installation only var/ may be used. To store feeds elsewhere, add the directory to ""%1"" in app/etc/env.php."
+"The feed storage directory must be inside var/, or a directory listed under ""%1"" in app/etc/env.php.","The feed storage directory must be inside var/, or a directory listed under ""%1"" in app/etc/env.php."
+"Frequently Asked Questions","Frequently Asked Questions"
+"Base URL: %1","Base URL: %1"
+"Key URLs","Key URLs"
+"Home: %1","Home: %1"
+"Sitemap: %1","Sitemap: %1"
+"Search: %1","Search: %1"
+"Schema types available on this site","Schema types available on this site"
+"AI Contact","AI Contact"
+"Social: %1","Social: %1"
+"Schema types in use","Schema types in use"
+"Available product schema templates","Available product schema templates"
+"Preferred contact for automated queries: %1","Preferred contact for automated queries: %1"
+"Locale: %1","Locale: %1"
+"Category Tree","Category Tree"
+"(%1 products)","(%1 products)"
+"(category data unavailable)","(category data unavailable)"
+"Organization model must extend AbstractModel.","Organization model must extend AbstractModel."
+"Could not save the Organization: %1","Could not save the Organization: %1"
+"Could not delete the Organization of %1 %2: %3","Could not delete the Organization of %1 %2: %3"
+"Clothing & Apparel","Clothing & Apparel"
+Brand,Brand
+"GTIN / EAN","GTIN / EAN"
+Color,Color
+Size,Size
+"Material / Fabric","Material / Fabric"
+"Gender / Target Audience","Gender / Target Audience"
+Pattern,Pattern
+"Country of Origin","Country of Origin"
+Weight,Weight
+"Art & Craft / Handmade","Art & Craft / Handmade"
+"Art Medium (oil, watercolor, etc.)","Art Medium (oil, watercolor, etc.)"
+"Surface / Support (canvas, paper, etc.)","Surface / Support (canvas, paper, etc.)"
+"Creator (set as an override)","Creator (set as an override)"
+Width,Width
+Height,Height
+Depth,Depth
+"Materials Used","Materials Used"
+"Dominant Color(s)","Dominant Color(s)"
+"Is Based On (for prints/reproductions)","Is Based On (for prints/reproductions)"
+Book,Book
+ISBN,ISBN
+Author,Author
+Publisher,Publisher
+Edition,Edition
+"Format (Hardcover / Paperback / Digital)","Format (Hardcover / Paperback / Digital)"
+"Number of Pages","Number of Pages"
+Language,Language
+Genre,Genre
+"EAN / Barcode","EAN / Barcode"
+"Beauty & Cosmetics","Beauty & Cosmetics"
+"Shade / Color","Shade / Color"
+Ingredients,Ingredients
+"Scent / Fragrance","Scent / Fragrance"
+"Target Audience","Target Audience"
+"Warnings / Allergen Notice","Warnings / Allergen Notice"
+"Weight / Volume","Weight / Volume"
+"Electronics & Gadgets","Electronics & Gadgets"
+"Manufacturer Part Number (MPN)","Manufacturer Part Number (MPN)"
+Material,Material
+"Model Number","Model Number"
+"Food Product","Food Product"
+"Brand / Producer","Brand / Producer"
+"Nutrition Information","Nutrition Information"
+Allergens,Allergens
+"Alcoholic Beverage","Alcoholic Beverage"
+"Generic Product","Generic Product"
+"GTIN / EAN (barcode)","GTIN / EAN (barcode)"
+"Brand name","Brand name"
+"Health & Wellness","Health & Wellness"
+"Active Ingredient(s)","Active Ingredient(s)"
+"Dosage Schedule","Dosage Schedule"
+"Safety Warning / Disclaimer","Safety Warning / Disclaimer"
+"Intended Use","Intended Use"
+"Home & Decor","Home & Decor"
+"Brand / Maker","Brand / Maker"
+"Pattern / Style","Pattern / Style"
+"Depth / Length","Depth / Length"
+"Jewelry & Accessories","Jewelry & Accessories"
+"Metal / Material","Metal / Material"
+"Color / Finish","Color / Finish"
+"Ring / Bracelet Size","Ring / Bracelet Size"
+"Gemstone / Design","Gemstone / Design"
+"Experience / Voucher / Workshop","Experience / Voucher / Workshop"
+"Organizer (set as an override)","Organizer (set as an override)"
+"Availability Starts (YYYY-MM-DD)","Availability Starts (YYYY-MM-DD)"
+"Availability Ends (YYYY-MM-DD)","Availability Ends (YYYY-MM-DD)"
+"Location / Venue","Location / Venue"
+Duration,Duration
+"Pet Products","Pet Products"
+"Target Species (dog, cat, etc.)","Target Species (dog, cat, etc.)"
+"Ingredients / Material","Ingredients / Material"
+"Safety / Allergy Warning","Safety / Allergy Warning"
+"Software / Digital Download","Software / Digital Download"
+"Brand / Publisher","Brand / Publisher"
+"Operating System","Operating System"
+"Application Category","Application Category"
+Version,Version
+"Stationery & Paper Goods","Stationery & Paper Goods"
+"Material / Paper Type","Material / Paper Type"
+"Pattern / Design","Pattern / Design"
+"Tool & Hardware","Tool & Hardware"
+MPN,MPN
+"Power Source","Power Source"
+Model,Model
+"Toy & Game","Toy & Game"
+"Suggested Minimum Age (years)","Suggested Minimum Age (years)"
+"Suggested Maximum Age (years)","Suggested Maximum Age (years)"
+"Number of Players","Number of Players"
+"Batteries Required","Batteries Required"
+"Safety Warning","Safety Warning"
+"Sitemap ""%1"" is being written by another process. Try again once it has finished.","Sitemap ""%1"" is being written by another process. Try again once it has finished."
+"Sitemaps being written by another process were not rebuilt: %1.","Sitemaps being written by another process were not rebuilt: %1."
+Home,Home
+"UCP signing key is misconfigured: the stored public JWK contains private key material.","UCP signing key is misconfigured: the stored public JWK contains private key material."
+"SEO override fields were not saved: the value is not valid JSON.","SEO override fields were not saved: the value is not valid JSON."
+"The category was saved, but its SEO settings could not be saved.","The category was saved, but its SEO settings could not be saved."
+"The page was saved, but its hreflang translation group was not: use letters, digits, dots, hyphens and underscores only, for example ""about-us"".","The page was saved, but its hreflang translation group was not: use letters, digits, dots, hyphens and underscores only, for example ""about-us""."
+"The page was saved, but its SEO settings could not be saved.","The page was saved, but its SEO settings could not be saved."
+"The product was saved, but its SEO overrides could not be saved.","The product was saved, but its SEO overrides could not be saved."
+Edit,Edit
+"Delete FAQ","Delete FAQ"
+"SEO (Structured Data)","SEO (Structured Data)"
+"Product Schema Template","Product Schema Template"
+"Schema template for products in this category. Determines which structured data fields are available.","Schema template for products in this category. Determines which structured data fields are available."
+"Enabled Optional Fields","Enabled Optional Fields"
+"Optional schema fields to output, from the template in effect. After changing the template, save the category to list its fields.","Optional schema fields to output, from the template in effect. After changing the template, save the category to list its fields."
+"ItemList Schema on Category Pages","ItemList Schema on Category Pages"
+"Use Global Setting","Use Global Setting"
+"Yes — output ItemList schema","Yes — output ItemList schema"
+"No — disable ItemList schema","No — disable ItemList schema"
+"Override the global setting for this category.","Override the global setting for this category."
+"Robots Meta","Robots Meta"
+"Field Value Overrides (JSON)","Field Value Overrides (JSON)"
+"JSON key/value pairs to hard-code for products in this category. Example: {""gender"":""Female"",""countryOfOrigin"":""GB""}","JSON key/value pairs to hard-code for products in this category. Example: {""gender"":""Female"",""countryOfOrigin"":""GB""}"
+"%1 (not a field of this template)","%1 (not a field of this template)"
+"Advanced SEO","Advanced SEO"
+"Per-product overrides take precedence over category and attribute values. Leave empty to use the category or global setting.","Per-product overrides take precedence over category and attribute values. Leave empty to use the category or global setting."
+"JSON key/value pairs overriding schema fields for this product. Example: {""gtin13"":""0123456789012"",""color"":""Midnight Blue""}","JSON key/value pairs overriding schema fields for this product. Example: {""gtin13"":""0123456789012"",""color"":""Midnight Blue""}"
+"Robots Meta Override","Robots Meta Override"
+"Override robots meta for this specific product page.","Override robots meta for this specific product page."
+FAQ,FAQ
+Group:,Group:
+"Open settings to choose a FAQ group identifier.","Open settings to choose a FAQ group identifier."
+SEO,SEO
+"Organization Settings","Organization Settings"
+"FAQ Manager","FAQ Manager"
+"SEO Configuration","SEO Configuration"
+"AI Information & Crawlers Configuration","AI Information & Crawlers Configuration"
+"Agentic Commerce (UCP) Configuration","Agentic Commerce (UCP) Configuration"
+Organization,Organization
+Configuration,Configuration
+"Open Graph Tags","Open Graph Tags"
+"Enable OG Tags","Enable OG Tags"
+"Output og:title, og:description, og:image, og:type on product and
+category pages.","Output og:title, og:description, og:image, og:type on product and
+category pages."
+"Structured Data (JSON-LD)","Structured Data (JSON-LD)"
+"Enable JSON-LD Output","Enable JSON-LD Output"
+"Default Product Schema Template","Default Product Schema Template"
+"Used for products in categories with no template configured.","Used for products in categories with no template configured."
+"Enable Category ItemList Schema","Enable Category ItemList Schema"
+"Output an ItemList schema on category pages. Can be overridden per category.","Output an ItemList schema on category pages. Can be overridden per category."
+"Category ItemList Max Items","Category ItemList Max Items"
+"Maximum products to include in ItemList schema per page. Recommended: 36
+(matches default toolbar page size).","Maximum products to include in ItemList schema per page. Recommended: 36
+(matches default toolbar page size)."
+"Most Variants per Configurable Product","Most Variants per Configurable Product"
+"A configurable product with up to this many sellable children is described as a ProductGroup, each child a variant with its own offer. One with more is a single Product with an AggregateOffer over its whole price range, rather than a list cut short. 0 describes every configurable that way. Each variant costs a salability check on an uncached product page. Default: 50.","A configurable product with up to this many sellable children is described as a ProductGroup, each child a variant with its own offer. One with more is a single Product with an AggregateOffer over its whole price range, rather than a list cut short. 0 describes every configurable that way. Each variant costs a salability check on an uncached product page. Default: 50."
+"Enable AggregateRating","Enable AggregateRating"
+"Output aggregateRating (review score + count) on product schema. Source is
+pluggable — native Magento reviews by default, or a bridge module (Yotpo, Trustpilot, …).","Output aggregateRating (review score + count) on product schema. Source is
+pluggable — native Magento reviews by default, or a bridge module (Yotpo, Trustpilot, …)."
+"Category SEO Settings","Category SEO Settings"
+"Inheritance Strategy","Inheritance Strategy"
+"Where a category's SEO settings come from when it does not set
+them itself. Each setting is resolved separately, so a category can take its schema template from
+one place and its robots directive from another.<br/><br/>
+<strong>Category first</strong> suits a catalog whose tree carries the meaning: a setting made on
+a category applies to it whether it was made globally or for one store view, and only a category
+that says nothing defers to its parent.<br/><br/>
+<strong>Store view first</strong> suits store views that carry their own SEO policy: anything set
+for this store view, anywhere up the tree, outranks anything set globally. With one store view the
+two behave identically.<br/><br/>
+Global only — this decides how store-view scope itself is resolved.","Where a category's SEO settings come from when it does not set
+them itself. Each setting is resolved separately, so a category can take its schema template from
+one place and its robots directive from another.<br/><br/>
+<strong>Category first</strong> suits a catalog whose tree carries the meaning: a setting made on
+a category applies to it whether it was made globally or for one store view, and only a category
+that says nothing defers to its parent.<br/><br/>
+<strong>Store view first</strong> suits store views that carry their own SEO policy: anything set
+for this store view, anywhere up the tree, outranks anything set globally. With one store view the
+two behave identically.<br/><br/>
+Global only — this decides how store-view scope itself is resolved."
+"Robots Meta Defaults","Robots Meta Defaults"
+"Product Pages Default","Product Pages Default"
+"When set to ""Use Magento Default"", the core Design > Search Engine
+Robots setting applies.","When set to ""Use Magento Default"", the core Design > Search Engine
+Robots setting applies."
+"Category Pages Default","Category Pages Default"
+"CMS Pages Default","CMS Pages Default"
+"Search Results Pages Default","Search Results Pages Default"
+"Quick and advanced search results. NOINDEX,FOLLOW keeps them out of the index;
+to stop them being crawled at all, disallow them in robots.txt instead. When set to ""Use Magento
+Default"", the core Design > Search Engine Robots setting applies.","Quick and advanced search results. NOINDEX,FOLLOW keeps them out of the index;
+to stop them being crawled at all, disallow them in robots.txt instead. When set to ""Use Magento
+Default"", the core Design > Search Engine Robots setting applies."
+"Override Robots on Paginated Pages","Override Robots on Paginated Pages"
+"Apply a dedicated robots meta to category listing pages from page 2 onward
+(?p=2+). Canonicalization is left to Magento's native category canonical tag.","Apply a dedicated robots meta to category listing pages from page 2 onward
+(?p=2+). Canonicalization is left to Magento's native category canonical tag."
+"Paginated Pages Robots","Paginated Pages Robots"
+"Hreflang (Multistore)","Hreflang (Multistore)"
+"Enable Hreflang Tags","Enable Hreflang Tags"
+"Output rel=""alternate"" hreflang link tags in the head across store views.
+No output on single-store pages.","Output rel=""alternate"" hreflang link tags in the head across store views.
+No output on single-store pages."
+"Add Language-only Tags","Add Language-only Tags"
+"Automatically add hreflang=""en"" when a base language is served by
+exactly one store view.","Automatically add hreflang=""en"" when a base language is served by
+exactly one store view."
+"Hreflang Codes","Hreflang Codes"
+"The codes this store view targets, comma-separated — for example
+<code>en-GB</code>, or <code>es-MX, es-AR, es-CL</code> for one store serving several regions. Leave
+empty to use the store's locale. A region is an ISO 3166-1 country code: the United Kingdom is
+<code>GB</code>, not <code>UK</code>.","The codes this store view targets, comma-separated — for example
+<code>en-GB</code>, or <code>es-MX, es-AR, es-CL</code> for one store serving several regions. Leave
+empty to use the store's locale. A region is an ISO 3166-1 country code: the United Kingdom is
+<code>GB</code>, not <code>UK</code>."
+"x-default Store View","x-default Store View"
+"Store view to advertise as hreflang x-default. Leave unset to omit x-default.
+Set per website where websites serve different markets.","Store view to advertise as hreflang x-default. Leave unset to omit x-default.
+Set per website where websites serve different markets."
+"Exclude Store Views","Exclude Store Views"
+"Store views to omit from all hreflang output (e.g. staging or internal stores).","Store views to omit from all hreflang output (e.g. staging or internal stores)."
+"Add Hreflang Alternates to sitemap.xml","Add Hreflang Alternates to sitemap.xml"
+"List each URL's alternates in the other store views beside it in the XML
+sitemaps, as Google prefers them. Applies to sitemaps written by the MageOS SEO generator
+(Catalog → XML Sitemap → Generation Settings → Generator).","List each URL's alternates in the other store views beside it in the XML
+sitemaps, as Google prefers them. Applies to sitemaps written by the MageOS SEO generator
+(Catalog → XML Sitemap → Generation Settings → Generator)."
+"Limit Alternates to Current Website","Limit Alternates to Current Website"
+"Only link store views of the same website as hreflang alternates. Disable
+only when separate websites really are language/region variants of the same content.","Only link store views of the same website as hreflang alternates. Disable
+only when separate websites really are language/region variants of the same content."
+"Answer Engine Optimization (AEO)","Answer Engine Optimization (AEO)"
+"Enable Speakable Schema","Enable Speakable Schema"
+"Mark page sections for text-to-speech. The speakable property goes on the node describing the page: a CMS page's WebPage, a category's CollectionPage, a blog post's BlogPosting, and on product pages a WebPage whose main entity is the product. Google uses it only in beta, for news content in U.S. English. Off by default.","Mark page sections for text-to-speech. The speakable property goes on the node describing the page: a CMS page's WebPage, a category's CollectionPage, a blog post's BlogPosting, and on product pages a WebPage whose main entity is the product. Google uses it only in beta, for news content in U.S. English. Off by default."
+"Speakable CSS Selectors","Speakable CSS Selectors"
+"One CSS selector per line identifying content suitable for text-to-speech.","One CSS selector per line identifying content suitable for text-to-speech."
+"SEO Merchant Policies","SEO Merchant Policies"
+"Item Condition","Item Condition"
+"Default Item Condition","Default Item Condition"
+"schema.org itemCondition applied to all product offers.","schema.org itemCondition applied to all product offers."
+"Return Policy (hasMerchantReturnPolicy)","Return Policy (hasMerchantReturnPolicy)"
+"Enable Return Policy Schema","Enable Return Policy Schema"
+"Output hasMerchantReturnPolicy on product offers. Required for Google
+Merchant free listings.","Output hasMerchantReturnPolicy on product offers. Required for Google
+Merchant free listings."
+"Applies Worldwide","Applies Worldwide"
+"Google has no value for every country, so none are listed. Set the Returns Policy
+URL: Google reads the policy from that page instead.","Google has no value for every country, so none are listed. Set the Returns Policy
+URL: Google reads the policy from that page instead."
+"Applicable Countries","Applicable Countries"
+"The countries this return policy applies to. Google reads at most 50: above that, the
+first 50 in the list are output.","The countries this return policy applies to. Google reads at most 50: above that, the
+first 50 in the list are output."
+"Return Policy Category","Return Policy Category"
+"Return Window (days)","Return Window (days)"
+"Used only with a finite return window.","Used only with a finite return window."
+"Return Method","Return Method"
+"Return Fees","Return Fees"
+"Refund Type","Refund Type"
+"Returns Policy URL","Returns Policy URL"
+"Output as merchantReturnLink. With Applies Worldwide, no countries are listed, and
+this page is what Google reads instead.","Output as merchantReturnLink. With Applies Worldwide, no countries are listed, and
+this page is what Google reads instead."
+"Shipping Details (OfferShippingDetails)","Shipping Details (OfferShippingDetails)"
+"Enable Shipping Details Schema","Enable Shipping Details Schema"
+"Output OfferShippingDetails on product offers: one rate and delivery time, worldwide or
+for the countries chosen.","Output OfferShippingDetails on product offers: one rate and delivery time, worldwide or
+for the countries chosen."
+"Shipping Label","Shipping Label"
+"Ships Worldwide","Ships Worldwide"
+"No destination is given, which Google reads as every country.","No destination is given, which Google reads as every country."
+"Destination Countries","Destination Countries"
+"The countries these shipping details apply to.","The countries these shipping details apply to."
+"Shipping Rate","Shipping Rate"
+"0.00 for free shipping. Currency follows the store display currency.","0.00 for free shipping. Currency follows the store display currency."
+"Handling Time Min (days)","Handling Time Min (days)"
+"Handling Time Max (days)","Handling Time Max (days)"
+"Transit Time Min (days)","Transit Time Min (days)"
+"Transit Time Max (days)","Transit Time Max (days)"
+"AI Information & Crawlers","AI Information & Crawlers"
+"AI Discoverability (llms.txt)","AI Discoverability (llms.txt)"
+"Enable /llms.txt","Enable /llms.txt"
+"Serve a machine-readable site summary at /llms.txt for LLM crawlers.","Serve a machine-readable site summary at /llms.txt for LLM crawlers."
+"Enable /llms-full.txt","Enable /llms-full.txt"
+"Serve the extended document with full vendor and category listings
+at /llms-full.txt.","Serve the extended document with full vendor and category listings
+at /llms-full.txt."
+"Enable /llms.jsonl","Enable /llms.jsonl"
+"Serve a machine-readable NDJSON product catalog (one JSON-LD Product per
+line) at /llms.jsonl. Off by default.","Serve a machine-readable NDJSON product catalog (one JSON-LD Product per
+line) at /llms.jsonl. Off by default."
+"FAQ Groups","FAQ Groups"
+"FAQ groups whose questions appear in /llms.txt (the first 5) and /llms-full.txt
+(all), in this order. Select none to leave FAQs out.","FAQ groups whose questions appear in /llms.txt (the first 5) and /llms-full.txt
+(all), in this order. Select none to leave FAQs out."
+"Feed Storage","Feed Storage"
+"Storage Directory","Storage Directory"
+"Absolute path for pre-generated feed files (llms.txt, llms-full.txt,
+llms.jsonl). Leave empty to use var/mageos_aeo. Inside the installation only var/ may be used;
+a shared mount for multi-server deployments must be listed under
+<code>mageos_aeo/feed_storage_roots</code> in app/etc/env.php.","Absolute path for pre-generated feed files (llms.txt, llms-full.txt,
+llms.jsonl). Leave empty to use var/mageos_aeo. Inside the installation only var/ may be used;
+a shared mount for multi-server deployments must be listed under
+<code>mageos_aeo/feed_storage_roots</code> in app/etc/env.php."
+"AI Crawler robots.txt Directives","AI Crawler robots.txt Directives"
+"Append AI Crawler Directives","Append AI Crawler Directives"
+"Add a ""Disallow: /"" robots.txt group for each AI crawler selected below.
+Crawlers not selected keep following your standard ""User-agent: *"" rules.","Add a ""Disallow: /"" robots.txt group for each AI crawler selected below.
+Crawlers not selected keep following your standard ""User-agent: *"" rules."
+"Disallow These AI Crawlers","Disallow These AI Crawlers"
+"Selected crawlers get ""Disallow: /""; all other known crawlers get ""Allow: /"".","Selected crawlers get ""Disallow: /""; all other known crawlers get ""Allow: /""."
+"Agentic Commerce (UCP)","Agentic Commerce (UCP)"
+"UCP Profile","UCP Profile"
+"Enable UCP Profile","Enable UCP Profile"
+"Serve /.well-known/ucp, the Universal Commerce Protocol business profile
+(UCP 2026-08-25). It declares only the services and capabilities an installed module registers;
+with none registered it is valid and declares nothing. Returns 404 when disabled.","Serve /.well-known/ucp, the Universal Commerce Protocol business profile
+(UCP 2026-08-25). It declares only the services and capabilities an installed module registers;
+with none registered it is valid and declares nothing. Returns 404 when disabled."
+"Signing Keys","Signing Keys"
+"Generated by ""bin/magento ucp:keygen --website=N"". The private key
+is stored encrypted; only the public JWK is served, in the profile's ""keys"".","Generated by ""bin/magento ucp:keygen --website=N"". The private key
+is stored encrypted; only the public JWK is served, in the profile's ""keys""."
+"Private Key (encrypted)","Private Key (encrypted)"
+"Public Key JWK","Public Key JWK"
+"Read-only. Populated by the keygen command.","Read-only. Populated by the keygen command."
+"security.txt (RFC 9116)","security.txt (RFC 9116)"
+"Enable security.txt","Enable security.txt"
+"Serve /.well-known/security.txt.","Serve /.well-known/security.txt."
+"Security Contact Email","Security Contact Email"
+Expires,Expires
+"The date by which you will review this file. Required by RFC 9116, and best less than
+a year ahead; after it, the file is stale. It is served as the end of that day, UTC.","The date by which you will review this file. Required by RFC 9116, and best less than
+a year ahead; after it, the file is stale. It is served as the end of that day, UTC."
+"Policy URL","Policy URL"
+Generator,Generator
+"<strong>MageOS SEO</strong> writes each sitemap as an index with a
+file per kind of page, and can add to each URL what core's generator cannot — hreflang alternates
+among them. It reads the catalog a page at a time on every version, so Generation Method has no
+effect while it is selected.
+<strong>Magento</strong> uses core's generator unchanged.","<strong>MageOS SEO</strong> writes each sitemap as an index with a
+file per kind of page, and can add to each URL what core's generator cannot — hreflang alternates
+among them. It reads the catalog a page at a time on every version, so Generation Method has no
+effect while it is selected.
+<strong>Magento</strong> uses core's generator unchanged."
+"Leave Out NOINDEX Pages","Leave Out NOINDEX Pages"
+"A page whose robots directive is NOINDEX is not listed. The directive is
+the one the page gets from its SEO settings, else from Design → Search Engine Robots — so a store
+set to NOINDEX there has an empty sitemap. A directive another module sets while the page renders
+is not seen.","A page whose robots directive is NOINDEX is not listed. The directive is
+the one the page gets from its SEO settings, else from Design → Search Engine Robots — so a store
+set to NOINDEX there has an empty sitemap. A directive another module sets while the page renders
+is not seen."
+"Rebuild on Change","Rebuild on Change"
+"When something the sitemap lists changes — a product's URL key, status or
+visibility, a category, a CMS page, a robots directive, a sitemap setting — that kind of page is
+rewritten in this store view's sitemaps soon after, by the <code>mageosSeoFeedRegenerate</code>
+queue consumer. A sitemap added under Marketing → Site Map is written shortly after it is saved,
+and one whose file has gone is written again. <strong>No</strong>: sitemaps change at their next
+generation only — and a Site Map entry you are not ready to publish stays unwritten.","When something the sitemap lists changes — a product's URL key, status or
+visibility, a category, a CMS page, a robots directive, a sitemap setting — that kind of page is
+rewritten in this store view's sitemaps soon after, by the <code>mageosSeoFeedRegenerate</code>
+queue consumer. A sitemap added under Marketing → Site Map is written shortly after it is saved,
+and one whose file has gone is written again. <strong>No</strong>: sitemaps change at their next
+generation only — and a Site Map entry you are not ready to publish stays unwritten."
+"SEO FAQ List","SEO FAQ List"
+"Renders a FAQ group as an accordion and adds matching FAQPage structured data.","Renders a FAQ group as an accordion and adds matching FAQPage structured data."
+"FAQ Group Identifier","FAQ Group Identifier"
+"The group identifier of the FAQ entries to display (e.g. shipping, returns).","The group identifier of the FAQ entries to display (e.g. shipping, returns)."
+"Heading (optional)","Heading (optional)"
+"Optional heading rendered above the FAQ list.","Optional heading rendered above the FAQ list."
+"Default Config","Default Config"
+"Overrides the store's CMS Pages robots default for this page.","Overrides the store's CMS Pages robots default for this page."
+"Hreflang Translation Group","Hreflang Translation Group"
+"Give each translation of this page the same value, for example
+""about-us"", and they list one another as hreflang alternates. Letters, digits, dots, hyphens and
+underscores. Leave empty to link this page only to itself in other store views.","Give each translation of this page the same value, for example
+""about-us"", and they list one another as hreflang alternates. Letters, digits, dots, hyphens and
+underscores. Leave empty to link this page only to itself in other store views."
+"FAQ Entry","FAQ Entry"
+"Group Identifier","Group Identifier"
+"Reference this group from the FAQ widget or Page Builder. Groups selected under Stores → Configuration → MageOS SEO → AI Information & Crawlers → AI Discoverability (llms.txt) also appear in llms.txt.","Reference this group from the FAQ widget or Page Builder. Groups selected under Stores → Configuration → MageOS SEO → AI Information & Crawlers → AI Discoverability (llms.txt) also appear in llms.txt."
+"Store View ID","Store View ID"
+"0 = all store views.","0 = all store views."
+Question,Question
+Answer,Answer
+"Sort Order","Sort Order"
+Active,Active
+ID,ID
+"Organization Identity","Organization Identity"
+"Organization Name","Organization Name"
+"Canonical Site URL","Canonical Site URL"
+"Full URL including https://. Used as the @id anchor in all schema.","Full URL including https://. Used as the @id anchor in all schema."
+"Organization Type (schema.org)","Organization Type (schema.org)"
+"Description / Tagline","Description / Tagline"
+"Short description used in the Organization schema and llms.txt. Max 300 characters.","Short description used in the Organization schema and llms.txt. Max 300 characters."
+Logo,Logo
+"Logo Source","Logo Source"
+"Use your existing Design logo, or upload a dedicated SEO logo (recommended: min 112x112px).","Use your existing Design logo, or upload a dedicated SEO logo (recommended: min 112x112px)."
+"Custom SEO Logo","Custom SEO Logo"
+"Recommended: PNG, minimum 112x112px. Used in structured data and llms.txt.","Recommended: PNG, minimum 112x112px. Used in structured data and llms.txt."
+"Logo Width (px)","Logo Width (px)"
+"Used in the ImageObject schema node. Leave blank to omit.","Used in the ImageObject schema node. Leave blank to omit."
+"Logo Height (px)","Logo Height (px)"
+"Social Profiles & Contact","Social Profiles & Contact"
+"Social Profile URLs","Social Profile URLs"
+"Add one URL per row. These appear as sameAs links in Organization schema and in llms.txt.","Add one URL per row. These appear as sameAs links in Organization schema and in llms.txt."
+"Add Social Profile","Add Social Profile"
+URL,URL
+"Contact Type","Contact Type"
+"e.g. ""customer service""","e.g. ""customer service"""
+"Contact Email","Contact Email"
+"Available Language","Available Language"
+"e.g. ""en"" or ""English""","e.g. ""en"" or ""English"""
+"Local Presence (LocalBusiness)","Local Presence (LocalBusiness)"
+"Street Address","Street Address"
+"Address, telephone and email apply to every organization type; latitude, longitude and price range only to a local business (Organization Type: Local Business).","Address, telephone and email apply to every organization type; latitude, longitude and price range only to a local business (Organization Type: Local Business)."
+"City / Town","City / Town"
+"Region / County / State","Region / County / State"
+"Postcode / ZIP","Postcode / ZIP"
+"Country (ISO 3166-1 alpha-2)","Country (ISO 3166-1 alpha-2)"
+"Two-letter code, e.g. GB.","Two-letter code, e.g. GB."
+Telephone,Telephone
+Email,Email
+Latitude,Latitude
+Longitude,Longitude
+"Price Range","Price Range"
+"e.g. ££ or $$. Local business only.","e.g. ££ or $$. Local business only."
+"FAQ Settings","FAQ Settings"
+"The group identifier of the FAQ entries to display (e.g. shipping).","The group identifier of the FAQ entries to display (e.g. shipping)."

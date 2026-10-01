@@ -21,7 +21,7 @@ class ApparelBuilder extends AbstractBuilder
      */
     public function getLabel(): string
     {
-        return 'Clothing & Apparel';
+        return (string) __('Clothing & Apparel');
     }
 
     /**
@@ -30,15 +30,15 @@ class ApparelBuilder extends AbstractBuilder
     public function getAvailableFields(): array
     {
         return [
-            'brand'          => 'Brand',
-            'gtin13'         => 'GTIN / EAN',
-            'color'          => 'Colour',
-            'size'           => 'Size',
-            'material'       => 'Material / Fabric',
-            'gender'         => 'Gender / Target Audience',
-            'pattern'        => 'Pattern',
-            'countryOfOrigin' => 'Country of Origin',
-            'weight'         => 'Weight',
+            'brand'          => (string) __('Brand'),
+            'gtin13'         => (string) __('GTIN / EAN'),
+            'color'          => (string) __('Color'),
+            'size'           => (string) __('Size'),
+            'material'       => (string) __('Material / Fabric'),
+            'gender'         => (string) __('Gender / Target Audience'),
+            'pattern'        => (string) __('Pattern'),
+            'countryOfOrigin' => (string) __('Country of Origin'),
+            'weight'         => (string) __('Weight'),
         ];
     }
 

@@ -127,14 +127,14 @@ use Magento\Catalog\Api\Data\ProductInterface;
 class VehicleBuilder extends AbstractBuilder
 {
     public function getTemplateCode(): string { return 'Vehicle'; }
-    public function getLabel(): string { return 'Vehicle'; }
+    public function getLabel(): string { return (string) __('Vehicle'); }
 
     public function getAvailableFields(): array
     {
         return [
-            'vehicleModelDate' => 'Model Year',
-            'driveWheelConfiguration' => 'Drive Configuration',
-            'fuelType' => 'Fuel Type',
+            'vehicleModelDate' => (string) __('Model Year'),
+            'driveWheelConfiguration' => (string) __('Drive Configuration'),
+            'fuelType' => (string) __('Fuel Type'),
         ];
     }
 
@@ -167,6 +167,7 @@ Rules to follow:
 - **Read `$overrides[$field]` before the attribute for each of your own fields** (the keys of `getAvailableFields()`), and build the field in its proper shape — a `Brand` node, an `additionalProperty` entry, whatever your field is. An override for one of your fields turns that field on (`SchemaBuilderPool` adds it to `$enabledFields`), and `applyOverrides()` leaves your fields to you: setting the raw value there would replace the node you built with a string.
 - Always call `$this->applyOverrides($schema, $overrides)` as the last step — it sets the override keys your template does **not** list, as given, so a merchant can still set a schema.org property you don't know.
 - Use `$this->attr($product, 'attribute_code')` to read product attributes — it handles select/dropdown label resolution automatically.
+- Return `getLabel()` and the labels in `getAvailableFields()` through `(string) __('…')`, and add the phrases to your module's `i18n/` files. They're shown in the admin's language in the category form, and the template label in the store view's language in `/llms-full.txt` (see [Translations](translations.md)).
 
 **2. Register in di.xml**
 

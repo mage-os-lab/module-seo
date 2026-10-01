@@ -14,6 +14,13 @@ become public contract.
 
 ### Added
 
+- **Translations:** `i18n/en_US.csv` (the source), `en_GB.csv` (British spelling, only where it
+  differs) and `nl_NL.csv`. Everything user-facing is now translatable:
+  - the configuration, forms, menu and ACL titles;
+  - the source models' option labels;
+  - the product schema templates' names and field labels;
+  - the llms documents' own text, written in each store view's language.
+  - See `docs/translations.md`, including how to override a phrase and add a locale.
 - **`FaqRepositoryInterface::getList(SearchCriteriaInterface)`**, returning the new
   `Api\Data\FaqSearchResultsInterface`: FAQ entries by Magento's standard search criteria, with the
   total that matched. Extension attributes declared with a `<join>` are joined in. See
@@ -169,6 +176,9 @@ become public contract.
 
 ### Fixed
 
+- The FAQ form's Group Identifier note sent the admin to "MageOS SEO → SEO → AI Discoverability
+  (llms.txt)"; since the settings moved, it is "MageOS SEO → AI Information & Crawlers → AI
+  Discoverability (llms.txt)".
 - The category form's **Enabled Optional Fields** multiselect had no options, so no field could be
   chosen there, and a template's optional fields reached the storefront only through override
   values. It now lists the fields of the template in effect for the category and store view being
@@ -453,6 +463,15 @@ become public contract.
 
 ### Changed
 
+- **Admin text is in US English;** en_GB restores the British forms. "Colour" becomes Color,
+  "Organiser" Organizer, "watercolour" watercolor, "catalogue" catalog and "Canonicalisation"
+  Canonicalization. Field and template codes are unchanged.
+- **The llms documents' headings and labels follow the store view's language.** A store view in
+  Dutch gets, for example, "## Belangrijke URL's" where it had "## Key URLs". An English store
+  view's documents are unchanged.
+- **`ProductSchemaBuilderInterface`:** `getLabel()` and the labels of `getAvailableFields()` are
+  translated text (`(string) __('…')`). The docblock now says so, and gives `getAvailableFields()`
+  its real type, code => label.
 - **`Model\Config\Source\SchemaTemplate` lists the templates only,** GenericProduct first, for the
   store's default. The category form's list, with its inherit option ("Inherit (parent category,
   then the store's default template)", which was "-- Inherit / Use Global Default --"), is the new

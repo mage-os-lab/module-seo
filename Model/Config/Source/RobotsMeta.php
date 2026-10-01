@@ -14,6 +14,9 @@ use Magento\Framework\Data\OptionSourceInterface;
  * for pages whose content changes, and one MageOS_MetaRobotsTag can express with its independent
  * no_archive flag — impossible to ask for here.
  *
+ * Plain directives ("INDEX, FOLLOW") are left untranslated, as in core's Design\Robots; the labels
+ * that add words are translated.
+ *
  * The first option, the empty value, means "no directive here" — and what that falls back to
  * depends on where it is chosen. This class is the store-level wording, used by the configuration
  * defaults, where an empty value leaves Magento's Design → Search Engine Robots in charge. The
@@ -37,7 +40,7 @@ class RobotsMeta implements OptionSourceInterface
             ['value' => 'NOINDEX,NOFOLLOW', 'label' => 'NOINDEX, NOFOLLOW'],
             [
                 'value' => 'INDEX,FOLLOW,max-image-preview:large,max-snippet:-1',
-                'label' => 'INDEX, FOLLOW (rich previews: max-image-preview:large, max-snippet:-1)',
+                'label' => (string) __('INDEX, FOLLOW (rich previews: max-image-preview:large, max-snippet:-1)'),
             ],
             ['value' => 'INDEX,FOLLOW,noarchive',     'label' => 'INDEX, FOLLOW, noarchive'],
             ['value' => 'INDEX,NOFOLLOW,noarchive',   'label' => 'INDEX, NOFOLLOW, noarchive'],
@@ -45,7 +48,7 @@ class RobotsMeta implements OptionSourceInterface
             ['value' => 'NOINDEX,NOFOLLOW,noarchive', 'label' => 'NOINDEX, NOFOLLOW, noarchive'],
             [
                 'value' => 'NOINDEX,NOFOLLOW,noai,noimageai',
-                'label' => 'NOINDEX, NOFOLLOW, noai, noimageai (block AI training)',
+                'label' => (string) __('NOINDEX, NOFOLLOW, noai, noimageai (block AI training)'),
             ],
         ];
     }

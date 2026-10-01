@@ -21,7 +21,7 @@ class GenericProductBuilder extends AbstractBuilder
      */
     public function getLabel(): string
     {
-        return 'Generic Product';
+        return (string) __('Generic Product');
     }
 
     /**
@@ -30,16 +30,16 @@ class GenericProductBuilder extends AbstractBuilder
     public function getAvailableFields(): array
     {
         return [
-            'gtin13'          => 'GTIN / EAN (barcode)',
-            'mpn'             => 'Manufacturer Part Number (MPN)',
-            'brand'           => 'Brand name',
-            'color'           => 'Colour',
-            'material'        => 'Material',
-            'weight'          => 'Weight',
-            'width'           => 'Width',
-            'height'          => 'Height',
-            'depth'           => 'Depth',
-            'countryOfOrigin' => 'Country of Origin',
+            'gtin13'          => (string) __('GTIN / EAN (barcode)'),
+            'mpn'             => (string) __('Manufacturer Part Number (MPN)'),
+            'brand'           => (string) __('Brand name'),
+            'color'           => (string) __('Color'),
+            'material'        => (string) __('Material'),
+            'weight'          => (string) __('Weight'),
+            'width'           => (string) __('Width'),
+            'height'          => (string) __('Height'),
+            'depth'           => (string) __('Depth'),
+            'countryOfOrigin' => (string) __('Country of Origin'),
         ];
     }
 

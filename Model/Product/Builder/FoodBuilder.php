@@ -21,7 +21,7 @@ class FoodBuilder extends AbstractBuilder
      */
     public function getLabel(): string
     {
-        return 'Food Product';
+        return (string) __('Food Product');
     }
 
     /**
@@ -30,14 +30,14 @@ class FoodBuilder extends AbstractBuilder
     public function getAvailableFields(): array
     {
         return [
-            'brand'                => 'Brand / Producer',
-            'gtin13'               => 'GTIN / EAN',
-            'nutritionInformation' => 'Nutrition Information',
-            'containsAllergen'     => 'Allergens',
-            'isAlcoholicBeverage'  => 'Alcoholic Beverage',
-            'countryOfOrigin'      => 'Country of Origin',
-            'weight'               => 'Weight / Volume',
-            'material'             => 'Ingredients',
+            'brand'                => (string) __('Brand / Producer'),
+            'gtin13'               => (string) __('GTIN / EAN'),
+            'nutritionInformation' => (string) __('Nutrition Information'),
+            'containsAllergen'     => (string) __('Allergens'),
+            'isAlcoholicBeverage'  => (string) __('Alcoholic Beverage'),
+            'countryOfOrigin'      => (string) __('Country of Origin'),
+            'weight'               => (string) __('Weight / Volume'),
+            'material'             => (string) __('Ingredients'),
         ];
     }
 

@@ -75,7 +75,7 @@ pluggable — native Magento reviews by default, or a bridge module (Yotpo, Trus
                     <comment><![CDATA[Where a category's SEO settings come from when it does not set
 them itself. Each setting is resolved separately, so a category can take its schema template from
 one place and its robots directive from another.<br/><br/>
-<strong>Category first</strong> suits a catalogue whose tree carries the meaning: a setting made on
+<strong>Category first</strong> suits a catalog whose tree carries the meaning: a setting made on
 a category applies to it whether it was made globally or for one store view, and only a category
 that says nothing defers to its parent.<br/><br/>
 <strong>Store view first</strong> suits store views that carry their own SEO policy: anything set
@@ -122,7 +122,7 @@ Default", the core Design &gt; Search Engine Robots setting applies.</comment>
                        sortOrder="40" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Override Robots on Paginated Pages</label>
                     <comment>Apply a dedicated robots meta to category listing pages from page 2 onward
-(?p=2+). Canonicalisation is left to Magento's native category canonical tag.</comment>
+(?p=2+). Canonicalization is left to Magento's native category canonical tag.</comment>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                 </field>
                 <field id="paginated_robots" translate="label" type="select"
@@ -514,7 +514,7 @@ a year ahead; after it, the file is stale. It is served as the end of that day, 
                     <source_model>MageOS\Seo\Model\Config\Source\SitemapGenerator</source_model>
                     <comment><![CDATA[<strong>MageOS SEO</strong> writes each sitemap as an index with a
 file per kind of page, and can add to each URL what core's generator cannot — hreflang alternates
-among them. It reads the catalogue a page at a time on every version, so Generation Method has no
+among them. It reads the catalog a page at a time on every version, so Generation Method has no
 effect while it is selected.
 <strong>Magento</strong> uses core's generator unchanged.]]></comment>
                 </field>

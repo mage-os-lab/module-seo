@@ -21,7 +21,7 @@ class BookBuilder extends AbstractBuilder
      */
     public function getLabel(): string
     {
-        return 'Book';
+        return (string) __('Book');
     }
 
     /**
@@ -30,15 +30,15 @@ class BookBuilder extends AbstractBuilder
     public function getAvailableFields(): array
     {
         return [
-            'isbn'          => 'ISBN',
-            'author'        => 'Author',
-            'publisher'     => 'Publisher',
-            'bookEdition'   => 'Edition',
-            'bookFormat'    => 'Format (Hardcover / Paperback / Digital)',
-            'numberOfPages' => 'Number of Pages',
-            'inLanguage'    => 'Language',
-            'genre'         => 'Genre',
-            'gtin13'        => 'EAN / Barcode',
+            'isbn'          => (string) __('ISBN'),
+            'author'        => (string) __('Author'),
+            'publisher'     => (string) __('Publisher'),
+            'bookEdition'   => (string) __('Edition'),
+            'bookFormat'    => (string) __('Format (Hardcover / Paperback / Digital)'),
+            'numberOfPages' => (string) __('Number of Pages'),
+            'inLanguage'    => (string) __('Language'),
+            'genre'         => (string) __('Genre'),
+            'gtin13'        => (string) __('EAN / Barcode'),
         ];
     }
 

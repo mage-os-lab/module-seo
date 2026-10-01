@@ -21,7 +21,7 @@ class HealthProductBuilder extends AbstractBuilder
      */
     public function getLabel(): string
     {
-        return 'Health & Wellness';
+        return (string) __('Health & Wellness');
     }
 
     /**
@@ -30,14 +30,14 @@ class HealthProductBuilder extends AbstractBuilder
     public function getAvailableFields(): array
     {
         return [
-            'brand'             => 'Brand',
-            'gtin13'            => 'GTIN / EAN',
-            'activeIngredient'  => 'Active Ingredient(s)',
-            'dosageSchedule'    => 'Dosage Schedule',
-            'warning'           => 'Safety Warning / Disclaimer',
-            'intendedUse'       => 'Intended Use',
-            'weight'            => 'Weight / Volume',
-            'countryOfOrigin'   => 'Country of Origin',
+            'brand'             => (string) __('Brand'),
+            'gtin13'            => (string) __('GTIN / EAN'),
+            'activeIngredient'  => (string) __('Active Ingredient(s)'),
+            'dosageSchedule'    => (string) __('Dosage Schedule'),
+            'warning'           => (string) __('Safety Warning / Disclaimer'),
+            'intendedUse'       => (string) __('Intended Use'),
+            'weight'            => (string) __('Weight / Volume'),
+            'countryOfOrigin'   => (string) __('Country of Origin'),
         ];
     }
 

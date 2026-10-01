@@ -1,0 +1,54 @@
+"SEO — Organization Settings","SEO — Organisation Settings"
+"The organization URL must be an http:// or https:// address.","The organisation URL must be an http:// or https:// address."
+"Organization settings have been saved.","Organisation settings have been saved."
+"Could not save the Organization: %1","Could not save the Organisation: %1"
+"Could not delete the Organization of %1 %2: %3","Could not delete the Organisation of %1 %2: %3"
+Color,Colour
+"Art Medium (oil, watercolor, etc.)","Art Medium (oil, watercolour, etc.)"
+"Dominant Color(s)","Dominant Colour(s)"
+"Shade / Color","Shade / Colour"
+"Jewelry & Accessories","Jewellery & Accessories"
+"Color / Finish","Colour / Finish"
+"Organizer (set as an override)","Organiser (set as an override)"
+"Organization Settings","Organisation Settings"
+Organization,Organisation
+"A configurable product with up to this many sellable children is described as a ProductGroup, each child a variant with its own offer. One with more is a single Product with an AggregateOffer over its whole price range, rather than a list cut short. 0 describes every configurable that way. Each variant costs a salability check on an uncached product page. Default: 50.","A configurable product with up to this many sellable children is described as a ProductGroup, each child a variant with its own offer. One with more is a single Product with an AggregateOffer over its whole price range, rather than a list cut short. 0 describes every configurable that way. Each variant costs a saleability check on an uncached product page. Default: 50."
+"Where a category's SEO settings come from when it does not set
+them itself. Each setting is resolved separately, so a category can take its schema template from
+one place and its robots directive from another.<br/><br/>
+<strong>Category first</strong> suits a catalog whose tree carries the meaning: a setting made on
+a category applies to it whether it was made globally or for one store view, and only a category
+that says nothing defers to its parent.<br/><br/>
+<strong>Store view first</strong> suits store views that carry their own SEO policy: anything set
+for this store view, anywhere up the tree, outranks anything set globally. With one store view the
+two behave identically.<br/><br/>
+Global only — this decides how store-view scope itself is resolved.","Where a category's SEO settings come from when it does not set
+them itself. Each setting is resolved separately, so a category can take its schema template from
+one place and its robots directive from another.<br/><br/>
+<strong>Category first</strong> suits a catalogue whose tree carries the meaning: a setting made on
+a category applies to it whether it was made globally or for one store view, and only a category
+that says nothing defers to its parent.<br/><br/>
+<strong>Store view first</strong> suits store views that carry their own SEO policy: anything set
+for this store view, anywhere up the tree, outranks anything set globally. With one store view the
+two behave identically.<br/><br/>
+Global only — this decides how store-view scope itself is resolved."
+"Apply a dedicated robots meta to category listing pages from page 2 onward
+(?p=2+). Canonicalization is left to Magento's native category canonical tag.","Apply a dedicated robots meta to category listing pages from page 2 onward
+(?p=2+). Canonicalisation is left to Magento's native category canonical tag."
+"Answer Engine Optimization (AEO)","Answer Engine Optimisation (AEO)"
+"Serve a machine-readable NDJSON product catalog (one JSON-LD Product per
+line) at /llms.jsonl. Off by default.","Serve a machine-readable NDJSON product catalogue (one JSON-LD Product per
+line) at /llms.jsonl. Off by default."
+"<strong>MageOS SEO</strong> writes each sitemap as an index with a
+file per kind of page, and can add to each URL what core's generator cannot — hreflang alternates
+among them. It reads the catalog a page at a time on every version, so Generation Method has no
+effect while it is selected.
+<strong>Magento</strong> uses core's generator unchanged.","<strong>MageOS SEO</strong> writes each sitemap as an index with a
+file per kind of page, and can add to each URL what core's generator cannot — hreflang alternates
+among them. It reads the catalogue a page at a time on every version, so Generation Method has no
+effect while it is selected.
+<strong>Magento</strong> uses core's generator unchanged."
+"Organization Identity","Organisation Identity"
+"Organization Name","Organisation Name"
+"Organization Type (schema.org)","Organisation Type (schema.org)"
+"Address, telephone and email apply to every organization type; latitude, longitude and price range only to a local business (Organization Type: Local Business).","Address, telephone and email apply to every organisation type; latitude, longitude and price range only to a local business (Organisation Type: Local Business)."

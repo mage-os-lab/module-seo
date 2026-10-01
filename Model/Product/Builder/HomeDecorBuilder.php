@@ -21,7 +21,7 @@ class HomeDecorBuilder extends AbstractBuilder
      */
     public function getLabel(): string
     {
-        return 'Home & Decor';
+        return (string) __('Home & Decor');
     }
 
     /**
@@ -30,16 +30,16 @@ class HomeDecorBuilder extends AbstractBuilder
     public function getAvailableFields(): array
     {
         return [
-            'brand'          => 'Brand / Maker',
-            'gtin13'         => 'GTIN / EAN',
-            'color'          => 'Colour',
-            'material'       => 'Material',
-            'pattern'        => 'Pattern / Style',
-            'width'          => 'Width',
-            'height'         => 'Height',
-            'depth'          => 'Depth / Length',
-            'weight'         => 'Weight',
-            'countryOfOrigin' => 'Country of Origin',
+            'brand'          => (string) __('Brand / Maker'),
+            'gtin13'         => (string) __('GTIN / EAN'),
+            'color'          => (string) __('Color'),
+            'material'       => (string) __('Material'),
+            'pattern'        => (string) __('Pattern / Style'),
+            'width'          => (string) __('Width'),
+            'height'         => (string) __('Height'),
+            'depth'          => (string) __('Depth / Length'),
+            'weight'         => (string) __('Weight'),
+            'countryOfOrigin' => (string) __('Country of Origin'),
         ];
     }
 

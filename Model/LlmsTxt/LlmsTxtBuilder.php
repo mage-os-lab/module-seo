@@ -74,21 +74,21 @@ class LlmsTxtBuilder
         if ($org->getDescription() !== '') {
             $lines[] = '> ' . $org->getDescription();
         }
-        $lines[] = "> Base URL: {$baseUrl}";
+        $lines[] = '> ' . __('Base URL: %1', $baseUrl);
         $lines   = [...$lines, ...$this->localeLine($storeId)];
         $lines[] = '';
 
         // Key URLs
-        $lines[] = '## Key URLs';
-        $lines[] = "- Home: {$baseUrl}";
-        $lines[] = "- Sitemap: {$baseUrl}/sitemap.xml";
-        $lines[] = "- Search: {$baseUrl}/catalogsearch/result?q={query}";
+        $lines[] = '## ' . __('Key URLs');
+        $lines[] = '- ' . __('Home: %1', $baseUrl);
+        $lines[] = '- ' . __('Sitemap: %1', $baseUrl . '/sitemap.xml');
+        $lines[] = '- ' . __('Search: %1', $baseUrl . '/catalogsearch/result?q={query}');
         $lines[] = '';
 
         // Schema types
         $templates = $this->builderPool->getAvailableTemplates();
         if (!empty($templates)) {
-            $lines[] = '## Schema types available on this site';
+            $lines[] = '## ' . __('Schema types available on this site');
             $lines[] = implode(', ', array_keys($templates));
             $lines[] = '';
         }
@@ -107,7 +107,7 @@ class LlmsTxtBuilder
         // AI contact
         $contactEmail = $this->contactEmail->get();
         if ($contactEmail !== '') {
-            $lines[] = '## AI Contact';
+            $lines[] = '## ' . __('AI Contact');
             $lines[] = $contactEmail;
             $lines[] = '';
         }
@@ -137,26 +137,26 @@ class LlmsTxtBuilder
         if ($org->getDescription() !== '') {
             $lines[] = '> ' . $org->getDescription();
         }
-        $lines[] = "> Base URL: {$baseUrl}";
+        $lines[] = '> ' . __('Base URL: %1', $baseUrl);
         $lines   = [...$lines, ...$this->localeLine($storeId)];
 
         $socials = $org->getSocialProfiles();
         if (!empty($socials)) {
-            $lines[] = '> Social: ' . implode(' | ', $socials);
+            $lines[] = '> ' . __('Social: %1', implode(' | ', $socials));
         }
         $lines[] = '';
 
         // Key URLs
-        $lines[] = '## Key URLs';
-        $lines[] = "- Home: {$baseUrl}";
-        $lines[] = "- Sitemap: {$baseUrl}/sitemap.xml";
-        $lines[] = "- Search: {$baseUrl}/catalogsearch/result?q={query}";
+        $lines[] = '## ' . __('Key URLs');
+        $lines[] = '- ' . __('Home: %1', $baseUrl);
+        $lines[] = '- ' . __('Sitemap: %1', $baseUrl . '/sitemap.xml');
+        $lines[] = '- ' . __('Search: %1', $baseUrl . '/catalogsearch/result?q={query}');
         $lines[] = '';
 
         // Schema types in use
         $templates = $this->builderPool->getAvailableTemplates();
         if (!empty($templates)) {
-            $lines[] = '## Schema types in use';
+            $lines[] = '## ' . __('Schema types in use');
             $schemaTypes = [
                 'Organization', 'WebSite', 'CollectionPage', 'BreadcrumbList', 'ItemList',
             ];
@@ -174,7 +174,7 @@ class LlmsTxtBuilder
             $lines[] = implode(', ', array_unique($schemaTypes));
             $lines[] = '';
 
-            $lines[] = '## Available product schema templates';
+            $lines[] = '## ' . __('Available product schema templates');
             foreach ($templates as $code => $label) {
                 $lines[] = "- {$code}: {$label}";
             }
@@ -198,8 +198,8 @@ class LlmsTxtBuilder
         // AI contact
         $contactEmail = $this->contactEmail->get();
         if ($contactEmail !== '') {
-            $lines[] = '## AI Contact';
-            $lines[] = "Preferred contact for automated queries: {$contactEmail}";
+            $lines[] = '## ' . __('AI Contact');
+            $lines[] = (string) __('Preferred contact for automated queries: %1', $contactEmail);
             $lines[] = '';
         }
 
@@ -216,7 +216,7 @@ class LlmsTxtBuilder
     {
         $locale = $this->seoConfig->getLocaleCode($storeId);
 
-        return $locale === '' ? [] : ["> Locale: {$locale}"];
+        return $locale === '' ? [] : ['> ' . __('Locale: %1', $locale)];
     }
 
     /**
@@ -227,7 +227,7 @@ class LlmsTxtBuilder
      */
     private function buildCategorySection(string $baseUrl): string
     {
-        $lines = ['## Category Tree'];
+        $lines = ['## ' . __('Category Tree')];
 
         try {
             /** @var \Magento\Store\Model\Store $store */
@@ -270,11 +270,11 @@ class LlmsTxtBuilder
                 $indent = str_repeat('  ', $level);
                 $url    = $baseUrl . '/' . ltrim((string) $category->getUrlPath(), '/') . $urlSuffix;
                 $count  = (int) $category->getProductCount();
-                $suffix = $count > 0 ? " ({$count} products)" : '';
+                $suffix = $count > 0 ? ' ' . __('(%1 products)', $count) : '';
                 $lines[] = "{$indent}- {$category->getName()}{$suffix}: {$url}";
             }
         } catch (\Exception) {
-            $lines[] = '(category data unavailable)';
+            $lines[] = (string) __('(category data unavailable)');
         }
 
         $lines[] = '';
