@@ -6,7 +6,7 @@ The Organisation record provides the site identity data used in the `Organizatio
 
 ## Admin location
 
-**Marketing → SEO → Organisation**
+**Marketing → SEO → Organization**
 
 The form supports standard Magento store-scope switching: select a website or store view from the scope selector at the top of the admin page to configure a scope-specific override, exactly as you would with system configuration fields.
 

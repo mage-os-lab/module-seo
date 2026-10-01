@@ -26,24 +26,12 @@ The SEO module provides structured data (JSON-LD), Open Graph meta tags, canonic
 
 ---
 
-## Planned / roadmap
-
-Future SEO / AEO / GEO work is planned in [`planned-features/`](planned-features/). Start with the
-master roadmap, which orders the phases and states the provider-pool architecture every feature
-follows:
-
-- [SEO / AEO / GEO Roadmap](planned-features/_roadmap.md) — phases, dependencies, quality gates.
-- [Provider Pool Architecture](planned-features/architecture-provider-pools.md) — the universal
-  extension pattern used by all planned features.
-
----
-
 ## Quick setup checklist
 
 After installing and running `bin/magento setup:upgrade`:
 
-1. Go to **Marketing → SEO → Organisation** and fill in Name, URL, Description, Logo, and any social profiles. Without this, JSON-LD and `/llms.txt` will output empty values.
-2. Go to **Stores → Configuration → MageOS → SEO** and verify the defaults suit your store.
+1. Go to **Marketing → SEO → Organization** and fill in Name, URL, Description, Logo, and any social profiles. Without this, JSON-LD and `/llms.txt` will output empty values.
+2. Go to **Stores → Configuration → MageOS SEO** and verify the defaults in its four sections (SEO, SEO Merchant Policies, AI Information & Crawlers, Agentic Commerce (UCP)) suit your store.
 3. Assign a schema template to each top-level category via **Catalog → Categories → SEO (Structured Data) tab**.
 4. Nothing to do for `/llms.txt`, `/llms-full.txt` or `/llms.jsonl`: a router serves them at those paths. Do **not** add URL rewrites for them — a rewrite fights the router (see [feeds.md](feeds.md)).
 5. Flush the cache.
@@ -54,8 +42,8 @@ After installing and running `bin/magento setup:upgrade`:
 
 | Menu path | Purpose |
 |---|---|
-| Marketing → SEO → Organisation | Site identity settings — name, URL, logo, socials |
-| Stores → Configuration → MageOS → SEO | All feature toggles and defaults |
+| Marketing → SEO → Organization | Site identity settings — name, URL, logo, socials |
+| Stores → Configuration → MageOS SEO | All feature toggles and defaults, in four sections |
 | Catalog → Categories → (open a category) → SEO (Structured Data) | Per-category schema template and overrides |
 | Catalog → Products → (open a product) → Advanced SEO | Per-product field overrides and robots |
 

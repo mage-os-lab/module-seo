@@ -18,7 +18,7 @@ The tab is injected into the standard category edit form at the bottom of the ta
 
 Which of the 16 product schema templates to use for products in this category. For example, assign `Apparel` to a clothing category so that Google can read size, color, and material from your products.
 
-Choose **Inherit (parent category, then the store's default template)** to inherit from the nearest ancestor category that has a template set, or fall back to the default template configured at **Stores → Configuration → MageOS → SEO → Structured Data → Default Product Schema Template**.
+Choose **Inherit (parent category, then the store's default template)** to inherit from the nearest ancestor category that has a template set, or fall back to the default template configured at **Stores → Configuration → MageOS SEO → SEO → Structured Data (JSON-LD) → Default Product Schema Template**.
 
 See [product-schema-templates.md](product-schema-templates.md) for the full template list and what each one outputs.
 
@@ -36,7 +36,7 @@ Controls the `ItemList` JSON-LD node that lists the products visible on the cate
 
 | Option | Behaviour |
 |---|---|
-| Use Global Setting | Inherits from **Stores → Configuration → MageOS → SEO → Enable Category ItemList Schema** |
+| Use Global Setting | Inherits from **Stores → Configuration → MageOS SEO → SEO → Structured Data (JSON-LD) → Enable Category ItemList Schema** |
 | Yes — output ItemList schema | Forces ItemList on, even if the global setting is off |
 | No — disable ItemList schema | Suppresses ItemList for this category only |
 
@@ -98,7 +98,7 @@ which stores nothing — defers to an ancestor.
 Two things can make a source less specific: it belongs to an ancestor category, or it belongs to
 a wider scope than the store view being rendered. Which of those takes precedence is a property
 of the shop rather than of the module, so it is configurable at
-**Stores → Configuration → MageOS → SEO → Category SEO Settings → Inheritance Strategy**:
+**Stores → Configuration → MageOS SEO → SEO → Category SEO Settings → Inheritance Strategy**:
 
 | Strategy | Order settings are looked for | Suits |
 |---|---|---|
@@ -154,7 +154,7 @@ The ItemList schema reflects the current page of products, not the full category
 
 This matches what Google actually crawls when it follows pagination links, so the schema is consistent with the visible content.
 
-The maximum number of items per page is controlled by **Stores → Configuration → MageOS → SEO → Category ItemList Max Items** (default: 36). If the category has fewer products than the max, fewer items are output.
+The maximum number of items per page is controlled by **Stores → Configuration → MageOS SEO → SEO → Structured Data (JSON-LD) → Category ItemList Max Items** (default: 36). If the category has fewer products than the max, fewer items are output.
 
 ---
 

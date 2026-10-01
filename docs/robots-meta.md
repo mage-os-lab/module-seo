@@ -6,7 +6,7 @@ The module controls the `<meta name="robots">` tag on product, category and CMS 
 
 ## Global defaults
 
-**Stores → Configuration → MageOS → SEO → Robots Meta Defaults**
+**Stores → Configuration → MageOS SEO → SEO → Robots Meta Defaults**
 
 | Setting | Default | Description |
 |---|---|---|

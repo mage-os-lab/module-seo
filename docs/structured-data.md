@@ -52,6 +52,8 @@ Built-in providers, in order:
 | `CategorySchemaProvider` | `catalog_category_view` | CollectionPage + optional ItemList |
 | `ProductSchemaProvider` | `catalog_product_view` | Dispatches to template builder pool |
 | `CmsPageSchemaProvider` | `cms_page_view` (every CMS page and the home page) | WebPage node at `CmsPageResolver::currentUrl()` |
+| `ArticleSchemaProvider` | `*` | BlogPosting, from the first `ArticleDataProviderInterface` with an article for the page — none registered by default |
+| `EventSchemaProvider` | `*` | One Event per event from every matching `EventDataProviderInterface` — none registered by default |
 | `SpeakableProvider` | `catalog_product_view` | With Speakable on: the product page's WebPage, carrying `speakable` (see [Speakable](#speakable)) |
 
 Bridge modules add their own providers by registering them in their own `di.xml` — the Seo module is never modified.
@@ -100,7 +102,7 @@ Enrichers are merged into the offer after it is built, so the enricher's date is
 
 A configurable product is described the way Google's [product variant guidance](https://developers.google.com/search/docs/appearance/structured-data/product-variants) asks, from the children the storefront sells: core's `ConfigurableOptionsProviderInterface`, after its filters (enabled children, and in-stock ones unless out-of-stock products are displayed).
 
-**Up to `has_variant_max` sellable children** (Stores → Configuration → MageOS → SEO → Structured Data → *Most Variants per Configurable Product*, default 50) — a `ProductGroup`:
+**Up to `has_variant_max` sellable children** (Stores → Configuration → MageOS SEO → SEO → Structured Data (JSON-LD) → *Most Variants per Configurable Product*, default 50) — a `ProductGroup`:
 
 ```json
 {
@@ -165,7 +167,7 @@ Why a limit at all: Google sets none. Each variant adds an offer to the page —
 
 ## Speakable
 
-**Stores → Configuration → MageOS → SEO → Answer Engine Optimization (AEO) → Enable Speakable Schema** (off by default) marks page sections for text-to-speech, with the CSS selectors in **Speakable CSS Selectors** (defaults: `.page-title`, `.product.attribute.overview`, `.category-description`).
+**Stores → Configuration → MageOS SEO → SEO → Answer Engine Optimization (AEO) → Enable Speakable Schema** (off by default) marks page sections for text-to-speech, with the CSS selectors in **Speakable CSS Selectors** (defaults: `.page-title`, `.product.attribute.overview`, `.category-description`).
 
 The `speakable` property sits on the node that describes the page — Google: *"Speakable is used by the Article or Webpage object"* — built once by `Model\StructuredData\SpeakableSpecification`:
 
@@ -194,7 +196,7 @@ Only `cssSelector` is emitted: Google takes `cssSelector` or `xPath`, never both
 
 ## Master on/off switch
 
-**Stores → Configuration → MageOS → SEO → Structured Data → Enable JSON-LD Output**
+**Stores → Configuration → MageOS SEO → SEO → Structured Data (JSON-LD) → Enable JSON-LD Output**
 
 When disabled, the `Block\JsonLd` block renders an empty string. No JSON-LD is output anywhere on the site. This is a per-store-view setting.
 
@@ -202,13 +204,17 @@ When disabled, the `Block\JsonLd` block renders an empty string. No JSON-LD is o
 
 ## XSS protection
 
-Before the JSON is written to the page, the compositor runs:
+The compositor encodes the JSON with:
 
 ```php
-str_replace(['</', '<!--'], ['<\/', '<\!--'], $json)
+json_encode($schemas, JSON_HEX_TAG | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
 ```
 
-This prevents `</script>` injection within JSON-LD. Do not bypass this or add your own raw `json_encode()` output to `<head>`.
+`JSON_HEX_TAG` and `JSON_HEX_AMP` write `<`, `>` and `&` as `<`, `>` and `&`, so
+neither `</script>` nor `<!--` can appear inside the inline `<script>` and the output stays valid
+JSON. A `str_replace()` after encoding cannot promise both. `Block\FaqJsonLd` and
+`Block\ItemListJsonLd` encode the same way. Do not bypass this or add your own raw `json_encode()`
+output to `<head>`.
 
 ---
 

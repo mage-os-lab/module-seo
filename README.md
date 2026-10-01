@@ -81,7 +81,7 @@ bin/magento cache:flush
 
 > **The module works immediately after install, but structured data, `/llms.txt`, and the Organisation JSON-LD node will be empty until you fill in the Organisation details.**
 
-Go to **Marketing > SEO > Organisation** and complete all fields before putting the site live.
+Go to **Marketing > SEO > Organization** and complete all fields before putting the site live.
 
 | Field | Purpose |
 | --- | --- |
@@ -89,7 +89,7 @@ Go to **Marketing > SEO > Organisation** and complete all fields before putting 
 | URL | Canonical URL of your organisation (e.g. `https://example.com`) |
 | Description | Short tagline — shown in JSON-LD and at the top of `/llms.txt` |
 | Organisation type | Schema.org `@type`: Organization, Corporation, NGO, etc. |
-| Logo path | Media-relative path to your logo image |
+| Logo | The theme's header logo, or an uploaded image |
 | Logo width / height | Pixel dimensions — required for valid Organization schema |
 | Social profiles | Social profile URLs (Twitter, LinkedIn, etc.) |
 | Contact point | contactType, email, availableLanguage for the ContactPoint node |
@@ -101,7 +101,7 @@ Without a Name and URL saved, the Organization node in JSON-LD will render with 
 
 ## Admin configuration
 
-**Stores > Configuration > MageOS** holds four sections:
+**Stores > Configuration > MageOS SEO** holds four sections:
 
 ### SEO Configuration (`mageos_seo_general`)
 
@@ -223,21 +223,21 @@ category-specific data with no valid Product property is expressed via `addition
 | Stationery | Stationery & Office | Product |
 | LocalExperience | Local Experience | Product |
 
-The default template (`GenericProduct`) is used when no template is configured for the product's category. Change it under **Configuration > Structured Data > Default Product Schema Template**.
+The default template (`GenericProduct`) is used when no template is configured for the product's category. Change it under **Stores > Configuration > MageOS SEO > SEO > Structured Data (JSON-LD) > Default Product Schema Template**.
 
 ---
 
 ## Extending the module
 
-Every cross-cutting concern is a provider pool wired via `di.xml`, so another module contributes a provider from its **own** `di.xml` without modifying this one. Most provider interfaces expose `getHandles()` (`['*']` = all pages) for layout-handle scoping; resolution is either *collect-all* or *first-wins / highest-priority*.
+Every cross-cutting concern is a provider pool wired via `di.xml`, so another module contributes a provider from its **own** `di.xml` without modifying this one. Most provider interfaces expose `getHandles()` (`['*']` = all pages) for layout-handle scoping; resolution is *collect-all*, *one winner* (highest sortOrder or priority), or *a lookup by key* (template code, path segment, group name).
 
 | Extension point | Interface | Resolution |
 | --- | --- | --- |
 | Structured data providers | `StructuredDataProviderInterface` | collect-all |
 | Meta tag providers | `MetaTagProviderInterface` | collect-all |
-| Page title providers | `PageTitleProviderInterface` | first-wins |
+| Page title providers | `PageTitleProviderInterface` | highest sortOrder with a title wins |
 | Product schema builders | `ProductSchemaBuilderInterface` | by template code |
-| Robots meta providers | `RobotsMetaProviderInterface` | first-wins by sortOrder |
+| Robots meta providers | `RobotsMetaProviderInterface` | highest sortOrder with a value wins |
 | Aggregate rating providers | `AggregateRatingProviderInterface` | highest-priority non-null |
 | Offer enrichers | `OfferEnricherInterface` | collect-all (merged into every product and variant offer) |
 | Variant URLs | `ProductVariantUrlResolverInterface` | one (di.xml preference) |
