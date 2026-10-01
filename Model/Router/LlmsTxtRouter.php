@@ -29,16 +29,6 @@ class LlmsTxtRouter implements RouterInterface
     ];
 
     /**
-     * Config check per path. A disabled file is not claimed, so the request falls
-     * through to the other routers (a static file, another module, or the 404 page).
-     */
-    private const ENABLED_CHECKS = [
-        'llms.txt'      => 'isLlmsTxtEnabled',
-        'llms-full.txt' => 'isLlmsFullTxtEnabled',
-        'llms.jsonl'    => 'isLlmsJsonlEnabled',
-    ];
-
-    /**
      * @param ActionFactory $actionFactory
      * @param Config $aeoConfig
      */
@@ -70,7 +60,12 @@ class LlmsTxtRouter implements RouterInterface
         }
 
         // Claim the path only while the file is enabled for the current store.
-        if (!$this->aeoConfig->{self::ENABLED_CHECKS[$path]}()) {
+        $enabled = match ($path) {
+            'llms.txt'      => $this->aeoConfig->isLlmsTxtEnabled(),
+            'llms-full.txt' => $this->aeoConfig->isLlmsFullTxtEnabled(),
+            default         => $this->aeoConfig->isLlmsJsonlEnabled(),
+        };
+        if (!$enabled) {
             return null;
         }
 
