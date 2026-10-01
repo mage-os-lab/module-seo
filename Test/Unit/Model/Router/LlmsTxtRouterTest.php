@@ -7,6 +7,7 @@ namespace MageOS\Seo\Test\Unit\Model\Router;
 use Magento\Framework\App\ActionFactory;
 use Magento\Framework\App\ActionInterface;
 use Magento\Framework\App\Request\Http;
+use MageOS\Seo\Model\Aeo\Config;
 use MageOS\Seo\Model\Router\LlmsTxtRouter;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -24,10 +25,19 @@ class LlmsTxtRouterTest extends TestCase
      */
     private LlmsTxtRouter $router;
 
+    /**
+     * @var array<string, bool>
+     */
+    private array $enabled = ['llms.txt' => true, 'llms-full.txt' => true, 'llms.jsonl' => true];
+
     protected function setUp(): void
     {
         $this->actionFactory = $this->createMock(ActionFactory::class);
-        $this->router        = new LlmsTxtRouter($this->actionFactory);
+        $config              = $this->createStub(Config::class);
+        $config->method('isLlmsTxtEnabled')->willReturnCallback(fn () => $this->enabled['llms.txt']);
+        $config->method('isLlmsFullTxtEnabled')->willReturnCallback(fn () => $this->enabled['llms-full.txt']);
+        $config->method('isLlmsJsonlEnabled')->willReturnCallback(fn () => $this->enabled['llms.jsonl']);
+        $this->router        = new LlmsTxtRouter($this->actionFactory, $config);
     }
 
     private function request(string $path, string $module = ''): Http&MockObject
@@ -80,5 +90,26 @@ class LlmsTxtRouterTest extends TestCase
         $this->actionFactory->expects($this->once())->method('create')->willReturn($action);
 
         $this->assertSame($action, $this->router->match($request));
+    }
+
+    /**
+     * @return array<string, array{0: string}>
+     */
+    public static function fileProvider(): array
+    {
+        return [
+            'llms.txt'      => ['llms.txt'],
+            'llms-full.txt' => ['llms-full.txt'],
+            'llms.jsonl'    => ['llms.jsonl'],
+        ];
+    }
+
+    #[DataProvider('fileProvider')]
+    public function testDisabledFileFallsThroughToOtherRouters(string $file): void
+    {
+        $this->enabled[$file] = false;
+        $this->actionFactory->expects($this->never())->method('create');
+
+        $this->assertNull($this->router->match($this->request('/' . $file)));
     }
 }

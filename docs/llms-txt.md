@@ -21,34 +21,57 @@ store's catalogue. It is **off by default** — turn it on per store view with
 
 ---
 
+## Format
+
+Both documents follow the [llms.txt format](https://llmstxt.org), in this order:
+
+1. an H1 with the organisation name;
+2. a one-line blockquote summary from the organisation description (omitted when there is none);
+3. details: lists and paragraphs with no headings — base URL, locale, search URL template,
+   structured data, contact, and prose contributed by section providers (the FAQ);
+4. H2 sections that are "file lists": every item is a markdown link, `- [name](url)`, optionally
+   followed by `: notes`.
+
+Nothing but link items appears under an H2. That is what the format asks for. Lighthouse's
+`llms-txt` audit fails a file with no markdown link at all — which scores worse than serving no
+file — and the reference parser (`llms_txt` on PyPI) stops with an error on any non-link line
+under an H2.
+
+Square brackets in link labels are replaced with round ones (`Men's [Sale]` becomes
+`Men's (Sale)`): the reference parser cannot read a backslash-escaped label. Spaces and round
+brackets in URLs are percent-encoded.
+
+---
+
 ## Content of /llms.txt
 
 ```
 # Organisation Name
+
 > Description tagline
-> Base URL: https://example.com
-> Locale: en_GB
+
+- Base URL: https://example.com
+- Locale: en_GB
+- Search URL template: `https://example.com/catalogsearch/result?q={query}`
+- Structured data: schema.org JSON-LD on product pages (Product, Book, SoftwareApplication, VisualArtwork)
+- Contact for automated queries: <ai@example.com>
+
+Frequently asked questions:
+
+- **Do you ship worldwide?** Yes, to every country in the EU and the UK.
 
 ## Key URLs
-- Home: https://example.com
-- Sitemap: https://example.com/sitemap.xml
-- Search: https://example.com/catalogsearch/result?q={query}
 
-## Schema types available on this site
-GenericProduct, Food, Apparel, ...
-
-## Frequently Asked Questions
-
-**Do you ship worldwide?**
-Yes, to every country in the EU and the UK.
-
-## AI Contact
-ai@example.com
+- [Home](https://example.com/): Store front page
+- [Sitemap](https://example.com/sitemap.xml): XML sitemap of indexable pages
 ```
 
-The `> Locale:` line is left out when the store view has no locale configured, the FAQ section when
-the selected groups have no questions, and the AI contact when there is none (see
-[Data sources](#data-sources)).
+The Sitemap link points at the sitemap configured under Marketing → Site Map, and is left
+out when the store view has none.
+
+The locale line is left out when the store view has no locale configured, the FAQ list when the
+selected groups have no questions (the first 5 are shown), and the contact line when there is none
+(see [Data sources](#data-sources)).
 
 ---
 
@@ -56,19 +79,23 @@ the selected groups have no questions, and the AI contact when there is none (se
 
 Everything in `/llms.txt`, plus:
 
-- Social profile URLs (from Organisation → Social profiles)
+- Social profile URLs (from Organisation → Social profiles), in the details list
 - Every FAQ of the selected groups, not just the first 5
-- A full schema type list (Organization, WebSite, CollectionPage, BreadcrumbList, ItemList, Product, FoodProduct, Apparel, ...)
-- A full template-to-label list
-- The complete category tree with product counts and URLs, indented by depth:
+- The schema.org types the pages can carry, and the product template list with labels, in the
+  details list
+- The category tree with product counts, as an indented list of links:
 
 ```
 ## Category Tree
-- Clothing (245 products): https://example.com/clothing
-  - Women's (148 products): https://example.com/clothing/womens
-    - Dresses (62 products): https://example.com/clothing/womens/dresses
-  - Men's (97 products): https://example.com/clothing/mens
+
+- [Clothing](https://example.com/clothing.html): 245 products
+  - [Women's](https://example.com/clothing/womens.html): 148 products
+    - [Dresses](https://example.com/clothing/womens/dresses.html): 62 products
+  - [Men's](https://example.com/clothing/mens.html): 97 products
 ```
+
+The section is left out when the store has no visible categories. If they cannot be read, the
+store's build fails: FeedRegenerator logs it and keeps serving the previous file.
 
 - Any sections contributed by bridge modules
 
@@ -109,6 +136,7 @@ Both documents draw data from:
 |---|---|
 | Organisation name, description, URL, social profiles | Organisation record (store-scoped, same fallback as JSON-LD) |
 | Locale | The store view's **General → Locale Options → Locale** (`general/locale/code`) |
+| Sitemap link | Core's URL of the store view's most recently generated sitemap under **Marketing → Site Map**; left out when there is none. A new sitemap is picked up on the next rebuild (the nightly cron at the latest) |
 | Schema template list | `SchemaBuilderPool::getAvailableTemplates()` |
 | Category tree | Live `catalog_category_entity` collection, active categories only, level > 1 |
 | FAQs | The groups selected under **FAQ Groups** (see [FAQ section](#faq-section)) |
@@ -166,7 +194,12 @@ with your own `SectionProviderInterface` implementation (see below):
 
 ## Adding content from a bridge module
 
-Register a `SectionProviderInterface` implementation in your bridge module's `di.xml`:
+Register a `SectionProviderInterface` implementation in your bridge module's `di.xml`.
+Where the output goes depends on its first line:
+
+- output starting with `## ` is an H2 section, appended after the built-in sections. Every item
+  under the heading must be a markdown link, `- [name](url)`, optionally followed by `: notes`;
+- any other output is details — paragraphs or lists, no headings — placed before the first H2.
 
 ```php
 // MyModule/Model/LlmsTxt/MySectionProvider.php
@@ -174,13 +207,14 @@ class MySectionProvider implements \MageOS\Seo\Model\LlmsTxt\SectionProviderInte
 {
     public function getConciseSection(): string
     {
-        return "## Vendors\n- 42 active makers on this platform";
+        // Details: no heading, so it goes before the first H2
+        return "This marketplace hosts 42 independent makers.";
     }
 
     public function getFullSection(): string
     {
-        // Return a fuller list, or '' to contribute nothing to the full document
-        return "## Vendors\n" . $this->buildVendorList();
+        // An H2 file list: link items only, or '' to contribute nothing
+        return "## Vendors\n\n" . $this->buildVendorLinks(); // "- [Studio A](https://…): Ceramics"
     }
 }
 ```
