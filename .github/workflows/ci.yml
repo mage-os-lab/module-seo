@@ -18,7 +18,16 @@ jobs:
       - uses: actions/checkout@v7
       - uses: graycoreio/github-actions-magento2/supported-version@v8.11.0 # x-release-please-version
         id: supported-version
-      - run: echo ${{ steps.supported-version.outputs.matrix }}
+      - id: matrix
+        env:
+          MATRIX: ${{ steps.supported-version.outputs.matrix }}
+        run: |
+          echo "matrix=$(jq -c --arg v '2.4.7-p10' \
+            '.magento |= map(select(endswith(":" + $v) | not)) | .include |= map(select(.version != $v))' \
+            <<< "$MATRIX")" >> "$GITHUB_OUTPUT"
+      - env:
+          MATRIX: ${{ steps.matrix.outputs.matrix }}
+        run: echo "$MATRIX"
   check-extension:
     needs: compute_matrix
     uses: graycoreio/github-actions-magento2/.github/workflows/check-extension.yaml@v8.11.0 # x-release-please-version
