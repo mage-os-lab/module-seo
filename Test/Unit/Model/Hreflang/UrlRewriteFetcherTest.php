@@ -6,7 +6,7 @@ namespace MageOS\Seo\Test\Unit\Model\Hreflang;
 
 use MageOS\Seo\Model\Hreflang\UrlRewriteFetcher;
 use MageOS\Seo\Model\ResourceModel\UrlRewrite as UrlRewriteResource;
-use PHPUnit\Framework\MockObject\MockObject;
+use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -17,9 +17,9 @@ use PHPUnit\Framework\TestCase;
 class UrlRewriteFetcherTest extends TestCase
 {
     /**
-     * @var UrlRewriteResource&MockObject
+     * @var UrlRewriteResource&Stub
      */
-    private UrlRewriteResource&MockObject $resource;
+    private UrlRewriteResource&Stub $resource;
 
     /**
      * @var UrlRewriteFetcher
@@ -28,8 +28,19 @@ class UrlRewriteFetcherTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->resource = $this->createMock(UrlRewriteResource::class);
-        $this->fetcher  = new UrlRewriteFetcher($this->resource);
+        $this->resource = $this->createStub(UrlRewriteResource::class);
+        $this->fetcher  = $this->fetcher();
+    }
+
+    /**
+     * The fetcher under test, over the given resource model or this test's stub.
+     *
+     * @param UrlRewriteResource|null $resource
+     * @return UrlRewriteFetcher
+     */
+    private function fetcher(?UrlRewriteResource $resource = null): UrlRewriteFetcher
+    {
+        return new UrlRewriteFetcher($resource ?? $this->resource);
     }
 
     public function testReturnsPathsKeyedByStore(): void
@@ -61,7 +72,8 @@ class UrlRewriteFetcherTest extends TestCase
 
     public function testFetchForEntitiesGivesEachEntityItsFirstPathPerStore(): void
     {
-        $this->resource->method('getPathsForEntities')->with('product', [5, 6])->willReturn([
+        $resource = $this->createMock(UrlRewriteResource::class);
+        $resource->method('getPathsForEntities')->with('product', [5, 6])->willReturn([
             ['entity_id' => '5', 'store_id' => '1', 'request_path' => 'a'],
             ['entity_id' => '5', 'store_id' => '1', 'request_path' => 'a-history'],
             ['entity_id' => '5', 'store_id' => '2', 'request_path' => 'a-de'],
@@ -70,13 +82,14 @@ class UrlRewriteFetcherTest extends TestCase
 
         $this->assertSame(
             [5 => [1 => 'a', 2 => 'a-de'], 6 => [1 => 'b']],
-            $this->fetcher->fetchForEntities('product', [5, 6])
+            $this->fetcher($resource)->fetchForEntities('product', [5, 6])
         );
     }
 
     public function testFetchForCmsGroupsGivesEachGroupItsBestPathPerStore(): void
     {
-        $this->resource->method('getPathsForCmsGroups')->with(['about-us', 'contact'])->willReturn([
+        $resource = $this->createMock(UrlRewriteResource::class);
+        $resource->method('getPathsForCmsGroups')->with(['about-us', 'contact'])->willReturn([
             ['hreflang_group' => 'about-us', 'store_id' => '2', 'request_path' => 'ueber-uns'],
             ['hreflang_group' => 'about-us', 'store_id' => '2', 'request_path' => 'about-us'],
             ['hreflang_group' => 'contact', 'store_id' => '1', 'request_path' => 'contact'],
@@ -84,18 +97,22 @@ class UrlRewriteFetcherTest extends TestCase
 
         $this->assertSame(
             ['about-us' => [2 => 'ueber-uns'], 'contact' => [1 => 'contact']],
-            $this->fetcher->fetchForCmsGroups(['about-us', 'contact'])
+            $this->fetcher($resource)->fetchForCmsGroups(['about-us', 'contact'])
         );
     }
 
     public function testFetchForCmsGroupKeepsTheFirstPathPerStore(): void
     {
-        $this->resource->method('getPathsForCmsGroup')->with('about-us')->willReturn([
+        $resource = $this->createMock(UrlRewriteResource::class);
+        $resource->method('getPathsForCmsGroup')->with('about-us')->willReturn([
             ['entity_id' => '12', 'store_id' => '2', 'request_path' => 'ueber-uns'],
             ['entity_id' => '11', 'store_id' => '1', 'request_path' => 'about-us'],
             ['entity_id' => '11', 'store_id' => '2', 'request_path' => 'about-us'],
         ]);
 
-        $this->assertSame([2 => 'ueber-uns', 1 => 'about-us'], $this->fetcher->fetchForCmsGroup('about-us'));
+        $this->assertSame(
+            [2 => 'ueber-uns', 1 => 'about-us'],
+            $this->fetcher($resource)->fetchForCmsGroup('about-us')
+        );
     }
 }

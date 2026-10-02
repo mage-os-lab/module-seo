@@ -13,6 +13,7 @@ use MageOS\Seo\Model\Rebuild\RegenerationRequester;
 use MageOS\Seo\Model\Sitemap\Rebuilder as SitemapRebuilder;
 use MageOS\Seo\Model\Sitemap\RebuildGroup;
 use PHPUnit\Framework\MockObject\MockObject;
+use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
 
@@ -21,30 +22,30 @@ class RegenerateConsumerTest extends TestCase
     /**
      * A registered handler, owning the groups `one` and `two`.
      *
-     * @var GroupHandlerInterface&MockObject
+     * @var GroupHandlerInterface&Stub
      */
-    private GroupHandlerInterface&MockObject $handler;
+    private GroupHandlerInterface&Stub $handler;
 
     /**
-     * @var RegenerationRequester&MockObject
+     * @var RegenerationRequester&Stub
      */
-    private RegenerationRequester&MockObject $requester;
+    private RegenerationRequester&Stub $requester;
 
     /**
-     * @var LoggerInterface&MockObject
+     * @var LoggerInterface&Stub
      */
-    private LoggerInterface&MockObject $logger;
+    private LoggerInterface&Stub $logger;
 
     private RegenerateConsumer $consumer;
 
     protected function setUp(): void
     {
-        $this->handler   = $this->createMock(GroupHandlerInterface::class);
+        $this->handler   = $this->createStub(GroupHandlerInterface::class);
         $this->handler->method('getGroups')->willReturn(['one', 'two']);
-        $this->requester = $this->createMock(RegenerationRequester::class);
-        $this->logger    = $this->createMock(LoggerInterface::class);
+        $this->requester = $this->createStub(RegenerationRequester::class);
+        $this->logger    = $this->createStub(LoggerInterface::class);
 
-        $this->consumer = $this->consumer($this->createStub(SitemapRebuilder::class));
+        $this->consumer = $this->consumer();
     }
 
     public function testASitemapGroupRebuildsThatTypeAndNoHandlerGroup(): void
@@ -52,10 +53,12 @@ class RegenerateConsumerTest extends TestCase
         $rebuilder = $this->createMock(SitemapRebuilder::class);
         $rebuilder->method('hasType')->willReturn(true);
         $rebuilder->expects($this->once())->method('rebuild')->with('products')->willReturn([]);
-        $this->handler->expects($this->never())->method('rebuild');
-        $this->requester->expects($this->once())->method('acknowledge')->with('sitemap-products');
+        $handler = $this->handlerMock();
+        $handler->expects($this->never())->method('rebuild');
+        $requester = $this->createMock(RegenerationRequester::class);
+        $requester->expects($this->once())->method('acknowledge')->with('sitemap-products');
 
-        $this->consumer($rebuilder)->process('sitemap-products');
+        $this->consumer($rebuilder, $handler, $requester)->process('sitemap-products');
     }
 
     public function testTheFirstBuildGroupWritesTheMissingSitemapsAndNothingElse(): void
@@ -63,22 +66,28 @@ class RegenerateConsumerTest extends TestCase
         $rebuilder = $this->createMock(SitemapRebuilder::class);
         $rebuilder->expects($this->once())->method('buildMissing')->willReturn([]);
         $rebuilder->expects($this->never())->method('rebuild');
-        $this->handler->expects($this->never())->method('rebuild');
-        $this->requester->expects($this->once())->method('acknowledge')->with(RebuildGroup::MISSING);
-        $this->logger->expects($this->never())->method('warning');
+        $handler = $this->handlerMock();
+        $handler->expects($this->never())->method('rebuild');
+        $requester = $this->createMock(RegenerationRequester::class);
+        $requester->expects($this->once())->method('acknowledge')->with(RebuildGroup::MISSING);
+        $logger = $this->createMock(LoggerInterface::class);
+        $logger->expects($this->never())->method('warning');
 
-        $this->consumer($rebuilder)->process(RebuildGroup::MISSING);
+        $this->consumer($rebuilder, $handler, $requester, $logger)->process(RebuildGroup::MISSING);
     }
 
     public function testAFirstBuildBeingWrittenElsewherePutsTheRequestBack(): void
     {
         $rebuilder = $this->createStub(SitemapRebuilder::class);
         $rebuilder->method('buildMissing')->willThrowException(new SitemapRebuildInProgressException(__('busy')));
-        $this->requester->expects($this->once())->method('request')->with(RebuildGroup::MISSING);
-        $this->handler->expects($this->never())->method('rebuild');
-        $this->logger->expects($this->never())->method('error');
+        $requester = $this->createMock(RegenerationRequester::class);
+        $requester->expects($this->once())->method('request')->with(RebuildGroup::MISSING);
+        $handler = $this->handlerMock();
+        $handler->expects($this->never())->method('rebuild');
+        $logger = $this->createMock(LoggerInterface::class);
+        $logger->expects($this->never())->method('error');
 
-        $this->consumer($rebuilder)->process(RebuildGroup::MISSING);
+        $this->consumer($rebuilder, $handler, $requester, $logger)->process(RebuildGroup::MISSING);
     }
 
     public function testAHandlerGroupRebuildsNoSitemap(): void
@@ -95,10 +104,12 @@ class RegenerateConsumerTest extends TestCase
         $rebuilder = $this->createMock(SitemapRebuilder::class);
         $rebuilder->method('hasType')->willReturn(false);
         $rebuilder->expects($this->never())->method('rebuild');
-        $this->logger->expects($this->once())->method('warning');
-        $this->requester->expects($this->never())->method('acknowledge');
+        $logger = $this->createMock(LoggerInterface::class);
+        $logger->expects($this->once())->method('warning');
+        $requester = $this->createMock(RegenerationRequester::class);
+        $requester->expects($this->never())->method('acknowledge');
 
-        $this->consumer($rebuilder)->process('sitemap-nothing-lists-this');
+        $this->consumer($rebuilder, requester: $requester, logger: $logger)->process('sitemap-nothing-lists-this');
     }
 
     public function testASitemapBeingWrittenElsewherePutsTheRequestBack(): void
@@ -106,10 +117,12 @@ class RegenerateConsumerTest extends TestCase
         $rebuilder = $this->createStub(SitemapRebuilder::class);
         $rebuilder->method('hasType')->willReturn(true);
         $rebuilder->method('rebuild')->willThrowException(new SitemapRebuildInProgressException(__('being written')));
-        $this->requester->expects($this->once())->method('request')->with('sitemap-pages');
-        $this->logger->expects($this->never())->method('error');
+        $requester = $this->createMock(RegenerationRequester::class);
+        $requester->expects($this->once())->method('request')->with('sitemap-pages');
+        $logger = $this->createMock(LoggerInterface::class);
+        $logger->expects($this->never())->method('error');
 
-        $this->consumer($rebuilder)->process('sitemap-pages');
+        $this->consumer($rebuilder, requester: $requester, logger: $logger)->process('sitemap-pages');
     }
 
     public function testProcessAcknowledgesBeforeRebuilding(): void
@@ -136,21 +149,25 @@ class RegenerateConsumerTest extends TestCase
 
     public function testProcessPassesTheGroupToItsHandler(): void
     {
-        $this->handler
+        $handler = $this->handlerMock();
+        $handler
             ->expects($this->once())
             ->method('rebuild')
             ->with('two');
 
-        $this->consumer->process('two');
+        $this->consumer(handler: $handler)->process('two');
     }
 
     public function testUnknownGroupIsRejectedWithoutBuilding(): void
     {
-        $this->logger->expects($this->once())->method('warning');
-        $this->requester->expects($this->never())->method('acknowledge');
-        $this->handler->expects($this->never())->method('rebuild');
+        $logger = $this->createMock(LoggerInterface::class);
+        $logger->expects($this->once())->method('warning');
+        $requester = $this->createMock(RegenerationRequester::class);
+        $requester->expects($this->never())->method('acknowledge');
+        $handler = $this->handlerMock();
+        $handler->expects($this->never())->method('rebuild');
 
-        $this->consumer->process('not-a-group');
+        $this->consumer(handler: $handler, requester: $requester, logger: $logger)->process('not-a-group');
     }
 
     public function testLosingTheRebuildLockPutsTheRequestBack(): void
@@ -161,11 +178,12 @@ class RegenerateConsumerTest extends TestCase
         $this->handler->method('rebuild')
             ->willThrowException(new RebuildInProgressException(__('already running')));
 
-        $this->requester->expects($this->once())
+        $requester = $this->createMock(RegenerationRequester::class);
+        $requester->expects($this->once())
             ->method('request')
             ->with('one');
 
-        $this->consumer->process('one');
+        $this->consumer(requester: $requester)->process('one');
     }
 
     public function testLosingTheRebuildLockIsNotAnError(): void
@@ -174,26 +192,47 @@ class RegenerateConsumerTest extends TestCase
         // error level and nothing is thrown at the queue.
         $this->handler->method('rebuild')
             ->willThrowException(new RebuildInProgressException(__('already running')));
-        $this->logger->expects($this->never())->method('error');
-        $this->logger->expects($this->once())->method('info');
+        $logger = $this->createMock(LoggerInterface::class);
+        $logger->expects($this->never())->method('error');
+        $logger->expects($this->once())->method('info');
 
-        $this->consumer->process('one');
+        $this->consumer(logger: $logger)->process('one');
     }
 
     /**
-     * The consumer over this test's handler and doubles, and the given sitemap rebuilder.
+     * The consumer over the given doubles, or this test's stubs and a stub sitemap rebuilder.
      *
-     * @param SitemapRebuilder $rebuilder
+     * @param SitemapRebuilder|null $rebuilder
+     * @param GroupHandlerInterface|null $handler
+     * @param RegenerationRequester|null $requester
+     * @param LoggerInterface|null $logger
      * @return RegenerateConsumer
      */
-    private function consumer(SitemapRebuilder $rebuilder): RegenerateConsumer
-    {
+    private function consumer(
+        ?SitemapRebuilder $rebuilder = null,
+        ?GroupHandlerInterface $handler = null,
+        ?RegenerationRequester $requester = null,
+        ?LoggerInterface $logger = null
+    ): RegenerateConsumer {
         return new RegenerateConsumer(
-            new HandlerPool([$this->handler]),
-            $this->requester,
-            $this->logger,
-            $rebuilder,
+            new HandlerPool([$handler ?? $this->handler]),
+            $requester ?? $this->requester,
+            $logger ?? $this->logger,
+            $rebuilder ?? $this->createStub(SitemapRebuilder::class),
             new RebuildGroup()
         );
+    }
+
+    /**
+     * The handler as a mock, owning the same groups, for a test that verifies what it rebuilds.
+     *
+     * @return GroupHandlerInterface&MockObject
+     */
+    private function handlerMock(): GroupHandlerInterface&MockObject
+    {
+        $handler = $this->createMock(GroupHandlerInterface::class);
+        $handler->method('getGroups')->willReturn(['one', 'two']);
+
+        return $handler;
     }
 }

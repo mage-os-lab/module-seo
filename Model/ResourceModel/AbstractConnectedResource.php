@@ -25,8 +25,8 @@ abstract class AbstractConnectedResource extends AbstractDb
     /**
      * The resource's connection, guaranteed to be one.
      *
-     * @return AdapterInterface
      * @throws \RuntimeException
+     * @return AdapterInterface
      */
     protected function connection(): AdapterInterface
     {
@@ -37,7 +37,7 @@ abstract class AbstractConnectedResource extends AbstractDb
             // ResourceConnection, which is the thing that has just failed to hand over a
             // connection.
             throw new \RuntimeException(
-                sprintf(
+                \sprintf(
                     'MageOS_Seo: no database connection named "%s" is configured, so %s cannot'
                     . ' reach its table.',
                     $this->connectionName,

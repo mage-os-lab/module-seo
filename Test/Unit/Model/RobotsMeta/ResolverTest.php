@@ -9,25 +9,25 @@ use Magento\Framework\View\Layout\ProcessorInterface;
 use MageOS\Seo\Api\RobotsMetaProviderInterface;
 use MageOS\Seo\Model\Pool\HandleMatcher;
 use MageOS\Seo\Model\RobotsMeta\Resolver;
-use PHPUnit\Framework\MockObject\MockObject;
+use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
 
 class ResolverTest extends TestCase
 {
     /**
-     * @var Layout&MockObject
+     * @var Layout&Stub
      */
-    private Layout&MockObject $layout;
+    private Layout&Stub $layout;
 
     /**
-     * @var ProcessorInterface&MockObject
+     * @var ProcessorInterface&Stub
      */
-    private ProcessorInterface&MockObject $layoutUpdate;
+    private ProcessorInterface&Stub $layoutUpdate;
 
     protected function setUp(): void
     {
-        $this->layout       = $this->createMock(Layout::class);
-        $this->layoutUpdate = $this->createMock(ProcessorInterface::class);
+        $this->layout       = $this->createStub(Layout::class);
+        $this->layoutUpdate = $this->createStub(ProcessorInterface::class);
         $this->layout->method('getUpdate')->willReturn($this->layoutUpdate);
     }
 
@@ -38,8 +38,8 @@ class ResolverTest extends TestCase
         array $handles,
         ?string $robots,
         int $sortOrder = 100
-    ): RobotsMetaProviderInterface&MockObject {
-        $provider = $this->createMock(RobotsMetaProviderInterface::class);
+    ): RobotsMetaProviderInterface&Stub {
+        $provider = $this->createStub(RobotsMetaProviderInterface::class);
         $provider->method('getHandles')->willReturn($handles);
         $provider->method('getRobots')->willReturn($robots);
         $provider->method('getSortOrder')->willReturn($sortOrder);

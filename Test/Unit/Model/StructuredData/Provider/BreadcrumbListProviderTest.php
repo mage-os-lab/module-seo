@@ -13,61 +13,82 @@ use Magento\Store\Model\Store;
 use Magento\Store\Model\StoreManagerInterface;
 use MageOS\Seo\Model\StructuredData\Provider\BreadcrumbListProvider;
 use PHPUnit\Framework\MockObject\MockObject;
+use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
 
 class BreadcrumbListProviderTest extends TestCase
 {
     /**
-     * @var LayoutInterface&MockObject
+     * @var LayoutInterface&Stub
      */
-    private LayoutInterface&MockObject $layout;
+    private LayoutInterface&Stub $layout;
 
     /**
-     * @var ProcessorInterface&MockObject
+     * @var ProcessorInterface&Stub
      */
-    private ProcessorInterface&MockObject $layoutProcessor;
+    private ProcessorInterface&Stub $layoutProcessor;
 
     /**
-     * @var CatalogHelper&MockObject
+     * @var CatalogHelper&Stub
      */
-    private CatalogHelper&MockObject $catalogHelper;
+    private CatalogHelper&Stub $catalogHelper;
 
     /**
-     * @var StoreManagerInterface&MockObject
+     * @var StoreManagerInterface&Stub
      */
-    private StoreManagerInterface&MockObject $storeManager;
+    private StoreManagerInterface&Stub $storeManager;
 
     protected function setUp(): void
     {
-        $this->layoutProcessor = $this->createMock(ProcessorInterface::class);
+        $this->layoutProcessor = $this->createStub(ProcessorInterface::class);
         $this->layoutProcessor->method('getHandles')->willReturn([]);
-        $this->layout = $this->createMock(LayoutInterface::class);
+        $this->layout = $this->createStub(LayoutInterface::class);
         $this->layout->method('getUpdate')->willReturn($this->layoutProcessor);
 
-        $this->catalogHelper = $this->createMock(CatalogHelper::class);
+        $this->catalogHelper = $this->createStub(CatalogHelper::class);
 
-        $store = $this->createMock(Store::class);
+        $store = $this->createStub(Store::class);
         $store->method('getBaseUrl')->willReturn('https://example.com/');
-        $this->storeManager = $this->createMock(StoreManagerInterface::class);
+        $this->storeManager = $this->createStub(StoreManagerInterface::class);
         $this->storeManager->method('getStore')->willReturn($store);
     }
 
     /**
      * @param string[] $excludedHandles
      * @param string|null $requestCategory The request's `category` param: set by a category-path URL
+     * @param LayoutInterface|null $layout Defaults to this test's stub
      */
-    private function makeProvider(array $excludedHandles = [], ?string $requestCategory = null): BreadcrumbListProvider
-    {
+    private function makeProvider(
+        array $excludedHandles = [],
+        ?string $requestCategory = null,
+        ?LayoutInterface $layout = null
+    ): BreadcrumbListProvider {
         $request = $this->createStub(RequestInterface::class);
         $request->method('getParam')->willReturnMap([['category', null, $requestCategory]]);
 
         return new BreadcrumbListProvider(
-            $this->layout,
+            $layout ?? $this->layout,
             $this->catalogHelper,
             $this->storeManager,
             $request,
             $excludedHandles
         );
+    }
+
+    /**
+     * A layout whose breadcrumbs block is the given one, as a mock that checks the block is asked
+     * for by that name.
+     *
+     * @param BlockInterface|false $block
+     * @return LayoutInterface&MockObject
+     */
+    private function layoutWithBreadcrumbs(BlockInterface|false $block): LayoutInterface&MockObject
+    {
+        $layout = $this->createMock(LayoutInterface::class);
+        $layout->method('getUpdate')->willReturn($this->layoutProcessor);
+        $layout->method('getBlock')->with('breadcrumbs')->willReturn($block);
+
+        return $layout;
     }
 
     public function testGetHandlesReturnsWildcard(): void
@@ -77,9 +98,9 @@ class BreadcrumbListProviderTest extends TestCase
 
     public function testExcludedHandleSuppressesSchema(): void
     {
-        $this->layoutProcessor = $this->createMock(ProcessorInterface::class);
+        $this->layoutProcessor = $this->createStub(ProcessorInterface::class);
         $this->layoutProcessor->method('getHandles')->willReturn(['catalog_product_view', 'makers_landing']);
-        $this->layout = $this->createMock(LayoutInterface::class);
+        $this->layout = $this->createStub(LayoutInterface::class);
         $this->layout->method('getUpdate')->willReturn($this->layoutProcessor);
 
         $this->assertSame([], $this->makeProvider(['makers_landing'])->getSchemas());
@@ -107,9 +128,7 @@ class BreadcrumbListProviderTest extends TestCase
                 ];
             }
         };
-        $this->layout->method('getBlock')->with('breadcrumbs')->willReturn($breadcrumbBlock);
-
-        $schemas = $this->makeProvider()->getSchemas();
+        $schemas = $this->makeProvider(layout: $this->layoutWithBreadcrumbs($breadcrumbBlock))->getSchemas();
 
         $this->assertCount(1, $schemas);
         $list = $schemas[0];
@@ -127,13 +146,12 @@ class BreadcrumbListProviderTest extends TestCase
     {
         // No getCrumbs()-capable block (Luma): fall back to the catalog path. The product was
         // requested at a category-path URL, so the request carries its category.
-        $this->layout->method('getBlock')->with('breadcrumbs')->willReturn(false);
         $this->catalogHelper->method('getBreadcrumbPath')->willReturn([
             'category-1' => ['label' => 'Shoes', 'link' => 'https://example.com/shoes'],
             'product'    => ['label' => 'Sneaker'],
         ]);
 
-        $schemas = $this->makeProvider([], '1')->getSchemas();
+        $schemas = $this->makeProvider([], '1', $this->layoutWithBreadcrumbs(false))->getSchemas();
 
         $list = $schemas[0]['itemListElement'];
         $this->assertSame('Home', $list[0]['name']);
@@ -147,13 +165,12 @@ class BreadcrumbListProviderTest extends TestCase
     {
         // The category in the path came from the visitor's session, not the URL: left out, as
         // Luma's own trail leaves it out, and as the page cache must not keep one visitor's trail.
-        $this->layout->method('getBlock')->with('breadcrumbs')->willReturn(false);
         $this->catalogHelper->method('getBreadcrumbPath')->willReturn([
             'category-1' => ['label' => 'Shoes', 'link' => 'https://example.com/shoes'],
             'product'    => ['label' => 'Sneaker'],
         ]);
 
-        $list = $this->makeProvider()->getSchemas()[0]['itemListElement'];
+        $list = $this->makeProvider(layout: $this->layoutWithBreadcrumbs(false))->getSchemas()[0]['itemListElement'];
 
         $this->assertSame(['Home', 'Sneaker'], array_column($list, 'name'));
         $this->assertSame([1, 2], array_column($list, 'position'));
@@ -162,22 +179,20 @@ class BreadcrumbListProviderTest extends TestCase
     public function testACategoryPageKeepsItsPath(): void
     {
         // On a category page the category is the page itself, not a guess.
-        $this->layout->method('getBlock')->with('breadcrumbs')->willReturn(false);
         $this->catalogHelper->method('getBreadcrumbPath')->willReturn([
             'category-1' => ['label' => 'Shoes', 'link' => 'https://example.com/shoes'],
             'category-2' => ['label' => 'Sneakers'],
         ]);
 
-        $list = $this->makeProvider()->getSchemas()[0]['itemListElement'];
+        $list = $this->makeProvider(layout: $this->layoutWithBreadcrumbs(false))->getSchemas()[0]['itemListElement'];
 
         $this->assertSame(['Home', 'Shoes', 'Sneakers'], array_column($list, 'name'));
     }
 
     public function testEmptyWhenNoBlockAndNoCatalogPath(): void
     {
-        $this->layout->method('getBlock')->with('breadcrumbs')->willReturn(false);
         $this->catalogHelper->method('getBreadcrumbPath')->willReturn([]);
 
-        $this->assertSame([], $this->makeProvider()->getSchemas());
+        $this->assertSame([], $this->makeProvider(layout: $this->layoutWithBreadcrumbs(false))->getSchemas());
     }
 }

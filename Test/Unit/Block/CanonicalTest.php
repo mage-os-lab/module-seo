@@ -12,7 +12,7 @@ use Magento\Framework\View\LayoutInterface;
 use Magento\Framework\View\Page\Config as PageConfig;
 use MageOS\Seo\Block\Canonical;
 use MageOS\Seo\Model\Cms\CmsPageResolver;
-use PHPUnit\Framework\MockObject\MockObject;
+use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -22,14 +22,14 @@ use PHPUnit\Framework\TestCase;
 class CanonicalTest extends TestCase
 {
     /**
-     * @var ProcessorInterface&MockObject
+     * @var ProcessorInterface&Stub
      */
-    private ProcessorInterface&MockObject $layoutProcessor;
+    private ProcessorInterface&Stub $layoutProcessor;
 
     /**
-     * @var CmsPageResolver&MockObject
+     * @var CmsPageResolver&Stub
      */
-    private CmsPageResolver&MockObject $cmsPageResolver;
+    private CmsPageResolver&Stub $cmsPageResolver;
 
     /**
      * @var Canonical
@@ -38,8 +38,8 @@ class CanonicalTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->layoutProcessor = $this->createMock(ProcessorInterface::class);
-        $this->cmsPageResolver = $this->createMock(CmsPageResolver::class);
+        $this->layoutProcessor = $this->createStub(ProcessorInterface::class);
+        $this->cmsPageResolver = $this->createStub(CmsPageResolver::class);
         $this->block           = $this->block([], $this->layoutProcessor, $this->cmsPageResolver);
     }
 
@@ -69,13 +69,14 @@ class CanonicalTest extends TestCase
     {
         // Product and category canonicals are core's job; search, cart and the rest get none —
         // and neither does `/` when web/default/front serves something other than a CMS page.
-        $this->cmsPageResolver->expects($this->never())->method('currentUrl');
+        $resolver = $this->createMock(CmsPageResolver::class);
+        $resolver->expects($this->never())->method('currentUrl');
 
         foreach (['catalog_product_view', 'checkout_cart_index', 'catalog_category_view'] as $handle) {
             $processor = $this->createStub(ProcessorInterface::class);
             $processor->method('getHandles')->willReturn([$handle]);
 
-            $this->assertSame('', $this->block([], $processor, $this->cmsPageResolver)->getCanonicalUrl(), $handle);
+            $this->assertSame('', $this->block([], $processor, $resolver)->getCanonicalUrl(), $handle);
         }
     }
 

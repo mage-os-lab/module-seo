@@ -15,42 +15,42 @@ use MageOS\Seo\Model\Hreflang\AlternateBuilder;
 use MageOS\Seo\Model\Hreflang\ResolverPool;
 use MageOS\Seo\Model\Hreflang\SelfReference;
 use MageOS\Seo\Model\Pool\HandleMatcher;
-use PHPUnit\Framework\MockObject\MockObject;
+use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
 
 class ResolverPoolTest extends TestCase
 {
     /**
-     * @var ProcessorInterface&MockObject
+     * @var ProcessorInterface&Stub
      */
-    private ProcessorInterface&MockObject $layoutUpdate;
+    private ProcessorInterface&Stub $layoutUpdate;
 
     /**
-     * @var Layout&MockObject
+     * @var Layout&Stub
      */
-    private Layout&MockObject $layout;
+    private Layout&Stub $layout;
 
     /**
-     * @var Config&MockObject
+     * @var Config&Stub
      */
-    private Config&MockObject $config;
+    private Config&Stub $config;
 
     protected function setUp(): void
     {
-        $this->layout       = $this->createMock(Layout::class);
-        $this->layoutUpdate = $this->createMock(ProcessorInterface::class);
+        $this->layout       = $this->createStub(Layout::class);
+        $this->layoutUpdate = $this->createStub(ProcessorInterface::class);
         $this->layout->method('getUpdate')->willReturn($this->layoutUpdate);
         $this->layoutUpdate->method('getHandles')->willReturn(['catalog_product_view']);
-        $this->config = $this->createMock(Config::class);
+        $this->config = $this->createStub(Config::class);
     }
 
     /**
      * @param string[] $handles
      * @param array<int, array{hreflang: string, url: string, store_id: int}> $links
      */
-    private function makeResolver(array $handles, array $links): HreflangResolverInterface&MockObject
+    private function makeResolver(array $handles, array $links): HreflangResolverInterface&Stub
     {
-        $resolver = $this->createMock(HreflangResolverInterface::class);
+        $resolver = $this->createStub(HreflangResolverInterface::class);
         $resolver->method('getHandles')->willReturn($handles);
         $resolver->method('getLinks')->willReturn($links);
         return $resolver;

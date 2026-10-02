@@ -13,12 +13,12 @@ class StoreViewsTest extends TestCase
 {
     public function testReturnsActiveStoresAsOptions(): void
     {
-        $store = $this->createMock(StoreInterface::class);
+        $store = $this->createStub(StoreInterface::class);
         $store->method('getId')->willReturn(2);
         $store->method('getName')->willReturn('UK Store');
         $store->method('getCode')->willReturn('uk');
 
-        $storeManager = $this->createMock(StoreManagerInterface::class);
+        $storeManager = $this->createStub(StoreManagerInterface::class);
         $storeManager->method('getStores')->willReturn([$store]);
 
         $options = (new StoreViews($storeManager))->toOptionArray();
@@ -31,7 +31,7 @@ class StoreViewsTest extends TestCase
 
     public function testReturnsEmptyWhenNoStores(): void
     {
-        $storeManager = $this->createMock(StoreManagerInterface::class);
+        $storeManager = $this->createStub(StoreManagerInterface::class);
         $storeManager->method('getStores')->willReturn([]);
         $this->assertSame([], (new StoreViews($storeManager))->toOptionArray());
     }

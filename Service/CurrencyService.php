@@ -221,7 +221,7 @@ class CurrencyService
      * @param string $code
      * @return string
      */
-    private function currencyFormatter(
+    public function currencyFormatter(
         float $amount,
         bool $includeSymbol = true,
         string $code = ''

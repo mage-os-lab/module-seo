@@ -9,42 +9,22 @@ use Magento\Framework\Locale\Resolver;
 use Magento\Store\Model\Store;
 use Magento\Store\Model\StoreManagerInterface;
 use MageOS\Seo\Service\CurrencyService;
-use PHPUnit\Framework\MockObject\MockObject;
+use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
 
 class CurrencyServiceTest extends TestCase
 {
-    private StoreManagerInterface&MockObject $storeManager;
-    private Store&MockObject $store;
-    private Currency&MockObject $currentCurrency;
-    private Currency&MockObject $baseCurrency;
-    private Resolver&MockObject $locale;
+    private Store&Stub $store;
+    private Resolver&Stub $locale;
     private CurrencyService $service;
 
     protected function setUp(): void
     {
-        $this->storeManager    = $this->createMock(StoreManagerInterface::class);
-        $this->store           = $this->createMock(Store::class);
-        $this->currentCurrency = $this->createMock(Currency::class);
-        $this->baseCurrency    = $this->createMock(Currency::class);
-        $this->locale          = $this->createMock(Resolver::class);
-
-        $this->store->method('getCurrentCurrencyCode')->willReturn('EUR');
-        $this->store->method('getBaseCurrencyCode')->willReturn('GBP');
-        $this->store->method('getCurrentCurrency')->willReturn($this->currentCurrency);
-        $this->store->method('getBaseCurrency')->willReturn($this->baseCurrency);
-
-        $this->currentCurrency->method('getCurrencySymbol')->willReturn('€');
-        $this->baseCurrency->method('getCurrencySymbol')->willReturn('£');
-
-        $this->storeManager->method('getStore')->willReturn($this->store);
-
+        $this->locale = $this->createStub(Resolver::class);
         $this->locale->method('getLocale')->willReturn('en_GB');
 
-        $this->service = new CurrencyService(
-            $this->storeManager,
-            $this->locale
-        );
+        $this->store   = $this->store();
+        $this->service = $this->service();
     }
 
     public function testGetCurrentCurrencyCodeReturnsStoreCurrentCode(): void
@@ -54,13 +34,14 @@ class CurrencyServiceTest extends TestCase
 
     public function testGetCurrentCurrencyCodeWithExplicitStoreId(): void
     {
-        $this->storeManager
+        $storeManager = $this->createMock(StoreManagerInterface::class);
+        $storeManager
             ->expects($this->once())
             ->method('getStore')
             ->with(2)
             ->willReturn($this->store);
 
-        $this->assertSame('EUR', $this->service->getCurrentCurrencyCode(2));
+        $this->assertSame('EUR', $this->service(storeManager: $storeManager)->getCurrentCurrencyCode(2));
     }
 
     public function testGetCurrentCurrencyCodeFallsBackToBaseCodeOnException(): void
@@ -125,26 +106,28 @@ class CurrencyServiceTest extends TestCase
 
     public function testFormatPriceCallsCurrencyFormatPrecision(): void
     {
-        $this->currentCurrency
+        $currency = $this->createMock(Currency::class);
+        $currency
             ->expects($this->once())
             ->method('formatPrecision')
             ->with(29.99, 2, [], true, false)
             ->willReturn('€29.99');
 
-        $result = $this->service->formatPrice(29.99);
+        $result = $this->service(store: $this->store(currentCurrency: $currency))->formatPrice(29.99);
 
         $this->assertSame('€29.99', $result);
     }
 
     public function testFormatPriceWithoutSymbol(): void
     {
-        $this->currentCurrency
+        $currency = $this->createMock(Currency::class);
+        $currency
             ->expects($this->once())
             ->method('formatPrecision')
             ->with(29.99, 2, [], false, false)
             ->willReturn('29.99');
 
-        $result = $this->service->formatPrice(29.99, false);
+        $result = $this->service(store: $this->store(currentCurrency: $currency))->formatPrice(29.99, false);
 
         $this->assertSame('29.99', $result);
     }
@@ -163,26 +146,28 @@ class CurrencyServiceTest extends TestCase
 
     public function testFormatBasePriceCallsBaseCurrencyFormatPrecision(): void
     {
-        $this->baseCurrency
+        $currency = $this->createMock(Currency::class);
+        $currency
             ->expects($this->once())
             ->method('formatPrecision')
             ->with(49.99, 2, [], true, false)
             ->willReturn('£49.99');
 
-        $result = $this->service->formatBasePrice(49.99);
+        $result = $this->service(store: $this->store(baseCurrency: $currency))->formatBasePrice(49.99);
 
         $this->assertSame('£49.99', $result);
     }
 
     public function testConvertFromBaseConvertsCorrectly(): void
     {
-        $this->baseCurrency
+        $currency = $this->createMock(Currency::class);
+        $currency
             ->expects($this->once())
             ->method('convert')
             ->with(100.0, 'EUR')
             ->willReturn(118.5);
 
-        $result = $this->service->convertFromBase(100.0);
+        $result = $this->service(store: $this->store(baseCurrency: $currency))->convertFromBase(100.0);
 
         $this->assertSame(118.5, $result);
     }
@@ -196,5 +181,57 @@ class CurrencyServiceTest extends TestCase
         $result = $this->service->convertFromBase(100.0);
 
         $this->assertSame(100.0, $result);
+    }
+
+    /**
+     * The service under test, reading its store through a store manager.
+     *
+     * @param StoreManagerInterface|null $storeManager Defaults to one that returns $store
+     * @param Store|null $store Defaults to the test's store
+     * @return CurrencyService
+     */
+    private function service(?StoreManagerInterface $storeManager = null, ?Store $store = null): CurrencyService
+    {
+        if ($storeManager === null) {
+            $storeManager = $this->createStub(StoreManagerInterface::class);
+            $storeManager->method('getStore')->willReturn($store ?? $this->store);
+        }
+
+        return new CurrencyService($storeManager, $this->locale);
+    }
+
+    /**
+     * A store in EUR on a GBP base, returning the given currencies.
+     *
+     * The currencies are wired in when the store is built: a stubbed method keeps the first value
+     * it is given, so a currency a test verifies could not be swapped in afterwards.
+     *
+     * @param Currency|null $currentCurrency Defaults to one whose symbol is €
+     * @param Currency|null $baseCurrency Defaults to one whose symbol is £
+     * @return Store&Stub
+     */
+    private function store(?Currency $currentCurrency = null, ?Currency $baseCurrency = null): Store&Stub
+    {
+        $store = $this->createStub(Store::class);
+        $store->method('getCurrentCurrencyCode')->willReturn('EUR');
+        $store->method('getBaseCurrencyCode')->willReturn('GBP');
+        $store->method('getCurrentCurrency')->willReturn($currentCurrency ?? $this->currency('€'));
+        $store->method('getBaseCurrency')->willReturn($baseCurrency ?? $this->currency('£'));
+
+        return $store;
+    }
+
+    /**
+     * A currency with the given symbol.
+     *
+     * @param string $symbol
+     * @return Currency&Stub
+     */
+    private function currency(string $symbol): Currency&Stub
+    {
+        $currency = $this->createStub(Currency::class);
+        $currency->method('getCurrencySymbol')->willReturn($symbol);
+
+        return $currency;
     }
 }

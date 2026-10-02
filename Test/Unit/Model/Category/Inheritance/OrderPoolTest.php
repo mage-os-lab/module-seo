@@ -80,7 +80,7 @@ class OrderPoolTest extends TestCase
      */
     private function bespokeStrategy(): CategoryConfigSourceOrderInterface
     {
-        return new class implements CategoryConfigSourceOrderInterface {
+        return new class () implements CategoryConfigSourceOrderInterface {
             /**
              * @inheritdoc
              */

@@ -14,29 +14,35 @@ use MageOS\Seo\Model\Hreflang\Resolver\CmsPageHreflangResolver;
 use MageOS\Seo\Model\Hreflang\SelfReference;
 use MageOS\Seo\Model\Hreflang\UrlRewriteFetcher;
 use PHPUnit\Framework\MockObject\MockObject;
+use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
 
 class CmsPageHreflangResolverTest extends TestCase
 {
     /**
-     * @var CmsPageResolver&MockObject
+     * @var CmsPageResolver&Stub
      */
-    private CmsPageResolver&MockObject $cmsPageResolver;
+    private CmsPageResolver&Stub $cmsPageResolver;
 
     /**
-     * @var LinkBuilder&MockObject
+     * @var LinkBuilder&Stub
      */
-    private LinkBuilder&MockObject $linkBuilder;
+    private LinkBuilder&Stub $linkBuilder;
 
     /**
-     * @var ConfigRepository&MockObject
+     * @var ConfigRepository&Stub
      */
-    private ConfigRepository&MockObject $cmsConfigRepository;
+    private ConfigRepository&Stub $cmsConfigRepository;
 
     /**
-     * @var UrlRewriteFetcher&MockObject
+     * @var UrlRewriteFetcher&Stub
      */
-    private UrlRewriteFetcher&MockObject $urlRewriteFetcher;
+    private UrlRewriteFetcher&Stub $urlRewriteFetcher;
+
+    /**
+     * @var StoreManagerInterface&Stub
+     */
+    private StoreManagerInterface&Stub $storeManager;
 
     /**
      * @var CmsPageHreflangResolver
@@ -45,24 +51,17 @@ class CmsPageHreflangResolverTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->cmsPageResolver     = $this->createMock(CmsPageResolver::class);
-        $this->linkBuilder         = $this->createMock(LinkBuilder::class);
-        $this->cmsConfigRepository = $this->createMock(ConfigRepository::class);
-        $this->urlRewriteFetcher   = $this->createMock(UrlRewriteFetcher::class);
+        $this->cmsPageResolver     = $this->createStub(CmsPageResolver::class);
+        $this->linkBuilder         = $this->createStub(LinkBuilder::class);
+        $this->cmsConfigRepository = $this->createStub(ConfigRepository::class);
+        $this->urlRewriteFetcher   = $this->createStub(UrlRewriteFetcher::class);
 
         $store = $this->createStub(StoreInterface::class);
         $store->method('getId')->willReturn(1);
-        $storeManager = $this->createStub(StoreManagerInterface::class);
-        $storeManager->method('getStore')->willReturn($store);
+        $this->storeManager = $this->createStub(StoreManagerInterface::class);
+        $this->storeManager->method('getStore')->willReturn($store);
 
-        $this->resolver = new CmsPageHreflangResolver(
-            $this->cmsPageResolver,
-            $this->linkBuilder,
-            $this->cmsConfigRepository,
-            $this->urlRewriteFetcher,
-            $storeManager,
-            new SelfReference()
-        );
+        $this->resolver = $this->resolver();
     }
 
     public function testHandlesCmsAndHome(): void
@@ -72,36 +71,55 @@ class CmsPageHreflangResolverTest extends TestCase
 
     public function testHomePageUsesTheHomeLinks(): void
     {
-        $this->cmsPageResolver->method('isHomePage')->willReturn(true);
+        $cmsPageResolver = $this->createMock(CmsPageResolver::class);
+        $cmsPageResolver->method('isHomePage')->willReturn(true);
         $links = [
             ['hreflang' => 'en-GB', 'url' => 'https://uk/', 'store_id' => 1],
             ['hreflang' => 'de-DE', 'url' => 'https://de/', 'store_id' => 2],
         ];
         $this->linkBuilder->method('buildHome')->willReturn($links);
-        $this->cmsPageResolver->expects($this->never())->method('resolve');
+        $cmsPageResolver->expects($this->never())->method('resolve');
 
-        $this->assertSame($links, $this->resolver->getLinks());
+        $this->assertSame($links, $this->resolver(cmsPageResolver: $cmsPageResolver)->getLinks());
     }
 
     public function testAPageOutsideAnyGroupLinksToItselfInOtherStoreViews(): void
     {
         $this->givenPage(12);
-        $this->cmsConfigRepository->method('getHreflangGroup')->with(12)->willReturn(null);
-        $this->urlRewriteFetcher->expects($this->never())->method('fetchForCmsGroup');
+        $cmsConfigRepository = $this->createMock(ConfigRepository::class);
+        $cmsConfigRepository->method('getHreflangGroup')->with(12)->willReturn(null);
+        $urlRewriteFetcher = $this->createMock(UrlRewriteFetcher::class);
+        $urlRewriteFetcher->expects($this->never())->method('fetchForCmsGroup');
 
         $links = [['hreflang' => 'en-GB', 'url' => 'https://uk/about-us', 'store_id' => 1]];
-        $this->linkBuilder->method('build')->with('cms-page', 12)->willReturn($links);
+        $linkBuilder = $this->createMock(LinkBuilder::class);
+        $linkBuilder->method('build')->with('cms-page', 12)->willReturn($links);
 
-        $this->assertSame($links, $this->resolver->getLinks());
+        $resolver = $this->resolver(
+            linkBuilder: $linkBuilder,
+            cmsConfigRepository: $cmsConfigRepository,
+            urlRewriteFetcher: $urlRewriteFetcher
+        );
+
+        $this->assertSame($links, $resolver->getLinks());
     }
 
     public function testAPageInAGroupLinksToEachStoreViewsTranslation(): void
     {
         $this->givenPage(12);
-        $this->givenOwnUrl(12, 'https://uk/about-us');
-        $links = $this->givenGroup(12, 'about-us');
+        $linkBuilder         = $this->createMock(LinkBuilder::class);
+        $cmsConfigRepository = $this->createMock(ConfigRepository::class);
+        $urlRewriteFetcher   = $this->createMock(UrlRewriteFetcher::class);
+        $this->givenOwnUrl($linkBuilder, 12, 'https://uk/about-us');
+        $links = $this->givenGroup($linkBuilder, $cmsConfigRepository, $urlRewriteFetcher, 12, 'about-us');
 
-        $this->assertSame($links, $this->resolver->getLinks());
+        $resolver = $this->resolver(
+            linkBuilder: $linkBuilder,
+            cmsConfigRepository: $cmsConfigRepository,
+            urlRewriteFetcher: $urlRewriteFetcher
+        );
+
+        $this->assertSame($links, $resolver->getLinks());
     }
 
     /**
@@ -111,23 +129,36 @@ class CmsPageHreflangResolverTest extends TestCase
     public function testATranslationThatIsNotItsGroupsPageForTheStoreViewDeclaresNothing(): void
     {
         $this->givenPage(13);
-        $this->givenOwnUrl(13, 'https://uk/about-us-2');
-        $this->givenGroup(13, 'about-us');
+        $linkBuilder         = $this->createMock(LinkBuilder::class);
+        $cmsConfigRepository = $this->createMock(ConfigRepository::class);
+        $urlRewriteFetcher   = $this->createMock(UrlRewriteFetcher::class);
+        $this->givenOwnUrl($linkBuilder, 13, 'https://uk/about-us-2');
+        $this->givenGroup($linkBuilder, $cmsConfigRepository, $urlRewriteFetcher, 13, 'about-us');
 
-        $this->assertSame([], $this->resolver->getLinks());
+        $resolver = $this->resolver(
+            linkBuilder: $linkBuilder,
+            cmsConfigRepository: $cmsConfigRepository,
+            urlRewriteFetcher: $urlRewriteFetcher
+        );
+
+        $this->assertSame([], $resolver->getLinks());
     }
 
     public function testAGroupWithNoPageForTheStoreViewDeclaresNothing(): void
     {
         $this->givenPage(12);
-        $this->givenOwnUrl(12, 'https://uk/about-us');
-        $this->cmsConfigRepository->method('getHreflangGroup')->with(12)->willReturn('about-us');
+        $linkBuilder = $this->createMock(LinkBuilder::class);
+        $this->givenOwnUrl($linkBuilder, 12, 'https://uk/about-us');
+        $cmsConfigRepository = $this->createMock(ConfigRepository::class);
+        $cmsConfigRepository->method('getHreflangGroup')->with(12)->willReturn('about-us');
         $this->urlRewriteFetcher->method('fetchForCmsGroup')->willReturn([2 => 'ueber-uns']);
-        $this->linkBuilder->method('buildFromPaths')->willReturn([
+        $linkBuilder->method('buildFromPaths')->willReturn([
             ['hreflang' => 'de-DE', 'url' => 'https://de/ueber-uns', 'store_id' => 2],
         ]);
 
-        $this->assertSame([], $this->resolver->getLinks());
+        $resolver = $this->resolver(linkBuilder: $linkBuilder, cmsConfigRepository: $cmsConfigRepository);
+
+        $this->assertSame([], $resolver->getLinks());
     }
 
     public function testReturnsEmptyWhenCmsPageNotResolved(): void
@@ -135,6 +166,31 @@ class CmsPageHreflangResolverTest extends TestCase
         $this->cmsPageResolver->method('isHomePage')->willReturn(false);
         $this->cmsPageResolver->method('resolve')->willReturn(null);
         $this->assertSame([], $this->resolver->getLinks());
+    }
+
+    /**
+     * The resolver under test, over the given doubles or this test's stubs.
+     *
+     * @param CmsPageResolver|null $cmsPageResolver
+     * @param LinkBuilder|null $linkBuilder
+     * @param ConfigRepository|null $cmsConfigRepository
+     * @param UrlRewriteFetcher|null $urlRewriteFetcher
+     * @return CmsPageHreflangResolver
+     */
+    private function resolver(
+        ?CmsPageResolver $cmsPageResolver = null,
+        ?LinkBuilder $linkBuilder = null,
+        ?ConfigRepository $cmsConfigRepository = null,
+        ?UrlRewriteFetcher $urlRewriteFetcher = null
+    ): CmsPageHreflangResolver {
+        return new CmsPageHreflangResolver(
+            $cmsPageResolver ?? $this->cmsPageResolver,
+            $linkBuilder ?? $this->linkBuilder,
+            $cmsConfigRepository ?? $this->cmsConfigRepository,
+            $urlRewriteFetcher ?? $this->urlRewriteFetcher,
+            $this->storeManager,
+            new SelfReference()
+        );
     }
 
     /**
@@ -154,34 +210,43 @@ class CmsPageHreflangResolverTest extends TestCase
     /**
      * The page's own URL rewrite resolves to the given URL in store view 1.
      *
+     * @param LinkBuilder&MockObject $linkBuilder
      * @param int $pageId
      * @param string $url
      * @return void
      */
-    private function givenOwnUrl(int $pageId, string $url): void
+    private function givenOwnUrl(LinkBuilder&MockObject $linkBuilder, int $pageId, string $url): void
     {
-        $this->linkBuilder->method('build')->with('cms-page', $pageId)
+        $linkBuilder->method('build')->with('cms-page', $pageId)
             ->willReturn([['hreflang' => 'en-GB', 'url' => $url, 'store_id' => 1]]);
     }
 
     /**
      * The page is in the given translation group, whose store view 1 page is at /about-us.
      *
+     * @param LinkBuilder&MockObject $linkBuilder
+     * @param ConfigRepository&MockObject $cmsConfigRepository
+     * @param UrlRewriteFetcher&MockObject $urlRewriteFetcher
      * @param int $pageId
      * @param string $group
      * @return array<int,array{hreflang:string,url:string,store_id:int}> The group's links
      */
-    private function givenGroup(int $pageId, string $group): array
-    {
-        $this->cmsConfigRepository->method('getHreflangGroup')->with($pageId)->willReturn($group);
-        $this->urlRewriteFetcher->method('fetchForCmsGroup')->with($group)
+    private function givenGroup(
+        LinkBuilder&MockObject $linkBuilder,
+        ConfigRepository&MockObject $cmsConfigRepository,
+        UrlRewriteFetcher&MockObject $urlRewriteFetcher,
+        int $pageId,
+        string $group
+    ): array {
+        $cmsConfigRepository->method('getHreflangGroup')->with($pageId)->willReturn($group);
+        $urlRewriteFetcher->method('fetchForCmsGroup')->with($group)
             ->willReturn([1 => 'about-us', 2 => 'ueber-uns']);
 
         $links = [
             ['hreflang' => 'en-GB', 'url' => 'https://uk/about-us', 'store_id' => 1],
             ['hreflang' => 'de-DE', 'url' => 'https://de/ueber-uns', 'store_id' => 2],
         ];
-        $this->linkBuilder->method('buildFromPaths')->with([1 => 'about-us', 2 => 'ueber-uns'])->willReturn($links);
+        $linkBuilder->method('buildFromPaths')->with([1 => 'about-us', 2 => 'ueber-uns'])->willReturn($links);
 
         return $links;
     }

@@ -12,33 +12,33 @@ use MageOS\Seo\Api\EventDataProviderInterface;
 use MageOS\Seo\Model\Pool\HandleMatcher;
 use MageOS\Seo\Model\StructuredData\OrganizationId;
 use MageOS\Seo\Model\StructuredData\Provider\EventSchemaProvider;
-use PHPUnit\Framework\MockObject\MockObject;
+use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
 
 class EventSchemaProviderTest extends TestCase
 {
     /**
-     * @var ProcessorInterface&MockObject
+     * @var ProcessorInterface&Stub
      */
-    private ProcessorInterface&MockObject $layoutUpdate;
+    private ProcessorInterface&Stub $layoutUpdate;
 
     /**
-     * @var Layout&MockObject
+     * @var Layout&Stub
      */
-    private Layout&MockObject $layout;
+    private Layout&Stub $layout;
 
     /**
-     * @var OrganizationId&MockObject
+     * @var OrganizationId&Stub
      */
-    private OrganizationId&MockObject $organizationId;
+    private OrganizationId&Stub $organizationId;
 
     protected function setUp(): void
     {
-        $this->layout       = $this->createMock(Layout::class);
-        $this->layoutUpdate = $this->createMock(ProcessorInterface::class);
+        $this->layout       = $this->createStub(Layout::class);
+        $this->layoutUpdate = $this->createStub(ProcessorInterface::class);
         $this->layout->method('getUpdate')->willReturn($this->layoutUpdate);
         $this->layoutUpdate->method('getHandles')->willReturn(['events_view']);
-        $this->organizationId = $this->createMock(OrganizationId::class);
+        $this->organizationId = $this->createStub(OrganizationId::class);
         $this->organizationId->method('getId')->willReturn('https://acme.com/#organization');
     }
 
@@ -49,20 +49,20 @@ class EventSchemaProviderTest extends TestCase
     private function makeDataProvider(
         array $events,
         array $handles = ['events_view']
-    ): EventDataProviderInterface&MockObject {
-        $provider = $this->createMock(EventDataProviderInterface::class);
+    ): EventDataProviderInterface&Stub {
+        $provider = $this->createStub(EventDataProviderInterface::class);
         $provider->method('getHandles')->willReturn($handles);
         $provider->method('getEvents')->willReturn($events);
         return $provider;
     }
 
     /**
-     * @param array<int, EventDataProviderInterface&MockObject> $providers
+     * @param array<int, EventDataProviderInterface&Stub> $providers
      */
     private function provider(array $providers): EventSchemaProvider
     {
-        $storeManager = $this->createMock(StoreManagerInterface::class);
-        $store        = $this->createMock(StoreInterface::class);
+        $storeManager = $this->createStub(StoreManagerInterface::class);
+        $store        = $this->createStub(StoreInterface::class);
         $store->method('getId')->willReturn(1);
         $storeManager->method('getStore')->willReturn($store);
 

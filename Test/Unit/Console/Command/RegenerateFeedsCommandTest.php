@@ -17,6 +17,7 @@ use MageOS\Seo\Model\Sitemap\RebuildableSitemaps;
 use MageOS\Seo\Model\Sitemap\Rebuilder as SitemapRebuilder;
 use MageOS\Seo\Model\Sitemap\RebuildGroup;
 use PHPUnit\Framework\MockObject\MockObject;
+use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Tester\CommandTester;
@@ -25,7 +26,7 @@ class RegenerateFeedsCommandTest extends TestCase
 {
     public function testRebuildsEveryRegisteredGroupByDefault(): void
     {
-        $handler = $this->handler();
+        $handler = $this->handlerMock();
         $handler->expects($this->once())->method('rebuild')->with(null)->willReturn([]);
 
         $tester = $this->tester($handler);
@@ -116,7 +117,7 @@ class RegenerateFeedsCommandTest extends TestCase
 
     public function testUnknownGroupsAreRejectedBeforeBuildingAnything(): void
     {
-        $handler = $this->handler();
+        $handler = $this->handlerMock();
         $handler->expects($this->never())->method('rebuild');
 
         $tester = $this->tester($handler);
@@ -161,7 +162,7 @@ class RegenerateFeedsCommandTest extends TestCase
 
     public function testASitemapGroupRebuildsItsTypeInEverySitemapWithoutTheFeeds(): void
     {
-        $handler = $this->handler();
+        $handler = $this->handlerMock();
         $handler->expects($this->never())->method('rebuild');
         $rebuilder = $this->sitemapRebuilder();
         $rebuilder->expects($this->once())->method('rebuildOnDemand')->with('products')->willReturn([]);
@@ -236,9 +237,22 @@ class RegenerateFeedsCommandTest extends TestCase
     /**
      * A registered handler owning the groups `one` and `two`.
      *
+     * @return GroupHandlerInterface&Stub
+     */
+    private function handler(): GroupHandlerInterface&Stub
+    {
+        $handler = $this->createStub(GroupHandlerInterface::class);
+        $handler->method('getGroups')->willReturn(['one', 'two']);
+
+        return $handler;
+    }
+
+    /**
+     * The same handler as a mock, for a test that verifies what it is asked to rebuild.
+     *
      * @return GroupHandlerInterface&MockObject
      */
-    private function handler(): GroupHandlerInterface
+    private function handlerMock(): GroupHandlerInterface&MockObject
     {
         $handler = $this->createMock(GroupHandlerInterface::class);
         $handler->method('getGroups')->willReturn(['one', 'two']);

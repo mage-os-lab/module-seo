@@ -9,14 +9,14 @@ use Magento\Framework\Encryption\EncryptorInterface;
 use Magento\Store\Model\ScopeInterface;
 use MageOS\Seo\Console\Command\UcpKeygenCommand;
 use MageOS\Seo\Model\Ucp\UcpConfig;
-use PHPUnit\Framework\MockObject\MockObject;
+use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Console\Tester\CommandTester;
 
 class UcpKeygenCommandTest extends TestCase
 {
-    private EncryptorInterface&MockObject $encryptor;
-    private WriterInterface&MockObject $writer;
+    private EncryptorInterface&Stub $encryptor;
+    private WriterInterface&Stub $writer;
     /** @var array<string, array{value:string, scope:string, scopeId:int}> */
     private array $saved = [];
 
@@ -26,10 +26,10 @@ class UcpKeygenCommandTest extends TestCase
             $this->markTestSkipped('OpenSSL extension required.');
         }
 
-        $this->encryptor = $this->createMock(EncryptorInterface::class);
+        $this->encryptor = $this->createStub(EncryptorInterface::class);
         $this->encryptor->method('encrypt')->willReturnCallback(static fn (string $v): string => 'ENC:' . $v);
 
-        $this->writer = $this->createMock(WriterInterface::class);
+        $this->writer = $this->createStub(WriterInterface::class);
         $this->writer->method('save')->willReturnCallback(
             function (string $path, $value, string $scope, $scopeId): void {
                 $this->saved[$path] = ['value' => (string) $value, 'scope' => $scope, 'scopeId' => (int) $scopeId];

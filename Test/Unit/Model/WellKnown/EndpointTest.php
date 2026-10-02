@@ -15,9 +15,9 @@ class EndpointTest extends TestCase
 {
     public function testUcpEndpoint(): void
     {
-        $config = $this->createMock(UcpConfig::class);
+        $config = $this->createStub(UcpConfig::class);
         $config->method('isUcpEnabled')->willReturn(true);
-        $profile = $this->createMock(ProfileBuilder::class);
+        $profile = $this->createStub(ProfileBuilder::class);
         $profile->method('build')->willReturn(['ucp' => ['version' => '2026-08-25']]);
 
         $endpoint = new UcpEndpoint($config, $profile);
@@ -31,9 +31,9 @@ class EndpointTest extends TestCase
 
     public function testSecurityTxtEndpoint(): void
     {
-        $config = $this->createMock(UcpConfig::class);
+        $config = $this->createStub(UcpConfig::class);
         $config->method('isSecurityTxtEnabled')->willReturn(true);
-        $builder = $this->createMock(SecurityTxtBuilder::class);
+        $builder = $this->createStub(SecurityTxtBuilder::class);
         $builder->method('build')->willReturn("Contact: mailto:a@b.test\n");
 
         $endpoint = new SecurityTxtEndpoint($config, $builder);

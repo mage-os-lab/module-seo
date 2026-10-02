@@ -7,7 +7,7 @@ namespace MageOS\Seo\Test\Unit\Model\Product;
 use Magento\Catalog\Api\Data\ProductInterface;
 use MageOS\Seo\Api\ProductSchemaBuilderInterface;
 use MageOS\Seo\Model\Product\SchemaBuilderPool;
-use PHPUnit\Framework\MockObject\MockObject;
+use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
 
 class SchemaBuilderPoolTest extends TestCase
@@ -21,8 +21,8 @@ class SchemaBuilderPoolTest extends TestCase
         string $label,
         array $fields = [],
         array $result = []
-    ): ProductSchemaBuilderInterface&MockObject {
-        $builder = $this->createMock(ProductSchemaBuilderInterface::class);
+    ): ProductSchemaBuilderInterface&Stub {
+        $builder = $this->createStub(ProductSchemaBuilderInterface::class);
         $builder->method('getTemplateCode')->willReturn($code);
         $builder->method('getLabel')->willReturn($label);
         $builder->method('getAvailableFields')->willReturn($fields);
@@ -33,7 +33,7 @@ class SchemaBuilderPoolTest extends TestCase
     public function testBuildDispatchesToRegisteredBuilder(): void
     {
         $expected = ['@type' => 'Apparel', 'name' => 'T-Shirt'];
-        $product  = $this->createMock(ProductInterface::class);
+        $product  = $this->createStub(ProductInterface::class);
         $builder  = $this->makeBuilder('Apparel', 'Clothing', [], $expected);
         $pool     = new SchemaBuilderPool(['Apparel' => $builder]);
 
@@ -44,7 +44,7 @@ class SchemaBuilderPoolTest extends TestCase
     public function testBuildFallsBackToGenericProductWhenTemplateNotFound(): void
     {
         $expected = ['@type' => 'Product', 'name' => 'Widget'];
-        $product  = $this->createMock(ProductInterface::class);
+        $product  = $this->createStub(ProductInterface::class);
         $generic  = $this->makeBuilder('GenericProduct', 'Generic Product', [], $expected);
         $pool     = new SchemaBuilderPool(['GenericProduct' => $generic]);
 
@@ -54,7 +54,7 @@ class SchemaBuilderPoolTest extends TestCase
 
     public function testBuildReturnsEmptyArrayWhenNoBuilderAndNoGenericFallback(): void
     {
-        $product = $this->createMock(ProductInterface::class);
+        $product = $this->createStub(ProductInterface::class);
         $pool    = new SchemaBuilderPool([]);
 
         $result = $pool->build('Apparel', $product, [], []);
@@ -63,7 +63,7 @@ class SchemaBuilderPoolTest extends TestCase
 
     public function testBuildPassesArgumentsToBuilder(): void
     {
-        $product       = $this->createMock(ProductInterface::class);
+        $product       = $this->createStub(ProductInterface::class);
         $enabledFields = ['brand', 'color'];
         $overrides     = ['brand' => 'Acme'];
         $builder       = $this->createMock(ProductSchemaBuilderInterface::class);
@@ -193,7 +193,7 @@ class SchemaBuilderPoolTest extends TestCase
     {
         $exactResult   = ['@type' => 'Apparel'];
         $genericResult = ['@type' => 'Product'];
-        $product       = $this->createMock(ProductInterface::class);
+        $product       = $this->createStub(ProductInterface::class);
         $exact         = $this->makeBuilder('Apparel', 'Clothing', [], $exactResult);
         $generic       = $this->makeBuilder('GenericProduct', 'Generic', [], $genericResult);
         $pool          = new SchemaBuilderPool(['Apparel' => $exact, 'GenericProduct' => $generic]);

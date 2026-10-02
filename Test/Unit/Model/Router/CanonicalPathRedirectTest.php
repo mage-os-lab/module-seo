@@ -11,20 +11,25 @@ use Magento\Framework\Stdlib\Parameters;
 use Magento\Store\Model\Store;
 use Magento\Store\Model\StoreManagerInterface;
 use MageOS\Seo\Model\Router\CanonicalPathRedirect;
-use PHPUnit\Framework\MockObject\MockObject;
+use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
 
 class CanonicalPathRedirectTest extends TestCase
 {
     /**
-     * @var Http&MockObject
+     * @var Http&Stub
      */
-    private Http&MockObject $request;
+    private Http&Stub $request;
 
     /**
-     * @var RedirectFactory&MockObject
+     * @var RedirectFactory&Stub
      */
-    private RedirectFactory&MockObject $redirectFactory;
+    private RedirectFactory&Stub $redirectFactory;
+
+    /**
+     * @var StoreManagerInterface&Stub
+     */
+    private StoreManagerInterface&Stub $storeManager;
 
     /**
      * @var CanonicalPathRedirect
@@ -33,15 +38,30 @@ class CanonicalPathRedirectTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->request         = $this->createMock(Http::class);
-        $this->redirectFactory = $this->createMock(RedirectFactory::class);
+        $this->request         = $this->createStub(Http::class);
+        $this->redirectFactory = $this->createStub(RedirectFactory::class);
 
-        $store = $this->createMock(Store::class);
+        $store = $this->createStub(Store::class);
         $store->method('getBaseUrl')->willReturn('https://example.com/');
-        $storeManager = $this->createMock(StoreManagerInterface::class);
-        $storeManager->method('getStore')->willReturn($store);
+        $this->storeManager = $this->createStub(StoreManagerInterface::class);
+        $this->storeManager->method('getStore')->willReturn($store);
 
-        $this->model = new CanonicalPathRedirect($this->request, $this->redirectFactory, $storeManager);
+        $this->model = $this->model();
+    }
+
+    /**
+     * The class under test, over the given redirect factory or this test's stub.
+     *
+     * @param RedirectFactory|null $redirectFactory
+     * @return CanonicalPathRedirect
+     */
+    private function model(?RedirectFactory $redirectFactory = null): CanonicalPathRedirect
+    {
+        return new CanonicalPathRedirect(
+            $this->request,
+            $redirectFactory ?? $this->redirectFactory,
+            $this->storeManager
+        );
     }
 
     /**
@@ -50,7 +70,7 @@ class CanonicalPathRedirectTest extends TestCase
     private function stubRequest(string $pathInfo, array $queryParams = []): void
     {
         $this->request->method('getPathInfo')->willReturn($pathInfo);
-        $query = $this->createMock(Parameters::class);
+        $query = $this->createStub(Parameters::class);
         $query->method('toArray')->willReturn($queryParams);
         $this->request->method('getQuery')->willReturn($query);
     }
@@ -58,9 +78,10 @@ class CanonicalPathRedirectTest extends TestCase
     public function testCanonicalRequestReturnsNull(): void
     {
         $this->stubRequest('/llms.txt', []);
-        $this->redirectFactory->expects($this->never())->method('create');
+        $redirectFactory = $this->createMock(RedirectFactory::class);
+        $redirectFactory->expects($this->never())->method('create');
 
-        $this->assertNull($this->model->check('llms.txt'));
+        $this->assertNull($this->model($redirectFactory)->check('llms.txt'));
     }
 
     public function testQueryStringTriggers301ToCanonicalPath(): void
@@ -80,11 +101,12 @@ class CanonicalPathRedirectTest extends TestCase
         // The standard-router URL is a duplicate of the canonical path.
         $this->stubRequest('/mageos-aeo/llms/index', []);
 
-        $redirect = $this->createMock(Redirect::class);
+        $redirect = $this->createStub(Redirect::class);
         $redirect->method('setUrl')->willReturnSelf();
         $redirect->method('setHttpResponseCode')->willReturnSelf();
-        $this->redirectFactory->expects($this->once())->method('create')->willReturn($redirect);
+        $redirectFactory = $this->createMock(RedirectFactory::class);
+        $redirectFactory->expects($this->once())->method('create')->willReturn($redirect);
 
-        $this->assertSame($redirect, $this->model->check('llms.txt'));
+        $this->assertSame($redirect, $this->model($redirectFactory)->check('llms.txt'));
     }
 }

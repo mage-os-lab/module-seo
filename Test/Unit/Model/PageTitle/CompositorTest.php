@@ -9,25 +9,25 @@ use Magento\Framework\View\Layout\ProcessorInterface;
 use MageOS\Seo\Api\PageTitleProviderInterface;
 use MageOS\Seo\Model\PageTitle\Compositor;
 use MageOS\Seo\Model\Pool\HandleMatcher;
-use PHPUnit\Framework\MockObject\MockObject;
+use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
 
 class CompositorTest extends TestCase
 {
     /**
-     * @var Layout&MockObject
+     * @var Layout&Stub
      */
-    private Layout&MockObject $layout;
+    private Layout&Stub $layout;
 
     /**
-     * @var ProcessorInterface&MockObject
+     * @var ProcessorInterface&Stub
      */
-    private ProcessorInterface&MockObject $layoutUpdate;
+    private ProcessorInterface&Stub $layoutUpdate;
 
     protected function setUp(): void
     {
-        $this->layout       = $this->createMock(Layout::class);
-        $this->layoutUpdate = $this->createMock(ProcessorInterface::class);
+        $this->layout       = $this->createStub(Layout::class);
+        $this->layoutUpdate = $this->createStub(ProcessorInterface::class);
         $this->layout->method('getUpdate')->willReturn($this->layoutUpdate);
     }
 
@@ -38,8 +38,8 @@ class CompositorTest extends TestCase
         array $handles,
         string $title,
         int $sortOrder = 0
-    ): PageTitleProviderInterface&MockObject {
-        $provider = $this->createMock(PageTitleProviderInterface::class);
+    ): PageTitleProviderInterface&Stub {
+        $provider = $this->createStub(PageTitleProviderInterface::class);
         $provider->method('getHandles')->willReturn($handles);
         $provider->method('getTitle')->willReturn($title);
         $provider->method('getSortOrder')->willReturn($sortOrder);

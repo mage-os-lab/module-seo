@@ -9,25 +9,25 @@ use Magento\Framework\App\Config\ScopeConfigInterface;
 use MageOS\Seo\Model\Product\OfferEnricher\CountryList;
 use MageOS\Seo\Model\Product\OfferEnricher\ShippingDetailsEnricher;
 use MageOS\Seo\Service\CurrencyService;
-use PHPUnit\Framework\MockObject\MockObject;
+use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
 
 class ShippingDetailsEnricherTest extends TestCase
 {
     /**
-     * @var ScopeConfigInterface&MockObject
+     * @var ScopeConfigInterface&Stub
      */
-    private ScopeConfigInterface&MockObject $scopeConfig;
+    private ScopeConfigInterface&Stub $scopeConfig;
 
     /**
-     * @var CurrencyService&MockObject
+     * @var CurrencyService&Stub
      */
-    private CurrencyService&MockObject $currencyService;
+    private CurrencyService&Stub $currencyService;
 
     /**
-     * @var ProductInterface&MockObject
+     * @var ProductInterface&Stub
      */
-    private ProductInterface&MockObject $product;
+    private ProductInterface&Stub $product;
 
     /**
      * @var ShippingDetailsEnricher
@@ -36,9 +36,9 @@ class ShippingDetailsEnricherTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->scopeConfig     = $this->createMock(ScopeConfigInterface::class);
-        $this->currencyService = $this->createMock(CurrencyService::class);
-        $this->product         = $this->createMock(ProductInterface::class);
+        $this->scopeConfig     = $this->createStub(ScopeConfigInterface::class);
+        $this->currencyService = $this->createStub(CurrencyService::class);
+        $this->product         = $this->createStub(ProductInterface::class);
         $this->currencyService->method('getCurrentCurrencyCode')->willReturn('GBP');
         $this->enricher = new ShippingDetailsEnricher($this->scopeConfig, $this->currencyService, new CountryList());
     }

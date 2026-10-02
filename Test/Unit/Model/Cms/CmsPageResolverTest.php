@@ -13,7 +13,7 @@ use Magento\Store\Model\Store;
 use Magento\Store\Model\StoreManagerInterface;
 use MageOS\Seo\Model\Cms\CmsPageResolver;
 use MageOS\Seo\Model\Cms\HomePageLoader;
-use PHPUnit\Framework\MockObject\MockObject;
+use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -25,24 +25,29 @@ use PHPUnit\Framework\TestCase;
 class CmsPageResolverTest extends TestCase
 {
     /**
-     * @var PageRepositoryInterface&MockObject
+     * @var PageRepositoryInterface&Stub
      */
-    private PageRepositoryInterface&MockObject $pageRepository;
+    private PageRepositoryInterface&Stub $pageRepository;
 
     /**
-     * @var Http&MockObject
+     * @var Http&Stub
      */
-    private Http&MockObject $request;
+    private Http&Stub $request;
 
     /**
-     * @var GetPageByIdentifierInterface&MockObject
+     * @var GetPageByIdentifierInterface&Stub
      */
-    private GetPageByIdentifierInterface&MockObject $getPageByIdentifier;
+    private GetPageByIdentifierInterface&Stub $getPageByIdentifier;
 
     /**
-     * @var HomePageLoader&MockObject
+     * @var StoreManagerInterface&Stub
      */
-    private HomePageLoader&MockObject $homePageLoader;
+    private StoreManagerInterface&Stub $storeManager;
+
+    /**
+     * @var HomePageLoader&Stub
+     */
+    private HomePageLoader&Stub $homePageLoader;
 
     /**
      * @var CmsPageResolver
@@ -51,34 +56,37 @@ class CmsPageResolverTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->pageRepository      = $this->createMock(PageRepositoryInterface::class);
-        $this->request             = $this->createMock(Http::class);
-        $this->getPageByIdentifier = $this->createMock(GetPageByIdentifierInterface::class);
-        $this->homePageLoader      = $this->createMock(HomePageLoader::class);
+        $this->pageRepository      = $this->createStub(PageRepositoryInterface::class);
+        $this->request             = $this->createStub(Http::class);
+        $this->getPageByIdentifier = $this->createStub(GetPageByIdentifierInterface::class);
+        $this->homePageLoader      = $this->createStub(HomePageLoader::class);
 
         $store = $this->createStub(Store::class);
         $store->method('getId')->willReturn(1);
         $store->method('getBaseUrl')->willReturn('https://example.com/');
-        $storeManager = $this->createStub(StoreManagerInterface::class);
-        $storeManager->method('getStore')->willReturn($store);
+        $this->storeManager = $this->createStub(StoreManagerInterface::class);
+        $this->storeManager->method('getStore')->willReturn($store);
 
-        $this->resolver = new CmsPageResolver(
-            $this->pageRepository,
-            $this->request,
-            $this->getPageByIdentifier,
-            $storeManager,
-            $this->homePageLoader
-        );
+        $this->resolver = $this->resolver();
     }
 
     public function testPageIdParamLoadsByIdWithoutTheIdentifierService(): void
     {
-        $this->request->method('getParam')->with('page_id')->willReturn(5);
+        $request = $this->createMock(Http::class);
+        $request->method('getParam')->with('page_id')->willReturn(5);
         $page = $this->createStub(PageInterface::class);
-        $this->pageRepository->method('getById')->with(5)->willReturn($page);
-        $this->getPageByIdentifier->expects($this->never())->method('execute');
+        $pageRepository = $this->createMock(PageRepositoryInterface::class);
+        $pageRepository->method('getById')->with(5)->willReturn($page);
+        $getPageByIdentifier = $this->createMock(GetPageByIdentifierInterface::class);
+        $getPageByIdentifier->expects($this->never())->method('execute');
 
-        $this->assertSame($page, $this->resolver->resolve());
+        $resolver = $this->resolver(
+            pageRepository: $pageRepository,
+            request: $request,
+            getPageByIdentifier: $getPageByIdentifier
+        );
+
+        $this->assertSame($page, $resolver->resolve());
     }
 
     public function testPathInfoIdentifierResolvesViaTheService(): void
@@ -86,9 +94,10 @@ class CmsPageResolverTest extends TestCase
         $this->request->method('getParam')->willReturn(0);
         $this->request->method('getPathInfo')->willReturn('/about-us');
         $page = $this->createStub(PageInterface::class);
-        $this->getPageByIdentifier->method('execute')->with('about-us', 1)->willReturn($page);
+        $getPageByIdentifier = $this->createMock(GetPageByIdentifierInterface::class);
+        $getPageByIdentifier->method('execute')->with('about-us', 1)->willReturn($page);
 
-        $this->assertSame($page, $this->resolver->resolve());
+        $this->assertSame($page, $this->resolver(getPageByIdentifier: $getPageByIdentifier)->resolve());
     }
 
     public function testAnEmptyPathResolvesTheCurrentStoreViewsHomePage(): void
@@ -96,22 +105,28 @@ class CmsPageResolverTest extends TestCase
         $this->request->method('getParam')->willReturn(0);
         $this->request->method('getPathInfo')->willReturn('/');
         $page = $this->createStub(PageInterface::class);
-        $this->homePageLoader->expects($this->once())->method('load')->with(1)->willReturn($page);
-        $this->getPageByIdentifier->expects($this->never())->method('execute');
+        $homePageLoader = $this->createMock(HomePageLoader::class);
+        $homePageLoader->expects($this->once())->method('load')->with(1)->willReturn($page);
+        $getPageByIdentifier = $this->createMock(GetPageByIdentifierInterface::class);
+        $getPageByIdentifier->expects($this->never())->method('execute');
 
-        $this->assertSame($page, $this->resolver->resolve());
+        $resolver = $this->resolver(getPageByIdentifier: $getPageByIdentifier, homePageLoader: $homePageLoader);
+
+        $this->assertSame($page, $resolver->resolve());
     }
 
     public function testMissingPageResolvesToNullAndIsMemoised(): void
     {
         $this->request->method('getParam')->willReturn(0);
         $this->request->method('getPathInfo')->willReturn('/missing');
-        $this->getPageByIdentifier->expects($this->once())->method('execute')
+        $getPageByIdentifier = $this->createMock(GetPageByIdentifierInterface::class);
+        $getPageByIdentifier->expects($this->once())->method('execute')
             ->willThrowException(new NoSuchEntityException(__('not found')));
+        $resolver = $this->resolver(getPageByIdentifier: $getPageByIdentifier);
 
-        $this->assertNull($this->resolver->resolve());
+        $this->assertNull($resolver->resolve());
         // Second call must not hit the service again (the null result is memoised).
-        $this->assertNull($this->resolver->resolve());
+        $this->assertNull($resolver->resolve());
     }
 
     public function testResetStateForcesAFreshResolution(): void
@@ -119,11 +134,13 @@ class CmsPageResolverTest extends TestCase
         $this->request->method('getParam')->willReturn(0);
         $this->request->method('getPathInfo')->willReturn('/about-us');
         $page = $this->createStub(PageInterface::class);
-        $this->getPageByIdentifier->expects($this->exactly(2))->method('execute')->willReturn($page);
+        $getPageByIdentifier = $this->createMock(GetPageByIdentifierInterface::class);
+        $getPageByIdentifier->expects($this->exactly(2))->method('execute')->willReturn($page);
+        $resolver = $this->resolver(getPageByIdentifier: $getPageByIdentifier);
 
-        $this->resolver->resolve();
-        $this->resolver->_resetState();
-        $this->resolver->resolve();
+        $resolver->resolve();
+        $resolver->_resetState();
+        $resolver->resolve();
     }
 
     public function testTheHomePageIsTheRequestWithAnEmptyPath(): void
@@ -169,10 +186,12 @@ class CmsPageResolverTest extends TestCase
     public function testResolveHomeIsTheGivenStoreViewsHomePage(): void
     {
         $page = $this->createStub(PageInterface::class);
-        $this->homePageLoader->expects($this->once())->method('load')->with(3)->willReturn($page);
-        $this->request->expects($this->never())->method('getPathInfo');
+        $homePageLoader = $this->createMock(HomePageLoader::class);
+        $homePageLoader->expects($this->once())->method('load')->with(3)->willReturn($page);
+        $request = $this->createMock(Http::class);
+        $request->expects($this->never())->method('getPathInfo');
 
-        $this->assertSame($page, $this->resolver->resolveHome(3));
+        $this->assertSame($page, $this->resolver(request: $request, homePageLoader: $homePageLoader)->resolveHome(3));
     }
 
     public function testResolveHomeIsNullWhenTheHomePageDoesNotLoad(): void
@@ -180,6 +199,30 @@ class CmsPageResolverTest extends TestCase
         $this->homePageLoader->method('load')->willReturn(null);
 
         $this->assertNull($this->resolver->resolveHome(3));
+    }
+
+    /**
+     * The resolver under test, over the given collaborators or this test's stubs.
+     *
+     * @param PageRepositoryInterface|null $pageRepository
+     * @param Http|null $request
+     * @param GetPageByIdentifierInterface|null $getPageByIdentifier
+     * @param HomePageLoader|null $homePageLoader
+     * @return CmsPageResolver
+     */
+    private function resolver(
+        ?PageRepositoryInterface $pageRepository = null,
+        ?Http $request = null,
+        ?GetPageByIdentifierInterface $getPageByIdentifier = null,
+        ?HomePageLoader $homePageLoader = null
+    ): CmsPageResolver {
+        return new CmsPageResolver(
+            $pageRepository ?? $this->pageRepository,
+            $request ?? $this->request,
+            $getPageByIdentifier ?? $this->getPageByIdentifier,
+            $this->storeManager,
+            $homePageLoader ?? $this->homePageLoader
+        );
     }
 
     /**

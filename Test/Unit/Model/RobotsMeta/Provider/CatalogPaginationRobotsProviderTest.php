@@ -7,20 +7,20 @@ namespace MageOS\Seo\Test\Unit\Model\RobotsMeta\Provider;
 use Magento\Framework\App\RequestInterface;
 use MageOS\Seo\Model\Config;
 use MageOS\Seo\Model\RobotsMeta\Provider\CatalogPaginationRobotsProvider;
-use PHPUnit\Framework\MockObject\MockObject;
+use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
 
 class CatalogPaginationRobotsProviderTest extends TestCase
 {
     /**
-     * @var RequestInterface&MockObject
+     * @var RequestInterface&Stub
      */
-    private RequestInterface&MockObject $request;
+    private RequestInterface&Stub $request;
 
     /**
-     * @var Config&MockObject
+     * @var Config&Stub
      */
-    private Config&MockObject $config;
+    private Config&Stub $config;
 
     /**
      * @var CatalogPaginationRobotsProvider
@@ -29,9 +29,23 @@ class CatalogPaginationRobotsProviderTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->request  = $this->createMock(RequestInterface::class);
-        $this->config   = $this->createMock(Config::class);
-        $this->provider = new CatalogPaginationRobotsProvider($this->request, $this->config);
+        $this->request  = $this->createStub(RequestInterface::class);
+        $this->config   = $this->createStub(Config::class);
+        $this->provider = $this->provider();
+    }
+
+    /**
+     * The provider under test, over the given doubles or this test's stubs.
+     *
+     * @param RequestInterface|null $request
+     * @param Config|null $config
+     * @return CatalogPaginationRobotsProvider
+     */
+    private function provider(
+        ?RequestInterface $request = null,
+        ?Config $config = null
+    ): CatalogPaginationRobotsProvider {
+        return new CatalogPaginationRobotsProvider($request ?? $this->request, $config ?? $this->config);
     }
 
     public function testHandlesCategoryView(): void
@@ -46,37 +60,46 @@ class CatalogPaginationRobotsProviderTest extends TestCase
 
     public function testReturnsNullWhenDisabled(): void
     {
-        $this->config->method('isPaginatedRobotsEnabled')->with(1)->willReturn(false);
-        $this->assertNull($this->provider->getRobots(1));
+        $config = $this->createMock(Config::class);
+        $config->method('isPaginatedRobotsEnabled')->with(1)->willReturn(false);
+        $this->assertNull($this->provider(config: $config)->getRobots(1));
     }
 
     public function testReturnsNullOnFirstPage(): void
     {
-        $this->config->method('isPaginatedRobotsEnabled')->with(1)->willReturn(true);
-        $this->request->method('getParam')->with('p')->willReturn('1');
-        $this->assertNull($this->provider->getRobots(1));
+        $config = $this->createMock(Config::class);
+        $config->method('isPaginatedRobotsEnabled')->with(1)->willReturn(true);
+        $request = $this->createMock(RequestInterface::class);
+        $request->method('getParam')->with('p')->willReturn('1');
+        $this->assertNull($this->provider($request, $config)->getRobots(1));
     }
 
     public function testReturnsNullWhenNoPageParam(): void
     {
-        $this->config->method('isPaginatedRobotsEnabled')->with(1)->willReturn(true);
-        $this->request->method('getParam')->with('p')->willReturn(null);
-        $this->assertNull($this->provider->getRobots(1));
+        $config = $this->createMock(Config::class);
+        $config->method('isPaginatedRobotsEnabled')->with(1)->willReturn(true);
+        $request = $this->createMock(RequestInterface::class);
+        $request->method('getParam')->with('p')->willReturn(null);
+        $this->assertNull($this->provider($request, $config)->getRobots(1));
     }
 
     public function testReturnsConfiguredRobotsOnSecondPage(): void
     {
-        $this->config->method('isPaginatedRobotsEnabled')->with(1)->willReturn(true);
-        $this->request->method('getParam')->with('p')->willReturn('2');
-        $this->config->method('getRobotsPaginated')->with(1)->willReturn('NOINDEX,FOLLOW');
-        $this->assertSame('NOINDEX,FOLLOW', $this->provider->getRobots(1));
+        $config = $this->createMock(Config::class);
+        $config->method('isPaginatedRobotsEnabled')->with(1)->willReturn(true);
+        $request = $this->createMock(RequestInterface::class);
+        $request->method('getParam')->with('p')->willReturn('2');
+        $config->method('getRobotsPaginated')->with(1)->willReturn('NOINDEX,FOLLOW');
+        $this->assertSame('NOINDEX,FOLLOW', $this->provider($request, $config)->getRobots(1));
     }
 
     public function testReturnsNullWhenEnabledButRobotsValueEmpty(): void
     {
-        $this->config->method('isPaginatedRobotsEnabled')->with(1)->willReturn(true);
-        $this->request->method('getParam')->with('p')->willReturn('3');
-        $this->config->method('getRobotsPaginated')->with(1)->willReturn('');
-        $this->assertNull($this->provider->getRobots(1));
+        $config = $this->createMock(Config::class);
+        $config->method('isPaginatedRobotsEnabled')->with(1)->willReturn(true);
+        $request = $this->createMock(RequestInterface::class);
+        $request->method('getParam')->with('p')->willReturn('3');
+        $config->method('getRobotsPaginated')->with(1)->willReturn('');
+        $this->assertNull($this->provider($request, $config)->getRobots(1));
     }
 }

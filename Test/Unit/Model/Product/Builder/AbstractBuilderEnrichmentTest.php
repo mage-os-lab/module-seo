@@ -20,7 +20,7 @@ use MageOS\Seo\Model\Product\GtinValidator;
 use MageOS\Seo\Model\Product\OfferEnricher\Pool as OfferEnricherPool;
 use MageOS\Seo\Model\Review\AggregateRatingResolver;
 use MageOS\Seo\Service\CurrencyService;
-use PHPUnit\Framework\MockObject\MockObject;
+use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -33,32 +33,32 @@ class AbstractBuilderEnrichmentTest extends TestCase
     use OfferBuilders;
 
     /**
-     * @var StoreManagerInterface&MockObject
+     * @var StoreManagerInterface&Stub
      */
-    private StoreManagerInterface&MockObject $storeManager;
+    private StoreManagerInterface&Stub $storeManager;
 
     /**
-     * @var AvailabilityResolver&MockObject
+     * @var AvailabilityResolver&Stub
      */
-    private AvailabilityResolver&MockObject $availabilityResolver;
+    private AvailabilityResolver&Stub $availabilityResolver;
 
     /**
-     * @var Config&MockObject
+     * @var Config&Stub
      */
-    private Config&MockObject $seoConfig;
+    private Config&Stub $seoConfig;
 
     /**
-     * @var Product&MockObject
+     * @var Product&Stub
      */
-    private Product&MockObject $product;
+    private Product&Stub $product;
 
     protected function setUp(): void
     {
-        $this->storeManager         = $this->createMock(StoreManagerInterface::class);
-        $store                      = $this->createMock(Store::class);
-        $this->availabilityResolver = $this->createMock(AvailabilityResolver::class);
-        $this->seoConfig            = $this->createMock(Config::class);
-        $this->product              = $this->createMock(Product::class);
+        $this->storeManager         = $this->createStub(StoreManagerInterface::class);
+        $store                      = $this->createStub(Store::class);
+        $this->availabilityResolver = $this->createStub(AvailabilityResolver::class);
+        $this->seoConfig            = $this->createStub(Config::class);
+        $this->product              = $this->createStub(Product::class);
 
         $store->method('getId')->willReturn(1);
         $store->method('getBaseUrl')->willReturn('https://example.com/');
@@ -71,7 +71,7 @@ class AbstractBuilderEnrichmentTest extends TestCase
         $this->product->method('getId')->willReturn(42);
         $this->product->method('getProductUrl')->willReturn('https://example.com/test-widget');
 
-        $finalPrice = $this->createMock(PriceInterface::class);
+        $finalPrice = $this->createStub(PriceInterface::class);
         $finalPrice->method('getValue')->willReturn(29.99);
         $priceInfo = $this->createMock(PriceInfoInterface::class);
         $priceInfo->method('getPrice')->with('final_price')->willReturn($finalPrice);
@@ -84,19 +84,19 @@ class AbstractBuilderEnrichmentTest extends TestCase
      */
     private function makeBuilder(array $offerFragment = [], ?array $rating = null): GenericProductBuilder
     {
-        $enricher = $this->createMock(OfferEnricherInterface::class);
+        $enricher = $this->createStub(OfferEnricherInterface::class);
         $enricher->method('enrich')->willReturn($offerFragment);
         $enricher->method('getSortOrder')->willReturn(100);
 
-        $ratingProvider = $this->createMock(AggregateRatingProviderInterface::class);
+        $ratingProvider = $this->createStub(AggregateRatingProviderInterface::class);
         $ratingProvider->method('getRating')->willReturn($rating);
         $ratingProvider->method('getPriority')->willReturn(100);
 
-        $currencyService = $this->createMock(CurrencyService::class);
+        $currencyService = $this->createStub(CurrencyService::class);
         $currencyService->method('getCurrentCurrencyCode')->willReturn('GBP');
         $currencyService->method('convertFromBase')->willReturnArgument(0);
 
-        $imageHelper = $this->createMock(ImageHelper::class);
+        $imageHelper = $this->createStub(ImageHelper::class);
         $imageHelper->method('init')->willReturnSelf();
 
         return new GenericProductBuilder(
@@ -107,7 +107,7 @@ class AbstractBuilderEnrichmentTest extends TestCase
                 $this->storeManager,
                 $currencyService,
                 $this->availabilityResolver,
-                $this->createMock(DateTime::class),
+                $this->createStub(DateTime::class),
                 new OfferEnricherPool([$enricher])
             ),
             new AggregateRatingResolver([$ratingProvider]),

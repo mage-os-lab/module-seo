@@ -7,27 +7,27 @@ namespace MageOS\Seo\Test\Unit\Model\Product\OfferEnricher;
 use Magento\Catalog\Api\Data\ProductInterface;
 use MageOS\Seo\Api\OfferEnricherInterface;
 use MageOS\Seo\Model\Product\OfferEnricher\Pool;
-use PHPUnit\Framework\MockObject\MockObject;
+use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
 
 class PoolTest extends TestCase
 {
     /**
-     * @var ProductInterface&MockObject
+     * @var ProductInterface&Stub
      */
-    private ProductInterface&MockObject $product;
+    private ProductInterface&Stub $product;
 
     protected function setUp(): void
     {
-        $this->product = $this->createMock(ProductInterface::class);
+        $this->product = $this->createStub(ProductInterface::class);
     }
 
     /**
      * @param array<string, mixed> $fragment
      */
-    private function makeEnricher(array $fragment, int $sortOrder): OfferEnricherInterface&MockObject
+    private function makeEnricher(array $fragment, int $sortOrder): OfferEnricherInterface&Stub
     {
-        $enricher = $this->createMock(OfferEnricherInterface::class);
+        $enricher = $this->createStub(OfferEnricherInterface::class);
         $enricher->method('enrich')->willReturn($fragment);
         $enricher->method('getSortOrder')->willReturn($sortOrder);
         return $enricher;

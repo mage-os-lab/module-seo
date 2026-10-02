@@ -8,20 +8,20 @@ use Magento\Catalog\Api\Data\ProductInterface;
 use Magento\Framework\App\Config\ScopeConfigInterface;
 use MageOS\Seo\Model\Product\OfferEnricher\CountryList;
 use MageOS\Seo\Model\Product\OfferEnricher\ReturnPolicyEnricher;
-use PHPUnit\Framework\MockObject\MockObject;
+use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
 
 class ReturnPolicyEnricherTest extends TestCase
 {
     /**
-     * @var ScopeConfigInterface&MockObject
+     * @var ScopeConfigInterface&Stub
      */
-    private ScopeConfigInterface&MockObject $scopeConfig;
+    private ScopeConfigInterface&Stub $scopeConfig;
 
     /**
-     * @var ProductInterface&MockObject
+     * @var ProductInterface&Stub
      */
-    private ProductInterface&MockObject $product;
+    private ProductInterface&Stub $product;
 
     /**
      * @var ReturnPolicyEnricher
@@ -30,8 +30,8 @@ class ReturnPolicyEnricherTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->scopeConfig = $this->createMock(ScopeConfigInterface::class);
-        $this->product     = $this->createMock(ProductInterface::class);
+        $this->scopeConfig = $this->createStub(ScopeConfigInterface::class);
+        $this->product     = $this->createStub(ProductInterface::class);
         $this->enricher    = new ReturnPolicyEnricher($this->scopeConfig, new CountryList());
     }
 

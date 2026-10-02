@@ -10,15 +10,15 @@ use Magento\Store\Api\Data\StoreInterface;
 use Magento\Store\Model\StoreManagerInterface;
 use MageOS\Seo\Model\Config;
 use MageOS\Seo\Model\Hreflang\AlternateBuilder;
-use PHPUnit\Framework\MockObject\MockObject;
+use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
 
 class AlternateBuilderTest extends TestCase
 {
     /**
-     * @var Config&MockObject
+     * @var Config&Stub
      */
-    private Config&MockObject $config;
+    private Config&Stub $config;
 
     /**
      * What an observer of the event does to the transport, if anything.
@@ -36,7 +36,7 @@ class AlternateBuilderTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->config    = $this->createMock(Config::class);
+        $this->config    = $this->createStub(Config::class);
         $this->observer  = null;
         $this->websiteId = 1;
     }

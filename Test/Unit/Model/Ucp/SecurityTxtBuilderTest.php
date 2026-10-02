@@ -6,17 +6,17 @@ namespace MageOS\Seo\Test\Unit\Model\Ucp;
 
 use MageOS\Seo\Model\Ucp\SecurityTxtBuilder;
 use MageOS\Seo\Model\Ucp\UcpConfig;
-use PHPUnit\Framework\MockObject\MockObject;
+use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
 
 class SecurityTxtBuilderTest extends TestCase
 {
-    private UcpConfig&MockObject $config;
+    private UcpConfig&Stub $config;
     private SecurityTxtBuilder $builder;
 
     protected function setUp(): void
     {
-        $this->config = $this->createMock(UcpConfig::class);
+        $this->config = $this->createStub(UcpConfig::class);
         $this->builder = new SecurityTxtBuilder($this->config);
     }
 

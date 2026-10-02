@@ -10,20 +10,20 @@ use MageOS\Seo\Api\StructuredDataProviderInterface;
 use MageOS\Seo\Model\Pool\HandleMatcher;
 use MageOS\Seo\Model\Product\SchemaRegistry;
 use MageOS\Seo\Model\StructuredData\Compositor;
-use PHPUnit\Framework\MockObject\MockObject;
+use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
 
 class CompositorTest extends TestCase
 {
     /**
-     * @var Layout&MockObject
+     * @var Layout&Stub
      */
-    private Layout&MockObject $layout;
+    private Layout&Stub $layout;
 
     /**
-     * @var ProcessorInterface&MockObject
+     * @var ProcessorInterface&Stub
      */
-    private ProcessorInterface&MockObject $layoutUpdate;
+    private ProcessorInterface&Stub $layoutUpdate;
 
     /**
      * @var SchemaRegistry
@@ -32,8 +32,8 @@ class CompositorTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->layout         = $this->createMock(Layout::class);
-        $this->layoutUpdate   = $this->createMock(ProcessorInterface::class);
+        $this->layout         = $this->createStub(Layout::class);
+        $this->layoutUpdate   = $this->createStub(ProcessorInterface::class);
         $this->schemaRegistry = new SchemaRegistry();
 
         $this->layout->method('getUpdate')->willReturn($this->layoutUpdate);
@@ -43,9 +43,9 @@ class CompositorTest extends TestCase
      * @param string[] $handles
      * @param array<int, array<string, mixed>> $schemas
      */
-    private function makeProvider(array $handles, array $schemas): StructuredDataProviderInterface&MockObject
+    private function makeProvider(array $handles, array $schemas): StructuredDataProviderInterface&Stub
     {
-        $provider = $this->createMock(StructuredDataProviderInterface::class);
+        $provider = $this->createStub(StructuredDataProviderInterface::class);
         $provider->method('getHandles')->willReturn($handles);
         $provider->method('getSchemas')->willReturn($schemas);
         return $provider;

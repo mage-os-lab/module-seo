@@ -13,14 +13,15 @@ use MageOS\Seo\Model\RobotsMeta\DirectiveComposer;
 use MageOS\Seo\Model\RobotsMeta\Resolver;
 use MageOS\Seo\Observer\ApplyRobotsMeta;
 use PHPUnit\Framework\MockObject\MockObject;
+use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
 
 class ApplyRobotsMetaTest extends TestCase
 {
     /**
-     * @var Resolver&MockObject
+     * @var Resolver&Stub
      */
-    private Resolver&MockObject $resolver;
+    private Resolver&Stub $resolver;
 
     /**
      * @var PageConfig&MockObject
@@ -28,9 +29,9 @@ class ApplyRobotsMetaTest extends TestCase
     private PageConfig&MockObject $pageConfig;
 
     /**
-     * @var StoreManagerInterface&MockObject
+     * @var StoreManagerInterface&Stub
      */
-    private StoreManagerInterface&MockObject $storeManager;
+    private StoreManagerInterface&Stub $storeManager;
 
     /**
      * @var ApplyRobotsMeta
@@ -39,11 +40,11 @@ class ApplyRobotsMetaTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->resolver     = $this->createMock(Resolver::class);
+        $this->resolver     = $this->createStub(Resolver::class);
         $this->pageConfig   = $this->createMock(PageConfig::class);
-        $this->storeManager = $this->createMock(StoreManagerInterface::class);
+        $this->storeManager = $this->createStub(StoreManagerInterface::class);
 
-        $store = $this->createMock(StoreInterface::class);
+        $store = $this->createStub(StoreInterface::class);
         $store->method('getId')->willReturn(2);
         $this->storeManager->method('getStore')->willReturn($store);
 
@@ -58,7 +59,7 @@ class ApplyRobotsMetaTest extends TestCase
         $this->pageConfig->method('getRobots')->willReturn('NOINDEX,FOLLOW');
         $this->pageConfig->expects($this->once())->method('setRobots')->with('NOINDEX,FOLLOW');
 
-        $this->observer->execute($this->createMock(Observer::class));
+        $this->observer->execute($this->createStub(Observer::class));
     }
 
     public function testCoresOwnDefaultIsStillOverridden(): void
@@ -68,22 +69,23 @@ class ApplyRobotsMetaTest extends TestCase
         $this->pageConfig->method('getRobots')->willReturn('NOINDEX,NOFOLLOW');
         $this->pageConfig->expects($this->once())->method('setRobots')->with('INDEX,FOLLOW');
 
-        $observer->execute($this->createMock(Observer::class));
+        $observer->execute($this->createStub(Observer::class));
     }
 
     /**
      * The observer, with core's default robots configured as given and the real composer.
      *
      * @param string $coreDefault
+     * @param Resolver|null $resolver Defaults to this test's stub
      * @return ApplyRobotsMeta
      */
-    private function observerWithCoreDefault(string $coreDefault): ApplyRobotsMeta
+    private function observerWithCoreDefault(string $coreDefault, ?Resolver $resolver = null): ApplyRobotsMeta
     {
         $scopeConfig = $this->createStub(ScopeConfigInterface::class);
         $scopeConfig->method('getValue')->willReturn($coreDefault);
 
         return new ApplyRobotsMeta(
-            $this->resolver,
+            $resolver ?? $this->resolver,
             $this->pageConfig,
             $this->storeManager,
             new DirectiveComposer(),
@@ -93,30 +95,33 @@ class ApplyRobotsMetaTest extends TestCase
 
     public function testSetsRobotsWhenResolverReturnsValue(): void
     {
-        $this->resolver->method('resolve')->with(2)->willReturn('NOINDEX,FOLLOW');
+        $resolver = $this->createMock(Resolver::class);
+        $resolver->method('resolve')->with(2)->willReturn('NOINDEX,FOLLOW');
         $this->pageConfig->expects($this->once())->method('setRobots')->with('NOINDEX,FOLLOW');
-        $this->observer->execute($this->createMock(Observer::class));
+        $this->observerWithCoreDefault('INDEX,FOLLOW', $resolver)->execute($this->createStub(Observer::class));
     }
 
     public function testDoesNotSetRobotsWhenResolverReturnsNull(): void
     {
-        $this->resolver->method('resolve')->with(2)->willReturn(null);
+        $resolver = $this->createMock(Resolver::class);
+        $resolver->method('resolve')->with(2)->willReturn(null);
         $this->pageConfig->expects($this->never())->method('setRobots');
-        $this->observer->execute($this->createMock(Observer::class));
+        $this->observerWithCoreDefault('INDEX,FOLLOW', $resolver)->execute($this->createStub(Observer::class));
     }
 
     public function testDoesNotSetRobotsWhenResolverReturnsEmptyString(): void
     {
-        $this->resolver->method('resolve')->with(2)->willReturn('');
+        $resolver = $this->createMock(Resolver::class);
+        $resolver->method('resolve')->with(2)->willReturn('');
         $this->pageConfig->expects($this->never())->method('setRobots');
-        $this->observer->execute($this->createMock(Observer::class));
+        $this->observerWithCoreDefault('INDEX,FOLLOW', $resolver)->execute($this->createStub(Observer::class));
     }
 
     public function testSwallowsExceptionsToNeverBreakRendering(): void
     {
         $this->resolver->method('resolve')->willThrowException(new \RuntimeException('boom'));
         $this->pageConfig->expects($this->never())->method('setRobots');
-        $this->observer->execute($this->createMock(Observer::class));
+        $this->observer->execute($this->createStub(Observer::class));
         $this->addToAssertionCount(1);
     }
 }

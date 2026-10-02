@@ -7,15 +7,15 @@ namespace MageOS\Seo\Test\Unit\Model\PageTitle\Provider;
 use Magento\Cms\Api\Data\PageInterface;
 use MageOS\Seo\Model\Cms\CmsPageResolver;
 use MageOS\Seo\Model\PageTitle\Provider\CmsPageTitleProvider;
-use PHPUnit\Framework\MockObject\MockObject;
+use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
 
 class CmsPageTitleProviderTest extends TestCase
 {
     /**
-     * @var CmsPageResolver&MockObject
+     * @var CmsPageResolver&Stub
      */
-    private CmsPageResolver&MockObject $cmsPageResolver;
+    private CmsPageResolver&Stub $cmsPageResolver;
 
     /**
      * @var CmsPageTitleProvider
@@ -24,7 +24,7 @@ class CmsPageTitleProviderTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->cmsPageResolver = $this->createMock(CmsPageResolver::class);
+        $this->cmsPageResolver = $this->createStub(CmsPageResolver::class);
         $this->provider        = new CmsPageTitleProvider($this->cmsPageResolver);
     }
 
@@ -35,7 +35,7 @@ class CmsPageTitleProviderTest extends TestCase
 
     public function testReturnsPageMetaTitle(): void
     {
-        $page = $this->createMock(PageInterface::class);
+        $page = $this->createStub(PageInterface::class);
         $page->method('getMetaTitle')->willReturn('About Us | Meta');
         $this->cmsPageResolver->method('resolve')->willReturn($page);
 
