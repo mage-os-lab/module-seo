@@ -57,7 +57,9 @@ class ShippingDetailsEnricher implements OfferEnricherInterface
             '@type'        => 'OfferShippingDetails',
             'shippingRate' => [
                 '@type'    => 'MonetaryAmount',
-                'value'    => number_format((float) $this->value(self::XML_RATE, $storeId), 2, '.', ''),
+                'value'    => $this->currencyService->formatAmountForLlms(
+                    (float) $this->value(self::XML_RATE, $storeId)
+                ),
                 'currency' => $this->currencyService->getCurrentCurrencyCode(),
             ],
         ];

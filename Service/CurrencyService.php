@@ -175,28 +175,6 @@ class CurrencyService
     }
 
     /**
-     * Convert an amount from the base currency to the current display currency.
-     *
-     * Returns the original amount if conversion fails.
-     *
-     * @param float $amount
-     * @param int|null $storeId
-     * @return float
-     */
-    public function convertFromBase(float $amount, ?int $storeId = null): float
-    {
-        try {
-            $store = $this->getStore($storeId);
-            return (float) $store->getBaseCurrency()->convert(
-                $amount,
-                $store->getCurrentCurrencyCode()
-            );
-        } catch (\Exception) {
-            return $amount;
-        }
-    }
-
-    /**
      * Store getter
      *
      * @param int|null $storeId

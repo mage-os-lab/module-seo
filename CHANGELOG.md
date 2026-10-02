@@ -12,6 +12,46 @@ Pre-release review hardening pass (July 2026). Breaking renames are included
 deliberately: nothing has shipped yet, so names are settled now, before they
 become public contract.
 
+### Fixed — llms.txt review (September 2026)
+
+Checked against the llms.txt spec (v2, 10 August 2026), the reference parser
+(`llms_txt` on PyPI, linked from llmstxt.org) and Lighthouse's llms-txt audit.
+
+- **llms.txt follows the format.** Items under an H2 are `- [name](url)` links
+  (Lighthouse fails a file with no markdown link, and the reference parser fails on
+  any non-link line). Base URL, locale, search template, structured data and contact
+  move to the details list before the first H2. The summary is one line; with no
+  description there is no blockquote. FAQ entries are one-line plain text in the
+  details. Square brackets in link labels become round ones.
+- **Structured data line** names schema.org types instead of template codes, and no
+  longer says "in use" for every registered template.
+- **Sitemap link** is core's URL of the sitemap configured under Marketing → Site Map,
+  not a hardcoded `/sitemap.xml`; no link when the store view has none.
+- **`/llms.txt` answers 404, not 503, before the first build**, with `Retry-After` and
+  `Cache-Control: no-store`. Lighthouse scores a 5xx as a failure and a 4xx as not
+  applicable. `/llms-full.txt` and `/llms.jsonl` keep 503.
+- **Disabled files are not claimed by the router**, so a static file or another module
+  can serve the path.
+- **`/llms.jsonl` description** is one line and cut at a word boundary, with `…`.
+- `LlmsTxtBuilder` takes a new `SitemapUrlResolver` argument (before
+  `sectionProviders`), and `LlmsTxtRouter` takes `Model\Aeo\Config`; with DI nothing
+  changes.
+
+### Fixed — prices
+
+- **Prices were converted to the display currency twice** in product JSON-LD offers
+  (`price`, `lowPrice`/`highPrice`), the Open Graph `product:price:amount` tag and
+  `/llms.jsonl`, when the display currency differs from the base currency. PriceInfo
+  amounts are already in the current currency — core `RegularPrice::getValue()` calls
+  `PriceCurrency::convert()`, `SpecialPrice` and `CatalogRulePrice` call
+  `convertAndRound()` — so the conversion added for display-currency prices applied the
+  rate a second time. They are now used as they are.
+- **One formatter for every machine-readable amount:** `CurrencyService::formatAmountForLlms()`
+  writes the offers' prices, `product:price:amount`, the `/llms.jsonl` price and the shipping
+  rate with two decimals, a full stop and no thousands separator, whatever the store's locale.
+  The locale's display format (`1.234,50` in Dutch) is not a valid schema.org price.
+- **`CurrencyService::convertFromBase()` is removed.** Nothing calls it after the fix above.
+
 ### Added
 
 - **Translations:** `i18n/en_US.csv` (the source), `en_GB.csv` (British spelling, only where it

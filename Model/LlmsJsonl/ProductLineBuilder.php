@@ -21,6 +21,11 @@ class ProductLineBuilder
     private const AVAILABILITY_OUT      = 'https://schema.org/OutOfStock';
 
     /**
+     * Maximum description length in characters, ellipsis excluded.
+     */
+    private const DESCRIPTION_MAX = 300;
+
+    /**
      * @param StoreManagerInterface $storeManager
      * @param CurrencyService $currencyService
      */
@@ -92,9 +97,10 @@ class ProductLineBuilder
         } catch (\Exception) { // phpcs:ignore Magento2.CodeAnalysis.EmptyBlock.DetectedCatch -- fall back to 0
             $value = 0.0;
         }
-        // PriceInfo amounts are base currency; convert so the amount matches the
-        // display currency code emitted with it.
-        return number_format($this->currencyService->convertFromBase((float) $value), 2, '.', '');
+        // PriceInfo amounts are already in the current (display) currency — core
+        // RegularPrice / SpecialPrice::getValue() convert with PriceCurrency — which is
+        // the priceCurrency emitted with them. Converting again would apply the rate twice.
+        return $this->currencyService->formatAmountForLlms((float) $value);
     }
 
     /**
@@ -110,8 +116,22 @@ class ProductLineBuilder
             return '';
         }
         // phpcs:ignore Magento2.Functions.DiscouragedFunction.Discouraged -- plain-text from rich HTML
-        $text = trim(html_entity_decode(strip_tags($raw), ENT_QUOTES | ENT_HTML5, 'UTF-8'));
-        return mb_substr($text, 0, 300);
+        $text = html_entity_decode(strip_tags($raw), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        // One line of text: tags leave runs of newlines and indentation behind.
+        $text = trim((string) preg_replace('/\s+/u', ' ', $text));
+        if (mb_strlen($text) <= self::DESCRIPTION_MAX) {
+            return $text;
+        }
+
+        // Cut at the last word boundary so a word is never split; fall back to a hard
+        // cut only for a single very long word.
+        $cut   = mb_substr($text, 0, self::DESCRIPTION_MAX + 1);
+        $space = mb_strrpos($cut, ' ');
+        $cut   = $space !== false && $space > (int) (self::DESCRIPTION_MAX * 0.6)
+            ? mb_substr($cut, 0, $space)
+            : mb_substr($text, 0, self::DESCRIPTION_MAX);
+
+        return rtrim($cut, " \t,.;:-") . '…';
     }
 
     /**

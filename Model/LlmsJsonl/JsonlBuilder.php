@@ -148,12 +148,23 @@ class JsonlBuilder
     /**
      * Encode one node to a compact JSON line, or empty string on failure.
      *
+     * A node that cannot be encoded (invalid UTF-8 in a product name, say) is left out rather than
+     * failing the whole feed, and logged as a notice so the missing line can be traced.
+     *
      * @param array<string,mixed> $node
      * @return string
      */
     private function encode(array $node): string
     {
         $json = json_encode($node, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-        return $json === false ? '' : $json;
+        if ($json === false) {
+            $this->logger->notice(
+                'MageOS_Seo: llms.jsonl left out a line that could not be encoded as JSON: ' . json_last_error_msg(),
+                ['id' => $node['@id'] ?? null, 'sku' => $node['sku'] ?? null]
+            );
+            return '';
+        }
+
+        return $json;
     }
 }

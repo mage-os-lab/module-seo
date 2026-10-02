@@ -158,29 +158,25 @@ class CurrencyServiceTest extends TestCase
         $this->assertSame('£49.99', $result);
     }
 
-    public function testConvertFromBaseConvertsCorrectly(): void
+    public function testFormatAmountForLlmsWritesTwoDecimalsWithAFullStopAndNoGrouping(): void
     {
-        $currency = $this->createMock(Currency::class);
-        $currency
-            ->expects($this->once())
-            ->method('convert')
-            ->with(100.0, 'EUR')
-            ->willReturn(118.5);
-
-        $result = $this->service(store: $this->store(baseCurrency: $currency))->convertFromBase(100.0);
-
-        $this->assertSame(118.5, $result);
+        // schema.org prices and product:price:amount: "." as the decimal point, no thousands
+        // separator. Rounded to the cent like the storefront.
+        $this->assertSame('29.99', $this->service->formatAmountForLlms(29.99));
+        $this->assertSame('30.00', $this->service->formatAmountForLlms(30.0));
+        $this->assertSame('0.00', $this->service->formatAmountForLlms(0.0));
+        $this->assertSame('1234.50', $this->service->formatAmountForLlms(1234.5));
+        $this->assertSame('1234567.89', $this->service->formatAmountForLlms(1234567.891));
     }
 
-    public function testConvertFromBaseReturnsOriginalAmountOnException(): void
+    public function testFormatAmountForLlmsIgnoresTheStoreLocale(): void
     {
-        $this->store
-            ->method('getBaseCurrency')
-            ->willThrowException(new \Exception('Conversion error'));
+        // A Dutch store formats 1234.50 for display as "1.234,50", which a reader expecting "." as
+        // the decimal point does not read as 1234.50. The machine-readable amount ignores the locale.
+        $locale = $this->createStub(Resolver::class);
+        $locale->method('getLocale')->willReturn('nl_NL');
 
-        $result = $this->service->convertFromBase(100.0);
-
-        $this->assertSame(100.0, $result);
+        $this->assertSame('1234.50', $this->service(locale: $locale)->formatAmountForLlms(1234.5));
     }
 
     /**
@@ -188,16 +184,20 @@ class CurrencyServiceTest extends TestCase
      *
      * @param StoreManagerInterface|null $storeManager Defaults to one that returns $store
      * @param Store|null $store Defaults to the test's store
+     * @param Resolver|null $locale Defaults to the test's en_GB locale
      * @return CurrencyService
      */
-    private function service(?StoreManagerInterface $storeManager = null, ?Store $store = null): CurrencyService
-    {
+    private function service(
+        ?StoreManagerInterface $storeManager = null,
+        ?Store $store = null,
+        ?Resolver $locale = null
+    ): CurrencyService {
         if ($storeManager === null) {
             $storeManager = $this->createStub(StoreManagerInterface::class);
             $storeManager->method('getStore')->willReturn($store ?? $this->store);
         }
 
-        return new CurrencyService($storeManager, $this->locale);
+        return new CurrencyService($storeManager, $locale ?? $this->locale);
     }
 
     /**

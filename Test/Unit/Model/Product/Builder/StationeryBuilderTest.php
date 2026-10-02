@@ -17,7 +17,7 @@ use MageOS\Seo\Model\Product\Builder\StationeryBuilder;
 use MageOS\Seo\Model\Product\GtinValidator;
 use MageOS\Seo\Model\Product\OfferEnricher\Pool as OfferEnricherPool;
 use MageOS\Seo\Model\Review\AggregateRatingResolver;
-use MageOS\Seo\Service\CurrencyService;
+use MageOS\Seo\Test\Unit\Service\CurrencyServices;
 use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
 
@@ -29,6 +29,7 @@ use PHPUnit\Framework\TestCase;
  */
 class StationeryBuilderTest extends TestCase
 {
+    use CurrencyServices;
     use OfferBuilders;
 
     /**
@@ -45,7 +46,7 @@ class StationeryBuilderTest extends TestCase
     {
         $storeManager    = $this->createStub(StoreManagerInterface::class);
         $store           = $this->createStub(Store::class);
-        $currencyService = $this->createStub(CurrencyService::class);
+        $currencyService = $this->currencyService();
         $imageHelper     = $this->createStub(ImageHelper::class);
         $seoConfig       = $this->createStub(Config::class);
         $priceInfo       = $this->createMock(PriceInfoInterface::class);
@@ -56,8 +57,6 @@ class StationeryBuilderTest extends TestCase
 
         $storeManager->method('getStore')->willReturn($store);
         $store->method('getBaseUrl')->willReturn('https://example.com/');
-        $currencyService->method('getCurrentCurrencyCode')->willReturn('GBP');
-        $currencyService->method('convertFromBase')->willReturnArgument(0);
         $finalPrice->method('getValue')->willReturn(6.50);
         $priceInfo->method('getPrice')->with('final_price')->willReturn($finalPrice);
         $this->product->method('getPriceInfo')->willReturn($priceInfo);

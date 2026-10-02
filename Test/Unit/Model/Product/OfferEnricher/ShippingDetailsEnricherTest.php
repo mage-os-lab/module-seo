@@ -9,20 +9,23 @@ use Magento\Framework\App\Config\ScopeConfigInterface;
 use MageOS\Seo\Model\Product\OfferEnricher\CountryList;
 use MageOS\Seo\Model\Product\OfferEnricher\ShippingDetailsEnricher;
 use MageOS\Seo\Service\CurrencyService;
+use MageOS\Seo\Test\Unit\Service\CurrencyServices;
 use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
 
 class ShippingDetailsEnricherTest extends TestCase
 {
+    use CurrencyServices;
+
     /**
      * @var ScopeConfigInterface&Stub
      */
     private ScopeConfigInterface&Stub $scopeConfig;
 
     /**
-     * @var CurrencyService&Stub
+     * @var CurrencyService
      */
-    private CurrencyService&Stub $currencyService;
+    private CurrencyService $currencyService;
 
     /**
      * @var ProductInterface&Stub
@@ -37,9 +40,8 @@ class ShippingDetailsEnricherTest extends TestCase
     protected function setUp(): void
     {
         $this->scopeConfig     = $this->createStub(ScopeConfigInterface::class);
-        $this->currencyService = $this->createStub(CurrencyService::class);
+        $this->currencyService = $this->currencyService();
         $this->product         = $this->createStub(ProductInterface::class);
-        $this->currencyService->method('getCurrentCurrencyCode')->willReturn('GBP');
         $this->enricher = new ShippingDetailsEnricher($this->scopeConfig, $this->currencyService, new CountryList());
     }
 

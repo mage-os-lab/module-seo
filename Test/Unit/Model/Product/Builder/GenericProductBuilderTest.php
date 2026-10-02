@@ -18,12 +18,14 @@ use MageOS\Seo\Model\Product\GtinValidator;
 use MageOS\Seo\Model\Product\OfferEnricher\Pool as OfferEnricherPool;
 use MageOS\Seo\Model\Review\AggregateRatingResolver;
 use MageOS\Seo\Service\CurrencyService;
+use MageOS\Seo\Test\Unit\Service\CurrencyServices;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
 
 class GenericProductBuilderTest extends TestCase
 {
+    use CurrencyServices;
     use OfferBuilders;
 
     /**
@@ -37,9 +39,9 @@ class GenericProductBuilderTest extends TestCase
     private Store&Stub $store;
 
     /**
-     * @var CurrencyService&Stub
+     * @var CurrencyService
      */
-    private CurrencyService&Stub $currencyService;
+    private CurrencyService $currencyService;
 
     /**
      * @var AvailabilityResolver&Stub
@@ -85,7 +87,7 @@ class GenericProductBuilderTest extends TestCase
     {
         $this->storeManager    = $this->createStub(StoreManagerInterface::class);
         $this->store           = $this->createStub(Store::class);
-        $this->currencyService = $this->createStub(CurrencyService::class);
+        $this->currencyService = $this->currencyService();
         $this->availabilityResolver = $this->createStub(AvailabilityResolver::class);
         $this->imageHelper     = $this->createStub(ImageHelper::class);
         $this->seoConfig       = $this->createStub(Config::class);
@@ -97,8 +99,6 @@ class GenericProductBuilderTest extends TestCase
 
         $this->storeManager->method('getStore')->willReturn($this->store);
         $this->store->method('getBaseUrl')->willReturn('https://example.com/');
-        $this->currencyService->method('getCurrentCurrencyCode')->willReturn('GBP');
-        $this->currencyService->method('convertFromBase')->willReturnArgument(0);
         // Note: availability and getData/getAttributeText are NOT stubbed here — per-test
         // configuration avoids PHPUnit 10's first-match-wins stub ordering issue.
         $this->finalPrice->method('getValue')->willReturn(29.99);

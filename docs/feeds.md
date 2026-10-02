@@ -6,7 +6,7 @@ Three documents are generated in the background and served from files:
 |---|---|---|
 | `/llms.txt` | Concise site summary for LLM crawlers | [llms-txt.md](llms-txt.md) |
 | `/llms-full.txt` | The extended version | [llms-txt.md](llms-txt.md) |
-| `/llms.jsonl` | One JSON-LD `Product` node per line | [llms-txt.md](llms-txt.md) |
+| `/llms.jsonl` | One JSON-LD `Product` node per line | [llms-txt.md](llms-txt.md#content-of-llmsjsonl) |
 
 Hreflang alternates for the whole catalogue are in `sitemap.xml`, beside each URL — see
 [sitemap.md](sitemap.md). The dedicated `/hreflang-sitemap.xml` this module used to serve is
@@ -34,8 +34,12 @@ Web requests **never** build the documents. An invalidation only queues a rebuil
 current files keep being served until the consumer has written their replacements.
 Each file is written to a temporary file and renamed into place, so a request never
 sees a partially written document. When a file does not exist yet (fresh install, new
-store view), the controller queues a rebuild and answers `503` with `Retry-After`
-until the consumer has written it. Requests with query strings — and the internal
+store view), the controller queues a rebuild and answers with `Retry-After` until
+the consumer has written it: `/llms.txt` answers `404` (with `Cache-Control: no-store`),
+`/llms-full.txt` and `/llms.jsonl` answer `503`. `/llms.txt` differs because
+Lighthouse's llms-txt audit scores a server error as a failure but treats a `404` as
+"not applicable". When a file is disabled in the configuration, its path is not
+claimed at all, so another module or a static file can serve it. Requests with query strings — and the internal
 `/mageos-aeo/...` controller URLs — are 301-redirected to the canonical path so they
 cannot be used to force cache misses.
 
