@@ -175,28 +175,6 @@ class CurrencyService
     }
 
     /**
-     * Convert an amount from the base currency to the current display currency.
-     *
-     * Returns the original amount if conversion fails.
-     *
-     * @param float $amount
-     * @param int|null $storeId
-     * @return float
-     */
-    public function convertFromBase(float $amount, ?int $storeId = null): float
-    {
-        try {
-            $store = $this->getStore($storeId);
-            return (float) $store->getBaseCurrency()->convert(
-                $amount,
-                $store->getCurrentCurrencyCode()
-            );
-        } catch (\Exception) {
-            return $amount;
-        }
-    }
-
-    /**
      * Store getter
      *
      * @param int|null $storeId
@@ -221,7 +199,7 @@ class CurrencyService
      * @param string $code
      * @return string
      */
-    private function currencyFormatter(
+    public function currencyFormatter(
         float $amount,
         bool $includeSymbol = true,
         string $code = ''
@@ -236,5 +214,16 @@ class CurrencyService
             $fmt = new \NumberFormatter( $localeString, \NumberFormatter::DECIMAL );
             return $fmt->format($amount);
         }
+    }
+
+    /**
+     * format an amount for llms
+     *
+     * @param float $amount
+     * @return string
+     */
+    public function formatAmountForLlms(float $amount): string
+    {
+        return number_format($amount, 2, '.', '');
     }
 }

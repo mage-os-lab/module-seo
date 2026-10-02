@@ -65,8 +65,8 @@ abstract class AbstractEntityProvider implements ItemProviderInterface
      * that is worth hearing about, not reading as an empty list.
      *
      * @param mixed $rows
-     * @return iterable<DataObject>|false
      * @throws \UnexpectedValueException
+     * @return iterable<DataObject>|false
      */
     protected function coreRows(mixed $rows): iterable|false
     {
@@ -74,7 +74,7 @@ abstract class AbstractEntityProvider implements ItemProviderInterface
             return $rows;
         }
 
-        throw new \UnexpectedValueException(sprintf(
+        throw new \UnexpectedValueException(\sprintf(
             '%s: a core sitemap resource model returned %s, where rows or false were expected.',
             static::class,
             get_debug_type($rows)

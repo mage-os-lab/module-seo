@@ -21,7 +21,7 @@ class CosmeticsBuilder extends AbstractBuilder
      */
     public function getLabel(): string
     {
-        return 'Beauty & Cosmetics';
+        return (string) __('Beauty & Cosmetics');
     }
 
     /**
@@ -30,15 +30,15 @@ class CosmeticsBuilder extends AbstractBuilder
     public function getAvailableFields(): array
     {
         return [
-            'brand'          => 'Brand',
-            'gtin13'         => 'GTIN / EAN',
-            'color'          => 'Shade / Colour',
-            'material'       => 'Ingredients',
-            'scent'          => 'Scent / Fragrance',
-            'gender'         => 'Target Audience',
-            'warning'        => 'Warnings / Allergen Notice',
-            'weight'         => 'Weight / Volume',
-            'countryOfOrigin' => 'Country of Origin',
+            'brand'          => (string) __('Brand'),
+            'gtin13'         => (string) __('GTIN / EAN'),
+            'color'          => (string) __('Shade / Color'),
+            'material'       => (string) __('Ingredients'),
+            'scent'          => (string) __('Scent / Fragrance'),
+            'gender'         => (string) __('Target Audience'),
+            'warning'        => (string) __('Warnings / Allergen Notice'),
+            'weight'         => (string) __('Weight / Volume'),
+            'countryOfOrigin' => (string) __('Country of Origin'),
         ];
     }
 

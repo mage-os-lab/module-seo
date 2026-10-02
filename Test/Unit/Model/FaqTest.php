@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace MageOS\Seo\Test\Unit\Model;
 
+use Magento\Framework\Api\AttributeValueFactory;
+use Magento\Framework\Api\ExtensionAttributesFactory;
 use Magento\Framework\Model\Context;
 use Magento\Framework\Registry;
 use MageOS\Seo\Api\Data\FaqInterface;
@@ -128,6 +130,8 @@ class FaqTest extends TestCase
         return new Faq(
             $this->createStub(Context::class),
             $this->createStub(Registry::class),
+            $this->createStub(ExtensionAttributesFactory::class),
+            $this->createStub(AttributeValueFactory::class),
             $resource,
             null,
             $data

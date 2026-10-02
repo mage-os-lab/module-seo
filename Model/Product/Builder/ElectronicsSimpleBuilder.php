@@ -21,7 +21,7 @@ class ElectronicsSimpleBuilder extends AbstractBuilder
      */
     public function getLabel(): string
     {
-        return 'Electronics & Gadgets';
+        return (string) __('Electronics & Gadgets');
     }
 
     /**
@@ -30,13 +30,13 @@ class ElectronicsSimpleBuilder extends AbstractBuilder
     public function getAvailableFields(): array
     {
         return [
-            'brand'   => 'Brand',
-            'gtin13'  => 'GTIN / EAN',
-            'mpn'     => 'Manufacturer Part Number (MPN)',
-            'color'   => 'Colour',
-            'material' => 'Material',
-            'weight'  => 'Weight',
-            'model'   => 'Model Number',
+            'brand'   => (string) __('Brand'),
+            'gtin13'  => (string) __('GTIN / EAN'),
+            'mpn'     => (string) __('Manufacturer Part Number (MPN)'),
+            'color'   => (string) __('Color'),
+            'material' => (string) __('Material'),
+            'weight'  => (string) __('Weight'),
+            'model'   => (string) __('Model Number'),
         ];
     }
 

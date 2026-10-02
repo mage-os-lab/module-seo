@@ -313,7 +313,7 @@ class ProductStream extends AbstractConnectedResource
             $attribute = $this->productResource->getAttribute($attributeCode);
             if ($attribute === false) {
                 // Core's product attributes; an installation without one is broken, not a variant.
-                throw new \RuntimeException(sprintf('Product attribute "%s" does not exist.', $attributeCode));
+                throw new \RuntimeException(\sprintf('Product attribute "%s" does not exist.', $attributeCode));
             }
 
             $this->attributes[$attributeCode] = [

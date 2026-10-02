@@ -17,8 +17,8 @@ use MageOS\Seo\Model\Product\Builder\ToolBuilder;
 use MageOS\Seo\Model\Product\GtinValidator;
 use MageOS\Seo\Model\Product\OfferEnricher\Pool as OfferEnricherPool;
 use MageOS\Seo\Model\Review\AggregateRatingResolver;
-use MageOS\Seo\Service\CurrencyService;
-use PHPUnit\Framework\MockObject\MockObject;
+use MageOS\Seo\Test\Unit\Service\CurrencyServices;
+use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -29,12 +29,13 @@ use PHPUnit\Framework\TestCase;
  */
 class ToolBuilderTest extends TestCase
 {
+    use CurrencyServices;
     use OfferBuilders;
 
     /**
-     * @var Product&MockObject
+     * @var Product&Stub
      */
-    private Product&MockObject $product;
+    private Product&Stub $product;
 
     /**
      * @var ToolBuilder
@@ -43,21 +44,19 @@ class ToolBuilderTest extends TestCase
 
     protected function setUp(): void
     {
-        $storeManager    = $this->createMock(StoreManagerInterface::class);
-        $store           = $this->createMock(Store::class);
-        $currencyService = $this->createMock(CurrencyService::class);
-        $imageHelper     = $this->createMock(ImageHelper::class);
-        $seoConfig       = $this->createMock(Config::class);
+        $storeManager    = $this->createStub(StoreManagerInterface::class);
+        $store           = $this->createStub(Store::class);
+        $currencyService = $this->currencyService();
+        $imageHelper     = $this->createStub(ImageHelper::class);
+        $seoConfig       = $this->createStub(Config::class);
         $priceInfo       = $this->createMock(PriceInfoInterface::class);
-        $finalPrice      = $this->createMock(PriceInterface::class);
-        $availability    = $this->createMock(AvailabilityResolver::class);
+        $finalPrice      = $this->createStub(PriceInterface::class);
+        $availability    = $this->createStub(AvailabilityResolver::class);
 
-        $this->product = $this->createMock(Product::class);
+        $this->product = $this->createStub(Product::class);
 
         $storeManager->method('getStore')->willReturn($store);
         $store->method('getBaseUrl')->willReturn('https://example.com/');
-        $currencyService->method('getCurrentCurrencyCode')->willReturn('GBP');
-        $currencyService->method('convertFromBase')->willReturnArgument(0);
         $finalPrice->method('getValue')->willReturn(59.00);
         $priceInfo->method('getPrice')->with('final_price')->willReturn($finalPrice);
         $this->product->method('getPriceInfo')->willReturn($priceInfo);
@@ -78,7 +77,7 @@ class ToolBuilderTest extends TestCase
                 $storeManager,
                 $currencyService,
                 $availability,
-                $this->createMock(DateTime::class),
+                $this->createStub(DateTime::class),
                 new OfferEnricherPool()
             ),
             new AggregateRatingResolver(),

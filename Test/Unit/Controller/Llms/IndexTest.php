@@ -15,6 +15,7 @@ use MageOS\Seo\Model\Rebuild\RegenerationRequester;
 use MageOS\Seo\Model\Router\CanonicalPathRedirect;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\MockObject\MockObject;
+use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -25,14 +26,14 @@ use PHPUnit\Framework\TestCase;
 class IndexTest extends TestCase
 {
     /**
-     * @var Raw&MockObject
+     * @var Raw&Stub
      */
-    private Raw&MockObject $result;
+    private Raw&Stub $result;
 
     /**
-     * @var FeedStorage&MockObject
+     * @var FeedStorage&Stub
      */
-    private FeedStorage&MockObject $storage;
+    private FeedStorage&Stub $storage;
 
     /**
      * @var RegenerationRequester&MockObject
@@ -48,7 +49,7 @@ class IndexTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->result = $this->createMock(Raw::class);
+        $this->result = $this->createStub(Raw::class);
         $this->result->method('setHttpResponseCode')->willReturnCallback(function (int $code) {
             $this->code = $code;
             return $this->result;
@@ -57,24 +58,24 @@ class IndexTest extends TestCase
             $this->headers[$name] = $value;
             return $this->result;
         });
-        $this->storage   = $this->createMock(FeedStorage::class);
+        $this->storage   = $this->createStub(FeedStorage::class);
         $this->requester = $this->createMock(RegenerationRequester::class);
     }
 
     private function controller(): Index
     {
-        $rawFactory = $this->createMock(RawFactory::class);
+        $rawFactory = $this->createStub(RawFactory::class);
         $rawFactory->method('create')->willReturn($this->result);
 
-        $config = $this->createMock(Config::class);
+        $config = $this->createStub(Config::class);
         $config->method('isLlmsTxtEnabled')->willReturn(true);
 
-        $redirect = $this->createMock(CanonicalPathRedirect::class);
+        $redirect = $this->createStub(CanonicalPathRedirect::class);
         $redirect->method('check')->willReturn(null);
 
-        $store = $this->createMock(StoreInterface::class);
+        $store = $this->createStub(StoreInterface::class);
         $store->method('getId')->willReturn(1);
-        $storeManager = $this->createMock(StoreManagerInterface::class);
+        $storeManager = $this->createStub(StoreManagerInterface::class);
         $storeManager->method('getStore')->willReturn($store);
 
         return new Index($rawFactory, $config, $this->storage, $redirect, $this->requester, $storeManager);

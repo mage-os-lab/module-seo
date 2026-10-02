@@ -18,6 +18,10 @@ jobs:
       - uses: actions/checkout@v7
       - uses: graycoreio/github-actions-magento2/supported-version@v8.11.0 # x-release-please-version
         id: supported-version
+      # Temporary: 2.4.7-p10 is left out of every check-extension job. Composer refuses its
+      # league/flysystem 2.x (advisory PKSA-w9tt-7782-78jx) and no fixed 2.x exists. While it is out,
+      # nothing tests the 2.4.7 floor composer.json declares, or PHPUnit 9. Remove this step to bring
+      # the leg back once a fix is released.
       - id: matrix
         env:
           MATRIX: ${{ steps.supported-version.outputs.matrix }}

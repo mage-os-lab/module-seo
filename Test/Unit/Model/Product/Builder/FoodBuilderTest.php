@@ -17,23 +17,24 @@ use MageOS\Seo\Model\Product\Builder\FoodBuilder;
 use MageOS\Seo\Model\Product\GtinValidator;
 use MageOS\Seo\Model\Product\OfferEnricher\Pool as OfferEnricherPool;
 use MageOS\Seo\Model\Review\AggregateRatingResolver;
-use MageOS\Seo\Service\CurrencyService;
-use PHPUnit\Framework\MockObject\MockObject;
+use MageOS\Seo\Test\Unit\Service\CurrencyServices;
+use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
 
 class FoodBuilderTest extends TestCase
 {
+    use CurrencyServices;
     use OfferBuilders;
 
     /**
-     * @var Product&MockObject
+     * @var Product&Stub
      */
-    private Product&MockObject $product;
+    private Product&Stub $product;
 
     /**
-     * @var AvailabilityResolver&MockObject
+     * @var AvailabilityResolver&Stub
      */
-    private AvailabilityResolver&MockObject $availabilityResolver;
+    private AvailabilityResolver&Stub $availabilityResolver;
 
     /**
      * @var FoodBuilder
@@ -42,21 +43,19 @@ class FoodBuilderTest extends TestCase
 
     protected function setUp(): void
     {
-        $storeManager    = $this->createMock(StoreManagerInterface::class);
-        $store           = $this->createMock(Store::class);
-        $currencyService = $this->createMock(CurrencyService::class);
-        $imageHelper     = $this->createMock(ImageHelper::class);
-        $seoConfig       = $this->createMock(Config::class);
+        $storeManager    = $this->createStub(StoreManagerInterface::class);
+        $store           = $this->createStub(Store::class);
+        $currencyService = $this->currencyService();
+        $imageHelper     = $this->createStub(ImageHelper::class);
+        $seoConfig       = $this->createStub(Config::class);
         $priceInfo       = $this->createMock(PriceInfoInterface::class);
-        $finalPrice      = $this->createMock(PriceInterface::class);
+        $finalPrice      = $this->createStub(PriceInterface::class);
 
-        $this->availabilityResolver = $this->createMock(AvailabilityResolver::class);
-        $this->product              = $this->createMock(Product::class);
+        $this->availabilityResolver = $this->createStub(AvailabilityResolver::class);
+        $this->product              = $this->createStub(Product::class);
 
         $storeManager->method('getStore')->willReturn($store);
         $store->method('getBaseUrl')->willReturn('https://example.com/');
-        $currencyService->method('getCurrentCurrencyCode')->willReturn('GBP');
-        $currencyService->method('convertFromBase')->willReturnArgument(0);
         $finalPrice->method('getValue')->willReturn(4.99);
         $priceInfo->method('getPrice')->with('final_price')->willReturn($finalPrice);
         $this->product->method('getPriceInfo')->willReturn($priceInfo);
@@ -77,7 +76,7 @@ class FoodBuilderTest extends TestCase
                 $storeManager,
                 $currencyService,
                 $this->availabilityResolver,
-                $this->createMock(DateTime::class),
+                $this->createStub(DateTime::class),
                 new OfferEnricherPool()
             ),
             new AggregateRatingResolver(),

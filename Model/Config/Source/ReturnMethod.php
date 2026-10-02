@@ -19,9 +19,9 @@ class ReturnMethod implements OptionSourceInterface
     public function toOptionArray(): array
     {
         return [
-            ['value' => 'https://schema.org/ReturnByMail',  'label' => 'By mail'],
-            ['value' => 'https://schema.org/ReturnInStore', 'label' => 'In store'],
-            ['value' => 'https://schema.org/ReturnAtKiosk', 'label' => 'At kiosk'],
+            ['value' => 'https://schema.org/ReturnByMail',  'label' => (string) __('By mail')],
+            ['value' => 'https://schema.org/ReturnInStore', 'label' => (string) __('In store')],
+            ['value' => 'https://schema.org/ReturnAtKiosk', 'label' => (string) __('At kiosk')],
         ];
     }
 }

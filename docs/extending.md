@@ -12,7 +12,7 @@ All major composition points are exposed as injectable arrays in `di.xml`. Bridg
 | New OG / meta tags on any page | `MetaTagProviderInterface` | `Model\MetaTag\Compositor` → `providers` array |
 | Custom page `<title>` provider | `PageTitleProviderInterface` | `Model\PageTitle\Compositor` → `providers` array |
 | New product schema template | `ProductSchemaBuilderInterface` | `Model\Product\SchemaBuilderPool` → `builders` array |
-| Extra content in `/llms.txt` | `SectionProviderInterface` | `Model\LlmsTxt\LlmsTxtBuilder` → `sectionProviders` array |
+| Extra content in `/llms.txt` | `LlmsTxtSectionProviderInterface` | `Model\LlmsTxt\LlmsTxtBuilder` → `sectionProviders` array |
 | Your own pre-generated output, rebuilt on change | `Api\Rebuild\GroupHandlerInterface` | `Model\Rebuild\HandlerPool` → `handlers` array |
 
 ---
@@ -127,14 +127,14 @@ use Magento\Catalog\Api\Data\ProductInterface;
 class VehicleBuilder extends AbstractBuilder
 {
     public function getTemplateCode(): string { return 'Vehicle'; }
-    public function getLabel(): string { return 'Vehicle'; }
+    public function getLabel(): string { return (string) __('Vehicle'); }
 
     public function getAvailableFields(): array
     {
         return [
-            'vehicleModelDate' => 'Model Year',
-            'driveWheelConfiguration' => 'Drive Configuration',
-            'fuelType' => 'Fuel Type',
+            'vehicleModelDate' => (string) __('Model Year'),
+            'driveWheelConfiguration' => (string) __('Drive Configuration'),
+            'fuelType' => (string) __('Fuel Type'),
         ];
     }
 
@@ -167,6 +167,7 @@ Rules to follow:
 - **Read `$overrides[$field]` before the attribute for each of your own fields** (the keys of `getAvailableFields()`), and build the field in its proper shape — a `Brand` node, an `additionalProperty` entry, whatever your field is. An override for one of your fields turns that field on (`SchemaBuilderPool` adds it to `$enabledFields`), and `applyOverrides()` leaves your fields to you: setting the raw value there would replace the node you built with a string.
 - Always call `$this->applyOverrides($schema, $overrides)` as the last step — it sets the override keys your template does **not** list, as given, so a merchant can still set a schema.org property you don't know.
 - Use `$this->attr($product, 'attribute_code')` to read product attributes — it handles select/dropdown label resolution automatically.
+- Return `getLabel()` and the labels in `getAvailableFields()` through `(string) __('…')`, and add the phrases to your module's `i18n/` files. They're shown in the admin's language in the category form, and the template label in the store view's language in `/llms-full.txt` (see [Translations](translations.md)).
 
 **2. Register in di.xml**
 
@@ -272,6 +273,75 @@ the first time it is asked.
 
 For a new **type of page in the XML sitemaps**, use `Api\Sitemap\RebuildRequesterInterface`
 instead. See [sitemap.md](sitemap.md).
+
+---
+
+## Repository API
+
+Everything under `Api/` is marked `@api`: it is the module's contract, and Magento's
+backward-compatibility promise covers it and nothing else. Code outside `Api/` can change in any
+release.
+
+### Listing FAQ entries
+
+`FaqRepositoryInterface::getList()` takes Magento's standard search criteria and returns a page of
+entries with the total that matched:
+
+```php
+$criteria = $this->searchCriteriaBuilder
+    ->addFilter('identifier', 'shipping')
+    ->addFilter('is_active', 1)
+    ->setSortOrders([$this->sortOrderBuilder->setField('sort_order')->setAscendingDirection()->create()])
+    ->setPageSize(20)
+    ->setCurrentPage(1)
+    ->create();
+
+$results = $this->faqRepository->getList($criteria);
+$results->getTotalCount();   // every match, not just this page
+$results->getItems();        // \MageOS\Seo\Api\Data\FaqInterface[]
+```
+
+To show the FAQs of a group on a page, you don't need this: `FaqSourceProviderInterface` and the
+FAQ widget already do that, store view by store view. `getList()` is for your own code working with
+the entries themselves: an export, an integration, an admin tool.
+
+### Adding fields to an FAQ or the Organization
+
+`FaqInterface` and `OrganizationInterface` are extensible. Declare your field in your module's
+`etc/extension_attributes.xml`, and it appears on every model through `getExtensionAttributes()`:
+
+```xml
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:framework:Api/etc/extension_attributes.xsd">
+    <extension_attributes for="MageOS\Seo\Api\Data\FaqInterface">
+        <attribute code="helpful_votes" type="int"/>
+    </extension_attributes>
+</config>
+```
+
+```php
+$faq->getExtensionAttributes()->getHelpfulVotes();
+```
+
+`getExtensionAttributes()` never returns null: the object is created on first read. Filling and
+storing your field is your module's job, as with any extension attribute: a plugin on the
+repository, or a `<join>` in the declaration. `getList()` runs the join processor, so a joined field
+arrives filled in and can be filtered and sorted on.
+
+### Errors
+
+The repositories throw Magento's standard exceptions, so a caller can tell a missing record from a
+failed write:
+
+| Method | Throws |
+|---|---|
+| `FaqRepositoryInterface::getById()` | `NoSuchEntityException` |
+| `FaqRepositoryInterface::save()` | `CouldNotSaveException` |
+| `FaqRepositoryInterface::delete()`, `deleteById()` | `CouldNotDeleteException` (and `NoSuchEntityException` for an unknown ID) |
+| `OrganizationRepositoryInterface::save()` | `CouldNotSaveException` |
+| `OrganizationRepositoryInterface::deleteForScope()` | `CouldNotDeleteException` |
+
+The database's own error is kept as the exception's `getPrevious()`.
 
 ---
 

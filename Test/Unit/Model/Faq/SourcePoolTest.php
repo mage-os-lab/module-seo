@@ -6,7 +6,7 @@ namespace MageOS\Seo\Test\Unit\Model\Faq;
 
 use MageOS\Seo\Api\FaqSourceProviderInterface;
 use MageOS\Seo\Model\Faq\SourcePool;
-use PHPUnit\Framework\MockObject\MockObject;
+use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
 
 class SourcePoolTest extends TestCase
@@ -14,9 +14,9 @@ class SourcePoolTest extends TestCase
     /**
      * @param array<int, array{question: string, answer: string}> $faqs
      */
-    private function makeSource(array $faqs): FaqSourceProviderInterface&MockObject
+    private function makeSource(array $faqs): FaqSourceProviderInterface&Stub
     {
-        $source = $this->createMock(FaqSourceProviderInterface::class);
+        $source = $this->createStub(FaqSourceProviderInterface::class);
         $source->method('getFaqs')->willReturn($faqs);
         return $source;
     }

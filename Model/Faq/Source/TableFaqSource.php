@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace MageOS\Seo\Model\Faq\Source;
 
 use MageOS\Seo\Api\FaqSourceProviderInterface;
-use MageOS\Seo\Model\Faq\Repository;
+use MageOS\Seo\Model\Faq\GroupReader;
 
 /**
  * FAQ source backed by the module's own mageos_faq table.
@@ -13,10 +13,10 @@ use MageOS\Seo\Model\Faq\Repository;
 class TableFaqSource implements FaqSourceProviderInterface
 {
     /**
-     * @param Repository $repository
+     * @param GroupReader $groupReader
      */
     public function __construct(
-        private readonly Repository $repository
+        private readonly GroupReader $groupReader
     ) {
     }
 
@@ -25,7 +25,7 @@ class TableFaqSource implements FaqSourceProviderInterface
      */
     public function getFaqs(string $identifier, int $storeId): array
     {
-        return $this->repository->getByIdentifier($identifier, $storeId);
+        return $this->groupReader->getByIdentifier($identifier, $storeId);
     }
 
     /**
@@ -33,6 +33,6 @@ class TableFaqSource implements FaqSourceProviderInterface
      */
     public function getIdentifiers(): array
     {
-        return $this->repository->getIdentifiers();
+        return $this->groupReader->getIdentifiers();
     }
 }

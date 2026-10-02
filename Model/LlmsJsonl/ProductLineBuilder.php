@@ -100,7 +100,7 @@ class ProductLineBuilder
         // PriceInfo amounts are already in the current (display) currency — core
         // RegularPrice / SpecialPrice::getValue() convert with PriceCurrency — which is
         // the priceCurrency emitted with them. Converting again would apply the rate twice.
-        return number_format((float) $value, 2, '.', '');
+        return $this->currencyService->formatAmountForLlms((float) $value);
     }
 
     /**

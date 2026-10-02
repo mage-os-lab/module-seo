@@ -12,15 +12,15 @@ use Magento\Store\Model\Store;
 use Magento\Store\Model\StoreManagerInterface;
 use Magento\Store\Model\Website;
 use MageOS\Seo\Api\Data\OrganizationInterface;
+use MageOS\Seo\Api\LlmsTxtSectionProviderInterface;
 use MageOS\Seo\Api\OrganizationRepositoryInterface;
 use MageOS\Seo\Model\Config;
 use MageOS\Seo\Model\LlmsTxt\LlmsTxtBuilder;
-use MageOS\Seo\Model\LlmsTxt\SectionProviderInterface;
 use MageOS\Seo\Model\LlmsTxt\SitemapUrlResolver;
 use MageOS\Seo\Model\Organization\ContactEmail;
 use MageOS\Seo\Model\Product\SchemaBuilderPool;
 use PHPUnit\Framework\Attributes\Group;
-use PHPUnit\Framework\MockObject\MockObject;
+use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -48,62 +48,62 @@ class LlmsTxtBuilderTest extends TestCase
     private const FILE_LIST_ITEM = '/^(  )*- \[[^\]]+\]\([^)\s]+\)(: .+)?$/';
 
     /**
-     * @var OrganizationInterface&MockObject
+     * @var OrganizationInterface&Stub
      */
-    private OrganizationInterface&MockObject $organization;
+    private OrganizationInterface&Stub $organization;
 
     /**
-     * @var ScopeConfigInterface&MockObject
+     * @var ScopeConfigInterface&Stub
      */
-    private ScopeConfigInterface&MockObject $scopeConfig;
+    private ScopeConfigInterface&Stub $scopeConfig;
 
     /**
-     * @var CategoryCollectionFactory&MockObject
+     * @var CategoryCollectionFactory&Stub
      */
-    private CategoryCollectionFactory&MockObject $categoryCollectionFactory;
+    private CategoryCollectionFactory&Stub $categoryCollectionFactory;
 
     /**
-     * @var SchemaBuilderPool&MockObject
+     * @var SchemaBuilderPool&Stub
      */
-    private SchemaBuilderPool&MockObject $builderPool;
+    private SchemaBuilderPool&Stub $builderPool;
 
     /**
-     * @var StoreManagerInterface&MockObject
+     * @var StoreManagerInterface&Stub
      */
-    private StoreManagerInterface&MockObject $storeManager;
+    private StoreManagerInterface&Stub $storeManager;
 
     private ?string $sitemapUrl = 'https://shop.test/media/sitemap.xml';
 
     protected function setUp(): void
     {
-        $store = $this->createMock(Store::class);
+        $store = $this->createStub(Store::class);
         $store->method('getId')->willReturn(1);
         $store->method('getBaseUrl')->willReturn('https://shop.test/');
         $store->method('getName')->willReturn('Default Store View');
         $store->method('getRootCategoryId')->willReturn(2);
 
-        $website = $this->createMock(Website::class);
+        $website = $this->createStub(Website::class);
         $website->method('getId')->willReturn(1);
 
-        $this->storeManager = $this->createMock(StoreManagerInterface::class);
+        $this->storeManager = $this->createStub(StoreManagerInterface::class);
         $this->storeManager->method('getStore')->willReturn($store);
         $this->storeManager->method('getWebsite')->willReturn($website);
 
-        $this->organization = $this->createMock(OrganizationInterface::class);
+        $this->organization = $this->createStub(OrganizationInterface::class);
         $this->organization->method('getName')->willReturn('Test Shop');
 
-        $this->scopeConfig = $this->createMock(ScopeConfigInterface::class);
+        $this->scopeConfig = $this->createStub(ScopeConfigInterface::class);
         $this->scopeConfig->method('getValue')->willReturnMap([
             ['catalog/seo/category_url_suffix', 'store', 1, '.html'],
         ]);
 
-        $this->builderPool = $this->createMock(SchemaBuilderPool::class);
+        $this->builderPool = $this->createStub(SchemaBuilderPool::class);
         $this->builderPool->method('getAvailableTemplates')->willReturn([
             'GenericProduct' => 'Generic product',
             'Book'           => 'Book',
         ]);
 
-        $this->categoryCollectionFactory = $this->createMock(CategoryCollectionFactory::class);
+        $this->categoryCollectionFactory = $this->createStub(CategoryCollectionFactory::class);
         $this->categoryCollectionFactory->method('create')->willReturn($this->categoryCollection([
             ['id' => 3, 'parent_id' => 2, 'level' => 2, 'name' => 'Clothing',
                 'url_path' => 'clothing', 'product_count' => 245],
@@ -200,7 +200,7 @@ class LlmsTxtBuilderTest extends TestCase
     {
         // FeedRegenerator logs a store's failed build and keeps the previous file;
         // publishing a document without its category tree would hide the failure.
-        $factory = $this->createMock(CategoryCollectionFactory::class);
+        $factory = $this->createStub(CategoryCollectionFactory::class);
         $factory->method('create')->willThrowException(new \RuntimeException('db down'));
         $this->categoryCollectionFactory = $factory;
 
@@ -212,7 +212,7 @@ class LlmsTxtBuilderTest extends TestCase
 
     public function testNoCategoryTreeWhenTheStoreHasNoVisibleCategories(): void
     {
-        $factory = $this->createMock(CategoryCollectionFactory::class);
+        $factory = $this->createStub(CategoryCollectionFactory::class);
         $factory->method('create')->willReturn($this->categoryCollection([]));
         $this->categoryCollectionFactory = $factory;
 
@@ -257,18 +257,18 @@ class LlmsTxtBuilderTest extends TestCase
     }
 
     /**
-     * @param SectionProviderInterface[] $providers
+     * @param LlmsTxtSectionProviderInterface[] $providers
      * @return LlmsTxtBuilder
      */
     private function builder(array $providers = []): LlmsTxtBuilder
     {
-        $repository = $this->createMock(OrganizationRepositoryInterface::class);
+        $repository = $this->createStub(OrganizationRepositoryInterface::class);
         $repository->method('getForScope')->willReturn($this->organization);
-        $seoConfig = $this->createMock(Config::class);
+        $seoConfig = $this->createStub(Config::class);
         $seoConfig->method('getLocaleCode')->willReturnMap([[1, 'en_GB']]);
-        $contactEmail = $this->createMock(ContactEmail::class);
+        $contactEmail = $this->createStub(ContactEmail::class);
         $contactEmail->method('get')->willReturn('support@shop.test');
-        $sitemapResolver = $this->createMock(SitemapUrlResolver::class);
+        $sitemapResolver = $this->createStub(SitemapUrlResolver::class);
         $sitemapResolver->method('getUrl')->willReturn($this->sitemapUrl);
 
         return new LlmsTxtBuilder(
@@ -286,11 +286,11 @@ class LlmsTxtBuilderTest extends TestCase
 
     /**
      * @param string $markdown
-     * @return SectionProviderInterface
+     * @return LlmsTxtSectionProviderInterface
      */
-    private function provider(string $markdown): SectionProviderInterface
+    private function provider(string $markdown): LlmsTxtSectionProviderInterface
     {
-        $provider = $this->createMock(SectionProviderInterface::class);
+        $provider = $this->createStub(LlmsTxtSectionProviderInterface::class);
         $provider->method('getConciseSection')->willReturn($markdown);
         $provider->method('getFullSection')->willReturn($markdown);
 
@@ -299,13 +299,13 @@ class LlmsTxtBuilderTest extends TestCase
 
     /**
      * @param array<int, array<string, mixed>> $rows
-     * @return CategoryCollection&MockObject
+     * @return CategoryCollection&Stub
      */
-    private function categoryCollection(array $rows): CategoryCollection&MockObject
+    private function categoryCollection(array $rows): CategoryCollection&Stub
     {
         $items = array_map(static fn (array $row): DataObject => new DataObject($row), $rows);
 
-        $collection = $this->createMock(CategoryCollection::class);
+        $collection = $this->createStub(CategoryCollection::class);
         $fluent = ['setStoreId', 'addAttributeToSelect', 'addPathsFilter', 'addAttributeToFilter', 'setOrder'];
         foreach ($fluent as $method) {
             $collection->method($method)->willReturnSelf();

@@ -12,20 +12,18 @@ use Magento\Store\Model\Store;
 use Magento\Store\Model\StoreManagerInterface;
 use MageOS\Seo\Model\LlmsJsonl\ProductLineBuilder;
 use MageOS\Seo\Service\CurrencyService;
-use PHPUnit\Framework\MockObject\MockObject;
+use MageOS\Seo\Test\Unit\Service\CurrencyServices;
+use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
 
 class ProductLineBuilderTest extends TestCase
 {
-    /**
-     * @var Store&MockObject
-     */
-    private Store&MockObject $store;
+    use CurrencyServices;
 
     /**
-     * @var Product&MockObject
+     * @var Product&Stub
      */
-    private Product&MockObject $product;
+    private Product&Stub $product;
 
     /**
      * @var ProductLineBuilder
@@ -34,26 +32,34 @@ class ProductLineBuilderTest extends TestCase
 
     protected function setUp(): void
     {
-        $storeManager = $this->createMock(StoreManagerInterface::class);
-        $this->store  = $this->createMock(Store::class);
-        $storeManager->method('getStore')->willReturn($this->store);
-
-        $currency = $this->createMock(CurrencyService::class);
-        $currency->method('getCurrentCurrencyCode')->willReturn('GBP');
-        $currency->method('convertFromBase')->willReturnArgument(0);
-
-        $finalPrice = $this->createMock(PriceInterface::class);
+        $finalPrice = $this->createStub(PriceInterface::class);
         $finalPrice->method('getValue')->willReturn(29.99);
         $priceInfo = $this->createMock(PriceInfoInterface::class);
         $priceInfo->method('getPrice')->with('final_price')->willReturn($finalPrice);
 
-        $this->product = $this->createMock(Product::class);
+        $this->product = $this->createStub(Product::class);
         $this->product->method('getPriceInfo')->willReturn($priceInfo);
         $this->product->method('getName')->willReturn('Blue Mug');
         $this->product->method('getSku')->willReturn('MUG-001');
         $this->product->method('getProductUrl')->willReturn('https://example.com/blue-mug.html');
 
-        $this->builder = new ProductLineBuilder($storeManager, $currency);
+        $this->builder = $this->builder();
+    }
+
+    /**
+     * The line builder over the given store and currency service, or a stub store and a real
+     * CurrencyService in GBP.
+     *
+     * @param Store|null $store
+     * @param CurrencyService|null $currencyService
+     * @return ProductLineBuilder
+     */
+    private function builder(?Store $store = null, ?CurrencyService $currencyService = null): ProductLineBuilder
+    {
+        $storeManager = $this->createStub(StoreManagerInterface::class);
+        $storeManager->method('getStore')->willReturn($store ?? $this->createStub(Store::class));
+
+        return new ProductLineBuilder($storeManager, $currencyService ?? $this->currencyService());
     }
 
     public function testBuildsRequiredFields(): void
@@ -75,13 +81,7 @@ class ProductLineBuilderTest extends TestCase
     {
         // PriceInfo amounts are already in the display currency; a base→display rate
         // of 2 must not be applied to them again.
-        $storeManager = $this->createStub(StoreManagerInterface::class);
-        $storeManager->method('getStore')->willReturn($this->store);
-        $currency = $this->createStub(CurrencyService::class);
-        $currency->method('getCurrentCurrencyCode')->willReturn('GBP');
-        $currency->method('convertFromBase')->willReturnCallback(static fn (float $a): float => $a * 2);
-
-        $node = (new ProductLineBuilder($storeManager, $currency))->build($this->product, true);
+        $node = $this->builder(currencyService: $this->currencyService('GBP', 2.0))->build($this->product, true);
 
         $this->assertSame('29.99', $node['offers']['price']);
     }
@@ -122,10 +122,11 @@ class ProductLineBuilderTest extends TestCase
     public function testImageBuiltFromMediaUrl(): void
     {
         $this->product->method('getImage')->willReturn('/m/u/mug.jpg');
-        $this->store->method('getBaseUrl')->with(UrlInterface::URL_TYPE_MEDIA)
+        $store = $this->createMock(Store::class);
+        $store->method('getBaseUrl')->with(UrlInterface::URL_TYPE_MEDIA)
             ->willReturn('https://example.com/media/');
 
-        $node = $this->builder->build($this->product, true);
+        $node = $this->builder($store)->build($this->product, true);
         $this->assertSame('https://example.com/media/catalog/product/m/u/mug.jpg', $node['image']);
     }
 

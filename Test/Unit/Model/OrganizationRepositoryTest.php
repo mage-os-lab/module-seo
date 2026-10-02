@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace MageOS\Seo\Test\Unit\Model;
 
+use Magento\Framework\Exception\CouldNotDeleteException;
+use Magento\Framework\Exception\CouldNotSaveException;
+use MageOS\Seo\Api\Data\OrganizationInterface;
 use MageOS\Seo\Model\Organization;
 use MageOS\Seo\Model\OrganizationFactory;
 use MageOS\Seo\Model\OrganizationRepository;
@@ -64,13 +67,53 @@ class OrganizationRepositoryTest extends TestCase
      */
     private array $loads = [];
 
+    /**
+     * What the resource model's save() and delete() throw, or null when they succeed.
+     *
+     * @var \Throwable|null
+     */
+    private ?\Throwable $resourceFailure = null;
+
     protected function setUp(): void
     {
-        $this->filters = [];
-        $this->records = [];
-        $this->deleted = [];
-        $this->rows    = [];
-        $this->loads   = [];
+        $this->filters         = [];
+        $this->records         = [];
+        $this->deleted         = [];
+        $this->rows            = [];
+        $this->loads           = [];
+        $this->resourceFailure = null;
+    }
+
+    public function testAModelTheResourceCannotSaveIsRefusedAsCouldNotSave(): void
+    {
+        $this->expectException(CouldNotSaveException::class);
+
+        $this->repository()->save($this->createStub(OrganizationInterface::class));
+    }
+
+    public function testASaveTheDatabaseRefusesIsCouldNotSaveWithTheCauseKept(): void
+    {
+        $this->resourceFailure = new \RuntimeException('Deadlock found');
+
+        try {
+            $this->repository()->save($this->record(1));
+            $this->fail('The failed save was not reported.');
+        } catch (CouldNotSaveException $e) {
+            $this->assertSame($this->resourceFailure, $e->getPrevious());
+        }
+    }
+
+    public function testADeleteTheDatabaseRefusesIsCouldNotDeleteWithTheCauseKept(): void
+    {
+        $this->records         = [$this->record(1)];
+        $this->resourceFailure = new \RuntimeException('Lock wait timeout');
+
+        try {
+            $this->repository()->deleteForScope('stores', [3]);
+            $this->fail('The failed delete was not reported.');
+        } catch (CouldNotDeleteException $e) {
+            $this->assertSame($this->resourceFailure, $e->getPrevious());
+        }
     }
 
     public function testDeleteForScopeDeletesEveryMatchingRecord(): void
@@ -221,8 +264,19 @@ class OrganizationRepositoryTest extends TestCase
         $collectionFactory->method('create')->willReturn($collection);
 
         $resource = $this->createStub(OrganizationResource::class);
+        $resource->method('save')->willReturnCallback(
+            function () use ($resource): OrganizationResource {
+                if ($this->resourceFailure !== null) {
+                    throw $this->resourceFailure;
+                }
+                return $resource;
+            }
+        );
         $resource->method('delete')->willReturnCallback(
             function (Organization $organization) use ($resource): OrganizationResource {
+                if ($this->resourceFailure !== null) {
+                    throw $this->resourceFailure;
+                }
                 $this->deleted[] = $organization;
                 return $resource;
             }

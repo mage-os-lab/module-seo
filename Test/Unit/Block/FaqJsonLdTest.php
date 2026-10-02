@@ -11,25 +11,25 @@ use MageOS\Seo\Api\FaqCollectorInterface;
 use MageOS\Seo\Block\FaqJsonLd;
 use MageOS\Seo\Model\Config;
 use MageOS\Seo\Model\Faq\SourcePool;
-use PHPUnit\Framework\MockObject\MockObject;
+use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
 
 class FaqJsonLdTest extends TestCase
 {
     /**
-     * @var FaqCollectorInterface&MockObject
+     * @var FaqCollectorInterface&Stub
      */
-    private FaqCollectorInterface&MockObject $collector;
+    private FaqCollectorInterface&Stub $collector;
 
     /**
-     * @var SourcePool&MockObject
+     * @var SourcePool&Stub
      */
-    private SourcePool&MockObject $sourcePool;
+    private SourcePool&Stub $sourcePool;
 
     /**
-     * @var Config&MockObject
+     * @var Config&Stub
      */
-    private Config&MockObject $config;
+    private Config&Stub $config;
 
     /**
      * @var FaqJsonLd
@@ -38,17 +38,17 @@ class FaqJsonLdTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->collector  = $this->createMock(FaqCollectorInterface::class);
-        $this->sourcePool = $this->createMock(SourcePool::class);
-        $this->config     = $this->createMock(Config::class);
+        $this->collector  = $this->createStub(FaqCollectorInterface::class);
+        $this->sourcePool = $this->createStub(SourcePool::class);
+        $this->config     = $this->createStub(Config::class);
 
-        $storeManager = $this->createMock(StoreManagerInterface::class);
-        $store        = $this->createMock(StoreInterface::class);
+        $storeManager = $this->createStub(StoreManagerInterface::class);
+        $store        = $this->createStub(StoreInterface::class);
         $store->method('getId')->willReturn(1);
         $storeManager->method('getStore')->willReturn($store);
 
         $this->block = new FaqJsonLd(
-            $this->createMock(Context::class),
+            $this->createStub(Context::class),
             $this->collector,
             $this->sourcePool,
             $storeManager,

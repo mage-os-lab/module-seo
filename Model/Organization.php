@@ -5,11 +5,12 @@ declare(strict_types=1);
 namespace MageOS\Seo\Model;
 
 use Magento\Framework\DataObject\IdentityInterface;
-use Magento\Framework\Model\AbstractModel;
+use Magento\Framework\Model\AbstractExtensibleModel;
+use MageOS\Seo\Api\Data\OrganizationExtensionInterface;
 use MageOS\Seo\Api\Data\OrganizationInterface;
 use MageOS\Seo\Model\ResourceModel\Organization as OrganizationResource;
 
-class Organization extends AbstractModel implements OrganizationInterface, IdentityInterface
+class Organization extends AbstractExtensibleModel implements OrganizationInterface, IdentityInterface
 {
     /**
      * Cache tag carried by every FPC page (Organization data renders in the
@@ -319,5 +320,26 @@ class Organization extends AbstractModel implements OrganizationInterface, Ident
     public function getPriceRange(): string
     {
         return (string) $this->getData(self::PRICE_RANGE);
+    }
+
+    /**
+     * @inheritdoc
+     *
+     * AbstractExtensibleModel creates the object on first read, so a caller never meets null.
+     */
+    public function getExtensionAttributes(): ?OrganizationExtensionInterface
+    {
+        /** @var OrganizationExtensionInterface|null $extensionAttributes */
+        $extensionAttributes = $this->_getExtensionAttributes();
+
+        return $extensionAttributes;
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function setExtensionAttributes(OrganizationExtensionInterface $extensionAttributes): OrganizationInterface
+    {
+        return $this->_setExtensionAttributes($extensionAttributes);
     }
 }

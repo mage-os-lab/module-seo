@@ -7,20 +7,20 @@ namespace MageOS\Seo\Test\Unit\Model\Hreflang;
 use MageOS\Seo\Model\Hreflang\LinkBuilder;
 use MageOS\Seo\Model\Hreflang\StoreLocaleMap;
 use MageOS\Seo\Model\Hreflang\UrlRewriteFetcher;
-use PHPUnit\Framework\MockObject\MockObject;
+use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
 
 class LinkBuilderTest extends TestCase
 {
     /**
-     * @var UrlRewriteFetcher&MockObject
+     * @var UrlRewriteFetcher&Stub
      */
-    private UrlRewriteFetcher&MockObject $fetcher;
+    private UrlRewriteFetcher&Stub $fetcher;
 
     /**
-     * @var StoreLocaleMap&MockObject
+     * @var StoreLocaleMap&Stub
      */
-    private StoreLocaleMap&MockObject $storeLocaleMap;
+    private StoreLocaleMap&Stub $storeLocaleMap;
 
     /**
      * @var LinkBuilder
@@ -29,21 +29,33 @@ class LinkBuilderTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->fetcher        = $this->createMock(UrlRewriteFetcher::class);
-        $this->storeLocaleMap = $this->createMock(StoreLocaleMap::class);
-        $this->linkBuilder    = new LinkBuilder($this->fetcher, $this->storeLocaleMap);
+        $this->fetcher        = $this->createStub(UrlRewriteFetcher::class);
+        $this->storeLocaleMap = $this->createStub(StoreLocaleMap::class);
+        $this->linkBuilder    = $this->linkBuilder();
+    }
+
+    /**
+     * The link builder under test, over the given rewrite fetcher or this test's stub.
+     *
+     * @param UrlRewriteFetcher|null $fetcher
+     * @return LinkBuilder
+     */
+    private function linkBuilder(?UrlRewriteFetcher $fetcher = null): LinkBuilder
+    {
+        return new LinkBuilder($fetcher ?? $this->fetcher, $this->storeLocaleMap);
     }
 
     public function testBuildsAbsoluteLinksFromRewritesAndMap(): void
     {
-        $this->fetcher->method('fetchForEntity')->with('product', 5)
+        $fetcher = $this->createMock(UrlRewriteFetcher::class);
+        $fetcher->method('fetchForEntity')->with('product', 5)
             ->willReturn([1 => 'blue-shirt.html', 2 => 'us/blue-shirt.html']);
         $this->storeLocaleMap->method('getMap')->willReturn([
             1 => ['base_url' => 'https://uk', 'codes' => ['en-GB']],
             2 => ['base_url' => 'https://us', 'codes' => ['en-US']],
         ]);
 
-        $links = $this->linkBuilder->build('product', 5);
+        $links = $this->linkBuilder($fetcher)->build('product', 5);
 
         $this->assertSame('en-GB', $links[0]['hreflang']);
         $this->assertSame('https://uk/blue-shirt.html', $links[0]['url']);
@@ -96,7 +108,8 @@ class LinkBuilderTest extends TestCase
             1 => ['base_url' => 'https://uk', 'codes' => ['en-GB', 'en-IE']],
             2 => ['base_url' => 'https://de', 'codes' => ['de-DE']],
         ]);
-        $this->fetcher->expects($this->never())->method('fetchForEntity');
+        $fetcher = $this->createMock(UrlRewriteFetcher::class);
+        $fetcher->expects($this->never())->method('fetchForEntity');
 
         $this->assertSame(
             [
@@ -104,7 +117,7 @@ class LinkBuilderTest extends TestCase
                 ['hreflang' => 'en-IE', 'url' => 'https://uk/', 'store_id' => 1],
                 ['hreflang' => 'de-DE', 'url' => 'https://de/', 'store_id' => 2],
             ],
-            $this->linkBuilder->buildHome()
+            $this->linkBuilder($fetcher)->buildHome()
         );
     }
 }

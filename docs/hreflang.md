@@ -50,7 +50,7 @@ alternate of, so its pages' heads and its sitemap URLs carry none.
 
 ## The code each store view announces
 
-**Stores → Configuration → MageOS → SEO → Hreflang (Multistore)**, at store view scope.
+**Stores → Configuration → MageOS SEO → SEO → Hreflang (Multistore)**, at store view scope.
 
 By default a store view announces its **locale**: `en_GB` becomes `en-GB`. That is right until the
 locale cannot say where the store is for. Magento has no `en_IE` locale, so an Irish store view

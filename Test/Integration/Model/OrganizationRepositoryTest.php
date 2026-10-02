@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace MageOS\Seo\Test\Integration\Model;
 
 use Magento\TestFramework\Helper\Bootstrap;
+use MageOS\Seo\Api\Data\OrganizationExtensionInterface;
 use MageOS\Seo\Api\Data\OrganizationInterface;
 use MageOS\Seo\Api\OrganizationRepositoryInterface;
 use MageOS\Seo\Model\OrganizationRepository;
@@ -43,6 +44,15 @@ class OrganizationRepositoryTest extends TestCase
     public function testOrgTypeDefaultsToOrganizationWhenNoRowExists(): void
     {
         $this->assertSame('Organization', $this->repository->get()->getOrgType());
+    }
+
+    public function testAnOrganizationCarriesExtensionAttributes(): void
+    {
+        // Other modules add fields to the Organization through extension_attributes.xml.
+        $this->assertInstanceOf(
+            OrganizationExtensionInterface::class,
+            $this->repository->get()->getExtensionAttributes()
+        );
     }
 
     public function testSaveAndRetrieveNameAndUrlRoundTrip(): void

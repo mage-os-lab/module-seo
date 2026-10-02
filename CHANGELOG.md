@@ -36,6 +36,7 @@ Checked against the llms.txt spec (v2, 10 August 2026), the reference parser
 - `LlmsTxtBuilder` takes a new `SitemapUrlResolver` argument (before
   `sectionProviders`), and `LlmsTxtRouter` takes `Model\Aeo\Config`; with DI nothing
   changes.
+
 ### Fixed — prices
 
 - **Prices were converted to the display currency twice** in product JSON-LD offers
@@ -45,9 +46,30 @@ Checked against the llms.txt spec (v2, 10 August 2026), the reference parser
   `PriceCurrency::convert()`, `SpecialPrice` and `CatalogRulePrice` call
   `convertAndRound()` — so the conversion added for display-currency prices applied the
   rate a second time. They are now used as they are.
+- **One formatter for every machine-readable amount:** `CurrencyService::formatAmountForLlms()`
+  writes the offers' prices, `product:price:amount`, the `/llms.jsonl` price and the shipping
+  rate with two decimals, a full stop and no thousands separator, whatever the store's locale.
+  The locale's display format (`1.234,50` in Dutch) is not a valid schema.org price.
+- **`CurrencyService::convertFromBase()` is removed.** Nothing calls it after the fix above.
 
 ### Added
 
+- **Translations:** `i18n/en_US.csv` (the source), `en_GB.csv` (British spelling, only where it
+  differs) and `nl_NL.csv`. Everything user-facing is now translatable:
+  - the configuration, forms, menu and ACL titles;
+  - the source models' option labels;
+  - the product schema templates' names and field labels;
+  - the llms documents' own text, written in each store view's language.
+  - See `docs/translations.md`, including how to override a phrase and add a locale.
+- **`FaqRepositoryInterface::getList(SearchCriteriaInterface)`**, returning the new
+  `Api\Data\FaqSearchResultsInterface`: FAQ entries by Magento's standard search criteria, with the
+  total that matched. Extension attributes declared with a `<join>` are joined in. See
+  `docs/extending.md#repository-api`.
+- **Extension attributes on `FaqInterface` and `OrganizationInterface`.** Both extend
+  `ExtensibleDataInterface`, so other modules add fields through `extension_attributes.xml`.
+  `getExtensionAttributes()` never returns null.
+- **`@api` on every interface under `Api/`**, which marks the module's contract, and a unit test
+  that fails if an interface there lacks it.
 - Configurable products are described as a `ProductGroup` of their variants, per Google's
   product-variant guidance, when they have up to **Most Variants per Configurable Product**
   (`has_variant_max`, default 50) sellable children: `productGroupID`, `variesBy`, and one
@@ -194,6 +216,40 @@ Checked against the llms.txt spec (v2, 10 August 2026), the reference parser
 
 ### Fixed
 
+- The FAQ form's Group Identifier note sent the admin to "MageOS SEO → SEO → AI Discoverability
+  (llms.txt)"; since the settings moved, it is "MageOS SEO → AI Information & Crawlers → AI
+  Discoverability (llms.txt)".
+- The category form's **Enabled Optional Fields** multiselect had no options, so no field could be
+  chosen there, and a template's optional fields reached the storefront only through override
+  values. It now lists the fields of the template in effect for the category and store view being
+  edited: the category's own or inherited template, else the store's default. A field stored
+  under an earlier template is listed too, marked "(not a field of this template)", so it can be
+  cleared. Which template is in effect is decided in one place,
+  `Model\Product\SchemaTemplateResolver`, for the form and the storefront alike.
+- The store's **Default Product Schema Template** was a text field, so a mistyped code was saved as
+  given and the storefront quietly built GenericProduct instead. It is now a select of the
+  registered templates, GenericProduct first, so a stored code no template has is shown as
+  GenericProduct, the template the storefront uses for it. Stored values are unchanged.
+- The return policy's **Applicable Country** and the shipping details' **Destination Country**
+  were one typed ISO code each. They reached the structured data as entered, so `gb`, `UK` or
+  `England` went to Google, and a shop selling to several countries could name only one.
+  - Both are now **Applicable Countries** and **Destination Countries**: multiselects of Magento's
+    country list, as core's Allow Countries is. One country is output as before; several are output
+    as a list (`"applicableCountry": ["DE", "AT", "CH"]`, and one `DefinedRegion` each in
+    `shippingDestination`).
+  - **Applies Worldwide** and **Ships Worldwide** hide the countries.
+    - Worldwide shipping gives no `shippingDestination`, which Google reads as every country.
+    - Google has no worldwide value for returns, so a worldwide return policy lists no countries.
+      Its Returns Policy URL (`merchantReturnLink`) is what Google reads instead.
+  - Google reads at most 50 return countries. A larger selection is saved, the admin is told on
+    save, and the first 50 in the list are output.
+  - A stored code the list doesn't have isn't selected, and saving the section clears it, so check
+    the countries after upgrading.
+- security.txt's **Expires** was a typed timestamp, written out as entered, and could be left
+  empty, although RFC 9116 requires it. It is now a calendar date. While security.txt is served,
+  the date is required and must be after today. It is served as the end of that day, UTC
+  (`2027-01-01T23:59:59Z`). Check it after upgrading: a timestamp saved before shows as its date,
+  and is stored as one when the section is saved.
 - Saving or deleting a FAQ or the Organisation anywhere but the admin form — the REST API, an
   import, a data patch — left `/llms.txt` and `/llms-full.txt` stale until the nightly rebuild:
   only the admin controllers asked for a rebuild. The models now dispatch their own events
@@ -447,6 +503,47 @@ Checked against the llms.txt spec (v2, 10 August 2026), the reference parser
 
 ### Changed
 
+- **Admin text is in US English;** en_GB restores the British forms. "Colour" becomes Color,
+  "Organiser" Organizer, "watercolour" watercolor, "catalogue" catalog and "Canonicalisation"
+  Canonicalization. Field and template codes are unchanged.
+- **The llms documents' headings and labels follow the store view's language.** A store view in
+  Dutch gets, for example, "## Belangrijke URL's" where it had "## Key URLs". An English store
+  view's documents are unchanged.
+- **`ProductSchemaBuilderInterface`:** `getLabel()` and the labels of `getAvailableFields()` are
+  translated text (`(string) __('…')`). The docblock now says so, and gives `getAvailableFields()`
+  its real type, code => label.
+- **`Model\Config\Source\SchemaTemplate` lists the templates only,** GenericProduct first, for the
+  store's default. The category form's list, with its inherit option ("Inherit (parent category,
+  then the store's default template)", which was "-- Inherit / Use Global Default --"), is the new
+  `SchemaTemplate\CategoryOverride`. `ProductSchemaProvider` takes a `SchemaTemplateResolver` in
+  place of `Model\Config`, and the category form's `SeoModifier` takes the resolver and the builder
+  pool.
+- **Breaking: `Model\Category\ProductOverrideRepository` is now `Model\Product\OverrideRepository`**,
+  beside the product's other models; it never had anything to do with categories. Its methods are
+  unchanged. Code that injects it, or names it in di.xml, must follow.
+- **Breaking: `Model\Faq\Repository` is now `Model\Faq\GroupReader`,** which says what it is: the
+  storefront's reader of a FAQ group, behind `TableFaqSource`. `Api\FaqRepositoryInterface` remains
+  the repository.
+- **Breaking: `Model\Category\ConfigRepository::getForCategory()` returns `enabled_fields` and
+  `override_fields` decoded,** as arrays, as `Product\OverrideRepository` already did, and
+  `decode()` is private. A caller that decoded the result itself must drop that step.
+- **`etc/db_schema_whitelist.json` is regenerated.** Magento looks its index and constraint
+  entries up by their generated names, so the hand-written reference IDs it carried never matched
+  and are gone. The generated name of `mageos_seo_cms_page_config`'s unique key, which was
+  missing, is added. The retired `mageos_seo_organisation` and `mageos_seo_faq` stay listed, so an
+  upgrade still drops them.
+- **Breaking: `Model\LlmsTxt\SectionProviderInterface` is now `Api\LlmsTxtSectionProviderInterface`**
+  (`@api`), beside the module's other extension points. A section provider must implement the new
+  name; `LlmsTxtBuilder` skips anything else.
+- **`Model\Faq` and `Model\Organization` extend `AbstractExtensibleModel`,** so their constructors
+  take `ExtensionAttributesFactory` and `AttributeValueFactory` after the registry. Code that
+  builds them through the object manager is unaffected.
+- **`FaqRepository`'s constructor** takes the FAQ collection factory, the extension attributes join
+  processor, the search criteria collection processor and the search results factory.
+- **`OrganizationRepositoryInterface` throws Magento's standard exceptions,** as the FAQ repository
+  does: `save()` throws `CouldNotSaveException` (a model that isn't an `AbstractModel` used to be
+  an `\InvalidArgumentException`, and a database failure came through raw), and `deleteForScope()`
+  throws `CouldNotDeleteException`. The original error is the exception's `getPrevious()`.
 - **Breaking: the FAQ, the llms documents and the agentic commerce profile use their own
   prefixes** — `mageos_faq`, `mageos_aeo` and `mageos_agentic` — ahead of their move to MageOS_Faq,
   MageOS_Aeo and MageOS_Agentic. Nothing is migrated: after upgrading, enter the moved settings

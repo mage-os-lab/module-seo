@@ -19,9 +19,9 @@ class RefundType implements OptionSourceInterface
     public function toOptionArray(): array
     {
         return [
-            ['value' => 'https://schema.org/FullRefund',        'label' => 'Full refund'],
-            ['value' => 'https://schema.org/ExchangeRefund',    'label' => 'Exchange'],
-            ['value' => 'https://schema.org/StoreCreditRefund', 'label' => 'Store credit'],
+            ['value' => 'https://schema.org/FullRefund',        'label' => (string) __('Full refund')],
+            ['value' => 'https://schema.org/ExchangeRefund',    'label' => (string) __('Exchange')],
+            ['value' => 'https://schema.org/StoreCreditRefund', 'label' => (string) __('Store credit')],
         ];
     }
 }

@@ -98,7 +98,7 @@ class OfferBuilder
      */
     private function resolvePrice(ProductInterface $product): string
     {
-        return number_format($this->finalPrice($product), 2, '.', '');
+        return $this->currencyService->formatAmountForLlms($this->finalPrice($product));
     }
 
     /**
@@ -151,8 +151,8 @@ class OfferBuilder
     {
         $offer['@type'] = 'AggregateOffer';
         unset($offer['price']);
-        $offer['lowPrice']  = number_format($range['low'], 2, '.', '');
-        $offer['highPrice'] = number_format($range['high'], 2, '.', '');
+        $offer['lowPrice']  = $this->currencyService->formatAmountForLlms($range['low']);
+        $offer['highPrice'] = $this->currencyService->formatAmountForLlms($range['high']);
 
         return $offer;
     }

@@ -11,30 +11,30 @@ use MageOS\Seo\Api\Data\OrganizationInterface;
 use MageOS\Seo\Api\OrganizationRepositoryInterface;
 use MageOS\Seo\Model\Config;
 use MageOS\Seo\Model\MetaTag\Provider\SiteMetaProvider;
-use PHPUnit\Framework\MockObject\MockObject;
+use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
 
 class SiteMetaProviderTest extends TestCase
 {
     /**
-     * @var Config&MockObject
+     * @var Config&Stub
      */
-    private Config&MockObject $config;
+    private Config&Stub $config;
 
     /**
-     * @var StoreManagerInterface&MockObject
+     * @var StoreManagerInterface&Stub
      */
-    private StoreManagerInterface&MockObject $storeManager;
+    private StoreManagerInterface&Stub $storeManager;
 
     /**
-     * @var OrganizationRepositoryInterface&MockObject
+     * @var OrganizationRepositoryInterface&Stub
      */
-    private OrganizationRepositoryInterface&MockObject $repository;
+    private OrganizationRepositoryInterface&Stub $repository;
 
     /**
-     * @var StoreInterface&MockObject
+     * @var StoreInterface&Stub
      */
-    private StoreInterface&MockObject $store;
+    private StoreInterface&Stub $store;
 
     /**
      * @var SiteMetaProvider
@@ -43,14 +43,14 @@ class SiteMetaProviderTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->config       = $this->createMock(Config::class);
-        $this->storeManager = $this->createMock(StoreManagerInterface::class);
-        $this->repository   = $this->createMock(OrganizationRepositoryInterface::class);
+        $this->config       = $this->createStub(Config::class);
+        $this->storeManager = $this->createStub(StoreManagerInterface::class);
+        $this->repository   = $this->createStub(OrganizationRepositoryInterface::class);
 
-        $this->store = $this->createMock(StoreInterface::class);
+        $this->store = $this->createStub(StoreInterface::class);
         $this->store->method('getId')->willReturn(1);
         $this->store->method('getName')->willReturn('Store Name');
-        $website = $this->createMock(WebsiteInterface::class);
+        $website = $this->createStub(WebsiteInterface::class);
         $website->method('getId')->willReturn(1);
         $this->storeManager->method('getStore')->willReturn($this->store);
         $this->storeManager->method('getWebsite')->willReturn($website);
@@ -64,7 +64,7 @@ class SiteMetaProviderTest extends TestCase
 
     private function withOrgName(string $name): void
     {
-        $org = $this->createMock(OrganizationInterface::class);
+        $org = $this->createStub(OrganizationInterface::class);
         $org->method('getName')->willReturn($name);
         $this->repository->method('getForScope')->willReturn($org);
     }

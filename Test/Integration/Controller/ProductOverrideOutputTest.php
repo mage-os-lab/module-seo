@@ -9,7 +9,7 @@ use Magento\TestFramework\Fixture\DataFixture;
 use Magento\TestFramework\Fixture\DataFixtureStorageManager;
 use Magento\TestFramework\Helper\Bootstrap;
 use Magento\TestFramework\TestCase\AbstractController;
-use MageOS\Seo\Model\Category\ProductOverrideRepository;
+use MageOS\Seo\Model\Product\OverrideRepository;
 
 /**
  * A product's Field Value Overrides on its page: an override for one of the template's own fields is
@@ -32,7 +32,7 @@ class ProductOverrideOutputTest extends AbstractController
      */
     protected function tearDown(): void
     {
-        Bootstrap::getObjectManager()->get(ProductOverrideRepository::class)->_resetState();
+        Bootstrap::getObjectManager()->get(OverrideRepository::class)->_resetState();
         parent::tearDown();
     }
 
@@ -45,7 +45,7 @@ class ProductOverrideOutputTest extends AbstractController
     public function testABrandOverrideIsABrandNode(): void
     {
         $productId = (int) DataFixtureStorageManager::getStorage()->get('product')->getId();
-        Bootstrap::getObjectManager()->get(ProductOverrideRepository::class)
+        Bootstrap::getObjectManager()->get(OverrideRepository::class)
             ->save($productId, 0, ['override_fields' => ['brand' => 'Makers Workshop']]);
 
         $node = $this->productNode($this->productPage('product'));

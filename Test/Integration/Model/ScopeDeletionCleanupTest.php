@@ -25,10 +25,10 @@ use MageOS\Seo\Api\Data\FaqInterface;
 use MageOS\Seo\Api\FaqRepositoryInterface;
 use MageOS\Seo\Api\OrganizationRepositoryInterface;
 use MageOS\Seo\Model\Category\ConfigRepository;
-use MageOS\Seo\Model\Category\ProductOverrideRepository;
 use MageOS\Seo\Model\Faq;
 use MageOS\Seo\Model\Feed\FeedRegenerator;
 use MageOS\Seo\Model\Feed\FeedStorage;
+use MageOS\Seo\Model\Product\OverrideRepository;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -310,11 +310,11 @@ class ScopeDeletionCleanupTest extends TestCase
     /**
      * A product override repository with an empty read cache.
      *
-     * @return ProductOverrideRepository
+     * @return OverrideRepository
      */
-    private function overrideRepository(): ProductOverrideRepository
+    private function overrideRepository(): OverrideRepository
     {
-        return Bootstrap::getObjectManager()->create(ProductOverrideRepository::class);
+        return Bootstrap::getObjectManager()->create(OverrideRepository::class);
     }
 
     /**

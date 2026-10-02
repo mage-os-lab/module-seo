@@ -14,6 +14,9 @@
 
     <preference for="MageOS\Seo\Api\FaqRepositoryInterface"
                 type="MageOS\Seo\Model\FaqRepository"/>
+    <!-- FaqRepositoryInterface::getList()'s results: core's SearchResults under the FAQ interface. -->
+    <preference for="MageOS\Seo\Api\Data\FaqSearchResultsInterface"
+                type="MageOS\Seo\Model\FaqSearchResults"/>
 
     <preference for="MageOS\Seo\Api\Sitemap\RebuildRequesterInterface"
                 type="MageOS\Seo\Model\Sitemap\RebuildRequester"/>

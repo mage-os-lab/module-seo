@@ -25,7 +25,7 @@ class SitemapUrlResolverTest extends TestCase
      */
     private function resolve(array $sitemaps, array &$filteredStores = []): ?string
     {
-        $collection = $this->createMock(Collection::class);
+        $collection = $this->createStub(Collection::class);
         $collection->method('addStoreFilter')->willReturnCallback(
             function (array $ids) use (&$filteredStores, $collection) {
                 $filteredStores = $ids;
@@ -35,7 +35,7 @@ class SitemapUrlResolverTest extends TestCase
         $collection->method('setOrder')->willReturnSelf();
         $collection->method('getIterator')->willReturn(new \ArrayIterator($sitemaps));
 
-        $factory = $this->createMock(CollectionFactory::class);
+        $factory = $this->createStub(CollectionFactory::class);
         $factory->method('create')->willReturn($collection);
 
         $store = $this->createStub(StoreInterface::class);
@@ -78,7 +78,7 @@ class SitemapUrlResolverTest extends TestCase
 
     public function testAReadFailureIsNotSwallowed(): void
     {
-        $factory = $this->createMock(CollectionFactory::class);
+        $factory = $this->createStub(CollectionFactory::class);
         $factory->method('create')->willThrowException(new \RuntimeException('db down'));
         $store = $this->createStub(StoreInterface::class);
 

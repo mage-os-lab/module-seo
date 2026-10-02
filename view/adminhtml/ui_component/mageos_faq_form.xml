@@ -61,7 +61,7 @@
                 <label translate="true">Group Identifier</label>
                 <dataType>text</dataType>
                 <notice
-                translate="true">Reference this group from the FAQ widget or Page Builder. Groups selected under Stores → Configuration → MageOS SEO → SEO → AI Discoverability (llms.txt) also appear in llms.txt.</notice>
+                translate="true">Reference this group from the FAQ widget or Page Builder. Groups selected under Stores → Configuration → MageOS SEO → AI Information &amp; Crawlers → AI Discoverability (llms.txt) also appear in llms.txt.</notice>
                 <validation><rule name="required-entry" xsi:type="boolean">true</rule></validation>
             </settings>
         </field>

@@ -10,7 +10,7 @@ use Magento\Store\Model\StoreManagerInterface;
 use MageOS\Seo\Api\FaqCollectorInterface;
 use MageOS\Seo\Block\Widget\FaqList;
 use MageOS\Seo\Model\Faq\SourcePool;
-use PHPUnit\Framework\MockObject\MockObject;
+use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -19,62 +19,79 @@ use PHPUnit\Framework\TestCase;
 class FaqListTest extends TestCase
 {
     /**
-     * @var SourcePool&MockObject
+     * @var SourcePool&Stub
      */
-    private SourcePool&MockObject $sourcePool;
+    private SourcePool&Stub $sourcePool;
 
     /**
-     * @var FaqCollectorInterface&MockObject
+     * @var FaqCollectorInterface&Stub
      */
-    private FaqCollectorInterface&MockObject $collector;
+    private FaqCollectorInterface&Stub $collector;
 
     /**
-     * @var FaqList
+     * @var StoreManagerInterface&Stub
      */
-    private FaqList $block;
+    private StoreManagerInterface&Stub $storeManager;
 
     protected function setUp(): void
     {
-        $this->sourcePool = $this->createMock(SourcePool::class);
-        $this->collector  = $this->createMock(FaqCollectorInterface::class);
+        $this->sourcePool = $this->createStub(SourcePool::class);
+        $this->collector  = $this->createStub(FaqCollectorInterface::class);
 
-        $storeManager = $this->createMock(StoreManagerInterface::class);
-        $store        = $this->createMock(StoreInterface::class);
+        $this->storeManager = $this->createStub(StoreManagerInterface::class);
+        $store              = $this->createStub(StoreInterface::class);
         $store->method('getId')->willReturn(1);
-        $storeManager->method('getStore')->willReturn($store);
+        $this->storeManager->method('getStore')->willReturn($store);
+    }
 
-        $this->block = new FaqList(
-            $this->createMock(Context::class),
-            $this->sourcePool,
-            $this->collector,
-            $storeManager
+    /**
+     * The widget under test, over the given doubles or this test's stubs.
+     *
+     * @param SourcePool|null $sourcePool
+     * @param FaqCollectorInterface|null $collector
+     * @return FaqList
+     */
+    private function block(?SourcePool $sourcePool = null, ?FaqCollectorInterface $collector = null): FaqList
+    {
+        return new FaqList(
+            $this->createStub(Context::class),
+            $sourcePool ?? $this->sourcePool,
+            $collector ?? $this->collector,
+            $this->storeManager
         );
     }
 
     public function testResolvesFaqsAndCollectsIdentifier(): void
     {
         $faqs = [['question' => 'Q', 'answer' => 'A']];
-        $this->block->setData('identifier', 'shipping');
-        $this->collector->expects($this->once())->method('collect')->with('shipping');
-        $this->sourcePool->method('getFaqs')->with('shipping', 1)->willReturn($faqs);
+        $collector = $this->createMock(FaqCollectorInterface::class);
+        $collector->expects($this->once())->method('collect')->with('shipping');
+        $sourcePool = $this->createMock(SourcePool::class);
+        $sourcePool->method('getFaqs')->with('shipping', 1)->willReturn($faqs);
+        $block = $this->block($sourcePool, $collector);
+        $block->setData('identifier', 'shipping');
 
-        $this->assertSame($faqs, $this->block->getFaqs());
+        $this->assertSame($faqs, $block->getFaqs());
     }
 
     public function testEmptyIdentifierReturnsEmptyAndDoesNotCollect(): void
     {
-        $this->block->setData('identifier', '');
-        $this->collector->expects($this->never())->method('collect');
-        $this->assertSame([], $this->block->getFaqs());
+        $collector = $this->createMock(FaqCollectorInterface::class);
+        $collector->expects($this->never())->method('collect');
+        $block = $this->block(collector: $collector);
+        $block->setData('identifier', '');
+        $this->assertSame([], $block->getFaqs());
     }
 
     public function testResolutionIsMemoised(): void
     {
-        $this->block->setData('identifier', 'shipping');
-        $this->sourcePool->expects($this->once())->method('getFaqs')->willReturn([
+        $sourcePool = $this->createMock(SourcePool::class);
+        $sourcePool->expects($this->once())->method('getFaqs')->willReturn([
             ['question' => 'Q', 'answer' => 'A'],
         ]);
-        $this->block->getFaqs();
-        $this->block->getFaqs();
+        $block = $this->block($sourcePool);
+        $block->setData('identifier', 'shipping');
+        $block->getFaqs();
+        $block->getFaqs();
     }
 }

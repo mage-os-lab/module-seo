@@ -43,9 +43,11 @@ class ProductRowMapper
     /**
      * Map one page of rows, ordered by entity ID, to product objects.
      *
+     * `$gallery` holds each product's gallery rows in position order, keyed by link field value; only
+     * the "all" image policy reads it.
+     *
      * @param array<int,array<string,mixed>> $rows
-     * @param array<int|string,array<int,array<string,mixed>>> $gallery Link field value => the product's
-     *        gallery rows in position order; used for the "all" image policy only
+     * @param array<int|string,array<int,array<string,mixed>>> $gallery Link field value => gallery rows
      * @param string $idField The entity ID column
      * @param string $linkField The column gallery rows are keyed by (row_id with content staging)
      * @param string $imagePolicy One of IncludeImage::INCLUDE_*

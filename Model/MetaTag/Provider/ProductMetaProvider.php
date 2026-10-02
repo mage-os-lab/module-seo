@@ -75,7 +75,7 @@ class ProductMetaProvider implements MetaTagProviderInterface
             // RegularPrice / SpecialPrice / CatalogRulePrice::getValue() convert with PriceCurrency.
             // Converting again would apply the rate twice.
             $amount = (float) $product->getPriceInfo()->getPrice('final_price')->getValue();
-            $price  = number_format($amount, 2, '.', '');
+            $price  = $this->currencyService->formatAmountForLlms($amount);
         } catch (\Exception) { // phpcs:ignore Magento2.CodeAnalysis.EmptyBlock.DetectedCatch
         }
 

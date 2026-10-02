@@ -32,11 +32,11 @@ category pages.</comment>
                     <label>Enable JSON-LD Output</label>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                 </field>
-                <field id="default_product_template" translate="label comment" type="text"
+                <field id="default_product_template" translate="label comment" type="select"
                        sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Default Product Schema Template</label>
-                    <comment>Used for products in categories with no template configured.
-Default: GenericProduct.</comment>
+                    <comment>Used for products in categories with no template configured.</comment>
+                    <source_model>MageOS\Seo\Model\Config\Source\SchemaTemplate</source_model>
                 </field>
                 <field id="category_item_list_enabled" translate="label comment" type="select"
                        sortOrder="30" showInDefault="1" showInWebsite="1" showInStore="1">
@@ -75,7 +75,7 @@ pluggable — native Magento reviews by default, or a bridge module (Yotpo, Trus
                     <comment><![CDATA[Where a category's SEO settings come from when it does not set
 them itself. Each setting is resolved separately, so a category can take its schema template from
 one place and its robots directive from another.<br/><br/>
-<strong>Category first</strong> suits a catalogue whose tree carries the meaning: a setting made on
+<strong>Category first</strong> suits a catalog whose tree carries the meaning: a setting made on
 a category applies to it whether it was made globally or for one store view, and only a category
 that says nothing defers to its parent.<br/><br/>
 <strong>Store view first</strong> suits store views that carry their own SEO policy: anything set
@@ -122,7 +122,7 @@ Default", the core Design &gt; Search Engine Robots setting applies.</comment>
                        sortOrder="40" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Override Robots on Paginated Pages</label>
                     <comment>Apply a dedicated robots meta to category listing pages from page 2 onward
-(?p=2+). Canonicalisation is left to Magento's native category canonical tag.</comment>
+(?p=2+). Canonicalization is left to Magento's native category canonical tag.</comment>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                 </field>
                 <field id="paginated_robots" translate="label" type="select"
@@ -236,11 +236,26 @@ only when separate websites really are language/region variants of the same cont
 Merchant free listings.</comment>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                 </field>
-                <field id="applicable_country" translate="label comment" type="text"
-                       sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="1">
-                    <label>Applicable Country</label>
-                    <comment>ISO 3166-1 alpha-2 code, e.g. GB.</comment>
+                <field id="worldwide" translate="label comment" type="select"
+                       sortOrder="15" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Applies Worldwide</label>
+                    <comment>Google has no value for every country, so none are listed. Set the Returns Policy
+URL: Google reads the policy from that page instead.</comment>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                     <depends><field id="enabled">1</field></depends>
+                </field>
+                <field id="applicable_country" translate="label comment" type="multiselect"
+                       sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Applicable Countries</label>
+                    <comment>The countries this return policy applies to. Google reads at most 50: above that, the
+first 50 in the list are output.</comment>
+                    <source_model>Magento\Directory\Model\Config\Source\Country</source_model>
+                    <backend_model>MageOS\Seo\Model\Config\Backend\ReturnCountries</backend_model>
+                    <can_be_empty>1</can_be_empty>
+                    <depends>
+                        <field id="enabled">1</field>
+                        <field id="worldwide">0</field>
+                    </depends>
                 </field>
                 <field id="policy_category" translate="label" type="select"
                        sortOrder="30" showInDefault="1" showInWebsite="1" showInStore="1">
@@ -273,9 +288,11 @@ Merchant free listings.</comment>
                     <source_model>MageOS\Seo\Model\Config\Source\RefundType</source_model>
                     <depends><field id="enabled">1</field></depends>
                 </field>
-                <field id="policy_url" translate="label" type="text"
+                <field id="policy_url" translate="label comment" type="text"
                        sortOrder="80" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Returns Policy URL</label>
+                    <comment>Output as merchantReturnLink. With Applies Worldwide, no countries are listed, and
+this page is what Google reads instead.</comment>
                     <depends><field id="enabled">1</field></depends>
                 </field>
             </group>
@@ -286,7 +303,8 @@ Merchant free listings.</comment>
                 <field id="enabled" translate="label comment" type="select"
                        sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Enable Shipping Details Schema</label>
-                    <comment>Output a single domestic OfferShippingDetails zone on product offers.</comment>
+                    <comment>Output OfferShippingDetails on product offers: one rate and delivery time, worldwide or
+for the countries chosen.</comment>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                 </field>
                 <field id="label" translate="label" type="text"
@@ -294,11 +312,23 @@ Merchant free listings.</comment>
                     <label>Shipping Label</label>
                     <depends><field id="enabled">1</field></depends>
                 </field>
-                <field id="destination_country" translate="label comment" type="text"
-                       sortOrder="30" showInDefault="1" showInWebsite="1" showInStore="1">
-                    <label>Destination Country</label>
-                    <comment>ISO 3166-1 alpha-2 code, e.g. GB.</comment>
+                <field id="worldwide" translate="label comment" type="select"
+                       sortOrder="25" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Ships Worldwide</label>
+                    <comment>No destination is given, which Google reads as every country.</comment>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                     <depends><field id="enabled">1</field></depends>
+                </field>
+                <field id="destination_country" translate="label comment" type="multiselect"
+                       sortOrder="30" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Destination Countries</label>
+                    <comment>The countries these shipping details apply to.</comment>
+                    <source_model>Magento\Directory\Model\Config\Source\Country</source_model>
+                    <can_be_empty>1</can_be_empty>
+                    <depends>
+                        <field id="enabled">1</field>
+                        <field id="worldwide">0</field>
+                    </depends>
                 </field>
                 <field id="rate" translate="label comment" type="text"
                        sortOrder="40" showInDefault="1" showInWebsite="1" showInStore="1">
@@ -458,10 +488,13 @@ is stored encrypted; only the public JWK is served, in the profile's "keys".</co
                     <label>Security Contact Email</label>
                     <depends><field id="enabled">1</field></depends>
                 </field>
-                <field id="expires" translate="label comment" type="text"
+                <field id="expires" translate="label comment" type="date"
                        sortOrder="30" showInDefault="1" showInWebsite="1" showInStore="0">
                     <label>Expires</label>
-                    <comment>ISO 8601 timestamp (e.g. 2027-01-01T00:00:00.000Z). Required by RFC 9116.</comment>
+                    <comment>The date by which you will review this file. Required by RFC 9116, and best less than
+a year ahead; after it, the file is stale. It is served as the end of that day, UTC.</comment>
+                    <frontend_model>MageOS\Seo\Block\Adminhtml\System\Config\Field\Date</frontend_model>
+                    <backend_model>MageOS\Seo\Model\Config\Backend\SecurityTxtExpires</backend_model>
                     <depends><field id="enabled">1</field></depends>
                 </field>
                 <field id="policy_url" translate="label" type="text"
@@ -481,7 +514,7 @@ is stored encrypted; only the public JWK is served, in the profile's "keys".</co
                     <source_model>MageOS\Seo\Model\Config\Source\SitemapGenerator</source_model>
                     <comment><![CDATA[<strong>MageOS SEO</strong> writes each sitemap as an index with a
 file per kind of page, and can add to each URL what core's generator cannot — hreflang alternates
-among them. It reads the catalogue a page at a time on every version, so Generation Method has no
+among them. It reads the catalog a page at a time on every version, so Generation Method has no
 effect while it is selected.
 <strong>Magento</strong> uses core's generator unchanged.]]></comment>
                 </field>

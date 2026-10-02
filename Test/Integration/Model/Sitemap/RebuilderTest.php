@@ -16,9 +16,9 @@ use Magento\TestFramework\Fixture\DataFixture;
 use Magento\TestFramework\Fixture\DataFixtureStorageManager;
 use Magento\TestFramework\Helper\Bootstrap;
 use MageOS\Seo\Exception\SitemapRebuildInProgressException;
-use MageOS\Seo\Model\Category\ProductOverrideRepository;
 use MageOS\Seo\Model\Config;
 use MageOS\Seo\Model\Config\Source\SitemapGenerator;
+use MageOS\Seo\Model\Product\OverrideRepository;
 use MageOS\Seo\Model\Rebuild\RegenerateConsumer;
 use MageOS\Seo\Model\Sitemap\GenerationLock;
 use MageOS\Seo\Model\Sitemap\Generator;
@@ -231,7 +231,7 @@ class RebuilderTest extends TestCase
         $flags->deleteFlag('mageos_seo_feed_pending_sitemap-products');
 
         sleep(1);
-        Bootstrap::getObjectManager()->get(ProductOverrideRepository::class)
+        Bootstrap::getObjectManager()->get(OverrideRepository::class)
             ->save((int) $product->getId(), 0, ['robots_meta' => 'NOINDEX,FOLLOW']);
 
         $this->assertNotNull($flags->getFlagData('mageos_seo_feed_pending_sitemap-products'), 'The change was queued.');

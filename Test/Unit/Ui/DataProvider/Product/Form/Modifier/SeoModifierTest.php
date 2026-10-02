@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace MageOS\Seo\Test\Unit\Ui\DataProvider\Product\Form\Modifier;
 
 use Magento\Framework\App\RequestInterface;
-use MageOS\Seo\Model\Category\ProductOverrideRepository;
 use MageOS\Seo\Model\Config\Source\RobotsMeta\ProductOverride;
+use MageOS\Seo\Model\Product\OverrideRepository;
 use MageOS\Seo\Ui\DataProvider\Product\Form\Modifier\SeoModifier;
 use PHPUnit\Framework\TestCase;
 
@@ -42,7 +42,7 @@ class SeoModifierTest extends TestCase
 
     public function testLoadsStoredOverridesForTheProductAndStoreInTheRequest(): void
     {
-        $repository = $this->createMock(ProductOverrideRepository::class);
+        $repository = $this->createMock(OverrideRepository::class);
         $repository->expects($this->once())->method('getForProduct')->with(42, 3)->willReturn([
             'override_fields' => ['color' => 'Midnight Blue'],
             'robots_meta'     => 'NOINDEX,FOLLOW',
@@ -58,7 +58,7 @@ class SeoModifierTest extends TestCase
 
     public function testLoadsEmptyValuesWhenNothingIsStored(): void
     {
-        $repository = $this->createStub(ProductOverrideRepository::class);
+        $repository = $this->createStub(OverrideRepository::class);
         $repository->method('getForProduct')->willReturn(['override_fields' => [], 'robots_meta' => null]);
 
         $data = $this->modifier(['id' => '42'], $repository)->modifyData([]);
@@ -69,7 +69,7 @@ class SeoModifierTest extends TestCase
 
     public function testLeavesDataAloneForANewProduct(): void
     {
-        $repository = $this->createMock(ProductOverrideRepository::class);
+        $repository = $this->createMock(OverrideRepository::class);
         $repository->expects($this->never())->method('getForProduct');
 
         $data = ['' => ['product' => []]];
@@ -81,10 +81,10 @@ class SeoModifierTest extends TestCase
      * Build the modifier around a request carrying the given parameters.
      *
      * @param array<string, string> $params
-     * @param ProductOverrideRepository|null $repository
+     * @param OverrideRepository|null $repository
      * @return SeoModifier
      */
-    private function modifier(array $params, ?ProductOverrideRepository $repository = null): SeoModifier
+    private function modifier(array $params, ?OverrideRepository $repository = null): SeoModifier
     {
         $request = $this->createStub(RequestInterface::class);
         $request->method('getParam')->willReturnCallback(
@@ -95,7 +95,7 @@ class SeoModifierTest extends TestCase
 
         return new SeoModifier(
             $request,
-            $repository ?? $this->createStub(ProductOverrideRepository::class),
+            $repository ?? $this->createStub(OverrideRepository::class),
             $robotsMeta
         );
     }

@@ -13,6 +13,8 @@ use Magento\Catalog\Api\Data\ProductInterface;
  * sortOrder (higher wins on key conflicts). Built-ins cover shipping, returns and item condition; a
  * module with live shipping rates or per-seller return policies adds its own enricher via di.xml
  * without modifying MageOS_Seo.
+ *
+ * @api
  */
 interface OfferEnricherInterface
 {

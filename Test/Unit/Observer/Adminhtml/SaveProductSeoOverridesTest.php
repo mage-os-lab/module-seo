@@ -9,7 +9,7 @@ use Magento\Framework\App\Request\Http as HttpRequest;
 use Magento\Framework\Event;
 use Magento\Framework\Event\Observer;
 use Magento\Framework\Message\ManagerInterface;
-use MageOS\Seo\Model\Category\ProductOverrideRepository;
+use MageOS\Seo\Model\Product\OverrideRepository;
 use MageOS\Seo\Observer\Adminhtml\SaveProductSeoOverrides;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
@@ -18,7 +18,7 @@ class SaveProductSeoOverridesTest extends TestCase
 {
     public function testIgnoresEventWithoutAProduct(): void
     {
-        $repository = $this->createMock(ProductOverrideRepository::class);
+        $repository = $this->createMock(OverrideRepository::class);
         $repository->expects($this->never())->method('save');
 
         $this->observer(['mageos_seo_robots_meta' => 'NOINDEX,FOLLOW'], '0', $repository)
@@ -27,7 +27,7 @@ class SaveProductSeoOverridesTest extends TestCase
 
     public function testIgnoresProductWithoutAnId(): void
     {
-        $repository = $this->createMock(ProductOverrideRepository::class);
+        $repository = $this->createMock(OverrideRepository::class);
         $repository->expects($this->never())->method('save');
 
         $this->observer(['mageos_seo_robots_meta' => 'NOINDEX,FOLLOW'], '0', $repository)
@@ -36,7 +36,7 @@ class SaveProductSeoOverridesTest extends TestCase
 
     public function testIgnoresRequestsWithoutTheSeoFieldset(): void
     {
-        $repository = $this->createMock(ProductOverrideRepository::class);
+        $repository = $this->createMock(OverrideRepository::class);
         $repository->expects($this->never())->method('save');
 
         $this->observer(['product' => ['name' => 'Shirt']], '0', $repository)
@@ -45,7 +45,7 @@ class SaveProductSeoOverridesTest extends TestCase
 
     public function testSavesOverridesAndRobotsForTheStoreViewInTheRequest(): void
     {
-        $repository = $this->createMock(ProductOverrideRepository::class);
+        $repository = $this->createMock(OverrideRepository::class);
         $repository->expects($this->once())->method('save')->with(
             42,
             3,
@@ -67,7 +67,7 @@ class SaveProductSeoOverridesTest extends TestCase
 
     public function testEmptyValuesClearOverridesAndRobotsMeta(): void
     {
-        $repository = $this->createMock(ProductOverrideRepository::class);
+        $repository = $this->createMock(OverrideRepository::class);
         $repository->expects($this->once())->method('save')
             ->with(42, 0, ['override_fields' => [], 'robots_meta' => null]);
 
@@ -77,7 +77,7 @@ class SaveProductSeoOverridesTest extends TestCase
 
     public function testNegativeStoreParameterFallsBackToDefaultScope(): void
     {
-        $repository = $this->createMock(ProductOverrideRepository::class);
+        $repository = $this->createMock(OverrideRepository::class);
         $repository->expects($this->once())->method('save')
             ->with(42, 0, ['robots_meta' => 'INDEX,FOLLOW']);
 
@@ -87,7 +87,7 @@ class SaveProductSeoOverridesTest extends TestCase
 
     public function testInvalidOverrideJsonIsAWarningAndOtherFieldsAreStillSaved(): void
     {
-        $repository = $this->createMock(ProductOverrideRepository::class);
+        $repository = $this->createMock(OverrideRepository::class);
         $repository->expects($this->once())->method('save')
             ->with(42, 0, ['robots_meta' => 'NOINDEX,FOLLOW']);
         $messages = $this->createMock(ManagerInterface::class);
@@ -105,7 +105,7 @@ class SaveProductSeoOverridesTest extends TestCase
 
     public function testInvalidOverrideJsonAloneSavesNothing(): void
     {
-        $repository = $this->createMock(ProductOverrideRepository::class);
+        $repository = $this->createMock(OverrideRepository::class);
         $repository->expects($this->never())->method('save');
         $messages = $this->createMock(ManagerInterface::class);
         $messages->expects($this->once())->method('addWarningMessage');
@@ -116,7 +116,7 @@ class SaveProductSeoOverridesTest extends TestCase
 
     public function testRepositoryFailureIsLoggedAndReportedAsAWarning(): void
     {
-        $repository = $this->createStub(ProductOverrideRepository::class);
+        $repository = $this->createStub(OverrideRepository::class);
         $repository->method('save')->willThrowException(new \RuntimeException('db down'));
         $messages = $this->createMock(ManagerInterface::class);
         $messages->expects($this->once())->method('addWarningMessage')
@@ -136,7 +136,7 @@ class SaveProductSeoOverridesTest extends TestCase
      *
      * @param array<string, mixed> $post
      * @param string $storeParam
-     * @param ProductOverrideRepository|null $repository
+     * @param OverrideRepository|null $repository
      * @param ManagerInterface|null $messages
      * @param LoggerInterface|null $logger
      * @return SaveProductSeoOverrides
@@ -144,7 +144,7 @@ class SaveProductSeoOverridesTest extends TestCase
     private function observer(
         array $post,
         string $storeParam,
-        ?ProductOverrideRepository $repository = null,
+        ?OverrideRepository $repository = null,
         ?ManagerInterface $messages = null,
         ?LoggerInterface $logger = null
     ): SaveProductSeoOverrides {
@@ -154,7 +154,7 @@ class SaveProductSeoOverridesTest extends TestCase
 
         return new SaveProductSeoOverrides(
             $request,
-            $repository ?? $this->createStub(ProductOverrideRepository::class),
+            $repository ?? $this->createStub(OverrideRepository::class),
             $messages ?? $this->createStub(ManagerInterface::class),
             $logger ?? $this->createStub(LoggerInterface::class)
         );

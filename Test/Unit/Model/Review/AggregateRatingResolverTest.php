@@ -6,7 +6,7 @@ namespace MageOS\Seo\Test\Unit\Model\Review;
 
 use MageOS\Seo\Api\AggregateRatingProviderInterface;
 use MageOS\Seo\Model\Review\AggregateRatingResolver;
-use PHPUnit\Framework\MockObject\MockObject;
+use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
 
 class AggregateRatingResolverTest extends TestCase
@@ -14,9 +14,9 @@ class AggregateRatingResolverTest extends TestCase
     /**
      * @param array<string, string>|null $rating
      */
-    private function makeProvider(?array $rating, int $priority): AggregateRatingProviderInterface&MockObject
+    private function makeProvider(?array $rating, int $priority): AggregateRatingProviderInterface&Stub
     {
-        $provider = $this->createMock(AggregateRatingProviderInterface::class);
+        $provider = $this->createStub(AggregateRatingProviderInterface::class);
         $provider->method('getRating')->willReturn($rating);
         $provider->method('getPriority')->willReturn($priority);
         return $provider;

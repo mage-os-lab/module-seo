@@ -1,0 +1,468 @@
+"Add New FAQ","Nieuwe FAQ toevoegen"
+Back,Terug
+Delete,Verwijderen
+"Are you sure you want to delete this FAQ?","Weet je zeker dat je deze FAQ wilt verwijderen?"
+Save,Opslaan
+"No FAQ specified to delete.","Er is geen FAQ opgegeven om te verwijderen."
+"The FAQ entry has been deleted.","De FAQ is verwijderd."
+"This FAQ no longer exists.","Deze FAQ bestaat niet meer."
+"Edit FAQ","FAQ bewerken"
+"New FAQ","Nieuwe FAQ"
+"SEO — FAQ Manager","SEO — FAQ-beheer"
+"The FAQ entry has been saved.","De FAQ is opgeslagen."
+"Identifier, question and answer are required.","Identificatie, vraag en antwoord zijn verplicht."
+"SEO — Organization Settings","SEO — Organisatie-instellingen"
+"No data received.","Geen gegevens ontvangen."
+"The organization URL must be an http:// or https:// address.","De URL van de organisatie moet een http://- of https://-adres zijn."
+"The logo URL must be an http:// or https:// address or a media path.","De logo-URL moet een http://- of https://-adres of een mediapad zijn."
+"These social profiles were not saved — a profile must be an http:// or https:// address: %1","Deze sociale profielen zijn niet opgeslagen — een profiel moet een http://- of https://-adres zijn: %1"
+"Organization settings have been saved.","De organisatie-instellingen zijn opgeslagen."
+"Could not save: %1","Opslaan is mislukt: %1"
+"File upload failed.","Het uploaden van het bestand is mislukt."
+"Upload failed. Please try again.","Uploaden mislukt. Probeer het opnieuw."
+"The uploaded file is not a valid image.","Het geüploade bestand is geen geldige afbeelding."
+"Category first — a category's own settings win, then its nearest ancestor's","Categorie eerst — de eigen instellingen van een categorie gaan voor, daarna die van de dichtstbijzijnde bovenliggende categorie"
+"Store view first — any setting for this store view wins over any global one","Winkelweergave eerst — elke instelling voor deze winkelweergave gaat voor op elke globale instelling"
+"These hreflang codes are not valid: %1. Use a two-letter language, optionally followed by a four-letter script and a two-letter region — for example en, en-GB or zh-Hant-TW.","Deze hreflang-codes zijn ongeldig: %1. Gebruik een taalcode van twee letters, eventueel gevolgd door een schriftcode van vier letters en een regiocode van twee letters — bijvoorbeeld en, en-GB of zh-Hant-TW."
+"Each hreflang code can be listed once: %1.","Elke hreflang-code mag maar één keer voorkomen: %1."
+"These regions are not ISO 3166-1 country codes: %1. The United Kingdom, for instance, is GB rather than UK.","Deze regio's zijn geen ISO 3166-1-landcodes: %1. Het Verenigd Koninkrijk is bijvoorbeeld GB, niet UK."
+"Google reads at most %1 return countries. %2 are selected, so only the first %1 in the list are output. Choose Applies Worldwide to cover every country.","Google leest maximaal %1 retourlanden. Er zijn er %2 geselecteerd, dus alleen de eerste %1 in de lijst worden uitgevoerd. Kies Wereldwijd van toepassing om alle landen te dekken."
+"security.txt needs an Expires date: RFC 9116 requires one.","security.txt heeft een Expires-datum nodig: RFC 9116 vereist er een."
+"The security.txt Expires date is not a date: %1. Choose one from the calendar.","De Expires-datum van security.txt is geen datum: %1. Kies er een in de kalender."
+"The security.txt Expires date must be after today: after it, the file is stale and should not be used (RFC 9116).","De Expires-datum van security.txt moet na vandaag liggen: daarna is het bestand verouderd en hoort het niet meer gebruikt te worden (RFC 9116)."
+"GPTBot (OpenAI training)","GPTBot (OpenAI-training)"
+"ChatGPT-User (OpenAI live)","ChatGPT-User (OpenAI live)"
+"OAI-SearchBot (OpenAI search)","OAI-SearchBot (OpenAI-zoeken)"
+"Google-Extended (Gemini training)","Google-Extended (Gemini-training)"
+New,Nieuw
+Refurbished,Gereviseerd
+Used,Gebruikt
+Damaged,Beschadigd
+"Use Design Logo (from Stores > Design > Logo)","Ontwerplogo gebruiken (uit Winkels > Ontwerp > Logo)"
+"Upload Custom SEO Logo","Eigen SEO-logo uploaden"
+"Organization (generic)","Organisatie (algemeen)"
+Corporation,Onderneming
+"Local Business","Lokaal bedrijf"
+"NGO / Charity","Ngo / goed doel"
+"Educational Organization","Onderwijsinstelling"
+"Government Organization","Overheidsorganisatie"
+"Full refund","Volledige terugbetaling"
+Exchange,Omruilen
+"Store credit",Tegoed
+"Free return","Gratis retour"
+"Customer pays return shipping","Klant betaalt de retourverzending"
+"Return shipping fees apply","Retourverzendkosten van toepassing"
+"By mail","Per post"
+"In store","In de winkel"
+"At kiosk","Bij een kiosk"
+"Finite return window","Beperkte retourtermijn"
+"Unlimited return window","Onbeperkte retourtermijn"
+"Returns not permitted","Retourneren niet toegestaan"
+"INDEX, FOLLOW (rich previews: max-image-preview:large, max-snippet:-1)","INDEX, FOLLOW (uitgebreide previews: max-image-preview:large, max-snippet:-1)"
+"NOINDEX, NOFOLLOW, noai, noimageai (block AI training)","NOINDEX, NOFOLLOW, noai, noimageai (AI-training blokkeren)"
+"Use Magento Default (no override)","Magento-standaard gebruiken (geen overschrijving)"
+"Inherit (parent category, then the store's Category Pages default)","Overnemen (bovenliggende categorie, daarna de standaard voor categoriepagina's van de winkel)"
+"Use the store's CMS Pages default","De standaard voor CMS-pagina's van de winkel gebruiken"
+"Use the store's Product Pages default","De standaard voor productpagina's van de winkel gebruiken"
+"Inherit (parent category, then the store's default template)","Overnemen (bovenliggende categorie, daarna het standaardsjabloon van de winkel)"
+"MageOS SEO","MageOS SEO"
+Magento,Magento
+"FAQ with id ""%1"" does not exist.","FAQ met id ""%1"" bestaat niet."
+"FAQ model must extend AbstractModel.","Het FAQ-model moet AbstractModel uitbreiden."
+"Could not save the FAQ: %1","De FAQ kon niet worden opgeslagen: %1"
+"Could not delete the FAQ: %1","De FAQ kon niet worden verwijderd: %1"
+"A feed rebuild is already running; this one was not started.","Er wordt al een feed opnieuw opgebouwd; deze is niet gestart."
+"The feed storage directory must be an absolute path.","De opslagmap voor feeds moet een absoluut pad zijn."
+"The feed storage directory must not contain "".."".","De opslagmap voor feeds mag geen "".."" bevatten."
+"The feed storage directory must not contain hidden directories.","De opslagmap voor feeds mag geen verborgen mappen bevatten."
+"The feed storage directory does not exist: %1","De opslagmap voor feeds bestaat niet: %1"
+"The feed storage directory is not a writable directory: %1","De opslagmap voor feeds is geen beschrijfbare map: %1"
+"Inside the installation only var/ may be used. To store feeds elsewhere, add the directory to ""%1"" in app/etc/env.php.","Binnen de installatie mag alleen var/ worden gebruikt. Wil je feeds ergens anders opslaan, voeg de map dan toe aan ""%1"" in app/etc/env.php."
+"The feed storage directory must be inside var/, or a directory listed under ""%1"" in app/etc/env.php.","De opslagmap voor feeds moet in var/ liggen, of een map zijn die onder ""%1"" in app/etc/env.php staat."
+"Frequently asked questions:","Veelgestelde vragen:"
+"Key URLs","Belangrijke URL's"
+Home,Home
+"Store front page","Startpagina van de winkel"
+Sitemap,Sitemap
+"XML sitemap of indexable pages","XML-sitemap van indexeerbare pagina's"
+"Base URL: %1","Basis-URL: %1"
+"Locale: %1","Landinstelling: %1"
+"Search URL template: %1","Sjabloon voor de zoek-URL: %1"
+"Social profiles: %1","Sociale profielen: %1"
+"Structured data: schema.org JSON-LD; types the pages can carry: %1","Gestructureerde gegevens: schema.org JSON-LD; types die de pagina's kunnen bevatten: %1"
+"Product schema templates: %1","Productschemasjablonen: %1"
+"Structured data: schema.org JSON-LD on product pages (%1)","Gestructureerde gegevens: schema.org JSON-LD op productpagina's (%1)"
+"Contact for automated queries: %1","Contact voor geautomatiseerde vragen: %1"
+"%1 products","%1 producten"
+"Category Tree","Categorieboom"
+"Organization model must extend AbstractModel.","Het Organization-model moet AbstractModel uitbreiden."
+"Could not save the Organization: %1","De organisatie kon niet worden opgeslagen: %1"
+"Could not delete the Organization of %1 %2: %3","De organisatie van %1 %2 kon niet worden verwijderd: %3"
+"Clothing & Apparel","Kleding & mode"
+Brand,Merk
+"GTIN / EAN","GTIN / EAN"
+Color,Kleur
+Size,Maat
+"Material / Fabric","Materiaal / stof"
+"Gender / Target Audience","Geslacht / doelgroep"
+Pattern,Patroon
+"Country of Origin","Land van herkomst"
+Weight,Gewicht
+"Art & Craft / Handmade","Kunst & ambacht / handgemaakt"
+"Art Medium (oil, watercolor, etc.)","Kunstmedium (olieverf, aquarel, enz.)"
+"Surface / Support (canvas, paper, etc.)","Ondergrond / drager (doek, papier, enz.)"
+"Creator (set as an override)","Maker (in te stellen als overschrijving)"
+Width,Breedte
+Height,Hoogte
+Depth,Diepte
+"Materials Used","Gebruikte materialen"
+"Dominant Color(s)","Hoofdkleur(en)"
+"Is Based On (for prints/reproductions)","Gebaseerd op (voor prints/reproducties)"
+Book,Boek
+ISBN,ISBN
+Author,Auteur
+Publisher,Uitgever
+Edition,Editie
+"Format (Hardcover / Paperback / Digital)","Formaat (gebonden / paperback / digitaal)"
+"Number of Pages","Aantal pagina's"
+Language,Taal
+Genre,Genre
+"EAN / Barcode","EAN / streepjescode"
+"Beauty & Cosmetics","Beauty & cosmetica"
+"Shade / Color","Tint / kleur"
+Ingredients,Ingrediënten
+"Scent / Fragrance","Geur / parfum"
+"Target Audience",Doelgroep
+"Warnings / Allergen Notice","Waarschuwingen / allergeneninformatie"
+"Weight / Volume","Gewicht / inhoud"
+"Electronics & Gadgets","Elektronica & gadgets"
+"Manufacturer Part Number (MPN)","Artikelnummer fabrikant (MPN)"
+Material,Materiaal
+"Model Number",Modelnummer
+"Food Product",Voedingsmiddel
+"Brand / Producer","Merk / producent"
+"Nutrition Information",Voedingswaarde
+Allergens,Allergenen
+"Alcoholic Beverage","Alcoholische drank"
+"Generic Product","Algemeen product"
+"GTIN / EAN (barcode)","GTIN / EAN (streepjescode)"
+"Brand name",Merknaam
+"Health & Wellness","Gezondheid & welzijn"
+"Active Ingredient(s)","Werkzame stof(fen)"
+"Dosage Schedule",Doseringsschema
+"Safety Warning / Disclaimer","Veiligheidswaarschuwing / disclaimer"
+"Intended Use","Beoogd gebruik"
+"Home & Decor","Wonen & decoratie"
+"Brand / Maker","Merk / maker"
+"Pattern / Style","Patroon / stijl"
+"Depth / Length","Diepte / lengte"
+"Jewelry & Accessories","Sieraden & accessoires"
+"Metal / Material","Metaal / materiaal"
+"Color / Finish","Kleur / afwerking"
+"Ring / Bracelet Size","Ring- / armbandmaat"
+"Gemstone / Design","Edelsteen / ontwerp"
+"Experience / Voucher / Workshop","Belevenis / voucher / workshop"
+"Organizer (set as an override)","Organisator (in te stellen als overschrijving)"
+"Availability Starts (YYYY-MM-DD)","Beschikbaar vanaf (JJJJ-MM-DD)"
+"Availability Ends (YYYY-MM-DD)","Beschikbaar tot (JJJJ-MM-DD)"
+"Location / Venue","Locatie / zaal"
+Duration,Duur
+"Pet Products",Dierenproducten
+"Target Species (dog, cat, etc.)","Diersoort (hond, kat, enz.)"
+"Ingredients / Material","Ingrediënten / materiaal"
+"Safety / Allergy Warning","Veiligheids- / allergiewaarschuwing"
+"Software / Digital Download","Software / digitale download"
+"Brand / Publisher","Merk / uitgever"
+"Operating System",Besturingssysteem
+"Application Category",Toepassingscategorie
+Version,Versie
+"Stationery & Paper Goods","Kantoorartikelen & papierwaren"
+"Material / Paper Type","Materiaal / papiersoort"
+"Pattern / Design","Patroon / ontwerp"
+"Tool & Hardware","Gereedschap & ijzerwaren"
+MPN,MPN
+"Power Source",Voeding
+Model,Model
+"Toy & Game","Speelgoed & spellen"
+"Suggested Minimum Age (years)","Aanbevolen minimumleeftijd (jaren)"
+"Suggested Maximum Age (years)","Aanbevolen maximumleeftijd (jaren)"
+"Number of Players","Aantal spelers"
+"Batteries Required","Batterijen vereist"
+"Safety Warning",Veiligheidswaarschuwing
+"Sitemap ""%1"" is being written by another process. Try again once it has finished.","Sitemap ""%1"" wordt door een ander proces geschreven. Probeer het opnieuw zodra dat klaar is."
+"Sitemaps being written by another process were not rebuilt: %1.","Sitemaps die door een ander proces worden geschreven, zijn niet opnieuw opgebouwd: %1."
+"UCP signing key is misconfigured: the stored public JWK contains private key material.","De UCP-ondertekeningssleutel is verkeerd geconfigureerd: de opgeslagen openbare JWK bevat privésleutelmateriaal."
+"SEO override fields were not saved: the value is not valid JSON.","De SEO-overschrijvingsvelden zijn niet opgeslagen: de waarde is geen geldige JSON."
+"The category was saved, but its SEO settings could not be saved.","De categorie is opgeslagen, maar de SEO-instellingen konden niet worden opgeslagen."
+"The page was saved, but its hreflang translation group was not: use letters, digits, dots, hyphens and underscores only, for example ""about-us"".","De pagina is opgeslagen, maar de hreflang-vertaalgroep niet: gebruik alleen letters, cijfers, punten, koppeltekens en underscores, bijvoorbeeld ""over-ons""."
+"The page was saved, but its SEO settings could not be saved.","De pagina is opgeslagen, maar de SEO-instellingen konden niet worden opgeslagen."
+"The product was saved, but its SEO overrides could not be saved.","Het product is opgeslagen, maar de SEO-overschrijvingen konden niet worden opgeslagen."
+Edit,Bewerken
+"Delete FAQ","FAQ verwijderen"
+"SEO (Structured Data)","SEO (gestructureerde gegevens)"
+"Product Schema Template",Productschemasjabloon
+"Schema template for products in this category. Determines which structured data fields are available.","Schemasjabloon voor producten in deze categorie. Bepaalt welke velden voor gestructureerde gegevens beschikbaar zijn."
+"Enabled Optional Fields","Ingeschakelde optionele velden"
+"Optional schema fields to output, from the template in effect. After changing the template, save the category to list its fields.","Optionele schemavelden om uit te voeren, uit het geldende sjabloon. Sla na het wijzigen van het sjabloon de categorie op om de velden ervan te zien."
+"ItemList Schema on Category Pages","ItemList-schema op categoriepagina's"
+"Use Global Setting","Globale instelling gebruiken"
+"Yes — output ItemList schema","Ja — ItemList-schema uitvoeren"
+"No — disable ItemList schema","Nee — ItemList-schema uitschakelen"
+"Override the global setting for this category.","Overschrijf de globale instelling voor deze categorie."
+"Robots Meta",Robots-meta
+"Field Value Overrides (JSON)","Overschrijvingen van veldwaarden (JSON)"
+"JSON key/value pairs to hard-code for products in this category. Example: {""gender"":""Female"",""countryOfOrigin"":""GB""}","JSON-sleutel/waardeparen die vast worden ingesteld voor producten in deze categorie. Voorbeeld: {""gender"":""Female"",""countryOfOrigin"":""GB""}"
+"%1 (not a field of this template)","%1 (geen veld van dit sjabloon)"
+"Advanced SEO","Geavanceerde SEO"
+"Per-product overrides take precedence over category and attribute values. Leave empty to use the category or global setting.","Overschrijvingen per product gaan voor op categorie- en attribuutwaarden. Laat leeg om de categorie- of globale instelling te gebruiken."
+"JSON key/value pairs overriding schema fields for this product. Example: {""gtin13"":""0123456789012"",""color"":""Midnight Blue""}","JSON-sleutel/waardeparen die schemavelden voor dit product overschrijven. Voorbeeld: {""gtin13"":""0123456789012"",""color"":""Midnight Blue""}"
+"Robots Meta Override","Robots-meta overschrijven"
+"Override robots meta for this specific product page.","Overschrijf de robots-meta voor deze productpagina."
+FAQ,FAQ
+Group:,Groep:
+"Open settings to choose a FAQ group identifier.","Open de instellingen om een FAQ-groepsidentificatie te kiezen."
+SEO,SEO
+"Organization Settings",Organisatie-instellingen
+"FAQ Manager",FAQ-beheer
+"SEO Configuration",SEO-configuratie
+"AI Information & Crawlers Configuration","Configuratie AI-informatie & crawlers"
+"Agentic Commerce (UCP) Configuration","Configuratie Agentic Commerce (UCP)"
+Organization,Organisatie
+Configuration,Configuratie
+"Open Graph Tags",Open-Graph-tags
+"Enable OG Tags","OG-tags inschakelen"
+"Output og:title, og:description, og:image, og:type on product and
+category pages.","Voer og:title, og:description, og:image en og:type uit op product- en categoriepagina's."
+"Structured Data (JSON-LD)","Gestructureerde gegevens (JSON-LD)"
+"Enable JSON-LD Output","JSON-LD-uitvoer inschakelen"
+"Default Product Schema Template","Standaard productschemasjabloon"
+"Used for products in categories with no template configured.","Wordt gebruikt voor producten in categorieën zonder ingesteld sjabloon."
+"Enable Category ItemList Schema","ItemList-schema voor categorieën inschakelen"
+"Output an ItemList schema on category pages. Can be overridden per category.","Voer een ItemList-schema uit op categoriepagina's. Kan per categorie worden overschreven."
+"Category ItemList Max Items","Maximaal aantal items in categorie-ItemList"
+"Maximum products to include in ItemList schema per page. Recommended: 36
+(matches default toolbar page size).","Maximaal aantal producten in het ItemList-schema per pagina. Aanbevolen: 36 (gelijk aan de standaard paginagrootte van de werkbalk)."
+"Most Variants per Configurable Product","Maximaal aantal varianten per configureerbaar product"
+"A configurable product with up to this many sellable children is described as a ProductGroup, each child a variant with its own offer. One with more is a single Product with an AggregateOffer over its whole price range, rather than a list cut short. 0 describes every configurable that way. Each variant costs a salability check on an uncached product page. Default: 50.","Een configureerbaar product met maximaal zoveel verkoopbare onderliggende producten wordt beschreven als een ProductGroup, met elk onderliggend product als variant met een eigen aanbieding. Een product met meer wordt één Product met een AggregateOffer over de hele prijsklasse, in plaats van een afgekapte lijst. Met 0 wordt elk configureerbaar product zo beschreven. Elke variant kost een verkoopbaarheidscontrole op een niet-gecachete productpagina. Standaard: 50."
+"Enable AggregateRating","AggregateRating inschakelen"
+"Output aggregateRating (review score + count) on product schema. Source is
+pluggable — native Magento reviews by default, or a bridge module (Yotpo, Trustpilot, …).","Voer aggregateRating (reviewscore + aantal) uit in het productschema. De bron is uitwisselbaar — standaard de reviews van Magento zelf, of een koppelmodule (Yotpo, Trustpilot, …)."
+"Category SEO Settings","SEO-instellingen voor categorieën"
+"Inheritance Strategy",Overervingsstrategie
+"Where a category's SEO settings come from when it does not set
+them itself. Each setting is resolved separately, so a category can take its schema template from
+one place and its robots directive from another.<br/><br/>
+<strong>Category first</strong> suits a catalog whose tree carries the meaning: a setting made on
+a category applies to it whether it was made globally or for one store view, and only a category
+that says nothing defers to its parent.<br/><br/>
+<strong>Store view first</strong> suits store views that carry their own SEO policy: anything set
+for this store view, anywhere up the tree, outranks anything set globally. With one store view the
+two behave identically.<br/><br/>
+Global only — this decides how store-view scope itself is resolved.","Waar de SEO-instellingen van een categorie vandaan komen als die categorie ze niet zelf instelt. Elke instelling wordt apart bepaald, dus een categorie kan haar schemasjabloon van de ene plek halen en haar robots-instructie van een andere.<br/><br/><strong>Categorie eerst</strong> past bij een catalogus waarvan de boom de betekenis draagt: een instelling op een categorie geldt voor die categorie, of ze nu globaal of voor één winkelweergave is ingesteld, en alleen een categorie die niets instelt, valt terug op haar bovenliggende categorie.<br/><br/><strong>Winkelweergave eerst</strong> past bij winkelweergaven met een eigen SEO-beleid: alles wat voor deze winkelweergave is ingesteld, waar ook in de boom, gaat voor op alles wat globaal is ingesteld. Met één winkelweergave werken beide hetzelfde.<br/><br/>Alleen globaal — dit bepaalt hoe de scope van een winkelweergave zelf wordt bepaald."
+"Robots Meta Defaults","Standaardwaarden robots-meta"
+"Product Pages Default","Standaard voor productpagina's"
+"When set to ""Use Magento Default"", the core Design > Search Engine
+Robots setting applies.","Bij ""Magento-standaard gebruiken"" geldt de instelling Ontwerp > Zoekmachinerobots van Magento zelf."
+"Category Pages Default","Standaard voor categoriepagina's"
+"CMS Pages Default","Standaard voor CMS-pagina's"
+"Search Results Pages Default","Standaard voor zoekresultaatpagina's"
+"Quick and advanced search results. NOINDEX,FOLLOW keeps them out of the index;
+to stop them being crawled at all, disallow them in robots.txt instead. When set to ""Use Magento
+Default"", the core Design > Search Engine Robots setting applies.","Snelle en geavanceerde zoekresultaten. NOINDEX,FOLLOW houdt ze uit de index; wil je dat ze helemaal niet worden gecrawld, sluit ze dan uit in robots.txt. Bij ""Magento-standaard gebruiken"" geldt de instelling Ontwerp > Zoekmachinerobots van Magento zelf."
+"Override Robots on Paginated Pages","Robots overschrijven op gepagineerde pagina's"
+"Apply a dedicated robots meta to category listing pages from page 2 onward
+(?p=2+). Canonicalization is left to Magento's native category canonical tag.","Pas vanaf pagina 2 (?p=2+) een eigen robots-meta toe op categorieoverzichtspagina's. Canonicalisatie wordt overgelaten aan de eigen canonical-tag van Magento voor categorieën."
+"Paginated Pages Robots","Robots voor gepagineerde pagina's"
+"Hreflang (Multistore)","Hreflang (multistore)"
+"Enable Hreflang Tags","Hreflang-tags inschakelen"
+"Output rel=""alternate"" hreflang link tags in the head across store views.
+No output on single-store pages.","Voer rel=""alternate"" hreflang-linktags in de head uit over winkelweergaven heen. Geen uitvoer op pagina's met één winkel."
+"Add Language-only Tags","Tags met alleen taal toevoegen"
+"Automatically add hreflang=""en"" when a base language is served by
+exactly one store view.","Voeg automatisch hreflang=""en"" toe als een basistaal door precies één winkelweergave wordt bediend."
+"Hreflang Codes",Hreflang-codes
+"The codes this store view targets, comma-separated — for example
+<code>en-GB</code>, or <code>es-MX, es-AR, es-CL</code> for one store serving several regions. Leave
+empty to use the store's locale. A region is an ISO 3166-1 country code: the United Kingdom is
+<code>GB</code>, not <code>UK</code>.","De codes waarop deze winkelweergave zich richt, gescheiden door komma's — bijvoorbeeld <code>en-GB</code>, of <code>es-MX, es-AR, es-CL</code> voor één winkel die meerdere regio's bedient. Laat leeg om de landinstelling van de winkel te gebruiken. Een regio is een ISO 3166-1-landcode: het Verenigd Koninkrijk is <code>GB</code>, niet <code>UK</code>."
+"x-default Store View",x-default-winkelweergave
+"Store view to advertise as hreflang x-default. Leave unset to omit x-default.
+Set per website where websites serve different markets.","Winkelweergave die als hreflang x-default wordt aangeboden. Laat leeg om x-default weg te laten. Stel dit per website in als websites verschillende markten bedienen."
+"Exclude Store Views","Winkelweergaven uitsluiten"
+"Store views to omit from all hreflang output (e.g. staging or internal stores).","Winkelweergaven die uit alle hreflang-uitvoer worden weggelaten (bijv. staging- of interne winkels)."
+"Add Hreflang Alternates to sitemap.xml","Hreflang-alternatieven toevoegen aan sitemap.xml"
+"List each URL's alternates in the other store views beside it in the XML
+sitemaps, as Google prefers them. Applies to sitemaps written by the MageOS SEO generator
+(Catalog → XML Sitemap → Generation Settings → Generator).","Vermeld bij elke URL in de XML-sitemaps de alternatieven in de andere winkelweergaven, zoals Google het liefst heeft. Geldt voor sitemaps die de MageOS SEO-generator schrijft (Catalogus → XML-sitemap → Generatie-instellingen → Generator)."
+"Limit Alternates to Current Website","Alternatieven beperken tot de huidige website"
+"Only link store views of the same website as hreflang alternates. Disable
+only when separate websites really are language/region variants of the same content.","Koppel alleen winkelweergaven van dezelfde website als hreflang-alternatieven. Schakel dit alleen uit als aparte websites echt taal- of regiovarianten van dezelfde inhoud zijn."
+"Answer Engine Optimization (AEO)","Answer Engine Optimization (AEO)"
+"Enable Speakable Schema","Speakable-schema inschakelen"
+"Mark page sections for text-to-speech. The speakable property goes on the node describing the page: a CMS page's WebPage, a category's CollectionPage, a blog post's BlogPosting, and on product pages a WebPage whose main entity is the product. Google uses it only in beta, for news content in U.S. English. Off by default.","Markeer paginagedeelten voor tekst-naar-spraak. De speakable-eigenschap komt op het knooppunt dat de pagina beschrijft: de WebPage van een CMS-pagina, de CollectionPage van een categorie, de BlogPosting van een blogbericht, en op productpagina's een WebPage met het product als hoofdentiteit. Google gebruikt dit alleen in bèta, voor nieuwsinhoud in Amerikaans Engels. Standaard uit."
+"Speakable CSS Selectors",Speakable-CSS-selectors
+"One CSS selector per line identifying content suitable for text-to-speech.","Eén CSS-selector per regel voor inhoud die geschikt is voor tekst-naar-spraak."
+"SEO Merchant Policies",SEO-verkoopbeleid
+"Item Condition",Productstaat
+"Default Item Condition","Standaard productstaat"
+"schema.org itemCondition applied to all product offers.","schema.org-itemCondition voor alle productaanbiedingen."
+"Return Policy (hasMerchantReturnPolicy)","Retourbeleid (hasMerchantReturnPolicy)"
+"Enable Return Policy Schema","Retourbeleidschema inschakelen"
+"Output hasMerchantReturnPolicy on product offers. Required for Google
+Merchant free listings.","Voer hasMerchantReturnPolicy uit op productaanbiedingen. Vereist voor gratis vermeldingen in Google Merchant."
+"Applies Worldwide","Wereldwijd van toepassing"
+"Google has no value for every country, so none are listed. Set the Returns Policy
+URL: Google reads the policy from that page instead.","Google heeft geen waarde voor alle landen, dus er worden geen landen vermeld. Vul URL retourbeleid in: Google leest het beleid dan van die pagina."
+"Applicable Countries","Geldende landen"
+"The countries this return policy applies to. Google reads at most 50: above that, the
+first 50 in the list are output.","De landen waarvoor dit retourbeleid geldt. Google leest er maximaal 50: bij meer worden de eerste 50 in de lijst uitgevoerd."
+"Return Policy Category","Categorie retourbeleid"
+"Return Window (days)","Retourtermijn (dagen)"
+"Used only with a finite return window.","Alleen gebruikt bij een beperkte retourtermijn."
+"Return Method",Retourmethode
+"Return Fees",Retourkosten
+"Refund Type","Soort terugbetaling"
+"Returns Policy URL","URL retourbeleid"
+"Output as merchantReturnLink. With Applies Worldwide, no countries are listed, and
+this page is what Google reads instead.","Uitgevoerd als merchantReturnLink. Bij Wereldwijd van toepassing worden geen landen vermeld, en leest Google in plaats daarvan deze pagina."
+"Shipping Details (OfferShippingDetails)","Verzendgegevens (OfferShippingDetails)"
+"Enable Shipping Details Schema","Verzendgegevensschema inschakelen"
+"Output OfferShippingDetails on product offers: one rate and delivery time, worldwide or
+for the countries chosen.","Voer OfferShippingDetails uit op productaanbiedingen: één tarief en levertijd, wereldwijd of voor de gekozen landen."
+"Shipping Label",Verzendlabel
+"Ships Worldwide","Verzendt wereldwijd"
+"No destination is given, which Google reads as every country.","Er wordt geen bestemming opgegeven, wat Google opvat als alle landen."
+"Destination Countries",Bestemmingslanden
+"The countries these shipping details apply to.","De landen waarvoor deze verzendgegevens gelden."
+"Shipping Rate",Verzendtarief
+"0.00 for free shipping. Currency follows the store display currency.","0.00 voor gratis verzending. De valuta volgt de weergavevaluta van de winkel."
+"Handling Time Min (days)","Verwerkingstijd min. (dagen)"
+"Handling Time Max (days)","Verwerkingstijd max. (dagen)"
+"Transit Time Min (days)","Transporttijd min. (dagen)"
+"Transit Time Max (days)","Transporttijd max. (dagen)"
+"AI Information & Crawlers","AI-informatie & crawlers"
+"AI Discoverability (llms.txt)","AI-vindbaarheid (llms.txt)"
+"Enable /llms.txt","/llms.txt inschakelen"
+"Serve a machine-readable site summary at /llms.txt for LLM crawlers.","Bied op /llms.txt een machineleesbare samenvatting van de site aan voor LLM-crawlers."
+"Enable /llms-full.txt","/llms-full.txt inschakelen"
+"Serve the extended document with full vendor and category listings
+at /llms-full.txt.","Bied op /llms-full.txt het uitgebreide document aan, met volledige overzichten van leveranciers en categorieën."
+"Enable /llms.jsonl","/llms.jsonl inschakelen"
+"Serve a machine-readable NDJSON product catalog (one JSON-LD Product per
+line) at /llms.jsonl. Off by default.","Bied op /llms.jsonl een machineleesbare NDJSON-productcatalogus aan (één JSON-LD Product per regel). Standaard uit."
+"FAQ Groups",FAQ-groepen
+"FAQ groups whose questions appear in /llms.txt (the first 5) and /llms-full.txt
+(all), in this order. Select none to leave FAQs out.","FAQ-groepen waarvan de vragen in /llms.txt (de eerste 5) en /llms-full.txt (alle) staan, in deze volgorde. Selecteer er geen om FAQ's weg te laten."
+"Feed Storage",Feedopslag
+"Storage Directory",Opslagmap
+"Absolute path for pre-generated feed files (llms.txt, llms-full.txt,
+llms.jsonl). Leave empty to use var/mageos_aeo. Inside the installation only var/ may be used;
+a shared mount for multi-server deployments must be listed under
+<code>mageos_aeo/feed_storage_roots</code> in app/etc/env.php.","Absoluut pad voor vooraf gegenereerde feedbestanden (llms.txt, llms-full.txt, llms.jsonl). Laat leeg om var/mageos_aeo te gebruiken. Binnen de installatie mag alleen var/ worden gebruikt; een gedeelde mount voor omgevingen met meerdere servers moet onder <code>mageos_aeo/feed_storage_roots</code> in app/etc/env.php staan."
+"AI Crawler robots.txt Directives","robots.txt-instructies voor AI-crawlers"
+"Append AI Crawler Directives","AI-crawlerinstructies toevoegen"
+"Add a ""Disallow: /"" robots.txt group for each AI crawler selected below.
+Crawlers not selected keep following your standard ""User-agent: *"" rules.","Voeg een robots.txt-groep met ""Disallow: /"" toe voor elke hieronder geselecteerde AI-crawler. Niet-geselecteerde crawlers blijven je standaardregels voor ""User-agent: *"" volgen."
+"Disallow These AI Crawlers","Deze AI-crawlers weigeren"
+"Selected crawlers get ""Disallow: /""; all other known crawlers get ""Allow: /"".","Geselecteerde crawlers krijgen ""Disallow: /""; alle andere bekende crawlers krijgen ""Allow: /""."
+"Agentic Commerce (UCP)","Agentic Commerce (UCP)"
+"UCP Profile",UCP-profiel
+"Enable UCP Profile","UCP-profiel inschakelen"
+"Serve /.well-known/ucp, the Universal Commerce Protocol business profile
+(UCP 2026-08-25). It declares only the services and capabilities an installed module registers;
+with none registered it is valid and declares nothing. Returns 404 when disabled.","Bied /.well-known/ucp aan, het bedrijfsprofiel van het Universal Commerce Protocol (UCP 2026-08-25). Het vermeldt alleen de diensten en mogelijkheden die een geïnstalleerde module registreert; zonder registraties is het geldig en vermeldt het niets. Geeft 404 als het is uitgeschakeld."
+"Signing Keys",Ondertekeningssleutels
+"Generated by ""bin/magento ucp:keygen --website=N"". The private key
+is stored encrypted; only the public JWK is served, in the profile's ""keys"".","Aangemaakt met ""bin/magento ucp:keygen --website=N"". De privésleutel wordt versleuteld opgeslagen; alleen de openbare JWK wordt aangeboden, in de ""keys"" van het profiel."
+"Private Key (encrypted)","Privésleutel (versleuteld)"
+"Public Key JWK","Openbare sleutel (JWK)"
+"Read-only. Populated by the keygen command.","Alleen-lezen. Wordt ingevuld door de keygen-opdracht."
+"security.txt (RFC 9116)","security.txt (RFC 9116)"
+"Enable security.txt","security.txt inschakelen"
+"Serve /.well-known/security.txt.","Bied /.well-known/security.txt aan."
+"Security Contact Email","E-mailadres beveiligingscontact"
+Expires,Verloopt
+"The date by which you will review this file. Required by RFC 9116, and best less than
+a year ahead; after it, the file is stale. It is served as the end of that day, UTC.","De datum waarop je dit bestand uiterlijk herziet. Vereist door RFC 9116, en bij voorkeur minder dan een jaar vooruit; daarna is het bestand verouderd. Wordt aangeboden als het einde van die dag, UTC."
+"Policy URL","URL beleid"
+Generator,Generator
+"<strong>MageOS SEO</strong> writes each sitemap as an index with a
+file per kind of page, and can add to each URL what core's generator cannot — hreflang alternates
+among them. It reads the catalog a page at a time on every version, so Generation Method has no
+effect while it is selected.
+<strong>Magento</strong> uses core's generator unchanged.","<strong>MageOS SEO</strong> schrijft elke sitemap als index met een bestand per soort pagina, en kan aan elke URL toevoegen wat de generator van Magento zelf niet kan — onder meer de hreflang-alternatieven. Het leest de catalogus pagina voor pagina op elke versie, dus Generatiemethode heeft geen effect zolang deze is geselecteerd. <strong>Magento</strong> gebruikt de generator van Magento zelf, ongewijzigd."
+"Leave Out NOINDEX Pages","NOINDEX-pagina's weglaten"
+"A page whose robots directive is NOINDEX is not listed. The directive is
+the one the page gets from its SEO settings, else from Design → Search Engine Robots — so a store
+set to NOINDEX there has an empty sitemap. A directive another module sets while the page renders
+is not seen.","Een pagina met de robots-instructie NOINDEX wordt niet vermeld. Het gaat om de instructie die de pagina uit haar SEO-instellingen krijgt, anders uit Ontwerp → Zoekmachinerobots — dus een winkel die daar op NOINDEX staat, heeft een lege sitemap. Een instructie die een andere module instelt tijdens het renderen van de pagina, wordt niet gezien."
+"Rebuild on Change","Opnieuw opbouwen bij wijziging"
+"When something the sitemap lists changes — a product's URL key, status or
+visibility, a category, a CMS page, a robots directive, a sitemap setting — that kind of page is
+rewritten in this store view's sitemaps soon after, by the <code>mageosSeoFeedRegenerate</code>
+queue consumer. A sitemap added under Marketing → Site Map is written shortly after it is saved,
+and one whose file has gone is written again. <strong>No</strong>: sitemaps change at their next
+generation only — and a Site Map entry you are not ready to publish stays unwritten.","Als iets wat de sitemap vermeldt verandert — de URL-sleutel, status of zichtbaarheid van een product, een categorie, een CMS-pagina, een robots-instructie, een sitemapinstelling — dan wordt dat soort pagina kort daarna opnieuw geschreven in de sitemaps van deze winkelweergave, door de queue consumer <code>mageosSeoFeedRegenerate</code>. Een sitemap die onder Marketing → Sitemap is toegevoegd, wordt kort na het opslaan geschreven, en een sitemap waarvan het bestand verdwenen is, wordt opnieuw geschreven. <strong>Nee</strong>: sitemaps veranderen pas bij hun volgende generatie — en een sitemap die je nog niet wilt publiceren, blijft ongeschreven."
+"SEO FAQ List","SEO FAQ-lijst"
+"Renders a FAQ group as an accordion and adds matching FAQPage structured data.","Toont een FAQ-groep als accordeon en voegt bijbehorende gestructureerde gegevens (FAQPage) toe."
+"FAQ Group Identifier",FAQ-groepsidentificatie
+"The group identifier of the FAQ entries to display (e.g. shipping, returns).","De groepsidentificatie van de FAQ's die je wilt tonen (bijv. shipping, returns)."
+"Heading (optional)","Kop (optioneel)"
+"Optional heading rendered above the FAQ list.","Optionele kop boven de FAQ-lijst."
+"Default Config",Standaardconfiguratie
+"Overrides the store's CMS Pages robots default for this page.","Overschrijft voor deze pagina de standaard robots-instelling voor CMS-pagina's van de winkel."
+"Hreflang Translation Group",Hreflang-vertaalgroep
+"Give each translation of this page the same value, for example
+""about-us"", and they list one another as hreflang alternates. Letters, digits, dots, hyphens and
+underscores. Leave empty to link this page only to itself in other store views.","Geef elke vertaling van deze pagina dezelfde waarde, bijvoorbeeld ""over-ons"", dan vermelden ze elkaar als hreflang-alternatieven. Letters, cijfers, punten, koppeltekens en underscores. Laat leeg om deze pagina alleen aan zichzelf in andere winkelweergaven te koppelen."
+"FAQ Entry",FAQ-item
+"Group Identifier",Groepsidentificatie
+"Reference this group from the FAQ widget or Page Builder. Groups selected under Stores → Configuration → MageOS SEO → AI Information & Crawlers → AI Discoverability (llms.txt) also appear in llms.txt.","Verwijs naar deze groep vanuit de FAQ-widget of Page Builder. Groepen die zijn geselecteerd onder Winkels → Configuratie → MageOS SEO → AI-informatie & crawlers → AI-vindbaarheid (llms.txt) staan ook in llms.txt."
+"Store View ID",Winkelweergave-ID
+"0 = all store views.","0 = alle winkelweergaven."
+Question,Vraag
+Answer,Antwoord
+"Sort Order",Sorteervolgorde
+Active,Actief
+ID,ID
+"Organization Identity","Identiteit van de organisatie"
+"Organization Name","Naam van de organisatie"
+"Canonical Site URL","Canonieke site-URL"
+"Full URL including https://. Used as the @id anchor in all schema.","Volledige URL inclusief https://. Wordt gebruikt als @id-anker in alle schema's."
+"Organization Type (schema.org)","Type organisatie (schema.org)"
+"Description / Tagline","Omschrijving / slogan"
+"Short description used in the Organization schema and llms.txt. Max 300 characters.","Korte omschrijving voor het Organization-schema en llms.txt. Max. 300 tekens."
+Logo,Logo
+"Logo Source",Logobron
+"Use your existing Design logo, or upload a dedicated SEO logo (recommended: min 112x112px).","Gebruik je bestaande ontwerplogo, of upload een apart SEO-logo (aanbevolen: min. 112x112px)."
+"Custom SEO Logo","Eigen SEO-logo"
+"Recommended: PNG, minimum 112x112px. Used in structured data and llms.txt.","Aanbevolen: PNG, minimaal 112x112px. Wordt gebruikt in gestructureerde gegevens en llms.txt."
+"Logo Width (px)","Logobreedte (px)"
+"Used in the ImageObject schema node. Leave blank to omit.","Wordt gebruikt in het ImageObject-schemaknooppunt. Laat leeg om weg te laten."
+"Logo Height (px)","Logohoogte (px)"
+"Social Profiles & Contact","Sociale profielen & contact"
+"Social Profile URLs","URL's van sociale profielen"
+"Add one URL per row. These appear as sameAs links in Organization schema and in llms.txt.","Voeg één URL per rij toe. Deze verschijnen als sameAs-links in het Organization-schema en in llms.txt."
+"Add Social Profile","Sociaal profiel toevoegen"
+URL,URL
+"Contact Type","Soort contact"
+"e.g. ""customer service""","bijv. ""klantenservice"""
+"Contact Email",Contact-e-mailadres
+"Available Language","Beschikbare taal"
+"e.g. ""en"" or ""English""","bijv. ""nl"" of ""Nederlands"""
+"Local Presence (LocalBusiness)","Lokale aanwezigheid (LocalBusiness)"
+"Street Address","Straat en huisnummer"
+"Address, telephone and email apply to every organization type; latitude, longitude and price range only to a local business (Organization Type: Local Business).","Adres, telefoon en e-mail gelden voor elk type organisatie; breedtegraad, lengtegraad en prijsklasse alleen voor een lokaal bedrijf (Type organisatie: Lokaal bedrijf)."
+"City / Town",Plaats
+"Region / County / State","Regio / provincie / staat"
+"Postcode / ZIP",Postcode
+"Country (ISO 3166-1 alpha-2)","Land (ISO 3166-1 alpha-2)"
+"Two-letter code, e.g. GB.","Code van twee letters, bijv. NL."
+Telephone,Telefoon
+Email,E-mail
+Latitude,Breedtegraad
+Longitude,Lengtegraad
+"Price Range",Prijsklasse
+"e.g. ££ or $$. Local business only.","bijv. €€ of $$. Alleen voor een lokaal bedrijf."
+"FAQ Settings",FAQ-instellingen
+"The group identifier of the FAQ entries to display (e.g. shipping).","De groepsidentificatie van de FAQ's die je wilt tonen (bijv. shipping)."

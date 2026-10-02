@@ -2,10 +2,11 @@
 
 declare(strict_types=1);
 
-namespace MageOS\Seo\Model\LlmsTxt;
+namespace MageOS\Seo\Api;
 
 /**
- * Contributes content to /llms.txt and /llms-full.txt.
+ * Contributes content to /llms.txt and /llms-full.txt. Register an implementation in
+ * Model\LlmsTxt\LlmsTxtBuilder's `sectionProviders` argument via your own di.xml.
  *
  * LlmsTxtBuilder places the returned markdown by its first line:
  *
@@ -15,9 +16,12 @@ namespace MageOS\Seo\Model\LlmsTxt;
  * - Any other output is details: paragraphs or lists, with no headings at all. It is placed
  *   before the first H2, after the summary.
  *
- * Return an empty string to contribute nothing.
+ * Either kind keeps the order the providers are registered in. Return an empty string to
+ * contribute nothing.
+ *
+ * @api
  */
-interface SectionProviderInterface
+interface LlmsTxtSectionProviderInterface
 {
     /**
      * Return a concise section string for /llms.txt.

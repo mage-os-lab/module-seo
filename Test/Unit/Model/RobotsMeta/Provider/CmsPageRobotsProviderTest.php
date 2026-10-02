@@ -10,7 +10,7 @@ use MageOS\Seo\Model\Cms\ConfigRepository as CmsPageConfigRepository;
 use MageOS\Seo\Model\Config;
 use MageOS\Seo\Model\RobotsMeta\Provider\CmsPageRobotsProvider;
 use PHPUnit\Framework\Attributes\Group;
-use PHPUnit\Framework\MockObject\MockObject;
+use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -24,14 +24,19 @@ use PHPUnit\Framework\TestCase;
 class CmsPageRobotsProviderTest extends TestCase
 {
     /**
-     * @var CmsPageResolver&MockObject
+     * @var CmsPageResolver&Stub
      */
-    private CmsPageResolver&MockObject $cmsPageResolver;
+    private CmsPageResolver&Stub $cmsPageResolver;
 
     /**
-     * @var Config&MockObject
+     * @var Config&Stub
      */
-    private Config&MockObject $config;
+    private Config&Stub $config;
+
+    /**
+     * @var CmsPageConfigRepository&Stub
+     */
+    private CmsPageConfigRepository&Stub $configRepository;
 
     /**
      * The row the page's own configuration returns.
@@ -54,18 +59,29 @@ class CmsPageRobotsProviderTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->cmsPageResolver = $this->createMock(CmsPageResolver::class);
-        $this->config          = $this->createMock(Config::class);
+        $this->cmsPageResolver = $this->createStub(CmsPageResolver::class);
+        $this->config          = $this->createStub(Config::class);
         $this->pageConfig      = [];
 
-        $configRepository = $this->createStub(CmsPageConfigRepository::class);
-        $configRepository->method('getForPage')->willReturnCallback(fn (): array => $this->pageConfig);
-        $configRepository->method('getForPages')->willReturnCallback(fn (): array => $this->pagesConfig);
+        $this->configRepository = $this->createStub(CmsPageConfigRepository::class);
+        $this->configRepository->method('getForPage')->willReturnCallback(fn (): array => $this->pageConfig);
+        $this->configRepository->method('getForPages')->willReturnCallback(fn (): array => $this->pagesConfig);
 
-        $this->provider = new CmsPageRobotsProvider(
+        $this->provider = $this->provider();
+    }
+
+    /**
+     * The provider under test, over the given store configuration or this test's stub.
+     *
+     * @param Config|null $config
+     * @return CmsPageRobotsProvider
+     */
+    private function provider(?Config $config = null): CmsPageRobotsProvider
+    {
+        return new CmsPageRobotsProvider(
             $this->cmsPageResolver,
-            $this->config,
-            $configRepository
+            $config ?? $this->config,
+            $this->configRepository
         );
     }
 
@@ -106,16 +122,18 @@ class CmsPageRobotsProviderTest extends TestCase
 
     public function testReturnsConfigDefaultWhenOnCmsPage(): void
     {
-        $this->cmsPageResolver->method('resolve')->willReturn($this->createMock(PageInterface::class));
-        $this->config->method('getRobotsCmsDefault')->with(1)->willReturn('INDEX,FOLLOW');
-        $this->assertSame('INDEX,FOLLOW', $this->provider->getRobots(1));
+        $this->cmsPageResolver->method('resolve')->willReturn($this->createStub(PageInterface::class));
+        $config = $this->createMock(Config::class);
+        $config->method('getRobotsCmsDefault')->with(1)->willReturn('INDEX,FOLLOW');
+        $this->assertSame('INDEX,FOLLOW', $this->provider($config)->getRobots(1));
     }
 
     public function testReturnsNullWhenConfigDefaultEmpty(): void
     {
-        $this->cmsPageResolver->method('resolve')->willReturn($this->createMock(PageInterface::class));
-        $this->config->method('getRobotsCmsDefault')->with(1)->willReturn('');
-        $this->assertNull($this->provider->getRobots(1));
+        $this->cmsPageResolver->method('resolve')->willReturn($this->createStub(PageInterface::class));
+        $config = $this->createMock(Config::class);
+        $config->method('getRobotsCmsDefault')->with(1)->willReturn('');
+        $this->assertNull($this->provider($config)->getRobots(1));
     }
 
     /**

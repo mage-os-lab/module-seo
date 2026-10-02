@@ -8,20 +8,20 @@ use Magento\Catalog\Model\Category;
 use Magento\Catalog\Model\Layer;
 use Magento\Catalog\Model\Layer\Resolver as LayerResolver;
 use MageOS\Seo\Model\PageTitle\Provider\CategoryTitleProvider;
-use PHPUnit\Framework\MockObject\MockObject;
+use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
 
 class CategoryTitleProviderTest extends TestCase
 {
     /**
-     * @var LayerResolver&MockObject
+     * @var LayerResolver&Stub
      */
-    private LayerResolver&MockObject $layerResolver;
+    private LayerResolver&Stub $layerResolver;
 
     /**
-     * @var Layer&MockObject
+     * @var Layer&Stub
      */
-    private Layer&MockObject $layer;
+    private Layer&Stub $layer;
 
     /**
      * @var CategoryTitleProvider
@@ -30,8 +30,8 @@ class CategoryTitleProviderTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->layerResolver = $this->createMock(LayerResolver::class);
-        $this->layer         = $this->createMock(Layer::class);
+        $this->layerResolver = $this->createStub(LayerResolver::class);
+        $this->layer         = $this->createStub(Layer::class);
         $this->layerResolver->method('get')->willReturn($this->layer);
         $this->provider      = new CategoryTitleProvider($this->layerResolver);
     }

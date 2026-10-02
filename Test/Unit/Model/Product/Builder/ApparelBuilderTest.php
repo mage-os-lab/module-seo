@@ -18,52 +18,55 @@ use MageOS\Seo\Model\Product\GtinValidator;
 use MageOS\Seo\Model\Product\OfferEnricher\Pool as OfferEnricherPool;
 use MageOS\Seo\Model\Review\AggregateRatingResolver;
 use MageOS\Seo\Service\CurrencyService;
+use MageOS\Seo\Test\Unit\Service\CurrencyServices;
 use PHPUnit\Framework\MockObject\MockObject;
+use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
 
 class ApparelBuilderTest extends TestCase
 {
+    use CurrencyServices;
     use OfferBuilders;
 
     /**
-     * @var StoreManagerInterface&MockObject
+     * @var StoreManagerInterface&Stub
      */
-    private StoreManagerInterface&MockObject $storeManager;
+    private StoreManagerInterface&Stub $storeManager;
 
     /**
-     * @var Store&MockObject
+     * @var Store&Stub
      */
-    private Store&MockObject $store;
+    private Store&Stub $store;
 
     /**
-     * @var CurrencyService&MockObject
+     * @var CurrencyService
      */
-    private CurrencyService&MockObject $currencyService;
+    private CurrencyService $currencyService;
 
     /**
-     * @var AvailabilityResolver&MockObject
+     * @var AvailabilityResolver&Stub
      */
-    private AvailabilityResolver&MockObject $availabilityResolver;
+    private AvailabilityResolver&Stub $availabilityResolver;
 
     /**
-     * @var ImageHelper&MockObject
+     * @var ImageHelper&Stub
      */
-    private ImageHelper&MockObject $imageHelper;
+    private ImageHelper&Stub $imageHelper;
 
     /**
-     * @var Config&MockObject
+     * @var Config&Stub
      */
-    private Config&MockObject $seoConfig;
+    private Config&Stub $seoConfig;
 
     /**
-     * @var DateTime&MockObject
+     * @var DateTime&Stub
      */
-    private DateTime&MockObject $dateTime;
+    private DateTime&Stub $dateTime;
 
     /**
-     * @var Product&MockObject
+     * @var Product&Stub
      */
-    private Product&MockObject $product;
+    private Product&Stub $product;
 
     /**
      * @var PriceInfoInterface&MockObject
@@ -71,9 +74,9 @@ class ApparelBuilderTest extends TestCase
     private PriceInfoInterface&MockObject $priceInfo;
 
     /**
-     * @var PriceInterface&MockObject
+     * @var PriceInterface&Stub
      */
-    private PriceInterface&MockObject $finalPrice;
+    private PriceInterface&Stub $finalPrice;
 
     /**
      * @var ApparelBuilder
@@ -82,21 +85,19 @@ class ApparelBuilderTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->storeManager    = $this->createMock(StoreManagerInterface::class);
-        $this->store           = $this->createMock(Store::class);
-        $this->currencyService = $this->createMock(CurrencyService::class);
-        $this->availabilityResolver = $this->createMock(AvailabilityResolver::class);
-        $this->imageHelper     = $this->createMock(ImageHelper::class);
-        $this->seoConfig       = $this->createMock(Config::class);
-        $this->dateTime        = $this->createMock(DateTime::class);
-        $this->product         = $this->createMock(Product::class);
+        $this->storeManager    = $this->createStub(StoreManagerInterface::class);
+        $this->store           = $this->createStub(Store::class);
+        $this->currencyService = $this->currencyService();
+        $this->availabilityResolver = $this->createStub(AvailabilityResolver::class);
+        $this->imageHelper     = $this->createStub(ImageHelper::class);
+        $this->seoConfig       = $this->createStub(Config::class);
+        $this->dateTime        = $this->createStub(DateTime::class);
+        $this->product         = $this->createStub(Product::class);
         $this->priceInfo       = $this->createMock(PriceInfoInterface::class);
-        $this->finalPrice      = $this->createMock(PriceInterface::class);
+        $this->finalPrice      = $this->createStub(PriceInterface::class);
 
         $this->storeManager->method('getStore')->willReturn($this->store);
         $this->store->method('getBaseUrl')->willReturn('https://example.com/');
-        $this->currencyService->method('getCurrentCurrencyCode')->willReturn('GBP');
-        $this->currencyService->method('convertFromBase')->willReturnArgument(0);
         $this->finalPrice->method('getValue')->willReturn(59.99);
         $this->priceInfo->method('getPrice')->with('final_price')->willReturn($this->finalPrice);
         $this->product->method('getPriceInfo')->willReturn($this->priceInfo);

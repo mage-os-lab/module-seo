@@ -8,6 +8,7 @@ use Magento\Catalog\Model\ResourceModel\Category\CollectionFactory as CategoryCo
 use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Store\Model\ScopeInterface;
 use Magento\Store\Model\StoreManagerInterface;
+use MageOS\Seo\Api\LlmsTxtSectionProviderInterface;
 use MageOS\Seo\Api\OrganizationRepositoryInterface;
 use MageOS\Seo\Model\Config;
 use MageOS\Seo\Model\Organization\ContactEmail;
@@ -31,8 +32,11 @@ use MageOS\Seo\Model\Product\SchemaBuilderPool;
  *
  * Extended vendor and category data is injected via provider arrays registered
  * in di.xml — allowing SellersSeo (and any future bridge) to contribute content
- * without coupling this class to those modules. See SectionProviderInterface for
- * how provider output is placed.
+ * without coupling this class to those modules. See Api\LlmsTxtSectionProviderInterface
+ * for how provider output is placed.
+ *
+ * The text is in the store view's language, like the rest of its storefront: headings, labels and
+ * notes are translated phrases; the markdown structure around them is not.
  *
  * The locale is the store view's configured one (Config::getLocaleCode()); the line is left out
  * when there is none. The AI contact is Organization\ContactEmail's; the line is left out when
@@ -78,7 +82,7 @@ class LlmsTxtBuilder
      * @param Config $seoConfig
      * @param ContactEmail $contactEmail
      * @param SitemapUrlResolver $sitemapUrlResolver
-     * @param \MageOS\Seo\Model\LlmsTxt\SectionProviderInterface[] $sectionProviders
+     * @param \MageOS\Seo\Api\LlmsTxtSectionProviderInterface[] $sectionProviders
      */
     public function __construct(
         private readonly OrganizationRepositoryInterface $organizationRepository,
@@ -133,7 +137,7 @@ class LlmsTxtBuilder
         $providerDetails  = [];
         $providerSections = [];
         foreach ($this->sectionProviders as $provider) {
-            if (!$provider instanceof SectionProviderInterface) {
+            if (!$provider instanceof LlmsTxtSectionProviderInterface) {
                 continue;
             }
             $section = trim($full ? $provider->getFullSection() : $provider->getConciseSection());
@@ -161,12 +165,16 @@ class LlmsTxtBuilder
             $blocks[] = $details;
         }
 
-        $keyUrls = ['## Key URLs', '', "- [Home]({$baseUrl}/): Store front page"];
+        $keyUrls = [
+            '## ' . __('Key URLs'),
+            '',
+            '- [' . $this->linkLabel((string) __('Home')) . "]({$baseUrl}/): " . __('Store front page'),
+        ];
         // The configured sitemap location (Marketing → Site Map), not a guessed /sitemap.xml.
         $sitemapUrl = $this->sitemapUrlResolver->getUrl($store);
         if ($sitemapUrl !== null) {
-            $keyUrls[] = '- [Sitemap](' . strtr($sitemapUrl, self::URL_REPLACEMENTS) . ')'
-                . ': XML sitemap of indexable pages';
+            $keyUrls[] = '- [' . $this->linkLabel((string) __('Sitemap')) . ']('
+                . strtr($sitemapUrl, self::URL_REPLACEMENTS) . '): ' . __('XML sitemap of indexable pages');
         }
         $blocks[] = implode("\n", $keyUrls);
 
@@ -195,14 +203,14 @@ class LlmsTxtBuilder
      */
     private function buildDetails(bool $full, $store, string $baseUrl, array $socialProfiles): array
     {
-        $lines = ["- Base URL: {$baseUrl}"];
+        $lines = ['- ' . __('Base URL: %1', $baseUrl)];
 
         $locale = trim($this->seoConfig->getLocaleCode((int) $store->getId()));
         if ($locale !== '') {
-            $lines[] = "- Locale: {$locale}";
+            $lines[] = '- ' . __('Locale: %1', $locale);
         }
 
-        $lines[] = "- Search URL template: `{$baseUrl}/catalogsearch/result?q={query}`";
+        $lines[] = '- ' . __('Search URL template: %1', "`{$baseUrl}/catalogsearch/result?q={query}`");
 
         if ($full && $socialProfiles !== []) {
             $links = [];
@@ -213,7 +221,7 @@ class LlmsTxtBuilder
                 }
             }
             if ($links !== []) {
-                $lines[] = '- Social profiles: ' . implode(', ', $links);
+                $lines[] = '- ' . __('Social profiles: %1', implode(', ', $links));
             }
         }
 
@@ -234,23 +242,27 @@ class LlmsTxtBuilder
                     ['Organization', 'WebSite', 'CollectionPage', 'BreadcrumbList', 'ItemList'],
                     $productTypes
                 );
-                $lines[] = '- Structured data: schema.org JSON-LD; types the pages can carry: '
-                    . implode(', ', $types);
+                $lines[] = '- ' . __(
+                    'Structured data: schema.org JSON-LD; types the pages can carry: %1',
+                    implode(', ', $types)
+                );
 
                 $described = [];
                 foreach ($templates as $code => $label) {
                     $described[] = "{$code} ({$this->oneLine((string) $label)})";
                 }
-                $lines[] = '- Product schema templates: ' . implode(', ', $described);
+                $lines[] = '- ' . __('Product schema templates: %1', implode(', ', $described));
             } else {
-                $lines[] = '- Structured data: schema.org JSON-LD on product pages ('
-                    . implode(', ', $productTypes) . ')';
+                $lines[] = '- ' . __(
+                    'Structured data: schema.org JSON-LD on product pages (%1)',
+                    implode(', ', $productTypes)
+                );
             }
         }
 
         $contactEmail = trim($this->contactEmail->get());
         if ($contactEmail !== '') {
-            $lines[] = "- Contact for automated queries: <{$contactEmail}>";
+            $lines[] = '- ' . __('Contact for automated queries: %1', "<{$contactEmail}>");
         }
 
         return $lines;
@@ -314,7 +326,7 @@ class LlmsTxtBuilder
             );
             $label  = $this->linkLabel((string) $category->getName());
             $count  = (int) $category->getProductCount();
-            $note   = $count > 0 ? ": {$count} products" : '';
+            $note   = $count > 0 ? ': ' . __('%1 products', $count) : '';
             $items[] = "{$indent}- [{$label}]({$url}){$note}";
         }
 
@@ -322,7 +334,7 @@ class LlmsTxtBuilder
             return '';
         }
 
-        return implode("\n", array_merge(['## Category Tree', ''], $items));
+        return implode("\n", array_merge(['## ' . __('Category Tree'), ''], $items));
     }
 
     /**

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace MageOS\Seo\Model\LlmsTxt;
 
 use Magento\Store\Model\StoreManagerInterface;
+use MageOS\Seo\Api\LlmsTxtSectionProviderInterface;
 use MageOS\Seo\Model\Aeo\Config;
 use MageOS\Seo\Model\Faq\SourcePool;
 
@@ -21,7 +22,7 @@ use MageOS\Seo\Model\Faq\SourcePool;
  * Each question and answer is reduced to one line of plain text so an answer containing HTML or
  * line breaks cannot break the list.
  */
-class FaqLlmsSectionProvider implements SectionProviderInterface
+class FaqLlmsSectionProvider implements LlmsTxtSectionProviderInterface
 {
     private const CONCISE_LIMIT = 5;
 
@@ -75,7 +76,7 @@ class FaqLlmsSectionProvider implements SectionProviderInterface
             $faqs = \array_slice($faqs, 0, $limit);
         }
 
-        $lines = ['Frequently asked questions:', ''];
+        $lines = [(string) __('Frequently asked questions:'), ''];
         foreach ($faqs as $faq) {
             $question = $this->plainText((string) $faq['question']);
             $answer   = $this->plainText((string) $faq['answer']);

@@ -11,6 +11,7 @@ use MageOS\Seo\Model\Aeo\Config;
 use MageOS\Seo\Model\Router\LlmsTxtRouter;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\MockObject\MockObject;
+use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
 
 class LlmsTxtRouterTest extends TestCase
@@ -40,11 +41,26 @@ class LlmsTxtRouterTest extends TestCase
         $this->router        = new LlmsTxtRouter($this->actionFactory, $config);
     }
 
-    private function request(string $path, string $module = ''): Http&MockObject
+    private function request(string $path, string $module = ''): Http&Stub
+    {
+        $request = $this->createStub(Http::class);
+        $request->method('getPathInfo')->willReturn($path);
+        $request->method('getModuleName')->willReturn($module);
+
+        return $request;
+    }
+
+    /**
+     * The same request as a mock, for a test that verifies how the router rewrites it.
+     *
+     * @param string $path
+     * @return Http&MockObject
+     */
+    private function requestMock(string $path): Http&MockObject
     {
         $request = $this->createMock(Http::class);
         $request->method('getPathInfo')->willReturn($path);
-        $request->method('getModuleName')->willReturn($module);
+        $request->method('getModuleName')->willReturn('');
 
         return $request;
     }
@@ -80,13 +96,13 @@ class LlmsTxtRouterTest extends TestCase
     #[DataProvider('routeProvider')]
     public function testMatchedPathForwardsToController(string $path, string $expectedController): void
     {
-        $request = $this->request($path);
+        $request = $this->requestMock($path);
         $request->expects($this->once())->method('setModuleName')->with('mageos-aeo')->willReturnSelf();
         $request->expects($this->once())->method('setControllerName')->with($expectedController)->willReturnSelf();
         $request->expects($this->once())->method('setActionName')->with('index')->willReturnSelf();
         $request->method('setAlias')->willReturnSelf();
 
-        $action = $this->createMock(ActionInterface::class);
+        $action = $this->createStub(ActionInterface::class);
         $this->actionFactory->expects($this->once())->method('create')->willReturn($action);
 
         $this->assertSame($action, $this->router->match($request));
@@ -104,6 +120,9 @@ class LlmsTxtRouterTest extends TestCase
         ];
     }
 
+    /**
+     * @dataProvider fileProvider
+     */
     #[DataProvider('fileProvider')]
     public function testDisabledFileFallsThroughToOtherRouters(string $file): void
     {

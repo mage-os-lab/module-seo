@@ -8,16 +8,16 @@ The module serves two plain-text documents at well-known URLs so LLM crawlers an
 
 | URL | Content | Config toggle |
 |---|---|---|
-| `/llms.txt` | Concise: org name, description, base URL, locale, available schema types, the first 5 FAQs, AI contact email | Stores → Configuration → MageOS SEO → AI Information & Crawlers → Enable /llms.txt |
-| `/llms-full.txt` | Extended: everything in the concise version plus social profiles, full category tree with product counts, full template list, every FAQ | Stores → Configuration → MageOS SEO → AI Information & Crawlers → Enable /llms-full.txt |
+| `/llms.txt` | Concise: org name, description, base URL, locale, available schema types, the first 5 FAQs, AI contact email | Stores → Configuration → MageOS SEO → AI Information & Crawlers → AI Discoverability (llms.txt) → Enable /llms.txt |
+| `/llms-full.txt` | Extended: everything in the concise version plus social profiles, full category tree with product counts, full template list, every FAQ | Stores → Configuration → MageOS SEO → AI Information & Crawlers → AI Discoverability (llms.txt) → Enable /llms-full.txt |
 
 Both return `404` when their respective config toggle is off.
 
 Both config toggles are per-store-view settings.
 
 A third document, `/llms.jsonl`, carries one compact JSON-LD `Product` node per line for the
-store's catalogue. It is **off by default** — turn it on per store view with
-`mageos_aeo/llms_txt/jsonl_enabled`.
+store's catalogue (see [Content of /llms.jsonl](#content-of-llmsjsonl)). It is **off by default** —
+turn it on per store view with `mageos_aeo/llms_txt/jsonl_enabled`.
 
 ---
 
@@ -73,6 +73,10 @@ The locale line is left out when the store view has no locale configured, the FA
 selected groups have no questions (the first 5 are shown), and the contact line when there is none
 (see [Data sources](#data-sources)).
 
+The document's own headings and labels ("Key URLs", "Base URL", "Store front page" and so on) are in the
+store view's language, the language of everything it lists; the example above is in English. See
+[Translations](translations.md).
+
 ---
 
 ## Content of /llms-full.txt
@@ -98,6 +102,82 @@ The section is left out when the store has no visible categories. If they cannot
 store's build fails: FeedRegenerator logs it and keeps serving the previous file.
 
 - Any sections contributed by bridge modules
+
+---
+
+## Content of /llms.jsonl
+
+NDJSON: one JSON object per line, UTF-8, each line ending in a line feed. It is served as
+`application/x-ndjson; charset=utf-8` and written to its file a line at a time while it is built
+(see [feeds.md](feeds.md)).
+
+Each product line is a schema.org `Product` node. One line from a rebuild of Magento's sample
+catalogue, with the host changed to example.com:
+
+```json
+{"@context":"https://schema.org","@type":"Product","@id":"https://example.com/joust-duffle-bag.html","name":"Joust Duffle Bag","url":"https://example.com/joust-duffle-bag.html","offers":{"@type":"Offer","price":"34.00","priceCurrency":"GBP","availability":"https://schema.org/InStock","url":"https://example.com/joust-duffle-bag.html"},"sku":"24-MB01","description":"The sporty Joust Duffle Bag can't be beat - not in the gym, not on the luggage carousel, not anywhere. Big enough to haul a basketball or soccer ball and some sneakers with plenty of room to spare, it's ideal for athletes with places to go. Dual top handles. Adjustable shoulder strap. Full-length…","image":"https://example.com/media/catalog/product/m/b/mb01-blue-0.jpg"}
+```
+
+| Field | Present | Value |
+|---|---|---|
+| `@context` | always | `https://schema.org` |
+| `@type` | always | `Product` |
+| `@id`, `url` | always | the product URL |
+| `name` | always | the store view's product name |
+| `offers` | always | one `Offer` with `price`, `priceCurrency`, `availability` and `url` |
+| `sku` | when the product has one | |
+| `description` | when the product has one | the short description, else the description: plain text on one line, at most 300 characters, cut at a word and ended with "…" |
+| `image` | when the product has a base image | its absolute URL under the store's media URL |
+
+The values:
+
+- `price` is the product's final price in the store view's display currency, the price the
+  storefront shows. It is written with two decimals, a full stop and no thousands separator
+  (`1234.50`) whatever the store's locale, and `priceCurrency` is the current currency code. When
+  the price cannot be read, `price` is `0.00`.
+- `availability` is `https://schema.org/InStock` or `https://schema.org/OutOfStock`, by MSI
+  salability on the website's stock, looked up for 1,000 products at a time. When that lookup
+  fails, the products it covered are written as OutOfStock and the failure is logged. Unlike the
+  JSON-LD on product pages, a line has no `BackOrder`.
+
+A product gets a line when it is enabled, assigned to the store view's website, and visible in
+*Catalog* or *Catalog, Search*. Products visible in *Search* only, and those not visible
+individually, are left out. Products that are out of stock are included, as OutOfStock. A line
+that cannot be encoded as JSON (invalid UTF-8 in a name, for example) is left out and logged as a
+notice with the product's URL and SKU.
+
+No JSON Schema file is published: there is no standard for `llms.jsonl`, and each product line is
+a schema.org `Product` node.
+
+### Adding lines
+
+A bridge module appends whole nodes of any `@type` — a marketplace's vendors as `LocalBusiness`,
+say — by implementing `MageOS\Seo\Api\JsonlLineProviderInterface`:
+
+```php
+class VendorLines implements \MageOS\Seo\Api\JsonlLineProviderInterface
+{
+    public function getAdditionalLines(int $storeId): array
+    {
+        return [
+            ['@context' => 'https://schema.org', '@type' => 'LocalBusiness', 'name' => 'Studio A', 'url' => 'https://…'],
+        ];
+    }
+}
+```
+
+```xml
+<type name="MageOS\Seo\Model\LlmsJsonl\JsonlBuilder">
+    <arguments>
+        <argument name="lineProviders" xsi:type="array">
+            <item name="vendors" xsi:type="object">MyModule\Model\LlmsJsonl\VendorLines</item>
+        </argument>
+    </arguments>
+</type>
+```
+
+Each node becomes one line, after all the product lines, in the order the providers are
+registered. A provider adds lines; it cannot change the product lines.
 
 ---
 
@@ -146,14 +226,14 @@ Both documents draw data from:
 
 The address published for automated queries is the first of:
 
-1. the Organisation's **Contact Email** (Marketing → SEO → Organisation), the same address the
+1. the Organisation's **Contact Email** (Marketing → SEO → Organization), the same address the
    `Organization` JSON-LD publishes as its `contactPoint`;
 2. the store's **Customer Support** email (Stores → Configuration → General → Store Email
    Addresses), **unless it is still the value Magento ships**. Every installation starts with
    `support@example.com` there, and publishing that placeholder would tell agents to write to an
    address nobody reads. The shipped value is read from the installed modules' `config.xml`
    defaults, so a distribution that ships a different placeholder is recognised too;
-3. none: the `## AI Contact` section is left out.
+3. none: the contact line is left out.
 
 `MageOS\Seo\Model\Organization\ContactEmail` makes this choice for both documents. To publish a
 different address, set the Organisation's Contact Email.
@@ -178,7 +258,7 @@ a product's sizing questions, a returns page — and llms.txt is a summary of th
 groups that answer site-wide questions.
 
 To build the section some other way, replace the `faq` section provider in your module's `di.xml`
-with your own `SectionProviderInterface` implementation (see below):
+with your own `LlmsTxtSectionProviderInterface` implementation (see below):
 
 ```xml
 <type name="MageOS\Seo\Model\LlmsTxt\LlmsTxtBuilder">
@@ -194,7 +274,7 @@ with your own `SectionProviderInterface` implementation (see below):
 
 ## Adding content from a bridge module
 
-Register a `SectionProviderInterface` implementation in your bridge module's `di.xml`.
+Register a `LlmsTxtSectionProviderInterface` implementation in your bridge module's `di.xml`.
 Where the output goes depends on its first line:
 
 - output starting with `## ` is an H2 section, appended after the built-in sections. Every item
@@ -203,7 +283,7 @@ Where the output goes depends on its first line:
 
 ```php
 // MyModule/Model/LlmsTxt/MySectionProvider.php
-class MySectionProvider implements \MageOS\Seo\Model\LlmsTxt\SectionProviderInterface
+class MySectionProvider implements \MageOS\Seo\Api\LlmsTxtSectionProviderInterface
 {
     public function getConciseSection(): string
     {

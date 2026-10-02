@@ -17,7 +17,7 @@ use MageOS\Seo\Model\Sitemap\Hreflang\Enricher;
 use MageOS\Seo\Model\Sitemap\Hreflang\Renderer;
 use MageOS\Seo\Model\Sitemap\SitemapItem;
 use MageOS\Seo\Model\Store\CanonicalBaseUrl;
-use PHPUnit\Framework\MockObject\MockObject;
+use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -28,14 +28,14 @@ use PHPUnit\Framework\TestCase;
 class EnricherTest extends TestCase
 {
     /**
-     * @var UrlRewriteFetcher&MockObject
+     * @var UrlRewriteFetcher&Stub
      */
-    private UrlRewriteFetcher&MockObject $fetcher;
+    private UrlRewriteFetcher&Stub $fetcher;
 
     /**
-     * @var CmsConfigRepository&MockObject
+     * @var CmsConfigRepository&Stub
      */
-    private CmsConfigRepository&MockObject $cmsConfig;
+    private CmsConfigRepository&Stub $cmsConfig;
 
     /**
      * @var bool
@@ -44,14 +44,15 @@ class EnricherTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->fetcher   = $this->createMock(UrlRewriteFetcher::class);
-        $this->cmsConfig = $this->createMock(CmsConfigRepository::class);
+        $this->fetcher   = $this->createStub(UrlRewriteFetcher::class);
+        $this->cmsConfig = $this->createStub(CmsConfigRepository::class);
         $this->enabled   = true;
     }
 
     public function testAChunkIsFetchedWithOneQueryPerEntityType(): void
     {
-        $this->fetcher->expects($this->exactly(2))->method('fetchForEntities')->willReturnCallback(
+        $fetcher = $this->createMock(UrlRewriteFetcher::class);
+        $fetcher->expects($this->exactly(2))->method('fetchForEntities')->willReturnCallback(
             static fn (string $type, array $ids): array => match ($type) {
                 'product'  => [1 => [1 => 'a.html', 2 => 'de/a.html'], 2 => [1 => 'b.html', 2 => 'de/b.html']],
                 'category' => [7 => [1 => 'shirts.html', 2 => 'de/hemden.html']],
@@ -64,7 +65,7 @@ class EnricherTest extends TestCase
             $this->item('b.html', 'product', 2),
             $this->item('shirts.html', 'category', 7),
         ];
-        $this->enricher()->enrich($items, 1);
+        $this->enricher($fetcher)->enrich($items, 1);
 
         $this->assertSame(
             ['en-GB' => 'https://uk/shirts.html', 'de-DE' => 'https://de/de/hemden.html'],
@@ -74,14 +75,16 @@ class EnricherTest extends TestCase
 
     public function testACmsPageInAGroupGetsItsGroupsAlternates(): void
     {
-        $this->cmsConfig->method('getHreflangGroups')->with([3, 4])->willReturn([3 => 'about-us']);
-        $this->fetcher->method('fetchForCmsGroups')->with(['about-us'])
+        $cmsConfig = $this->createMock(CmsConfigRepository::class);
+        $cmsConfig->method('getHreflangGroups')->with([3, 4])->willReturn([3 => 'about-us']);
+        $fetcher = $this->createMock(UrlRewriteFetcher::class);
+        $fetcher->method('fetchForCmsGroups')->with(['about-us'])
             ->willReturn(['about-us' => [1 => 'about-us', 2 => 'ueber-uns']]);
-        $this->fetcher->method('fetchForEntities')->with('cms-page', [4])
+        $fetcher->method('fetchForEntities')->with('cms-page', [4])
             ->willReturn([4 => [1 => 'contact', 2 => 'kontakt']]);
 
         $items = [$this->item('about-us', 'cms-page', 3), $this->item('contact', 'cms-page', 4)];
-        $this->enricher()->enrich($items, 1);
+        $this->enricher($fetcher, $cmsConfig)->enrich($items, 1);
 
         $this->assertSame('https://de/ueber-uns', $this->alternatesOf($items[0])['de-DE'] ?? null);
         $this->assertSame('https://de/kontakt', $this->alternatesOf($items[1])['de-DE'] ?? null);
@@ -104,10 +107,11 @@ class EnricherTest extends TestCase
 
     public function testTheHomePageGetsTheStoreViewsHomes(): void
     {
-        $this->fetcher->expects($this->never())->method('fetchForEntities');
+        $fetcher = $this->createMock(UrlRewriteFetcher::class);
+        $fetcher->expects($this->never())->method('fetchForEntities');
 
         $item = $this->item('', 'store', null);
-        $this->enricher()->enrich([$item], 1);
+        $this->enricher($fetcher)->enrich([$item], 1);
 
         $this->assertSame(['en-GB' => 'https://uk/', 'de-DE' => 'https://de/'], $this->alternatesOf($item));
     }
@@ -123,10 +127,11 @@ class EnricherTest extends TestCase
     public function testNothingIsFetchedWhenTheSettingIsOff(): void
     {
         $this->enabled = false;
-        $this->fetcher->expects($this->never())->method('fetchForEntities');
+        $fetcher = $this->createMock(UrlRewriteFetcher::class);
+        $fetcher->expects($this->never())->method('fetchForEntities');
 
         $item = $this->item('a.html', 'product', 1);
-        $this->enricher()->enrich([$item], 1);
+        $this->enricher($fetcher)->enrich([$item], 1);
 
         $this->assertSame([], $item->getDataBag());
     }
@@ -163,9 +168,11 @@ class EnricherTest extends TestCase
      * The enricher over two store views, uk (1, en-GB) and de (2, de-DE); the alternate builder
      * passes the region links through.
      *
+     * @param UrlRewriteFetcher|null $fetcher Defaults to this test's stub
+     * @param CmsConfigRepository|null $cmsConfig Defaults to this test's stub
      * @return Enricher
      */
-    private function enricher(): Enricher
+    private function enricher(?UrlRewriteFetcher $fetcher = null, ?CmsConfigRepository $cmsConfig = null): Enricher
     {
         $config = $this->createStub(Config::class);
         $config->method('isHreflangSitemapEnabled')->willReturnCallback(fn (): bool => $this->enabled);
@@ -203,8 +210,8 @@ class EnricherTest extends TestCase
 
         return new Enricher(
             $config,
-            $this->fetcher,
-            $this->cmsConfig,
+            $fetcher ?? $this->fetcher,
+            $cmsConfig ?? $this->cmsConfig,
             $linkBuilder,
             $alternateBuilder,
             $baseUrl,

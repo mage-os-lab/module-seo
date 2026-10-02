@@ -11,31 +11,25 @@ use MageOS\Seo\Model\Category\ConfigRepository as CategoryConfigRepository;
 use MageOS\Seo\Model\Category\PathResolver;
 use MageOS\Seo\Model\Config;
 use MageOS\Seo\Model\RobotsMeta\Provider\CategoryRobotsProvider;
-use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
 
 class CategoryRobotsProviderTest extends TestCase
 {
     /**
-     * @var LayerResolver&MockObject
+     * @var Layer&Stub
      */
-    private LayerResolver&MockObject $layerResolver;
+    private Layer&Stub $layer;
 
     /**
-     * @var Layer&MockObject
+     * @var CategoryConfigRepository&Stub
      */
-    private Layer&MockObject $layer;
+    private CategoryConfigRepository&Stub $configRepository;
 
     /**
-     * @var CategoryConfigRepository&MockObject
+     * @var Config&Stub
      */
-    private CategoryConfigRepository&MockObject $configRepository;
-
-    /**
-     * @var Config&MockObject
-     */
-    private Config&MockObject $config;
+    private Config&Stub $config;
 
     /**
      * @var PathResolver&Stub
@@ -49,16 +43,37 @@ class CategoryRobotsProviderTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->layerResolver    = $this->createMock(LayerResolver::class);
-        $this->layer            = $this->createMock(Layer::class);
-        $this->configRepository = $this->createMock(CategoryConfigRepository::class);
-        $this->config           = $this->createMock(Config::class);
+        $this->layer            = $this->createStub(Layer::class);
+        $this->configRepository = $this->createStub(CategoryConfigRepository::class);
+        $this->config           = $this->createStub(Config::class);
         $this->pathResolver     = $this->createStub(PathResolver::class);
-        $this->layerResolver->method('get')->willReturn($this->layer);
-        $this->provider = new CategoryRobotsProvider(
-            $this->layerResolver,
-            $this->configRepository,
-            $this->config,
+        $this->provider         = $this->provider();
+    }
+
+    /**
+     * The provider under test, over the given doubles or this test's stubs.
+     *
+     * Without a layer resolver of the test's own, it gets one that returns this test's layer.
+     *
+     * @param LayerResolver|null $layerResolver
+     * @param CategoryConfigRepository|null $configRepository
+     * @param Config|null $config
+     * @return CategoryRobotsProvider
+     */
+    private function provider(
+        ?LayerResolver $layerResolver = null,
+        ?CategoryConfigRepository $configRepository = null,
+        ?Config $config = null
+    ): CategoryRobotsProvider {
+        if ($layerResolver === null) {
+            $layerResolver = $this->createStub(LayerResolver::class);
+            $layerResolver->method('get')->willReturn($this->layer);
+        }
+
+        return new CategoryRobotsProvider(
+            $layerResolver,
+            $configRepository ?? $this->configRepository,
+            $config ?? $this->config,
             $this->pathResolver
         );
     }
@@ -72,7 +87,7 @@ class CategoryRobotsProviderTest extends TestCase
      */
     private function withCategory(int $id, array $path = []): void
     {
-        $category = $this->createMock(CategoryInterface::class);
+        $category = $this->createStub(CategoryInterface::class);
         $category->method('getId')->willReturn($id);
         $this->layer->method('getCurrentCategory')->willReturn($category);
         $this->pathResolver->method('forCategory')->willReturnMap([[$category, $path]]);
@@ -97,27 +112,34 @@ class CategoryRobotsProviderTest extends TestCase
     public function testReturnsPerCategoryOverride(): void
     {
         $this->withCategory(9);
-        $this->configRepository->method('getForCategory')->with(9, [], 1)
+        $configRepository = $this->createMock(CategoryConfigRepository::class);
+        $configRepository->method('getForCategory')->with(9, [], 1)
             ->willReturn(['robots_meta' => 'NOINDEX,FOLLOW']);
-        $this->assertSame('NOINDEX,FOLLOW', $this->provider->getRobots(1));
+        $this->assertSame('NOINDEX,FOLLOW', $this->provider(configRepository: $configRepository)->getRobots(1));
     }
 
     public function testFallsBackToConfigDefault(): void
     {
         $this->withCategory(9);
-        $this->configRepository->method('getForCategory')->with(9, [], 1)
+        $configRepository = $this->createMock(CategoryConfigRepository::class);
+        $configRepository->method('getForCategory')->with(9, [], 1)
             ->willReturn(['robots_meta' => null]);
-        $this->config->method('getRobotsCategoryDefault')->with(1)->willReturn('INDEX,FOLLOW');
-        $this->assertSame('INDEX,FOLLOW', $this->provider->getRobots(1));
+        $config = $this->createMock(Config::class);
+        $config->method('getRobotsCategoryDefault')->with(1)->willReturn('INDEX,FOLLOW');
+        $provider = $this->provider(configRepository: $configRepository, config: $config);
+        $this->assertSame('INDEX,FOLLOW', $provider->getRobots(1));
     }
 
     public function testReturnsNullWhenOverrideAndDefaultBothEmpty(): void
     {
         $this->withCategory(9);
-        $this->configRepository->method('getForCategory')->with(9, [], 1)
+        $configRepository = $this->createMock(CategoryConfigRepository::class);
+        $configRepository->method('getForCategory')->with(9, [], 1)
             ->willReturn([]);
-        $this->config->method('getRobotsCategoryDefault')->with(1)->willReturn('');
-        $this->assertNull($this->provider->getRobots(1));
+        $config = $this->createMock(Config::class);
+        $config->method('getRobotsCategoryDefault')->with(1)->willReturn('');
+        $provider = $this->provider(configRepository: $configRepository, config: $config);
+        $this->assertNull($provider->getRobots(1));
     }
 
     public function testTheAncestorPathIsPassedSoSettingsCanBeInherited(): void
@@ -126,12 +148,13 @@ class CategoryRobotsProviderTest extends TestCase
         // value set on an ancestor — which the admin form shows this category inheriting — never
         // reaches the page.
         $this->withCategory(9, ['1', '2', '5', '9']);
-        $this->configRepository->expects($this->once())
+        $configRepository = $this->createMock(CategoryConfigRepository::class);
+        $configRepository->expects($this->once())
             ->method('getForCategory')
             ->with(9, ['1', '2', '5', '9'], 1)
             ->willReturn(['robots_meta' => 'NOINDEX,FOLLOW']);
 
-        $this->assertSame('NOINDEX,FOLLOW', $this->provider->getRobots(1));
+        $this->assertSame('NOINDEX,FOLLOW', $this->provider(configRepository: $configRepository)->getRobots(1));
     }
 
     /**
@@ -139,11 +162,14 @@ class CategoryRobotsProviderTest extends TestCase
      */
     public function testForCategoryAnswersWithoutTheLayer(): void
     {
-        $this->layerResolver->expects($this->never())->method('get');
-        $this->configRepository->method('getForCategory')->with(9, ['1', '2', '9'], 3)
+        $layerResolver = $this->createMock(LayerResolver::class);
+        $layerResolver->expects($this->never())->method('get');
+        $configRepository = $this->createMock(CategoryConfigRepository::class);
+        $configRepository->method('getForCategory')->with(9, ['1', '2', '9'], 3)
             ->willReturn(['robots_meta' => 'NOINDEX,FOLLOW']);
+        $provider = $this->provider($layerResolver, $configRepository);
 
-        $this->assertSame('NOINDEX,FOLLOW', $this->provider->forCategory(9, ['1', '2', '9'], 3));
+        $this->assertSame('NOINDEX,FOLLOW', $provider->forCategory(9, ['1', '2', '9'], 3));
     }
 
     public function testForCategoryFallsBackToTheDefaultAndThenToNothing(): void

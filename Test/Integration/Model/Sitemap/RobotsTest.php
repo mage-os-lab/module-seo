@@ -13,9 +13,9 @@ use Magento\TestFramework\Fixture\DataFixture;
 use Magento\TestFramework\Fixture\DataFixtureStorageManager;
 use Magento\TestFramework\TestCase\AbstractController;
 use MageOS\Seo\Model\Category\ConfigRepository as CategoryConfigRepository;
-use MageOS\Seo\Model\Category\ProductOverrideRepository;
 use MageOS\Seo\Model\Cms\ConfigRepository as CmsConfigRepository;
 use MageOS\Seo\Model\Config;
+use MageOS\Seo\Model\Product\OverrideRepository;
 
 /**
  * F4: a page whose robots directive is NOINDEX is left out of the sitemap.
@@ -78,7 +78,7 @@ class RobotsTest extends AbstractController
     public function testAProductServedNoindexIsLeftOut(): void
     {
         $hidden = DataFixtureStorageManager::getStorage()->get('hidden');
-        $this->_objectManager->get(ProductOverrideRepository::class)
+        $this->_objectManager->get(OverrideRepository::class)
             ->save((int) $hidden->getId(), 0, ['robots_meta' => 'NOINDEX,FOLLOW']);
 
         $locs = $this->locs();
@@ -167,7 +167,7 @@ class RobotsTest extends AbstractController
     public function testNoindexPagesAreListedWhenTheSettingIsOff(): void
     {
         $hidden = DataFixtureStorageManager::getStorage()->get('hidden');
-        $this->_objectManager->get(ProductOverrideRepository::class)
+        $this->_objectManager->get(OverrideRepository::class)
             ->save((int) $hidden->getId(), 0, ['robots_meta' => 'NOINDEX,FOLLOW']);
         $this->setStoreConfig(Config::XML_SITEMAP_EXCLUDE_NOINDEX, '0');
 

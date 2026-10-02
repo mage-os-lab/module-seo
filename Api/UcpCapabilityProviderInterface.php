@@ -11,6 +11,8 @@ namespace MageOS\Seo\Api;
  * `providers` argument of MageOS\Seo\Model\Ucp\CapabilityPool), without editing MageOS_Seo.
  * Providers sharing a capability key (one per version, say) are listed together under it, as UCP
  * 2026-08-25 requires.
+ *
+ * @api
  */
 interface UcpCapabilityProviderInterface
 {

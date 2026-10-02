@@ -12,8 +12,10 @@ use MageOS\Seo\Model\ResourceModel\Faq\CollectionFactory;
  * Read access to FAQ entries by group identifier, and to the identifiers in use.
  *
  * Returns global (store 0) and store-specific rows for the identifier, ordered by sort order.
+ * It serves Faq\Source\TableFaqSource; to load, list, save or delete entries, use
+ * Api\FaqRepositoryInterface.
  */
-class Repository
+class GroupReader
 {
     /**
      * @param CollectionFactory $collectionFactory

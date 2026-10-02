@@ -11,6 +11,8 @@ namespace MageOS\Seo\Api;
  * resolver that returns links, then appends language-only and x-default tags. A bridge module adds a
  * resolver for a custom URL type (vendor profile, blog post) via its own di.xml — MageOS_Seo is not
  * modified.
+ *
+ * @api
  */
 interface HreflangResolverInterface
 {

@@ -12,7 +12,7 @@ class EndpointPoolTest extends TestCase
 {
     private function endpoint(string $name): WellKnownEndpointInterface
     {
-        $endpoint = $this->createMock(WellKnownEndpointInterface::class);
+        $endpoint = $this->createStub(WellKnownEndpointInterface::class);
         $endpoint->method('getName')->willReturn($name);
 
         return $endpoint;

@@ -19,12 +19,12 @@ class ReturnFees implements OptionSourceInterface
     public function toOptionArray(): array
     {
         return [
-            ['value' => 'https://schema.org/FreeReturn', 'label' => 'Free return'],
+            ['value' => 'https://schema.org/FreeReturn', 'label' => (string) __('Free return')],
             [
                 'value' => 'https://schema.org/ReturnFeesCustomerResponsibility',
-                'label' => 'Customer pays return shipping',
+                'label' => (string) __('Customer pays return shipping'),
             ],
-            ['value' => 'https://schema.org/ReturnShippingFees', 'label' => 'Return shipping fees apply'],
+            ['value' => 'https://schema.org/ReturnShippingFees', 'label' => (string) __('Return shipping fees apply')],
         ];
     }
 }

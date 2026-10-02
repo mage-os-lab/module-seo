@@ -47,6 +47,10 @@ Every cross-cutting concern is built as an **extensible provider pool** — a se
 - **AI-crawler robots directives** — per-user-agent Allow/Disallow blocks appended to `robots.txt` for 14 known AI crawlers (off by default).
 - **`/.well-known/` registry** — `ucp` (Universal Commerce Protocol business profile) and `security.txt`, both served through a pluggable endpoint registry; ECDSA P-256 signing-key generation via CLI.
 
+### Translations
+
+- **en_US** (the source), **en_GB** and **nl_NL**. The admin follows the admin user's locale; the llms documents are written in each store view's language. See [docs/translations.md](docs/translations.md).
+
 ---
 
 ## Requirements
@@ -77,7 +81,7 @@ bin/magento cache:flush
 
 > **The module works immediately after install, but structured data, `/llms.txt`, and the Organisation JSON-LD node will be empty until you fill in the Organisation details.**
 
-Go to **Marketing > SEO > Organisation** and complete all fields before putting the site live.
+Go to **Marketing > SEO > Organization** and complete all fields before putting the site live.
 
 | Field | Purpose |
 | --- | --- |
@@ -85,7 +89,7 @@ Go to **Marketing > SEO > Organisation** and complete all fields before putting 
 | URL | Canonical URL of your organisation (e.g. `https://example.com`) |
 | Description | Short tagline — shown in JSON-LD and at the top of `/llms.txt` |
 | Organisation type | Schema.org `@type`: Organization, Corporation, NGO, etc. |
-| Logo path | Media-relative path to your logo image |
+| Logo | The theme's header logo, or an uploaded image |
 | Logo width / height | Pixel dimensions — required for valid Organization schema |
 | Social profiles | Social profile URLs (Twitter, LinkedIn, etc.) |
 | Contact point | contactType, email, availableLanguage for the ContactPoint node |
@@ -97,7 +101,7 @@ Without a Name and URL saved, the Organization node in JSON-LD will render with 
 
 ## Admin configuration
 
-**Stores > Configuration > MageOS** holds four sections:
+**Stores > Configuration > MageOS SEO** holds four sections:
 
 ### SEO Configuration (`mageos_seo_general`)
 
@@ -137,7 +141,7 @@ Without a Name and URL saved, the Organization node in JSON-LD will render with 
 
 ## Per-category & per-product SEO
 
-In the **category** edit form, an **Advanced SEO** fieldset adds: schema template, enabled optional fields, field overrides, ItemList toggle, and robots meta. Template/field settings inherit from ancestor categories when unset.
+In the **category** edit form, an **SEO (Structured Data)** fieldset adds: schema template, enabled optional fields, field overrides, ItemList toggle, and robots meta. Template/field settings inherit from ancestor categories when unset.
 
 In the **product** edit form, an **Advanced SEO** tab adds store-specific field overrides and a robots-meta override.
 
@@ -219,28 +223,28 @@ category-specific data with no valid Product property is expressed via `addition
 | Stationery | Stationery & Office | Product |
 | LocalExperience | Local Experience | Product |
 
-The default template (`GenericProduct`) is used when no template is configured for the product's category. Change it under **Configuration > Structured Data > Default Product Schema Template**.
+The default template (`GenericProduct`) is used when no template is configured for the product's category. Change it under **Stores > Configuration > MageOS SEO > SEO > Structured Data (JSON-LD) > Default Product Schema Template**.
 
 ---
 
 ## Extending the module
 
-Every cross-cutting concern is a provider pool wired via `di.xml`, so another module contributes a provider from its **own** `di.xml` without modifying this one. Most provider interfaces expose `getHandles()` (`['*']` = all pages) for layout-handle scoping; resolution is either *collect-all* or *first-wins / highest-priority*.
+Every cross-cutting concern is a provider pool wired via `di.xml`, so another module contributes a provider from its **own** `di.xml` without modifying this one. Most provider interfaces expose `getHandles()` (`['*']` = all pages) for layout-handle scoping; resolution is *collect-all*, *one winner* (highest sortOrder or priority), or *a lookup by key* (template code, path segment, group name).
 
 | Extension point | Interface | Resolution |
 | --- | --- | --- |
 | Structured data providers | `StructuredDataProviderInterface` | collect-all |
 | Meta tag providers | `MetaTagProviderInterface` | collect-all |
-| Page title providers | `PageTitleProviderInterface` | first-wins |
+| Page title providers | `PageTitleProviderInterface` | highest sortOrder with a title wins |
 | Product schema builders | `ProductSchemaBuilderInterface` | by template code |
-| Robots meta providers | `RobotsMetaProviderInterface` | first-wins by sortOrder |
+| Robots meta providers | `RobotsMetaProviderInterface` | highest sortOrder with a value wins |
 | Aggregate rating providers | `AggregateRatingProviderInterface` | highest-priority non-null |
 | Offer enrichers | `OfferEnricherInterface` | collect-all (merged into every product and variant offer) |
 | Variant URLs | `ProductVariantUrlResolverInterface` | one (di.xml preference) |
 | Hreflang resolvers | `HreflangResolverInterface` | collect-all |
 | Article / Event data providers | `ArticleDataProviderInterface` / `EventDataProviderInterface` | collect-all |
 | FAQ source providers | `FaqSourceProviderInterface` | collect-all |
-| llms.txt section providers | `SectionProviderInterface` | collect-all |
+| llms.txt section providers | `LlmsTxtSectionProviderInterface` | collect-all |
 | llms.jsonl line providers | `JsonlLineProviderInterface` | collect-all |
 | Well-known endpoints | `WellKnownEndpointInterface` | by path segment |
 | Rebuild queue groups | `Api\Rebuild\GroupHandlerInterface` | by group name ([docs/extending.md](docs/extending.md#rebuilding-your-own-output-through-the-queue)) |

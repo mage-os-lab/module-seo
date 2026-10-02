@@ -6,14 +6,14 @@ namespace MageOS\Seo\Test\Unit\Model\Category;
 
 use Magento\Framework\Model\AbstractModel;
 use MageOS\Seo\Model\Category\ConfigRepository;
-use MageOS\Seo\Model\CategoryConfig;
-use MageOS\Seo\Model\ResourceModel\CategoryConfig as CategoryConfigResource;
-use MageOS\Seo\Model\ResourceModel\CategoryConfig\Collection;
 use MageOS\Seo\Model\Category\Inheritance\CategoryFirstOrder;
 use MageOS\Seo\Model\Category\Inheritance\OrderPool;
 use MageOS\Seo\Model\Category\Inheritance\StoreFirstOrder;
 use MageOS\Seo\Model\Category\InheritanceResolver;
+use MageOS\Seo\Model\CategoryConfig;
 use MageOS\Seo\Model\Config as SeoConfig;
+use MageOS\Seo\Model\ResourceModel\CategoryConfig as CategoryConfigResource;
+use MageOS\Seo\Model\ResourceModel\CategoryConfig\Collection;
 use MageOS\Seo\Model\ResourceModel\CategoryConfig\CollectionFactory;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
@@ -62,6 +62,28 @@ class ConfigRepositoryTest extends TestCase
         $this->filterSets = [];
         $this->saved      = [];
         $this->strategy   = 'category_first';
+    }
+
+    public function testTheJsonFieldsComeBackDecoded(): void
+    {
+        // As the product override repository does: callers get arrays, not JSON to remember to decode.
+        $this->rows = [[
+            'category_id'     => 5,
+            'store_id'        => 0,
+            'enabled_fields'  => '["brand","sku"]',
+            'override_fields' => '{"brand":"Acme"}',
+        ]];
+
+        $row = $this->repository()->getForCategory(5);
+
+        $this->assertSame(['brand', 'sku'], $row['enabled_fields']);
+        $this->assertSame(['brand' => 'Acme'], $row['override_fields']);
+    }
+
+    public function testACategoryWithNoConfigurationIsStillEmpty(): void
+    {
+        // Callers test for [] to mean "nothing configured"; decoding must not add keys to it.
+        $this->assertSame([], $this->repository()->getForCategory(5));
     }
 
     public function testGetForCategoryMemoisesPerCategoryAndStore(): void

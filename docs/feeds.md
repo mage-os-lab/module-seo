@@ -6,7 +6,7 @@ Three documents are generated in the background and served from files:
 |---|---|---|
 | `/llms.txt` | Concise site summary for LLM crawlers | [llms-txt.md](llms-txt.md) |
 | `/llms-full.txt` | The extended version | [llms-txt.md](llms-txt.md) |
-| `/llms.jsonl` | One JSON-LD `Product` node per line | [llms-txt.md](llms-txt.md) |
+| `/llms.jsonl` | One JSON-LD `Product` node per line | [llms-txt.md](llms-txt.md#content-of-llmsjsonl) |
 
 Hreflang alternates for the whole catalogue are in `sitemap.xml`, beside each URL — see
 [sitemap.md](sitemap.md). The dedicated `/hreflang-sitemap.xml` this module used to serve is

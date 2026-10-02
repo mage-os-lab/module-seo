@@ -7,26 +7,38 @@ namespace MageOS\Seo\Test\Unit\Plugin\Robots;
 use MageOS\Seo\Model\Aeo\Config;
 use MageOS\Seo\Model\Config\Source\AiBots;
 use MageOS\Seo\Plugin\Robots\AppendAiDirectivesPlugin;
-use PHPUnit\Framework\MockObject\MockObject;
+use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
 
 class AppendAiDirectivesPluginTest extends TestCase
 {
-    private Config&MockObject $config;
+    private Config&Stub $config;
     private AppendAiDirectivesPlugin $plugin;
 
     protected function setUp(): void
     {
-        $this->config = $this->createMock(Config::class);
-        $this->plugin = new AppendAiDirectivesPlugin($this->config, new AiBots());
+        $this->config = $this->createStub(Config::class);
+        $this->plugin = $this->plugin();
+    }
+
+    /**
+     * The plugin under test, over the given configuration or this test's stub.
+     *
+     * @param Config|null $config
+     * @return AppendAiDirectivesPlugin
+     */
+    private function plugin(?Config $config = null): AppendAiDirectivesPlugin
+    {
+        return new AppendAiDirectivesPlugin($config ?? $this->config, new AiBots());
     }
 
     public function testReturnsEmptyWhenDisabled(): void
     {
-        $this->config->method('isAiRobotsEnabled')->willReturn(false);
-        $this->config->expects($this->never())->method('getAiDisallowedBots');
+        $config = $this->createMock(Config::class);
+        $config->method('isAiRobotsEnabled')->willReturn(false);
+        $config->expects($this->never())->method('getAiDisallowedBots');
 
-        $this->assertSame('', $this->plugin->buildAiDirectives());
+        $this->assertSame('', $this->plugin($config)->buildAiDirectives());
     }
 
     public function testDisallowsConfiguredBotsAndEmitsNoGroupForTheRest(): void
@@ -57,7 +69,7 @@ class AppendAiDirectivesPluginTest extends TestCase
     public function testAfterGetDataLeavesResultUntouchedWhenDisabled(): void
     {
         $this->config->method('isAiRobotsEnabled')->willReturn(false);
-        $robots = $this->createMock(\Magento\Robots\Model\Robots::class);
+        $robots = $this->createStub(\Magento\Robots\Model\Robots::class);
 
         $this->assertSame('Existing', $this->plugin->afterGetData($robots, 'Existing'));
     }
@@ -66,7 +78,7 @@ class AppendAiDirectivesPluginTest extends TestCase
     {
         $this->config->method('isAiRobotsEnabled')->willReturn(true);
         $this->config->method('getAiDisallowedBots')->willReturn(['CCBot']);
-        $robots = $this->createMock(\Magento\Robots\Model\Robots::class);
+        $robots = $this->createStub(\Magento\Robots\Model\Robots::class);
 
         $result = $this->plugin->afterGetData($robots, "User-agent: *\nAllow: /");
 

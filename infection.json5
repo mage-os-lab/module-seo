@@ -10,12 +10,14 @@
     // cannot boot Magento to run those suites locally. Catalog/CurrentEntity is
     // pure Registry delegation. Cron/ is outside the scanned directories.
     //
-    // Faq/Repository and Review/NativeAggregateRatingProvider joined that list
+    // Faq/GroupReader and Review/NativeAggregateRatingProvider joined that list
     // when their queries moved onto collections: their tests now double a
     // generated CollectionFactory, so they carry the magento-generated group
     // excluded below and cannot run here. Cms/HomePageLoader is the same case:
     // it loads the home page with core's own call, through the generated
     // PageFactory — kept to that one call so CmsPageResolver stays in this run.
+    // Product/OverrideRepository is a collection-backed repository too; it was
+    // excluded with the rest of Category/ until it moved to Product/.
     "source": {
         "directories": ["Model", "Observer", "Service"],
         "excludes": [
@@ -25,12 +27,13 @@
             "Cms/HomePageLoader.php",
             "Config/Source/LogoSource.php",
             "Config/Source/OrgType.php",
-            "Faq/Repository.php",
+            "Faq/GroupReader.php",
             "LlmsJsonl/JsonlBuilder.php",
             "LlmsTxt",
             "MetaTag/Provider",
             "Organization.php",
             "OrganizationRepository.php",
+            "Product/OverrideRepository.php",
             "Review/NativeAggregateRatingProvider.php",
             "StructuredData/Provider/CategorySchemaProvider.php",
             "StructuredData/Provider/CmsPageSchemaProvider.php",

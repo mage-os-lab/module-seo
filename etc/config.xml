@@ -74,6 +74,7 @@
             </condition>
             <return>
                 <enabled>0</enabled>
+                <worldwide>0</worldwide>
                 <policy_category>https://schema.org/MerchantReturnFiniteReturnWindow</policy_category>
                 <days>30</days>
                 <fees>https://schema.org/FreeReturn</fees>
@@ -81,6 +82,7 @@
             </return>
             <shipping>
                 <enabled>0</enabled>
+                <worldwide>0</worldwide>
             </shipping>
         </mageos_seo_merchant>
         <!-- The agentic commerce profile and security.txt (MageOS_Agentic ahead of the split). -->

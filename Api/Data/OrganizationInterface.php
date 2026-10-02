@@ -4,7 +4,17 @@ declare(strict_types=1);
 
 namespace MageOS\Seo\Api\Data;
 
-interface OrganizationInterface
+use Magento\Framework\Api\ExtensibleDataInterface;
+
+/**
+ * The Organization's settings for one scope (default, a website or a store view): the identity
+ * published in structured data, Open Graph tags and the llms documents.
+ *
+ * Extensible: other modules add fields through extension_attributes.xml.
+ *
+ * @api
+ */
+interface OrganizationInterface extends ExtensibleDataInterface
 {
     public const ENTITY_ID       = 'entity_id';
     public const SCOPE           = 'scope';
@@ -254,4 +264,19 @@ interface OrganizationInterface
      * @return string
      */
     public function getPriceRange(): string;
+
+    /**
+     * The fields other modules add through extension_attributes.xml.
+     *
+     * @return \MageOS\Seo\Api\Data\OrganizationExtensionInterface|null
+     */
+    public function getExtensionAttributes(): ?OrganizationExtensionInterface;
+
+    /**
+     * Set the fields other modules add.
+     *
+     * @param \MageOS\Seo\Api\Data\OrganizationExtensionInterface $extensionAttributes
+     * @return \MageOS\Seo\Api\Data\OrganizationInterface
+     */
+    public function setExtensionAttributes(OrganizationExtensionInterface $extensionAttributes): OrganizationInterface;
 }

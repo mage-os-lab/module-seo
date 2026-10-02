@@ -21,7 +21,7 @@ class ArtAndCraftBuilder extends AbstractBuilder
      */
     public function getLabel(): string
     {
-        return 'Art & Craft / Handmade';
+        return (string) __('Art & Craft / Handmade');
     }
 
     /**
@@ -30,16 +30,16 @@ class ArtAndCraftBuilder extends AbstractBuilder
     public function getAvailableFields(): array
     {
         return [
-            'artMedium'      => 'Art Medium (oil, watercolour, etc.)',
-            'artworkSurface' => 'Surface / Support (canvas, paper, etc.)',
-            'creator'        => 'Creator (set as an override)',
-            'width'          => 'Width',
-            'height'         => 'Height',
-            'depth'          => 'Depth',
-            'material'       => 'Materials Used',
-            'color'          => 'Dominant Colour(s)',
-            'isBasedOn'      => 'Is Based On (for prints/reproductions)',
-            'gtin13'         => 'GTIN / EAN',
+            'artMedium'      => (string) __('Art Medium (oil, watercolor, etc.)'),
+            'artworkSurface' => (string) __('Surface / Support (canvas, paper, etc.)'),
+            'creator'        => (string) __('Creator (set as an override)'),
+            'width'          => (string) __('Width'),
+            'height'         => (string) __('Height'),
+            'depth'          => (string) __('Depth'),
+            'material'       => (string) __('Materials Used'),
+            'color'          => (string) __('Dominant Color(s)'),
+            'isBasedOn'      => (string) __('Is Based On (for prints/reproductions)'),
+            'gtin13'         => (string) __('GTIN / EAN'),
         ];
     }
 

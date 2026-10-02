@@ -12,7 +12,7 @@ use MageOS\Seo\Model\ResourceModel\ProductOverride as ProductOverrideResource;
  *
  * store_id 0 holds the values every store view inherits; a row with a store view's own ID
  * overrides them field by field. Reading and merging those two is
- * Category\ProductOverrideRepository's job — this model is the single row.
+ * Product\OverrideRepository's job — this model is the single row.
  */
 class ProductOverride extends AbstractModel
 {

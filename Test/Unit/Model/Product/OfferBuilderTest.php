@@ -16,7 +16,7 @@ use MageOS\Seo\Model\Product\AvailabilityResolver;
 use MageOS\Seo\Model\Product\OfferBuilder;
 use MageOS\Seo\Model\Product\OfferEnricher\Pool as OfferEnricherPool;
 use MageOS\Seo\Model\Product\Variant\ChildProducts;
-use MageOS\Seo\Service\CurrencyService;
+use MageOS\Seo\Test\Unit\Service\CurrencyServices;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -25,6 +25,8 @@ use PHPUnit\Framework\TestCase;
  */
 class OfferBuilderTest extends TestCase
 {
+    use CurrencyServices;
+
     private const URL = 'https://example.com/tee.html';
 
     public function testAnOfferForTheProductAtTheUrlGiven(): void
@@ -194,11 +196,7 @@ class OfferBuilderTest extends TestCase
         $storeManager = $this->createStub(StoreManagerInterface::class);
         $storeManager->method('getStore')->willReturn($store);
 
-        $currencyService = $this->createStub(CurrencyService::class);
-        $currencyService->method('getCurrentCurrencyCode')->willReturn('GBP');
-        $currencyService->method('convertFromBase')->willReturnCallback(
-            static fn (float $amount): float => $amount * $rate
-        );
+        $currencyService = $this->currencyService('GBP', $rate);
 
         $availability = $this->createStub(AvailabilityResolver::class);
         $availability->method('resolve')->willReturn(AvailabilityResolver::IN_STOCK);

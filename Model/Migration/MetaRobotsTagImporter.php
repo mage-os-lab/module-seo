@@ -11,8 +11,8 @@ use Magento\Eav\Model\Config as EavConfig;
 use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Store\Model\ScopeInterface;
 use MageOS\Seo\Model\Category\ConfigRepository as CategoryConfigRepository;
-use MageOS\Seo\Model\Category\ProductOverrideRepository;
 use MageOS\Seo\Model\Cms\ConfigRepository as CmsPageConfigRepository;
+use MageOS\Seo\Model\Product\OverrideRepository;
 use MageOS\Seo\Model\ResourceModel\MetaRobotsTagFlags;
 
 /**
@@ -42,7 +42,7 @@ class MetaRobotsTagImporter
      * @param ProductCollectionFactory $productCollectionFactory
      * @param CategoryCollectionFactory $categoryCollectionFactory
      * @param CmsPageCollectionFactory $cmsPageCollectionFactory
-     * @param ProductOverrideRepository $productOverrideRepository
+     * @param OverrideRepository $productOverrideRepository
      * @param CategoryConfigRepository $categoryConfigRepository
      * @param CmsPageConfigRepository $cmsPageConfigRepository
      * @param EavConfig $eavConfig
@@ -54,7 +54,7 @@ class MetaRobotsTagImporter
         private readonly ProductCollectionFactory  $productCollectionFactory,
         private readonly CategoryCollectionFactory $categoryCollectionFactory,
         private readonly CmsPageCollectionFactory  $cmsPageCollectionFactory,
-        private readonly ProductOverrideRepository $productOverrideRepository,
+        private readonly OverrideRepository $productOverrideRepository,
         private readonly CategoryConfigRepository  $categoryConfigRepository,
         private readonly CmsPageConfigRepository   $cmsPageConfigRepository,
         private readonly EavConfig                 $eavConfig,

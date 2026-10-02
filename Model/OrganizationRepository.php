@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace MageOS\Seo\Model;
 
+use Magento\Framework\Exception\CouldNotDeleteException;
+use Magento\Framework\Exception\CouldNotSaveException;
+use Magento\Framework\Model\AbstractModel;
 use Magento\Framework\ObjectManager\ResetAfterRequestInterface;
 use MageOS\Seo\Api\Data\OrganizationInterface;
 use MageOS\Seo\Api\OrganizationRepositoryInterface;
@@ -116,10 +119,14 @@ class OrganizationRepository implements OrganizationRepositoryInterface, ResetAf
      */
     public function save(OrganizationInterface $organization): OrganizationInterface
     {
-        if (!$organization instanceof \Magento\Framework\Model\AbstractModel) {
-            throw new \InvalidArgumentException('Organization model must extend AbstractModel');
+        if (!$organization instanceof AbstractModel) {
+            throw new CouldNotSaveException(__('Organization model must extend AbstractModel.'));
         }
-        $this->resource->save($organization);
+        try {
+            $this->resource->save($organization);
+        } catch (\Exception $e) {
+            throw new CouldNotSaveException(__('Could not save the Organization: %1', $e->getMessage()), $e);
+        }
         // The whole memo, not the saved scope's entry: adding a store-view row changes the answer
         // for a store that was until now falling back to its website or to the global default,
         // and the memo cannot tell from the saved row which of those it had answered.
@@ -144,7 +151,19 @@ class OrganizationRepository implements OrganizationRepositoryInterface, ResetAf
 
         $deleted = 0;
         foreach ($collection as $organization) {
-            $this->resource->delete($organization);
+            try {
+                $this->resource->delete($organization);
+            } catch (\Exception $e) {
+                throw new CouldNotDeleteException(
+                    __(
+                        'Could not delete the Organization of %1 %2: %3',
+                        $scope,
+                        $organization->getScopeId(),
+                        $e->getMessage()
+                    ),
+                    $e
+                );
+            }
             $deleted++;
         }
 

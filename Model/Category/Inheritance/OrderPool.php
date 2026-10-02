@@ -36,8 +36,8 @@ class OrderPool
      * The strategy registered under a code.
      *
      * @param string $code
-     * @return CategoryConfigSourceOrderInterface
      * @throws \RuntimeException When nothing is registered under that code
+     * @return CategoryConfigSourceOrderInterface
      */
     public function get(string $code): CategoryConfigSourceOrderInterface
     {
@@ -48,7 +48,7 @@ class OrderPool
             // settings by a rule the merchant did not choose, and silently: the pages would
             // render, with different content, and nothing would say why. Configuration naming a
             // strategy that is not installed is a deployment fault.
-            throw new \RuntimeException(sprintf(
+            throw new \RuntimeException(\sprintf(
                 'MageOS_Seo: no category inheritance strategy is registered as "%s". Registered: %s.',
                 $code,
                 $this->codes() === [] ? 'none' : implode(', ', $this->codes())

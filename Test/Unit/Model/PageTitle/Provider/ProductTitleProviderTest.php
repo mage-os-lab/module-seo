@@ -7,15 +7,15 @@ namespace MageOS\Seo\Test\Unit\Model\PageTitle\Provider;
 use Magento\Catalog\Model\Product;
 use MageOS\Seo\Model\Catalog\CurrentEntity;
 use MageOS\Seo\Model\PageTitle\Provider\ProductTitleProvider;
-use PHPUnit\Framework\MockObject\MockObject;
+use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
 
 class ProductTitleProviderTest extends TestCase
 {
     /**
-     * @var CurrentEntity&MockObject
+     * @var CurrentEntity&Stub
      */
-    private CurrentEntity&MockObject $currentEntity;
+    private CurrentEntity&Stub $currentEntity;
 
     /**
      * @var ProductTitleProvider
@@ -24,7 +24,7 @@ class ProductTitleProviderTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->currentEntity = $this->createMock(CurrentEntity::class);
+        $this->currentEntity = $this->createStub(CurrentEntity::class);
         $this->provider      = new ProductTitleProvider($this->currentEntity);
     }
 

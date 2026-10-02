@@ -6,7 +6,7 @@ Open Graph (OG) meta tags tell social networks and link-preview services how to 
 
 ## Enable / disable
 
-**Stores → Configuration → MageOS → SEO → Open Graph Tags → Enable OG Tags**
+**Stores → Configuration → MageOS SEO → SEO → Open Graph Tags → Enable OG Tags**
 
 Default: enabled. This is a per-store-view setting.
 

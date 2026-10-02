@@ -21,7 +21,7 @@ class JewelryBuilder extends AbstractBuilder
      */
     public function getLabel(): string
     {
-        return 'Jewelry & Accessories';
+        return (string) __('Jewelry & Accessories');
     }
 
     /**
@@ -30,13 +30,13 @@ class JewelryBuilder extends AbstractBuilder
     public function getAvailableFields(): array
     {
         return [
-            'brand'    => 'Brand / Maker',
-            'gtin13'   => 'GTIN / EAN',
-            'material' => 'Metal / Material',
-            'color'    => 'Colour / Finish',
-            'size'     => 'Ring / Bracelet Size',
-            'pattern'  => 'Gemstone / Design',
-            'weight'   => 'Weight',
+            'brand'    => (string) __('Brand / Maker'),
+            'gtin13'   => (string) __('GTIN / EAN'),
+            'material' => (string) __('Metal / Material'),
+            'color'    => (string) __('Color / Finish'),
+            'size'     => (string) __('Ring / Bracelet Size'),
+            'pattern'  => (string) __('Gemstone / Design'),
+            'weight'   => (string) __('Weight'),
         ];
     }
 

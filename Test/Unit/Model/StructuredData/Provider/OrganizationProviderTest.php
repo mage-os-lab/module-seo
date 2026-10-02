@@ -11,20 +11,20 @@ use MageOS\Seo\Api\Data\OrganizationInterface;
 use MageOS\Seo\Api\OrganizationRepositoryInterface;
 use MageOS\Seo\Model\StructuredData\OrganizationId;
 use MageOS\Seo\Model\StructuredData\Provider\OrganizationProvider;
-use PHPUnit\Framework\MockObject\MockObject;
+use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
 
 class OrganizationProviderTest extends TestCase
 {
     /**
-     * @var OrganizationRepositoryInterface&MockObject
+     * @var OrganizationRepositoryInterface&Stub
      */
-    private OrganizationRepositoryInterface&MockObject $repository;
+    private OrganizationRepositoryInterface&Stub $repository;
 
     /**
-     * @var StoreManagerInterface&MockObject
+     * @var StoreManagerInterface&Stub
      */
-    private StoreManagerInterface&MockObject $storeManager;
+    private StoreManagerInterface&Stub $storeManager;
 
     /**
      * @var OrganizationProvider
@@ -33,11 +33,11 @@ class OrganizationProviderTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->repository   = $this->createMock(OrganizationRepositoryInterface::class);
-        $this->storeManager = $this->createMock(StoreManagerInterface::class);
+        $this->repository   = $this->createStub(OrganizationRepositoryInterface::class);
+        $this->storeManager = $this->createStub(StoreManagerInterface::class);
 
-        $store   = $this->createMock(Store::class);
-        $website = $this->createMock(WebsiteInterface::class);
+        $store   = $this->createStub(Store::class);
+        $website = $this->createStub(WebsiteInterface::class);
         $store->method('getId')->willReturn(1);
         $website->method('getId')->willReturn(1);
         $this->storeManager->method('getStore')->willReturn($store);
@@ -66,9 +66,9 @@ class OrganizationProviderTest extends TestCase
      * An organization of the given type with every local presence field filled in.
      *
      * @param string $orgType
-     * @return OrganizationInterface&MockObject
+     * @return OrganizationInterface&Stub
      */
-    private function withLocalPresence(string $orgType): OrganizationInterface&MockObject
+    private function withLocalPresence(string $orgType): OrganizationInterface&Stub
     {
         $org = $this->acmeOrg(['org_type' => $orgType]);
         $org->method('getAddress')->willReturn([
@@ -92,9 +92,9 @@ class OrganizationProviderTest extends TestCase
      *
      * @param array<string, mixed> $config
      */
-    private function makeOrg(array $config = []): OrganizationInterface&MockObject
+    private function makeOrg(array $config = []): OrganizationInterface&Stub
     {
-        $org = $this->createMock(OrganizationInterface::class);
+        $org = $this->createStub(OrganizationInterface::class);
         $org->method('getName')->willReturn($config['name'] ?? '');
         $org->method('getUrl')->willReturn($config['url'] ?? '');
         $org->method('getOrgType')->willReturn($config['org_type'] ?? 'Organization');
@@ -110,7 +110,7 @@ class OrganizationProviderTest extends TestCase
     /**
      * @param array<string, mixed> $overrides
      */
-    private function acmeOrg(array $overrides = []): OrganizationInterface&MockObject
+    private function acmeOrg(array $overrides = []): OrganizationInterface&Stub
     {
         return $this->makeOrg(array_merge(['name' => 'Acme Ltd', 'url' => 'https://acme.com'], $overrides));
     }

@@ -21,7 +21,7 @@ class ToolBuilder extends AbstractBuilder
      */
     public function getLabel(): string
     {
-        return 'Tool & Hardware';
+        return (string) __('Tool & Hardware');
     }
 
     /**
@@ -30,14 +30,14 @@ class ToolBuilder extends AbstractBuilder
     public function getAvailableFields(): array
     {
         return [
-            'brand'       => 'Brand',
-            'gtin13'      => 'GTIN / EAN',
-            'mpn'         => 'MPN',
-            'material'    => 'Material',
-            'color'       => 'Colour',
-            'weight'      => 'Weight',
-            'powerSource' => 'Power Source',
-            'model'       => 'Model',
+            'brand'       => (string) __('Brand'),
+            'gtin13'      => (string) __('GTIN / EAN'),
+            'mpn'         => (string) __('MPN'),
+            'material'    => (string) __('Material'),
+            'color'       => (string) __('Color'),
+            'weight'      => (string) __('Weight'),
+            'powerSource' => (string) __('Power Source'),
+            'model'       => (string) __('Model'),
         ];
     }
 

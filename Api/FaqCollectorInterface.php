@@ -11,6 +11,8 @@ namespace MageOS\Seo\Api;
  * identifier as they render in the body; a late head/end-of-body block re-resolves those
  * identifiers to emit FAQPage structured data that always matches what is actually shown. Storing
  * identifiers (not resolved FAQs) keeps the schema correct even when an element's HTML is block-cached.
+ *
+ * @api
  */
 interface FaqCollectorInterface
 {

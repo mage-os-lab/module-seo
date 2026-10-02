@@ -10,30 +10,30 @@ use MageOS\Seo\Model\Config;
 use MageOS\Seo\Model\Hreflang\CodeValidator;
 use MageOS\Seo\Model\Hreflang\StoreLocaleMap;
 use MageOS\Seo\Model\Store\CanonicalBaseUrl;
-use PHPUnit\Framework\MockObject\MockObject;
+use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
 
 class StoreLocaleMapTest extends TestCase
 {
     /**
-     * @var StoreManagerInterface&MockObject
+     * @var StoreManagerInterface&Stub
      */
-    private StoreManagerInterface&MockObject $storeManager;
+    private StoreManagerInterface&Stub $storeManager;
 
     /**
-     * @var Config&MockObject
+     * @var Config&Stub
      */
-    private Config&MockObject $config;
+    private Config&Stub $config;
 
     protected function setUp(): void
     {
-        $this->storeManager = $this->createMock(StoreManagerInterface::class);
-        $this->config       = $this->createMock(Config::class);
+        $this->storeManager = $this->createStub(StoreManagerInterface::class);
+        $this->config       = $this->createStub(Config::class);
     }
 
-    private function makeStore(int $id, bool $active, string $baseUrl, int $websiteId = 1): Store&MockObject
+    private function makeStore(int $id, bool $active, string $baseUrl, int $websiteId = 1): Store&Stub
     {
-        $store = $this->createMock(Store::class);
+        $store = $this->createStub(Store::class);
         $store->method('getId')->willReturn($id);
         $store->method('getIsActive')->willReturn($active);
         $store->method('getBaseUrl')->willReturn($baseUrl);
@@ -42,7 +42,7 @@ class StoreLocaleMapTest extends TestCase
     }
 
     /**
-     * @param array<int, Store&MockObject> $stores
+     * @param array<int, Store&Stub> $stores
      * @param array<int, string> $locales
      * @param int[] $excluded
      * @param array<int, string[]> $codes Configured hreflang codes, by store ID
@@ -63,9 +63,10 @@ class StoreLocaleMapTest extends TestCase
     /**
      * The map under test, its canonical base URLs being the stores' own without the slash.
      *
+     * @param StoreManagerInterface|null $storeManager Defaults to this test's stub
      * @return StoreLocaleMap
      */
-    private function newMap(): StoreLocaleMap
+    private function newMap(?StoreManagerInterface $storeManager = null): StoreLocaleMap
     {
         $canonicalBaseUrl = $this->createStub(CanonicalBaseUrl::class);
         $canonicalBaseUrl->method('of')->willReturnCallback(
@@ -73,7 +74,7 @@ class StoreLocaleMapTest extends TestCase
         );
 
         return new StoreLocaleMap(
-            $this->storeManager,
+            $storeManager ?? $this->storeManager,
             $this->config,
             new CodeValidator(),
             $canonicalBaseUrl
@@ -174,11 +175,12 @@ class StoreLocaleMapTest extends TestCase
 
     public function testMapIsMemoised(): void
     {
-        $this->storeManager->expects($this->once())->method('getStores')
+        $storeManager = $this->createMock(StoreManagerInterface::class);
+        $storeManager->expects($this->once())->method('getStores')
             ->willReturn([$this->makeStore(1, true, 'https://uk/')]);
         $this->config->method('getHreflangExcludedStoreIds')->willReturn([]);
         $this->config->method('getLocaleCode')->willReturn('en_GB');
-        $map = $this->newMap();
+        $map = $this->newMap($storeManager);
         $map->getMap();
         $map->getMap();
     }
@@ -204,11 +206,12 @@ class StoreLocaleMapTest extends TestCase
 
     public function testResetStateDropsTheMemoisedMapLikeReset(): void
     {
-        $this->storeManager->expects($this->exactly(2))->method('getStores')
+        $storeManager = $this->createMock(StoreManagerInterface::class);
+        $storeManager->expects($this->exactly(2))->method('getStores')
             ->willReturn([$this->makeStore(1, true, 'https://uk/')]);
         $this->config->method('getHreflangExcludedStoreIds')->willReturn([]);
         $this->config->method('getLocaleCode')->willReturn('en_GB');
-        $map = $this->newMap();
+        $map = $this->newMap($storeManager);
 
         $map->getMap();
         $map->_resetState();

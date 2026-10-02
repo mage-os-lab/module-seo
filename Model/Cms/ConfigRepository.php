@@ -51,7 +51,7 @@ class ConfigRepository implements ResetAfterRequestInterface
     /**
      * Load several CMS pages' configuration in one query, each chosen as getForPage() chooses.
      *
-     * Not memoised, for the reason ProductOverrideRepository::getForProducts() gives: the sitemap
+     * Not memoised, for the reason Product\OverrideRepository::getForProducts() gives: the sitemap
      * reads every page through this.
      *
      * @param int[] $pageIds
