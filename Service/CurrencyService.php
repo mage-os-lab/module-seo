@@ -237,4 +237,15 @@ class CurrencyService
             return $fmt->format($amount);
         }
     }
+
+    /**
+     * format an amount for llms
+     *
+     * @param float $amount
+     * @return string
+     */
+    public function formatAmountForLlms(float $amount): string
+    {
+        return number_format($amount, 2, '.', '');
+    }
 }
