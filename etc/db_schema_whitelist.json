@@ -91,26 +91,6 @@
             "MAGEOS_SEO_CMS_PAGE_CONFIG_STORE_ID_STORE_STORE_ID": true
         }
     },
-    "mageos_faq": {
-        "column": {
-            "entity_id": true,
-            "identifier": true,
-            "store_id": true,
-            "question": true,
-            "answer": true,
-            "sort_order": true,
-            "is_active": true,
-            "updated_at": true
-        },
-        "index": {
-            "MAGEOS_FAQ_IDENTIFIER_STORE_ID": true,
-            "MAGEOS_FAQ_STORE_ID": true
-        },
-        "constraint": {
-            "PRIMARY": true,
-            "MAGEOS_FAQ_STORE_ID_STORE_STORE_ID": true
-        }
-    },
     "mageos_seo_organisation": {
         "column": {
             "entity_id": true,

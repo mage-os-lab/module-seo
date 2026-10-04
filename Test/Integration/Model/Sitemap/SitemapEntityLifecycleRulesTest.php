@@ -2,12 +2,11 @@
 
 declare(strict_types=1);
 
-namespace MageOS\Seo\Test\Integration\Model\Feed;
+namespace MageOS\Seo\Test\Integration\Model\Sitemap;
 
 use Magento\Catalog\Api\CategoryRepositoryInterface;
 use Magento\Catalog\Api\ProductRepositoryInterface;
 use Magento\Catalog\Model\Product\Action as ProductAction;
-use Magento\Catalog\Model\Product\Attribute\Source\Status;
 use Magento\Catalog\Test\Fixture\Category as CategoryFixture;
 use Magento\Catalog\Test\Fixture\Product as ProductFixture;
 use Magento\Cms\Api\Data\PageInterface;
@@ -18,29 +17,23 @@ use Magento\Sitemap\Model\ResourceModel\Sitemap as SitemapResource;
 use Magento\Sitemap\Model\Sitemap;
 use Magento\Store\Model\ResourceModel\Store as StoreResource;
 use Magento\Store\Model\ResourceModel\Website as WebsiteResource;
-use Magento\Store\Model\ScopeInterface;
 use Magento\Store\Model\StoreFactory;
 use Magento\Store\Model\StoreManagerInterface;
 use Magento\Store\Model\WebsiteFactory;
 use Magento\Store\Test\Fixture\Group as GroupFixture;
 use Magento\Store\Test\Fixture\Store as StoreFixture;
 use Magento\Store\Test\Fixture\Website as WebsiteFixture;
-use Magento\TestFramework\Fixture\Config;
 use Magento\TestFramework\Fixture\DataFixture;
 use Magento\TestFramework\Fixture\DataFixtureStorageManager;
 use Magento\TestFramework\Helper\Bootstrap;
-use MageOS\Seo\Model\Feed\FeedRegenerator;
-use MageOS\Seo\Model\Feed\FeedStorage;
 use MageOS\Seo\Model\Sitemap\RebuildableSitemaps;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Which real saves queue which feed and sitemap rebuilds.
+ * Which creations, moves, mass actions and deletions queue which sitemap rebuilds: the wiring
+ * SitemapInvalidationRulesTest does not exercise. Which saves count in detail is that test's.
  *
- * Every test but the last has a sitemap a change would rebuild, so the sitemap groups a change
- * queues are checked alongside the feeds. Which sitemap changes count in detail is
- * Model/Sitemap/SitemapInvalidationRulesTest's; here it is the wiring — the same saves, moves, mass
- * actions and deletions the feeds are checked against.
+ * Every test has a sitemap a change would rebuild.
  *
  * Database isolation is disabled because creating a store view is not transactional;
  * the data fixtures revert themselves and the pending flags are cleared around each check.
@@ -48,10 +41,8 @@ use PHPUnit\Framework\TestCase;
  * @magentoAppArea adminhtml
  * @magentoDbIsolation disabled
  */
-class FeedInvalidationRulesTest extends TestCase
+class SitemapEntityLifecycleRulesTest extends TestCase
 {
-    private const JSONL_ENABLED = 'mageos_aeo/llms_txt/jsonl_enabled';
-
     /**
      * With the first build, which saving the test's sitemap entry queues: cleared around each check
      * like the rest, and never left pending for the next test — this class does not roll back.
@@ -87,7 +78,7 @@ class FeedInvalidationRulesTest extends TestCase
     protected function tearDown(): void
     {
         $pageRepository = Bootstrap::getObjectManager()->get(PageRepositoryInterface::class);
-        foreach ($this->createdPageIds as $pageId) {
+        foreach ($this->createdPageIds ?? [] as $pageId) {
             try {
                 $pageRepository->deleteById($pageId);
             } catch (\Exception) {
@@ -106,41 +97,11 @@ class FeedInvalidationRulesTest extends TestCase
     }
 
     /**
-     * Product saves queue llms.jsonl, and llms / the products' sitemap only for the changes they
-     * depend on.
+     * A new product is a new product URL.
      *
      * @return void
      */
-    #[Config(self::JSONL_ENABLED, 1, ScopeInterface::SCOPE_STORE, 'default')]
-    #[DataFixture(CategoryFixture::class, as: 'category')]
-    #[DataFixture(ProductFixture::class, as: 'product')]
-    public function testProductSavesQueueOnlyTheFeedsTheChangeAffects(): void
-    {
-        $this->aRebuildableSitemap();
-        $sku        = (string) $this->fixture('product')->getSku();
-        $categoryId = (int) $this->fixture('category')->getId();
-
-        $this->assertQueuedBy(
-            [FeedRegenerator::GROUP_JSONL],
-            fn () => $this->saveProduct($sku, ['name' => 'Renamed product'])
-        );
-        $this->assertQueuedBy(
-            [FeedRegenerator::GROUP_JSONL, 'sitemap-products'],
-            fn () => $this->saveProduct($sku, ['url_key' => 'renamed-product-' . uniqid()])
-        );
-        $this->assertQueuedBy(
-            [FeedRegenerator::GROUP_LLMS, FeedRegenerator::GROUP_JSONL],
-            fn () => $this->saveProduct($sku, ['category_ids' => [$categoryId]])
-        );
-    }
-
-    /**
-     * A new product can change every feed.
-     *
-     * @return void
-     */
-    #[Config(self::JSONL_ENABLED, 1, ScopeInterface::SCOPE_STORE, 'default')]
-    public function testANewProductQueuesEveryFeed(): void
+    public function testANewProductQueuesTheProductsSitemap(): void
     {
         $this->aRebuildableSitemap();
         $productFixture = Bootstrap::getObjectManager()->get(ProductFixture::class);
@@ -148,7 +109,7 @@ class FeedInvalidationRulesTest extends TestCase
 
         try {
             $this->assertQueuedBy(
-                [...FeedRegenerator::GROUPS, 'sitemap-products'],
+                ['sitemap-products'],
                 function () use ($productFixture, &$created): void {
                     $created = $productFixture->apply();
                 }
@@ -161,60 +122,20 @@ class FeedInvalidationRulesTest extends TestCase
     }
 
     /**
-     * Category saves always queue llms, and the categories' sitemap only for URL-relevant changes.
+     * Moving a category changes its URL.
      *
      * @return void
      */
-    #[DataFixture(CategoryFixture::class, as: 'category')]
-    public function testCategorySavesQueueOnlyTheFeedsTheChangeAffects(): void
-    {
-        $this->aRebuildableSitemap();
-        $categoryId = (int) $this->fixture('category')->getId();
-
-        $this->assertQueuedBy(
-            [FeedRegenerator::GROUP_LLMS],
-            fn () => $this->saveCategory($categoryId, ['name' => 'Renamed category'])
-        );
-        $this->assertQueuedBy(
-            [FeedRegenerator::GROUP_LLMS, 'sitemap-categories'],
-            fn () => $this->saveCategory($categoryId, ['url_key' => 'renamed-category-' . uniqid()])
-        );
-    }
-
-    /**
-     * No feed lists CMS pages; the pages' sitemap is queued only for URL-relevant changes.
-     *
-     * @return void
-     */
-    public function testCmsPageSavesQueueThePagesSitemapOnlyForUrlChanges(): void
-    {
-        $this->aRebuildableSitemap();
-        $pageId = $this->createPage();
-
-        $this->assertQueuedBy([], fn () => $this->savePage($pageId, ['title' => 'Renamed page']));
-        $this->assertQueuedBy(
-            ['sitemap-pages'],
-            fn () => $this->savePage($pageId, ['identifier' => 'renamed-page-' . uniqid()])
-        );
-    }
-
-    /**
-     * Moving a category changes its URL and the shape of the llms category tree, but not the
-     * product URLs in llms.jsonl.
-     *
-     * @return void
-     */
-    #[Config(self::JSONL_ENABLED, 1, ScopeInterface::SCOPE_STORE, 'default')]
     #[DataFixture(CategoryFixture::class, as: 'new_parent')]
     #[DataFixture(CategoryFixture::class, as: 'category')]
-    public function testMovingACategoryQueuesLlmsAndTheCategoriesSitemap(): void
+    public function testMovingACategoryQueuesTheCategoriesSitemap(): void
     {
         $this->aRebuildableSitemap();
         $categoryId  = (int) $this->fixture('category')->getId();
         $newParentId = (int) $this->fixture('new_parent')->getId();
 
         $this->assertQueuedBy(
-            [FeedRegenerator::GROUP_LLMS, 'sitemap-categories'],
+            ['sitemap-categories'],
             static function () use ($categoryId, $newParentId): void {
                 Bootstrap::getObjectManager()->get(CategoryRepositoryInterface::class)
                     ->get($categoryId)
@@ -224,38 +145,12 @@ class FeedInvalidationRulesTest extends TestCase
     }
 
     /**
-     * Mass attribute updates write to the EAV tables without saving the products, so only the
-     * attribute codes say what can have changed.
+     * A mass website assignment change moves products in and out of a store view's catalogue.
      *
      * @return void
      */
-    #[Config(self::JSONL_ENABLED, 1, ScopeInterface::SCOPE_STORE, 'default')]
     #[DataFixture(ProductFixture::class, as: 'product')]
-    public function testMassAttributeUpdatesQueueTheFeedsTheAttributesAppearIn(): void
-    {
-        $this->aRebuildableSitemap();
-        $productId = (int) $this->fixture('product')->getId();
-
-        $this->assertQueuedBy(
-            [FeedRegenerator::GROUP_JSONL, 'sitemap-products'],
-            fn () => $this->massUpdateAttributes([$productId], ['status' => Status::STATUS_DISABLED])
-        );
-        // The llms documents list categories and product counts, which no attribute value changes.
-        $this->assertQueuedBy(
-            [FeedRegenerator::GROUP_JSONL],
-            fn () => $this->massUpdateAttributes([$productId], ['meta_title' => 'Mass updated'])
-        );
-    }
-
-    /**
-     * A mass website assignment change moves products in and out of a store view's catalogue,
-     * and with them the category product counts in llms.txt.
-     *
-     * @return void
-     */
-    #[Config(self::JSONL_ENABLED, 1, ScopeInterface::SCOPE_STORE, 'default')]
-    #[DataFixture(ProductFixture::class, as: 'product')]
-    public function testAMassWebsiteChangeQueuesEveryFeed(): void
+    public function testAMassWebsiteChangeQueuesTheProductsSitemap(): void
     {
         $this->aRebuildableSitemap();
         $productId = (int) $this->fixture('product')->getId();
@@ -263,31 +158,25 @@ class FeedInvalidationRulesTest extends TestCase
             ->getStore('default')->getWebsiteId();
 
         $this->assertQueuedBy(
-            [...FeedRegenerator::GROUPS, 'sitemap-products'],
+            ['sitemap-products'],
             fn () => Bootstrap::getObjectManager()->create(ProductAction::class)
                 ->updateWebsites([$productId], [$websiteId], 'remove')
         );
     }
 
     /**
-     * Deleting a store view changes the alternates in the other store views' sitemaps, and its own
-     * feed files are no longer served by anything.
+     * Deleting a store view changes the alternates in the other store views' sitemaps.
      *
      * @return void
      */
     #[DataFixture(StoreFixture::class, as: 'second_store')]
     #[DataFixture(StoreFixture::class, as: 'third_store')]
-    public function testDeletingAStoreViewQueuesEverySitemapTypeAndRemovesItsFeedFiles(): void
+    public function testDeletingAStoreViewQueuesEverySitemapType(): void
     {
         $this->aRebuildableSitemap();
         $storeId = (int) $this->fixture('third_store')->getId();
-        $storage = Bootstrap::getObjectManager()->create(FeedStorage::class);
-        $storage->write('llms.txt', $storeId, 'stale');
-        $this->assertSame('stale', $storage->read('llms.txt', $storeId));
 
         $this->assertQueuedBy(['sitemap-*'], fn () => $this->deleteStore($storeId));
-
-        $this->assertNull($storage->read('llms.txt', $storeId), 'The store directory is gone.');
     }
 
     /**
@@ -308,37 +197,36 @@ class FeedInvalidationRulesTest extends TestCase
     }
 
     /**
-     * Deleting a product takes it out of every feed.
+     * Deleting a product takes its URL out of the sitemap.
      *
      * The entity is created here rather than by a class-level fixture: a fixture would try to
      * delete it again when it reverts.
      *
      * @return void
      */
-    #[Config(self::JSONL_ENABLED, 1, ScopeInterface::SCOPE_STORE, 'default')]
-    public function testDeletingAProductQueuesEveryFeed(): void
+    public function testDeletingAProductQueuesTheProductsSitemap(): void
     {
         $this->aRebuildableSitemap();
         $sku = (string) $this->create(ProductFixture::class)->getSku();
 
         $this->assertQueuedBy(
-            [...FeedRegenerator::GROUPS, 'sitemap-products'],
+            ['sitemap-products'],
             fn () => Bootstrap::getObjectManager()->get(ProductRepositoryInterface::class)->deleteById($sku)
         );
     }
 
     /**
-     * Deleting a category takes it out of the category tree and the sitemap.
+     * Deleting a category takes its URL out of the sitemap.
      *
      * @return void
      */
-    public function testDeletingACategoryQueuesLlmsAndTheCategoriesSitemap(): void
+    public function testDeletingACategoryQueuesTheCategoriesSitemap(): void
     {
         $this->aRebuildableSitemap();
         $categoryId = (int) $this->create(CategoryFixture::class)->getId();
 
         $this->assertQueuedBy(
-            [FeedRegenerator::GROUP_LLMS, 'sitemap-categories'],
+            ['sitemap-categories'],
             fn () => Bootstrap::getObjectManager()->get(CategoryRepositoryInterface::class)
                 ->deleteByIdentifier($categoryId)
         );
@@ -361,21 +249,7 @@ class FeedInvalidationRulesTest extends TestCase
     }
 
     /**
-     * With the default configuration and no sitemap generated, llms.jsonl is disabled and there is
-     * no sitemap to rebuild, so a product URL change queues nothing.
-     *
-     * @return void
-     */
-    #[DataFixture(ProductFixture::class, as: 'product')]
-    public function testFeedsNoStoreViewCanBuildAreNotQueued(): void
-    {
-        $sku = (string) $this->fixture('product')->getSku();
-
-        $this->assertQueuedBy([], fn () => $this->saveProduct($sku, ['url_key' => 'single-store-' . uniqid()]));
-    }
-
-    /**
-     * Assert exactly which feed and sitemap groups a change queues.
+     * Assert exactly which sitemap groups a change queues.
      *
      * @param string[] $expectedGroups
      * @param callable $change
@@ -388,7 +262,7 @@ class FeedInvalidationRulesTest extends TestCase
 
         $pending = [];
         $flags   = Bootstrap::getObjectManager()->get(FlagManager::class);
-        foreach ([...FeedRegenerator::GROUPS, ...self::SITEMAP_GROUPS] as $group) {
+        foreach (self::SITEMAP_GROUPS as $group) {
             if ($flags->getFlagData('mageos_seo_feed_pending_' . $group) !== null) {
                 $pending[] = $group;
             }
@@ -400,14 +274,14 @@ class FeedInvalidationRulesTest extends TestCase
     }
 
     /**
-     * Remove every pending rebuild request.
+     * Remove every pending sitemap rebuild request.
      *
      * @return void
      */
     private function clearPending(): void
     {
         $flags = Bootstrap::getObjectManager()->get(FlagManager::class);
-        foreach ([...FeedRegenerator::GROUPS, ...self::SITEMAP_GROUPS] as $group) {
+        foreach (self::SITEMAP_GROUPS as $group) {
             $flags->deleteFlag('mageos_seo_feed_pending_' . $group);
         }
     }
@@ -443,64 +317,6 @@ class FeedInvalidationRulesTest extends TestCase
     private function forgetRebuildableSitemaps(): void
     {
         Bootstrap::getObjectManager()->get(RebuildableSitemaps::class)->_resetState();
-    }
-
-    /**
-     * Load a product at the default scope, change it and save it through the repository.
-     *
-     * @param string $sku
-     * @param array<string, mixed> $changes
-     * @return void
-     */
-    private function saveProduct(string $sku, array $changes): void
-    {
-        $repository = Bootstrap::getObjectManager()->get(ProductRepositoryInterface::class);
-        $product    = $repository->get($sku, true, 0, true);
-        $product->addData($changes);
-        $repository->save($product);
-    }
-
-    /**
-     * Load a category at the default scope, change it and save it through the repository.
-     *
-     * @param int $categoryId
-     * @param array<string, mixed> $changes
-     * @return void
-     */
-    private function saveCategory(int $categoryId, array $changes): void
-    {
-        $repository = Bootstrap::getObjectManager()->get(CategoryRepositoryInterface::class);
-        $category   = $repository->get($categoryId, 0);
-        $category->addData($changes);
-        $repository->save($category);
-    }
-
-    /**
-     * Load a CMS page, change it and save it through the repository.
-     *
-     * @param int $pageId
-     * @param array<string, mixed> $changes
-     * @return void
-     */
-    private function savePage(int $pageId, array $changes): void
-    {
-        $repository = Bootstrap::getObjectManager()->get(PageRepositoryInterface::class);
-        $page       = $repository->getById($pageId);
-        $page->addData($changes);
-        $repository->save($page);
-    }
-
-    /**
-     * Run a mass attribute update at the default scope, as the admin mass actions do.
-     *
-     * @param int[] $productIds
-     * @param array<string, mixed> $attributes
-     * @return void
-     */
-    private function massUpdateAttributes(array $productIds, array $attributes): void
-    {
-        Bootstrap::getObjectManager()->create(ProductAction::class)
-            ->updateAttributes($productIds, $attributes, 0);
     }
 
     /**

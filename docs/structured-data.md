@@ -212,8 +212,8 @@ json_encode($schemas, JSON_HEX_TAG | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE | JSO
 
 `JSON_HEX_TAG` and `JSON_HEX_AMP` write `<`, `>` and `&` as `<`, `>` and `&`, so
 neither `</script>` nor `<!--` can appear inside the inline `<script>` and the output stays valid
-JSON. A `str_replace()` after encoding cannot promise both. `Block\FaqJsonLd` and
-`Block\ItemListJsonLd` encode the same way. Do not bypass this or add your own raw `json_encode()`
+JSON. A `str_replace()` after encoding cannot promise both. `Block\ItemListJsonLd`, and MageOS_Faq's
+`Block\FaqJsonLd`, encode the same way. Do not bypass this or add your own raw `json_encode()`
 output to `<head>`.
 
 ---

@@ -20,7 +20,7 @@ use Magento\Sitemap\Model\Sitemap;
  * the same file are one sitemap to the file system.
  *
  * LockManagerInterface is the framework's own abstraction, so the lock is shared across processes
- * and hosts wherever the install keeps its locks (see Feed\RebuildLock).
+ * and hosts wherever the install keeps its locks.
  */
 class GenerationLock
 {

@@ -13,14 +13,14 @@ The module ships its text in three locales:
 ## What is translated
 
 - **The admin:** configuration labels and comments, the category, product and CMS page SEO fields, the
-  FAQ and Organization screens, menu items, ACL resources and messages. The admin user's interface
+  Organization screen, menu items, ACL resources and messages. The admin user's interface
   locale decides the language.
 - **The storefront:** the breadcrumb's "Home".
-- **The llms documents** (`/llms.txt`, `/llms-full.txt`). Their headings and labels are written in
-  the store view's language (**General → Locale Options → Locale**), the same language as the product
-  names, descriptions and categories they list. The `> Locale:` line states which language that is.
-  The rebuild switches to each store view's environment before writing, so the language follows the
-  store view, not the admin or CLI user.
+
+The modules built on this one — MageOS_Faq, MageOS_Aeo and MageOS_Agentic — ship their own text in
+their own `i18n/` files. Overriding a phrase and adding a locale work for them as described below.
+MageOS_Aeo writes the llms documents in each store view's language; see its
+[llms-txt.md](https://github.com/mage-os-lab/module-aeo/blob/main/docs/llms-txt.md).
 
 ## What is not
 

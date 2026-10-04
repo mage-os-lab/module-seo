@@ -7,12 +7,7 @@
                 <resource id="MageOS_Seo::seo" title="SEO" translate="title" sortOrder="80">
                     <resource id="MageOS_Seo::organization" title="Organization Settings" translate="title"
                               sortOrder="10"/>
-                    <resource id="MageOS_Faq::faq" title="FAQ Manager" translate="title" sortOrder="15"/>
                     <resource id="MageOS_Seo::config" title="SEO Configuration" translate="title" sortOrder="20"/>
-                    <resource id="MageOS_Aeo::config" title="AI Information &amp; Crawlers Configuration"
-                              translate="title" sortOrder="30"/>
-                    <resource id="MageOS_Agentic::config" title="Agentic Commerce (UCP) Configuration"
-                              translate="title" sortOrder="40"/>
                 </resource>
             </resource>
         </resources>

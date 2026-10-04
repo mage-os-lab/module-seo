@@ -51,23 +51,6 @@
 .category-description</speakable_css_selectors>
             </aeo>
         </mageos_seo_general>
-        <!-- The llms documents and AI crawler directives (MageOS_Aeo ahead of the split). -->
-        <mageos_aeo>
-            <llms_txt>
-                <enabled>1</enabled>
-                <full_enabled>1</full_enabled>
-                <jsonl_enabled>0</jsonl_enabled>
-                <faq_groups>global</faq_groups>
-            </llms_txt>
-            <feeds>
-                <!-- empty = var/mageos_aeo; multi-host deployments set a shared mount -->
-                <storage_dir/>
-            </feeds>
-            <ai_robots>
-                <enabled>0</enabled>
-                <disallowed>CCBot,Bytespider</disallowed>
-            </ai_robots>
-        </mageos_aeo>
         <mageos_seo_merchant>
             <condition>
                 <default_condition>https://schema.org/NewCondition</default_condition>
@@ -85,15 +68,6 @@
                 <worldwide>0</worldwide>
             </shipping>
         </mageos_seo_merchant>
-        <!-- The agentic commerce profile and security.txt (MageOS_Agentic ahead of the split). -->
-        <mageos_agentic>
-            <general>
-                <enabled>0</enabled>
-            </general>
-            <security_txt>
-                <enabled>0</enabled>
-            </security_txt>
-        </mageos_agentic>
         <sitemap>
             <generate>
                 <mageos_seo_generator>mageos_seo</mageos_seo_generator>

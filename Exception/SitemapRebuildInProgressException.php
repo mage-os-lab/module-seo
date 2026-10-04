@@ -7,8 +7,8 @@ namespace MageOS\Seo\Exception;
 /**
  * Raised when a sitemap is not written because another process is writing it.
  *
- * An exception rather than an empty result, for the reason FeedRebuildInProgressException gives:
- * the callers must act differently. The queue consumer puts the request back, or the change that
+ * An exception rather than an empty result, for the reason RebuildInProgressException gives: the
+ * callers must act differently. The queue consumer puts the request back, or the change that
  * prompted it is lost; the admin's Generate button and core's cron report it.
  */
 class SitemapRebuildInProgressException extends RebuildInProgressException

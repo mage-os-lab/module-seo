@@ -15,7 +15,7 @@ use PHPUnit\Framework\TestCase;
  * What each setting reads, at which scope, and how its raw value becomes the answer.
  *
  * `has_variant_max` and the locale have tests of their own; the llms, feed storage and AI crawler
- * settings are Model\Aeo\Config's (Test\Unit\Model\Aeo\ConfigTest).
+ * settings are MageOS_Aeo's.
  */
 class ConfigTest extends TestCase
 {

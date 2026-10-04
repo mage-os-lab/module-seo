@@ -12,7 +12,6 @@ All major composition points are exposed as injectable arrays in `di.xml`. Bridg
 | New OG / meta tags on any page | `MetaTagProviderInterface` | `Model\MetaTag\Compositor` → `providers` array |
 | Custom page `<title>` provider | `PageTitleProviderInterface` | `Model\PageTitle\Compositor` → `providers` array |
 | New product schema template | `ProductSchemaBuilderInterface` | `Model\Product\SchemaBuilderPool` → `builders` array |
-| Extra content in `/llms.txt` | `LlmsTxtSectionProviderInterface` | `Model\LlmsTxt\LlmsTxtBuilder` → `sectionProviders` array |
 | Your own pre-generated output, rebuilt on change | `Api\Rebuild\GroupHandlerInterface` | `Model\Rebuild\HandlerPool` → `handlers` array |
 
 ---
@@ -167,7 +166,7 @@ Rules to follow:
 - **Read `$overrides[$field]` before the attribute for each of your own fields** (the keys of `getAvailableFields()`), and build the field in its proper shape — a `Brand` node, an `additionalProperty` entry, whatever your field is. An override for one of your fields turns that field on (`SchemaBuilderPool` adds it to `$enabledFields`), and `applyOverrides()` leaves your fields to you: setting the raw value there would replace the node you built with a string.
 - Always call `$this->applyOverrides($schema, $overrides)` as the last step — it sets the override keys your template does **not** list, as given, so a merchant can still set a schema.org property you don't know.
 - Use `$this->attr($product, 'attribute_code')` to read product attributes — it handles select/dropdown label resolution automatically.
-- Return `getLabel()` and the labels in `getAvailableFields()` through `(string) __('…')`, and add the phrases to your module's `i18n/` files. They're shown in the admin's language in the category form, and the template label in the store view's language in `/llms-full.txt` (see [Translations](translations.md)).
+- Return `getLabel()` and the labels in `getAvailableFields()` through `(string) __('…')`, and add the phrases to your module's `i18n/` files. They're shown in the admin's language in the category form, and the template label in the store view's language in MageOS_Aeo's `/llms-full.txt` (see [Translations](translations.md)).
 
 **2. Register in di.xml**
 
@@ -190,7 +189,9 @@ The key (`Vehicle`) must match the string returned by `getTemplateCode()`. The t
 
 ## Adding llms.txt content
 
-See [llms-txt.md](llms-txt.md#adding-content-from-a-bridge-module) for the full example with code and di.xml registration.
+`/llms.txt` and its section providers are MageOS_Aeo's. See its
+[llms-txt.md](https://github.com/mage-os-lab/module-aeo/blob/main/docs/llms-txt.md#adding-content-from-a-bridge-module)
+for the full example with code and di.xml registration.
 
 ---
 
@@ -198,7 +199,7 @@ See [llms-txt.md](llms-txt.md#adding-content-from-a-bridge-module) for the full 
 
 Output that is expensive to build, such as a feed file, should never be built during a web request
 or on every save. This module's rebuild queue (topic `mageos.seo.feed.regenerate`, consumer
-`mageosSeoFeedRegenerate`) already does this for the XML sitemaps and the llms documents. A module
+`mageosSeoFeedRegenerate`) already does this for the XML sitemaps and MageOS_Aeo's llms documents. A module
 can hand it groups of its own. What a group gets:
 
 - **Collapsing.** However many times a group is invalidated before the consumer runs, it is built
@@ -282,62 +283,38 @@ Everything under `Api/` is marked `@api`: it is the module's contract, and Magen
 backward-compatibility promise covers it and nothing else. Code outside `Api/` can change in any
 release.
 
-### Listing FAQ entries
+The FAQ repository is MageOS_Faq's: its README covers listing FAQ entries, adding fields to an FAQ
+and the exceptions it throws.
 
-`FaqRepositoryInterface::getList()` takes Magento's standard search criteria and returns a page of
-entries with the total that matched:
+### Adding fields to the Organization
 
-```php
-$criteria = $this->searchCriteriaBuilder
-    ->addFilter('identifier', 'shipping')
-    ->addFilter('is_active', 1)
-    ->setSortOrders([$this->sortOrderBuilder->setField('sort_order')->setAscendingDirection()->create()])
-    ->setPageSize(20)
-    ->setCurrentPage(1)
-    ->create();
-
-$results = $this->faqRepository->getList($criteria);
-$results->getTotalCount();   // every match, not just this page
-$results->getItems();        // \MageOS\Seo\Api\Data\FaqInterface[]
-```
-
-To show the FAQs of a group on a page, you don't need this: `FaqSourceProviderInterface` and the
-FAQ widget already do that, store view by store view. `getList()` is for your own code working with
-the entries themselves: an export, an integration, an admin tool.
-
-### Adding fields to an FAQ or the Organization
-
-`FaqInterface` and `OrganizationInterface` are extensible. Declare your field in your module's
+`OrganizationInterface` is extensible. Declare your field in your module's
 `etc/extension_attributes.xml`, and it appears on every model through `getExtensionAttributes()`:
 
 ```xml
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xsi:noNamespaceSchemaLocation="urn:magento:framework:Api/etc/extension_attributes.xsd">
-    <extension_attributes for="MageOS\Seo\Api\Data\FaqInterface">
-        <attribute code="helpful_votes" type="int"/>
+    <extension_attributes for="MageOS\Seo\Api\Data\OrganizationInterface">
+        <attribute code="founding_date" type="string"/>
     </extension_attributes>
 </config>
 ```
 
 ```php
-$faq->getExtensionAttributes()->getHelpfulVotes();
+$organization->getExtensionAttributes()->getFoundingDate();
 ```
 
 `getExtensionAttributes()` never returns null: the object is created on first read. Filling and
 storing your field is your module's job, as with any extension attribute: a plugin on the
-repository, or a `<join>` in the declaration. `getList()` runs the join processor, so a joined field
-arrives filled in and can be filtered and sorted on.
+repository, for one.
 
 ### Errors
 
-The repositories throw Magento's standard exceptions, so a caller can tell a missing record from a
+The repository throws Magento's standard exceptions, so a caller can tell a missing record from a
 failed write:
 
 | Method | Throws |
 |---|---|
-| `FaqRepositoryInterface::getById()` | `NoSuchEntityException` |
-| `FaqRepositoryInterface::save()` | `CouldNotSaveException` |
-| `FaqRepositoryInterface::delete()`, `deleteById()` | `CouldNotDeleteException` (and `NoSuchEntityException` for an unknown ID) |
 | `OrganizationRepositoryInterface::save()` | `CouldNotSaveException` |
 | `OrganizationRepositoryInterface::deleteForScope()` | `CouldNotDeleteException` |
 

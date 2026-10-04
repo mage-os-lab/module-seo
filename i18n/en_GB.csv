@@ -36,9 +36,6 @@ Global only — this decides how store-view scope itself is resolved."
 (?p=2+). Canonicalization is left to Magento's native category canonical tag.","Apply a dedicated robots meta to category listing pages from page 2 onward
 (?p=2+). Canonicalisation is left to Magento's native category canonical tag."
 "Answer Engine Optimization (AEO)","Answer Engine Optimisation (AEO)"
-"Serve a machine-readable NDJSON product catalog (one JSON-LD Product per
-line) at /llms.jsonl. Off by default.","Serve a machine-readable NDJSON product catalogue (one JSON-LD Product per
-line) at /llms.jsonl. Off by default."
 "<strong>MageOS SEO</strong> writes each sitemap as an index with a
 file per kind of page, and can add to each URL what core's generator cannot — hreflang alternates
 among them. It reads the catalog a page at a time on every version, so Generation Method has no
