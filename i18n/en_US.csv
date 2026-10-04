@@ -1,16 +1,4 @@
-"Add New FAQ","Add New FAQ"
-Back,Back
-Delete,Delete
-"Are you sure you want to delete this FAQ?","Are you sure you want to delete this FAQ?"
 Save,Save
-"No FAQ specified to delete.","No FAQ specified to delete."
-"The FAQ entry has been deleted.","The FAQ entry has been deleted."
-"This FAQ no longer exists.","This FAQ no longer exists."
-"Edit FAQ","Edit FAQ"
-"New FAQ","New FAQ"
-"SEO — FAQ Manager","SEO — FAQ Manager"
-"The FAQ entry has been saved.","The FAQ entry has been saved."
-"Identifier, question and answer are required.","Identifier, question and answer are required."
 "SEO — Organization Settings","SEO — Organization Settings"
 "No data received.","No data received."
 "The organization URL must be an http:// or https:// address.","The organization URL must be an http:// or https:// address."
@@ -27,13 +15,6 @@ Save,Save
 "Each hreflang code can be listed once: %1.","Each hreflang code can be listed once: %1."
 "These regions are not ISO 3166-1 country codes: %1. The United Kingdom, for instance, is GB rather than UK.","These regions are not ISO 3166-1 country codes: %1. The United Kingdom, for instance, is GB rather than UK."
 "Google reads at most %1 return countries. %2 are selected, so only the first %1 in the list are output. Choose Applies Worldwide to cover every country.","Google reads at most %1 return countries. %2 are selected, so only the first %1 in the list are output. Choose Applies Worldwide to cover every country."
-"security.txt needs an Expires date: RFC 9116 requires one.","security.txt needs an Expires date: RFC 9116 requires one."
-"The security.txt Expires date is not a date: %1. Choose one from the calendar.","The security.txt Expires date is not a date: %1. Choose one from the calendar."
-"The security.txt Expires date must be after today: after it, the file is stale and should not be used (RFC 9116).","The security.txt Expires date must be after today: after it, the file is stale and should not be used (RFC 9116)."
-"GPTBot (OpenAI training)","GPTBot (OpenAI training)"
-"ChatGPT-User (OpenAI live)","ChatGPT-User (OpenAI live)"
-"OAI-SearchBot (OpenAI search)","OAI-SearchBot (OpenAI search)"
-"Google-Extended (Gemini training)","Google-Extended (Gemini training)"
 New,New
 Refurbished,Refurbished
 Used,Used
@@ -67,34 +48,6 @@ Exchange,Exchange
 "Inherit (parent category, then the store's default template)","Inherit (parent category, then the store's default template)"
 "MageOS SEO","MageOS SEO"
 Magento,Magento
-"FAQ with id ""%1"" does not exist.","FAQ with id ""%1"" does not exist."
-"FAQ model must extend AbstractModel.","FAQ model must extend AbstractModel."
-"Could not save the FAQ: %1","Could not save the FAQ: %1"
-"Could not delete the FAQ: %1","Could not delete the FAQ: %1"
-"A feed rebuild is already running; this one was not started.","A feed rebuild is already running; this one was not started."
-"The feed storage directory must be an absolute path.","The feed storage directory must be an absolute path."
-"The feed storage directory must not contain "".."".","The feed storage directory must not contain ""..""."
-"The feed storage directory must not contain hidden directories.","The feed storage directory must not contain hidden directories."
-"The feed storage directory does not exist: %1","The feed storage directory does not exist: %1"
-"The feed storage directory is not a writable directory: %1","The feed storage directory is not a writable directory: %1"
-"Inside the installation only var/ may be used. To store feeds elsewhere, add the directory to ""%1"" in app/etc/env.php.","Inside the installation only var/ may be used. To store feeds elsewhere, add the directory to ""%1"" in app/etc/env.php."
-"The feed storage directory must be inside var/, or a directory listed under ""%1"" in app/etc/env.php.","The feed storage directory must be inside var/, or a directory listed under ""%1"" in app/etc/env.php."
-"Frequently asked questions:","Frequently asked questions:"
-"Key URLs","Key URLs"
-Home,Home
-"Store front page","Store front page"
-Sitemap,Sitemap
-"XML sitemap of indexable pages","XML sitemap of indexable pages"
-"Base URL: %1","Base URL: %1"
-"Locale: %1","Locale: %1"
-"Search URL template: %1","Search URL template: %1"
-"Social profiles: %1","Social profiles: %1"
-"Structured data: schema.org JSON-LD; types the pages can carry: %1","Structured data: schema.org JSON-LD; types the pages can carry: %1"
-"Product schema templates: %1","Product schema templates: %1"
-"Structured data: schema.org JSON-LD on product pages (%1)","Structured data: schema.org JSON-LD on product pages (%1)"
-"Contact for automated queries: %1","Contact for automated queries: %1"
-"%1 products","%1 products"
-"Category Tree","Category Tree"
 "Organization model must extend AbstractModel.","Organization model must extend AbstractModel."
 "Could not save the Organization: %1","Could not save the Organization: %1"
 "Could not delete the Organization of %1 %2: %3","Could not delete the Organization of %1 %2: %3"
@@ -191,14 +144,12 @@ Model,Model
 "Safety Warning","Safety Warning"
 "Sitemap ""%1"" is being written by another process. Try again once it has finished.","Sitemap ""%1"" is being written by another process. Try again once it has finished."
 "Sitemaps being written by another process were not rebuilt: %1.","Sitemaps being written by another process were not rebuilt: %1."
-"UCP signing key is misconfigured: the stored public JWK contains private key material.","UCP signing key is misconfigured: the stored public JWK contains private key material."
+Home,Home
 "SEO override fields were not saved: the value is not valid JSON.","SEO override fields were not saved: the value is not valid JSON."
 "The category was saved, but its SEO settings could not be saved.","The category was saved, but its SEO settings could not be saved."
 "The page was saved, but its hreflang translation group was not: use letters, digits, dots, hyphens and underscores only, for example ""about-us"".","The page was saved, but its hreflang translation group was not: use letters, digits, dots, hyphens and underscores only, for example ""about-us""."
 "The page was saved, but its SEO settings could not be saved.","The page was saved, but its SEO settings could not be saved."
 "The product was saved, but its SEO overrides could not be saved.","The product was saved, but its SEO overrides could not be saved."
-Edit,Edit
-"Delete FAQ","Delete FAQ"
 "SEO (Structured Data)","SEO (Structured Data)"
 "Product Schema Template","Product Schema Template"
 "Schema template for products in this category. Determines which structured data fields are available.","Schema template for products in this category. Determines which structured data fields are available."
@@ -218,15 +169,9 @@ Edit,Edit
 "JSON key/value pairs overriding schema fields for this product. Example: {""gtin13"":""0123456789012"",""color"":""Midnight Blue""}","JSON key/value pairs overriding schema fields for this product. Example: {""gtin13"":""0123456789012"",""color"":""Midnight Blue""}"
 "Robots Meta Override","Robots Meta Override"
 "Override robots meta for this specific product page.","Override robots meta for this specific product page."
-FAQ,FAQ
-Group:,Group:
-"Open settings to choose a FAQ group identifier.","Open settings to choose a FAQ group identifier."
 SEO,SEO
 "Organization Settings","Organization Settings"
-"FAQ Manager","FAQ Manager"
 "SEO Configuration","SEO Configuration"
-"AI Information & Crawlers Configuration","AI Information & Crawlers Configuration"
-"Agentic Commerce (UCP) Configuration","Agentic Commerce (UCP) Configuration"
 Organization,Organization
 Configuration,Configuration
 "Open Graph Tags","Open Graph Tags"
@@ -271,6 +216,13 @@ that says nothing defers to its parent.<br/><br/>
 for this store view, anywhere up the tree, outranks anything set globally. With one store view the
 two behave identically.<br/><br/>
 Global only — this decides how store-view scope itself is resolved."
+"Canonical URLs","Canonical URLs"
+"Use Canonical Link Meta Tag For CMS Pages","Use Canonical Link Meta Tag For CMS Pages"
+"Adds a canonical link to CMS pages and the home page, which Magento does
+not. Product and category canonicals are Magento's settings, under Catalog → Catalog → Search
+Engine Optimization.","Adds a canonical link to CMS pages and the home page, which Magento does
+not. Product and category canonicals are Magento's settings, under Catalog → Catalog → Search
+Engine Optimization."
 "Robots Meta Defaults","Robots Meta Defaults"
 "Product Pages Default","Product Pages Default"
 "When set to ""Use Magento Default"", the core Design > Search Engine
@@ -370,62 +322,6 @@ for the countries chosen."
 "Handling Time Max (days)","Handling Time Max (days)"
 "Transit Time Min (days)","Transit Time Min (days)"
 "Transit Time Max (days)","Transit Time Max (days)"
-"AI Information & Crawlers","AI Information & Crawlers"
-"AI Discoverability (llms.txt)","AI Discoverability (llms.txt)"
-"Enable /llms.txt","Enable /llms.txt"
-"Serve a machine-readable site summary at /llms.txt for LLM crawlers.","Serve a machine-readable site summary at /llms.txt for LLM crawlers."
-"Enable /llms-full.txt","Enable /llms-full.txt"
-"Serve the extended document with full vendor and category listings
-at /llms-full.txt.","Serve the extended document with full vendor and category listings
-at /llms-full.txt."
-"Enable /llms.jsonl","Enable /llms.jsonl"
-"Serve a machine-readable NDJSON product catalog (one JSON-LD Product per
-line) at /llms.jsonl. Off by default.","Serve a machine-readable NDJSON product catalog (one JSON-LD Product per
-line) at /llms.jsonl. Off by default."
-"FAQ Groups","FAQ Groups"
-"FAQ groups whose questions appear in /llms.txt (the first 5) and /llms-full.txt
-(all), in this order. Select none to leave FAQs out.","FAQ groups whose questions appear in /llms.txt (the first 5) and /llms-full.txt
-(all), in this order. Select none to leave FAQs out."
-"Feed Storage","Feed Storage"
-"Storage Directory","Storage Directory"
-"Absolute path for pre-generated feed files (llms.txt, llms-full.txt,
-llms.jsonl). Leave empty to use var/mageos_aeo. Inside the installation only var/ may be used;
-a shared mount for multi-server deployments must be listed under
-<code>mageos_aeo/feed_storage_roots</code> in app/etc/env.php.","Absolute path for pre-generated feed files (llms.txt, llms-full.txt,
-llms.jsonl). Leave empty to use var/mageos_aeo. Inside the installation only var/ may be used;
-a shared mount for multi-server deployments must be listed under
-<code>mageos_aeo/feed_storage_roots</code> in app/etc/env.php."
-"AI Crawler robots.txt Directives","AI Crawler robots.txt Directives"
-"Append AI Crawler Directives","Append AI Crawler Directives"
-"Add a ""Disallow: /"" robots.txt group for each AI crawler selected below.
-Crawlers not selected keep following your standard ""User-agent: *"" rules.","Add a ""Disallow: /"" robots.txt group for each AI crawler selected below.
-Crawlers not selected keep following your standard ""User-agent: *"" rules."
-"Disallow These AI Crawlers","Disallow These AI Crawlers"
-"Selected crawlers get ""Disallow: /""; all other known crawlers get ""Allow: /"".","Selected crawlers get ""Disallow: /""; all other known crawlers get ""Allow: /""."
-"Agentic Commerce (UCP)","Agentic Commerce (UCP)"
-"UCP Profile","UCP Profile"
-"Enable UCP Profile","Enable UCP Profile"
-"Serve /.well-known/ucp, the Universal Commerce Protocol business profile
-(UCP 2026-08-25). It declares only the services and capabilities an installed module registers;
-with none registered it is valid and declares nothing. Returns 404 when disabled.","Serve /.well-known/ucp, the Universal Commerce Protocol business profile
-(UCP 2026-08-25). It declares only the services and capabilities an installed module registers;
-with none registered it is valid and declares nothing. Returns 404 when disabled."
-"Signing Keys","Signing Keys"
-"Generated by ""bin/magento ucp:keygen --website=N"". The private key
-is stored encrypted; only the public JWK is served, in the profile's ""keys"".","Generated by ""bin/magento ucp:keygen --website=N"". The private key
-is stored encrypted; only the public JWK is served, in the profile's ""keys""."
-"Private Key (encrypted)","Private Key (encrypted)"
-"Public Key JWK","Public Key JWK"
-"Read-only. Populated by the keygen command.","Read-only. Populated by the keygen command."
-"security.txt (RFC 9116)","security.txt (RFC 9116)"
-"Enable security.txt","Enable security.txt"
-"Serve /.well-known/security.txt.","Serve /.well-known/security.txt."
-"Security Contact Email","Security Contact Email"
-Expires,Expires
-"The date by which you will review this file. Required by RFC 9116, and best less than
-a year ahead; after it, the file is stale. It is served as the end of that day, UTC.","The date by which you will review this file. Required by RFC 9116, and best less than
-a year ahead; after it, the file is stale. It is served as the end of that day, UTC."
-"Policy URL","Policy URL"
 Generator,Generator
 "<strong>MageOS SEO</strong> writes each sitemap as an index with a
 file per kind of page, and can add to each URL what core's generator cannot — hreflang alternates
@@ -456,12 +352,6 @@ rewritten in this store view's sitemaps soon after, by the <code>mageosSeoFeedRe
 queue consumer. A sitemap added under Marketing → Site Map is written shortly after it is saved,
 and one whose file has gone is written again. <strong>No</strong>: sitemaps change at their next
 generation only — and a Site Map entry you are not ready to publish stays unwritten."
-"SEO FAQ List","SEO FAQ List"
-"Renders a FAQ group as an accordion and adds matching FAQPage structured data.","Renders a FAQ group as an accordion and adds matching FAQPage structured data."
-"FAQ Group Identifier","FAQ Group Identifier"
-"The group identifier of the FAQ entries to display (e.g. shipping, returns).","The group identifier of the FAQ entries to display (e.g. shipping, returns)."
-"Heading (optional)","Heading (optional)"
-"Optional heading rendered above the FAQ list.","Optional heading rendered above the FAQ list."
 "Default Config","Default Config"
 "Overrides the store's CMS Pages robots default for this page.","Overrides the store's CMS Pages robots default for this page."
 "Hreflang Translation Group","Hreflang Translation Group"
@@ -470,16 +360,6 @@ generation only — and a Site Map entry you are not ready to publish stays unwr
 underscores. Leave empty to link this page only to itself in other store views.","Give each translation of this page the same value, for example
 ""about-us"", and they list one another as hreflang alternates. Letters, digits, dots, hyphens and
 underscores. Leave empty to link this page only to itself in other store views."
-"FAQ Entry","FAQ Entry"
-"Group Identifier","Group Identifier"
-"Reference this group from the FAQ widget or Page Builder. Groups selected under Stores → Configuration → MageOS SEO → AI Information & Crawlers → AI Discoverability (llms.txt) also appear in llms.txt.","Reference this group from the FAQ widget or Page Builder. Groups selected under Stores → Configuration → MageOS SEO → AI Information & Crawlers → AI Discoverability (llms.txt) also appear in llms.txt."
-"Store View ID","Store View ID"
-"0 = all store views.","0 = all store views."
-Question,Question
-Answer,Answer
-"Sort Order","Sort Order"
-Active,Active
-ID,ID
 "Organization Identity","Organization Identity"
 "Organization Name","Organization Name"
 "Canonical Site URL","Canonical Site URL"
@@ -500,6 +380,7 @@ Logo,Logo
 "Add one URL per row. These appear as sameAs links in Organization schema and in llms.txt.","Add one URL per row. These appear as sameAs links in Organization schema and in llms.txt."
 "Add Social Profile","Add Social Profile"
 URL,URL
+Delete,Delete
 "Contact Type","Contact Type"
 "e.g. ""customer service""","e.g. ""customer service"""
 "Contact Email","Contact Email"
@@ -519,5 +400,3 @@ Latitude,Latitude
 Longitude,Longitude
 "Price Range","Price Range"
 "e.g. ££ or $$. Local business only.","e.g. ££ or $$. Local business only."
-"FAQ Settings","FAQ Settings"
-"The group identifier of the FAQ entries to display (e.g. shipping).","The group identifier of the FAQ entries to display (e.g. shipping)."

@@ -1,16 +1,4 @@
-"Add New FAQ","Nieuwe FAQ toevoegen"
-Back,Terug
-Delete,Verwijderen
-"Are you sure you want to delete this FAQ?","Weet je zeker dat je deze FAQ wilt verwijderen?"
 Save,Opslaan
-"No FAQ specified to delete.","Er is geen FAQ opgegeven om te verwijderen."
-"The FAQ entry has been deleted.","De FAQ is verwijderd."
-"This FAQ no longer exists.","Deze FAQ bestaat niet meer."
-"Edit FAQ","FAQ bewerken"
-"New FAQ","Nieuwe FAQ"
-"SEO — FAQ Manager","SEO — FAQ-beheer"
-"The FAQ entry has been saved.","De FAQ is opgeslagen."
-"Identifier, question and answer are required.","Identificatie, vraag en antwoord zijn verplicht."
 "SEO — Organization Settings","SEO — Organisatie-instellingen"
 "No data received.","Geen gegevens ontvangen."
 "The organization URL must be an http:// or https:// address.","De URL van de organisatie moet een http://- of https://-adres zijn."
@@ -27,13 +15,6 @@ Save,Opslaan
 "Each hreflang code can be listed once: %1.","Elke hreflang-code mag maar één keer voorkomen: %1."
 "These regions are not ISO 3166-1 country codes: %1. The United Kingdom, for instance, is GB rather than UK.","Deze regio's zijn geen ISO 3166-1-landcodes: %1. Het Verenigd Koninkrijk is bijvoorbeeld GB, niet UK."
 "Google reads at most %1 return countries. %2 are selected, so only the first %1 in the list are output. Choose Applies Worldwide to cover every country.","Google leest maximaal %1 retourlanden. Er zijn er %2 geselecteerd, dus alleen de eerste %1 in de lijst worden uitgevoerd. Kies Wereldwijd van toepassing om alle landen te dekken."
-"security.txt needs an Expires date: RFC 9116 requires one.","security.txt heeft een Expires-datum nodig: RFC 9116 vereist er een."
-"The security.txt Expires date is not a date: %1. Choose one from the calendar.","De Expires-datum van security.txt is geen datum: %1. Kies er een in de kalender."
-"The security.txt Expires date must be after today: after it, the file is stale and should not be used (RFC 9116).","De Expires-datum van security.txt moet na vandaag liggen: daarna is het bestand verouderd en hoort het niet meer gebruikt te worden (RFC 9116)."
-"GPTBot (OpenAI training)","GPTBot (OpenAI-training)"
-"ChatGPT-User (OpenAI live)","ChatGPT-User (OpenAI live)"
-"OAI-SearchBot (OpenAI search)","OAI-SearchBot (OpenAI-zoeken)"
-"Google-Extended (Gemini training)","Google-Extended (Gemini-training)"
 New,Nieuw
 Refurbished,Gereviseerd
 Used,Gebruikt
@@ -67,34 +48,6 @@ Exchange,Omruilen
 "Inherit (parent category, then the store's default template)","Overnemen (bovenliggende categorie, daarna het standaardsjabloon van de winkel)"
 "MageOS SEO","MageOS SEO"
 Magento,Magento
-"FAQ with id ""%1"" does not exist.","FAQ met id ""%1"" bestaat niet."
-"FAQ model must extend AbstractModel.","Het FAQ-model moet AbstractModel uitbreiden."
-"Could not save the FAQ: %1","De FAQ kon niet worden opgeslagen: %1"
-"Could not delete the FAQ: %1","De FAQ kon niet worden verwijderd: %1"
-"A feed rebuild is already running; this one was not started.","Er wordt al een feed opnieuw opgebouwd; deze is niet gestart."
-"The feed storage directory must be an absolute path.","De opslagmap voor feeds moet een absoluut pad zijn."
-"The feed storage directory must not contain "".."".","De opslagmap voor feeds mag geen "".."" bevatten."
-"The feed storage directory must not contain hidden directories.","De opslagmap voor feeds mag geen verborgen mappen bevatten."
-"The feed storage directory does not exist: %1","De opslagmap voor feeds bestaat niet: %1"
-"The feed storage directory is not a writable directory: %1","De opslagmap voor feeds is geen beschrijfbare map: %1"
-"Inside the installation only var/ may be used. To store feeds elsewhere, add the directory to ""%1"" in app/etc/env.php.","Binnen de installatie mag alleen var/ worden gebruikt. Wil je feeds ergens anders opslaan, voeg de map dan toe aan ""%1"" in app/etc/env.php."
-"The feed storage directory must be inside var/, or a directory listed under ""%1"" in app/etc/env.php.","De opslagmap voor feeds moet in var/ liggen, of een map zijn die onder ""%1"" in app/etc/env.php staat."
-"Frequently asked questions:","Veelgestelde vragen:"
-"Key URLs","Belangrijke URL's"
-Home,Home
-"Store front page","Startpagina van de winkel"
-Sitemap,Sitemap
-"XML sitemap of indexable pages","XML-sitemap van indexeerbare pagina's"
-"Base URL: %1","Basis-URL: %1"
-"Locale: %1","Landinstelling: %1"
-"Search URL template: %1","Sjabloon voor de zoek-URL: %1"
-"Social profiles: %1","Sociale profielen: %1"
-"Structured data: schema.org JSON-LD; types the pages can carry: %1","Gestructureerde gegevens: schema.org JSON-LD; types die de pagina's kunnen bevatten: %1"
-"Product schema templates: %1","Productschemasjablonen: %1"
-"Structured data: schema.org JSON-LD on product pages (%1)","Gestructureerde gegevens: schema.org JSON-LD op productpagina's (%1)"
-"Contact for automated queries: %1","Contact voor geautomatiseerde vragen: %1"
-"%1 products","%1 producten"
-"Category Tree","Categorieboom"
 "Organization model must extend AbstractModel.","Het Organization-model moet AbstractModel uitbreiden."
 "Could not save the Organization: %1","De organisatie kon niet worden opgeslagen: %1"
 "Could not delete the Organization of %1 %2: %3","De organisatie van %1 %2 kon niet worden verwijderd: %3"
@@ -191,14 +144,12 @@ Model,Model
 "Safety Warning",Veiligheidswaarschuwing
 "Sitemap ""%1"" is being written by another process. Try again once it has finished.","Sitemap ""%1"" wordt door een ander proces geschreven. Probeer het opnieuw zodra dat klaar is."
 "Sitemaps being written by another process were not rebuilt: %1.","Sitemaps die door een ander proces worden geschreven, zijn niet opnieuw opgebouwd: %1."
-"UCP signing key is misconfigured: the stored public JWK contains private key material.","De UCP-ondertekeningssleutel is verkeerd geconfigureerd: de opgeslagen openbare JWK bevat privésleutelmateriaal."
+Home,Home
 "SEO override fields were not saved: the value is not valid JSON.","De SEO-overschrijvingsvelden zijn niet opgeslagen: de waarde is geen geldige JSON."
 "The category was saved, but its SEO settings could not be saved.","De categorie is opgeslagen, maar de SEO-instellingen konden niet worden opgeslagen."
 "The page was saved, but its hreflang translation group was not: use letters, digits, dots, hyphens and underscores only, for example ""about-us"".","De pagina is opgeslagen, maar de hreflang-vertaalgroep niet: gebruik alleen letters, cijfers, punten, koppeltekens en underscores, bijvoorbeeld ""over-ons""."
 "The page was saved, but its SEO settings could not be saved.","De pagina is opgeslagen, maar de SEO-instellingen konden niet worden opgeslagen."
 "The product was saved, but its SEO overrides could not be saved.","Het product is opgeslagen, maar de SEO-overschrijvingen konden niet worden opgeslagen."
-Edit,Bewerken
-"Delete FAQ","FAQ verwijderen"
 "SEO (Structured Data)","SEO (gestructureerde gegevens)"
 "Product Schema Template",Productschemasjabloon
 "Schema template for products in this category. Determines which structured data fields are available.","Schemasjabloon voor producten in deze categorie. Bepaalt welke velden voor gestructureerde gegevens beschikbaar zijn."
@@ -218,15 +169,9 @@ Edit,Bewerken
 "JSON key/value pairs overriding schema fields for this product. Example: {""gtin13"":""0123456789012"",""color"":""Midnight Blue""}","JSON-sleutel/waardeparen die schemavelden voor dit product overschrijven. Voorbeeld: {""gtin13"":""0123456789012"",""color"":""Midnight Blue""}"
 "Robots Meta Override","Robots-meta overschrijven"
 "Override robots meta for this specific product page.","Overschrijf de robots-meta voor deze productpagina."
-FAQ,FAQ
-Group:,Groep:
-"Open settings to choose a FAQ group identifier.","Open de instellingen om een FAQ-groepsidentificatie te kiezen."
 SEO,SEO
 "Organization Settings",Organisatie-instellingen
-"FAQ Manager",FAQ-beheer
 "SEO Configuration",SEO-configuratie
-"AI Information & Crawlers Configuration","Configuratie AI-informatie & crawlers"
-"Agentic Commerce (UCP) Configuration","Configuratie Agentic Commerce (UCP)"
 Organization,Organisatie
 Configuration,Configuratie
 "Open Graph Tags",Open-Graph-tags
@@ -259,6 +204,11 @@ that says nothing defers to its parent.<br/><br/>
 for this store view, anywhere up the tree, outranks anything set globally. With one store view the
 two behave identically.<br/><br/>
 Global only — this decides how store-view scope itself is resolved.","Waar de SEO-instellingen van een categorie vandaan komen als die categorie ze niet zelf instelt. Elke instelling wordt apart bepaald, dus een categorie kan haar schemasjabloon van de ene plek halen en haar robots-instructie van een andere.<br/><br/><strong>Categorie eerst</strong> past bij een catalogus waarvan de boom de betekenis draagt: een instelling op een categorie geldt voor die categorie, of ze nu globaal of voor één winkelweergave is ingesteld, en alleen een categorie die niets instelt, valt terug op haar bovenliggende categorie.<br/><br/><strong>Winkelweergave eerst</strong> past bij winkelweergaven met een eigen SEO-beleid: alles wat voor deze winkelweergave is ingesteld, waar ook in de boom, gaat voor op alles wat globaal is ingesteld. Met één winkelweergave werken beide hetzelfde.<br/><br/>Alleen globaal — dit bepaalt hoe de scope van een winkelweergave zelf wordt bepaald."
+"Canonical URLs","Canonieke URL's"
+"Use Canonical Link Meta Tag For CMS Pages","Canonieke link-metatag gebruiken voor CMS-pagina's"
+"Adds a canonical link to CMS pages and the home page, which Magento does
+not. Product and category canonicals are Magento's settings, under Catalog → Catalog → Search
+Engine Optimization.","Voegt een canonieke link toe aan CMS-pagina's en de startpagina, wat Magento zelf niet doet. Canonieke links voor producten en categorieën zijn instellingen van Magento, onder Catalogus → Catalogus → Zoekmachineoptimalisatie."
 "Robots Meta Defaults","Standaardwaarden robots-meta"
 "Product Pages Default","Standaard voor productpagina's"
 "When set to ""Use Magento Default"", the core Design > Search Engine
@@ -340,51 +290,6 @@ for the countries chosen.","Voer OfferShippingDetails uit op productaanbiedingen
 "Handling Time Max (days)","Verwerkingstijd max. (dagen)"
 "Transit Time Min (days)","Transporttijd min. (dagen)"
 "Transit Time Max (days)","Transporttijd max. (dagen)"
-"AI Information & Crawlers","AI-informatie & crawlers"
-"AI Discoverability (llms.txt)","AI-vindbaarheid (llms.txt)"
-"Enable /llms.txt","/llms.txt inschakelen"
-"Serve a machine-readable site summary at /llms.txt for LLM crawlers.","Bied op /llms.txt een machineleesbare samenvatting van de site aan voor LLM-crawlers."
-"Enable /llms-full.txt","/llms-full.txt inschakelen"
-"Serve the extended document with full vendor and category listings
-at /llms-full.txt.","Bied op /llms-full.txt het uitgebreide document aan, met volledige overzichten van leveranciers en categorieën."
-"Enable /llms.jsonl","/llms.jsonl inschakelen"
-"Serve a machine-readable NDJSON product catalog (one JSON-LD Product per
-line) at /llms.jsonl. Off by default.","Bied op /llms.jsonl een machineleesbare NDJSON-productcatalogus aan (één JSON-LD Product per regel). Standaard uit."
-"FAQ Groups",FAQ-groepen
-"FAQ groups whose questions appear in /llms.txt (the first 5) and /llms-full.txt
-(all), in this order. Select none to leave FAQs out.","FAQ-groepen waarvan de vragen in /llms.txt (de eerste 5) en /llms-full.txt (alle) staan, in deze volgorde. Selecteer er geen om FAQ's weg te laten."
-"Feed Storage",Feedopslag
-"Storage Directory",Opslagmap
-"Absolute path for pre-generated feed files (llms.txt, llms-full.txt,
-llms.jsonl). Leave empty to use var/mageos_aeo. Inside the installation only var/ may be used;
-a shared mount for multi-server deployments must be listed under
-<code>mageos_aeo/feed_storage_roots</code> in app/etc/env.php.","Absoluut pad voor vooraf gegenereerde feedbestanden (llms.txt, llms-full.txt, llms.jsonl). Laat leeg om var/mageos_aeo te gebruiken. Binnen de installatie mag alleen var/ worden gebruikt; een gedeelde mount voor omgevingen met meerdere servers moet onder <code>mageos_aeo/feed_storage_roots</code> in app/etc/env.php staan."
-"AI Crawler robots.txt Directives","robots.txt-instructies voor AI-crawlers"
-"Append AI Crawler Directives","AI-crawlerinstructies toevoegen"
-"Add a ""Disallow: /"" robots.txt group for each AI crawler selected below.
-Crawlers not selected keep following your standard ""User-agent: *"" rules.","Voeg een robots.txt-groep met ""Disallow: /"" toe voor elke hieronder geselecteerde AI-crawler. Niet-geselecteerde crawlers blijven je standaardregels voor ""User-agent: *"" volgen."
-"Disallow These AI Crawlers","Deze AI-crawlers weigeren"
-"Selected crawlers get ""Disallow: /""; all other known crawlers get ""Allow: /"".","Geselecteerde crawlers krijgen ""Disallow: /""; alle andere bekende crawlers krijgen ""Allow: /""."
-"Agentic Commerce (UCP)","Agentic Commerce (UCP)"
-"UCP Profile",UCP-profiel
-"Enable UCP Profile","UCP-profiel inschakelen"
-"Serve /.well-known/ucp, the Universal Commerce Protocol business profile
-(UCP 2026-08-25). It declares only the services and capabilities an installed module registers;
-with none registered it is valid and declares nothing. Returns 404 when disabled.","Bied /.well-known/ucp aan, het bedrijfsprofiel van het Universal Commerce Protocol (UCP 2026-08-25). Het vermeldt alleen de diensten en mogelijkheden die een geïnstalleerde module registreert; zonder registraties is het geldig en vermeldt het niets. Geeft 404 als het is uitgeschakeld."
-"Signing Keys",Ondertekeningssleutels
-"Generated by ""bin/magento ucp:keygen --website=N"". The private key
-is stored encrypted; only the public JWK is served, in the profile's ""keys"".","Aangemaakt met ""bin/magento ucp:keygen --website=N"". De privésleutel wordt versleuteld opgeslagen; alleen de openbare JWK wordt aangeboden, in de ""keys"" van het profiel."
-"Private Key (encrypted)","Privésleutel (versleuteld)"
-"Public Key JWK","Openbare sleutel (JWK)"
-"Read-only. Populated by the keygen command.","Alleen-lezen. Wordt ingevuld door de keygen-opdracht."
-"security.txt (RFC 9116)","security.txt (RFC 9116)"
-"Enable security.txt","security.txt inschakelen"
-"Serve /.well-known/security.txt.","Bied /.well-known/security.txt aan."
-"Security Contact Email","E-mailadres beveiligingscontact"
-Expires,Verloopt
-"The date by which you will review this file. Required by RFC 9116, and best less than
-a year ahead; after it, the file is stale. It is served as the end of that day, UTC.","De datum waarop je dit bestand uiterlijk herziet. Vereist door RFC 9116, en bij voorkeur minder dan een jaar vooruit; daarna is het bestand verouderd. Wordt aangeboden als het einde van die dag, UTC."
-"Policy URL","URL beleid"
 Generator,Generator
 "<strong>MageOS SEO</strong> writes each sitemap as an index with a
 file per kind of page, and can add to each URL what core's generator cannot — hreflang alternates
@@ -403,28 +308,12 @@ rewritten in this store view's sitemaps soon after, by the <code>mageosSeoFeedRe
 queue consumer. A sitemap added under Marketing → Site Map is written shortly after it is saved,
 and one whose file has gone is written again. <strong>No</strong>: sitemaps change at their next
 generation only — and a Site Map entry you are not ready to publish stays unwritten.","Als iets wat de sitemap vermeldt verandert — de URL-sleutel, status of zichtbaarheid van een product, een categorie, een CMS-pagina, een robots-instructie, een sitemapinstelling — dan wordt dat soort pagina kort daarna opnieuw geschreven in de sitemaps van deze winkelweergave, door de queue consumer <code>mageosSeoFeedRegenerate</code>. Een sitemap die onder Marketing → Sitemap is toegevoegd, wordt kort na het opslaan geschreven, en een sitemap waarvan het bestand verdwenen is, wordt opnieuw geschreven. <strong>Nee</strong>: sitemaps veranderen pas bij hun volgende generatie — en een sitemap die je nog niet wilt publiceren, blijft ongeschreven."
-"SEO FAQ List","SEO FAQ-lijst"
-"Renders a FAQ group as an accordion and adds matching FAQPage structured data.","Toont een FAQ-groep als accordeon en voegt bijbehorende gestructureerde gegevens (FAQPage) toe."
-"FAQ Group Identifier",FAQ-groepsidentificatie
-"The group identifier of the FAQ entries to display (e.g. shipping, returns).","De groepsidentificatie van de FAQ's die je wilt tonen (bijv. shipping, returns)."
-"Heading (optional)","Kop (optioneel)"
-"Optional heading rendered above the FAQ list.","Optionele kop boven de FAQ-lijst."
 "Default Config",Standaardconfiguratie
 "Overrides the store's CMS Pages robots default for this page.","Overschrijft voor deze pagina de standaard robots-instelling voor CMS-pagina's van de winkel."
 "Hreflang Translation Group",Hreflang-vertaalgroep
 "Give each translation of this page the same value, for example
 ""about-us"", and they list one another as hreflang alternates. Letters, digits, dots, hyphens and
 underscores. Leave empty to link this page only to itself in other store views.","Geef elke vertaling van deze pagina dezelfde waarde, bijvoorbeeld ""over-ons"", dan vermelden ze elkaar als hreflang-alternatieven. Letters, cijfers, punten, koppeltekens en underscores. Laat leeg om deze pagina alleen aan zichzelf in andere winkelweergaven te koppelen."
-"FAQ Entry",FAQ-item
-"Group Identifier",Groepsidentificatie
-"Reference this group from the FAQ widget or Page Builder. Groups selected under Stores → Configuration → MageOS SEO → AI Information & Crawlers → AI Discoverability (llms.txt) also appear in llms.txt.","Verwijs naar deze groep vanuit de FAQ-widget of Page Builder. Groepen die zijn geselecteerd onder Winkels → Configuratie → MageOS SEO → AI-informatie & crawlers → AI-vindbaarheid (llms.txt) staan ook in llms.txt."
-"Store View ID",Winkelweergave-ID
-"0 = all store views.","0 = alle winkelweergaven."
-Question,Vraag
-Answer,Antwoord
-"Sort Order",Sorteervolgorde
-Active,Actief
-ID,ID
 "Organization Identity","Identiteit van de organisatie"
 "Organization Name","Naam van de organisatie"
 "Canonical Site URL","Canonieke site-URL"
@@ -445,6 +334,7 @@ Logo,Logo
 "Add one URL per row. These appear as sameAs links in Organization schema and in llms.txt.","Voeg één URL per rij toe. Deze verschijnen als sameAs-links in het Organization-schema en in llms.txt."
 "Add Social Profile","Sociaal profiel toevoegen"
 URL,URL
+Delete,Verwijderen
 "Contact Type","Soort contact"
 "e.g. ""customer service""","bijv. ""klantenservice"""
 "Contact Email",Contact-e-mailadres
@@ -464,5 +354,3 @@ Latitude,Breedtegraad
 Longitude,Lengtegraad
 "Price Range",Prijsklasse
 "e.g. ££ or $$. Local business only.","bijv. €€ of $$. Alleen voor een lokaal bedrijf."
-"FAQ Settings",FAQ-instellingen
-"The group identifier of the FAQ entries to display (e.g. shipping).","De groepsidentificatie van de FAQ's die je wilt tonen (bijv. shipping)."

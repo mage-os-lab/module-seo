@@ -1,6 +1,6 @@
 # Organisation Settings
 
-The Organisation record provides the site identity data used in the `Organization` and `WebSite` JSON-LD nodes and in the `/llms.txt` document. It must be configured before the site goes live — without it, those nodes will output empty values.
+The Organisation record provides the site identity data used in the `Organization` and `WebSite` JSON-LD nodes and, when [MageOS_Aeo](https://github.com/mage-os-lab/module-aeo) is installed, in the `/llms.txt` document. It must be configured before the site goes live — without it, those nodes will output empty values.
 
 ---
 
@@ -24,7 +24,7 @@ The form supports standard Magento store-scope switching: select a website or st
 | Logo width / height | Pixel dimensions of the logo | Both required for a valid Organization schema. |
 | Social profiles | Social profile URLs | Added as the `sameAs` array. One URL per row. |
 | Contact type | `contactType` for the ContactPoint node | e.g. `customer support`, `sales` |
-| Contact email | `email` for the ContactPoint node | Also the AI contact in `/llms.txt` and `/llms-full.txt`. Left blank, those fall back to the store's Customer Support email unless it is still Magento's `support@example.com` — see [AI contact](llms-txt.md#ai-contact). |
+| Contact email | `email` for the ContactPoint node | Also the AI contact in `/llms.txt` and `/llms-full.txt`. Left blank, those fall back to the store's Customer Support email unless it is still Magento's `support@example.com` — see [AI contact](https://github.com/mage-os-lab/module-aeo/blob/main/docs/llms-txt.md#ai-contact). |
 | Available language | `availableLanguage` for the ContactPoint node | e.g. `English` |
 | Local presence | Address, telephone, email, latitude/longitude, price range | See [Local presence](#local-presence). |
 

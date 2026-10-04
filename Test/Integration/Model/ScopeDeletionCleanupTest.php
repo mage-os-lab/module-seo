@@ -8,7 +8,6 @@ use Magento\Catalog\Api\CategoryRepositoryInterface;
 use Magento\Catalog\Api\ProductRepositoryInterface;
 use Magento\Catalog\Test\Fixture\Category as CategoryFixture;
 use Magento\Catalog\Test\Fixture\Product as ProductFixture;
-use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Store\Model\ResourceModel\Store as StoreResource;
 use Magento\Store\Model\ResourceModel\Website as WebsiteResource;
 use Magento\Store\Model\ScopeInterface;
@@ -21,13 +20,8 @@ use Magento\Store\Test\Fixture\Website as WebsiteFixture;
 use Magento\TestFramework\Fixture\DataFixture;
 use Magento\TestFramework\Fixture\DataFixtureStorageManager;
 use Magento\TestFramework\Helper\Bootstrap;
-use MageOS\Seo\Api\Data\FaqInterface;
-use MageOS\Seo\Api\FaqRepositoryInterface;
 use MageOS\Seo\Api\OrganizationRepositoryInterface;
 use MageOS\Seo\Model\Category\ConfigRepository;
-use MageOS\Seo\Model\Faq;
-use MageOS\Seo\Model\Feed\FeedRegenerator;
-use MageOS\Seo\Model\Feed\FeedStorage;
 use MageOS\Seo\Model\Product\OverrideRepository;
 use PHPUnit\Framework\TestCase;
 
@@ -96,11 +90,11 @@ class ScopeDeletionCleanupTest extends TestCase
         $categoryId = (int) $this->fixture('category')->getId();
         $productId  = (int) $this->fixture('product')->getId();
 
-        $faqId = $this->seedStoreScopedRecords($storeId, $categoryId, $productId);
+        $this->seedStoreScopedRecords($storeId, $categoryId, $productId);
 
         $this->deleteStore($storeId);
 
-        $this->assertStoreScopedRecordsAreGone($storeId, $categoryId, $productId, $faqId);
+        $this->assertStoreScopedRecordsAreGone($storeId, $categoryId, $productId);
     }
 
     /**
@@ -120,12 +114,12 @@ class ScopeDeletionCleanupTest extends TestCase
         $categoryId = (int) $this->fixture('category')->getId();
         $productId  = (int) $this->fixture('product')->getId();
 
-        $faqId = $this->seedStoreScopedRecords($storeId, $categoryId, $productId);
+        $this->seedStoreScopedRecords($storeId, $categoryId, $productId);
         $this->saveOrganization(ScopeInterface::SCOPE_WEBSITES, $websiteId);
 
         $this->deleteWebsite($websiteId);
 
-        $this->assertStoreScopedRecordsAreGone($storeId, $categoryId, $productId, $faqId);
+        $this->assertStoreScopedRecordsAreGone($storeId, $categoryId, $productId);
         $this->assertSame(
             0,
             $this->organizationRepository()->get(ScopeInterface::SCOPE_WEBSITES, $websiteId)->getEntityId(),
@@ -134,57 +128,18 @@ class ScopeDeletionCleanupTest extends TestCase
     }
 
     /**
-     * Feed files of store views that disappeared with their website are swept by a full rebuild.
-     *
-     * @return void
-     */
-    #[DataFixture(WebsiteFixture::class, as: 'website')]
-    #[DataFixture(GroupFixture::class, ['website_id' => '$website.id$'], 'group')]
-    #[DataFixture(StoreFixture::class, ['store_group_id' => '$group.id$'], 'store')]
-    public function testAFullRebuildRemovesFeedDirectoriesOfStoreViewsThatNoLongerExist(): void
-    {
-        $websiteId = (int) $this->fixture('website')->getId();
-        $storeId   = (int) $this->fixture('store')->getId();
-
-        $storage = Bootstrap::getObjectManager()->create(FeedStorage::class);
-        $storage->write('llms.txt', $storeId, 'store that is about to go');
-
-        $this->deleteWebsite($websiteId);
-
-        // Nothing dispatched store_delete for it, so the files are still there.
-        $this->assertSame('store that is about to go', $storage->read('llms.txt', $storeId));
-
-        Bootstrap::getObjectManager()->create(FeedRegenerator::class)->regenerate();
-
-        $this->assertNull($storage->read('llms.txt', $storeId), 'The orphaned directory was swept.');
-        $this->assertNotContains(
-            $storeId,
-            Bootstrap::getObjectManager()->create(FeedStorage::class)->listStoreDirectories()
-        );
-    }
-
-    /**
-     * Write one record per store-scoped table and return the FAQ's ID.
+     * Write one record per store-scoped table.
      *
      * @param int $storeId
      * @param int $categoryId
      * @param int $productId
-     * @return int
+     * @return void
      */
-    private function seedStoreScopedRecords(int $storeId, int $categoryId, int $productId): int
+    private function seedStoreScopedRecords(int $storeId, int $categoryId, int $productId): void
     {
         $this->configRepository()->save($categoryId, ['robots_meta' => 'NOINDEX,FOLLOW'], $storeId);
         $this->overrideRepository()->save($productId, $storeId, ['robots_meta' => 'NOINDEX,FOLLOW']);
         $this->saveOrganization(ScopeInterface::SCOPE_STORES, $storeId);
-
-        /** @var FaqInterface $faq */
-        $faq = Bootstrap::getObjectManager()->create(Faq::class);
-        $faq->setIdentifier('scope-deletion-check')
-            ->setStoreId($storeId)
-            ->setQuestion('Does this record survive its store view?')
-            ->setAnswer('It should not.')
-            ->setIsActive(true);
-        Bootstrap::getObjectManager()->get(FaqRepositoryInterface::class)->save($faq);
 
         $this->assertNotSame([], $this->configRepository()->getForCategory($categoryId, [], $storeId));
         $this->assertSame('NOINDEX,FOLLOW', $this->robotsOverride($productId, $storeId));
@@ -192,8 +147,6 @@ class ScopeDeletionCleanupTest extends TestCase
             0,
             $this->organizationRepository()->get(ScopeInterface::SCOPE_STORES, $storeId)->getEntityId()
         );
-
-        return $faq->getEntityId();
     }
 
     /**
@@ -202,15 +155,10 @@ class ScopeDeletionCleanupTest extends TestCase
      * @param int $storeId
      * @param int $categoryId
      * @param int $productId
-     * @param int $faqId
      * @return void
      */
-    private function assertStoreScopedRecordsAreGone(
-        int $storeId,
-        int $categoryId,
-        int $productId,
-        int $faqId
-    ): void {
+    private function assertStoreScopedRecordsAreGone(int $storeId, int $categoryId, int $productId): void
+    {
         $this->assertSame(
             [],
             $this->configRepository()->getForCategory($categoryId, [], $storeId),
@@ -225,13 +173,6 @@ class ScopeDeletionCleanupTest extends TestCase
             $this->organizationRepository()->get(ScopeInterface::SCOPE_STORES, $storeId)->getEntityId(),
             'Organization record went with the store view.'
         );
-
-        try {
-            Bootstrap::getObjectManager()->get(FaqRepositoryInterface::class)->getById($faqId);
-            $this->fail('The FAQ entry went with the store view.');
-        } catch (NoSuchEntityException) {
-            $this->addToAssertionCount(1);
-        }
     }
 
     /**

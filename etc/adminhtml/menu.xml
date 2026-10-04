@@ -19,15 +19,6 @@
              action="mageos_seo/organization/edit"
              resource="MageOS_Seo::organization"/>
 
-        <add id="MageOS_Faq::faq"
-             title="FAQ Manager"
-             translate="title"
-             module="MageOS_Seo"
-             sortOrder="15"
-             parent="MageOS_Seo::seo"
-             action="mageos_faq/faq/index"
-             resource="MageOS_Faq::faq"/>
-
         <add id="MageOS_Seo::config_link"
              title="Configuration"
              translate="title"

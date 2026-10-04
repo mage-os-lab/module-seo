@@ -5,13 +5,9 @@ declare(strict_types=1);
 namespace MageOS\Seo\Test\Integration;
 
 use Magento\TestFramework\Helper\Bootstrap;
-use MageOS\Seo\Api\FaqCollectorInterface;
 use MageOS\Seo\Api\OrganizationRepositoryInterface;
 use MageOS\Seo\Model\Faq\SourcePool as FaqSourcePool;
-use MageOS\Seo\Model\Feed\LlmsRebuildHandler;
 use MageOS\Seo\Model\Hreflang\ResolverPool as HreflangResolverPool;
-use MageOS\Seo\Model\LlmsJsonl\JsonlBuilder;
-use MageOS\Seo\Model\LlmsTxt\LlmsTxtBuilder;
 use MageOS\Seo\Model\MetaTag\Compositor as MetaTagCompositor;
 use MageOS\Seo\Model\PageTitle\Compositor as PageTitleCompositor;
 use MageOS\Seo\Model\Product\Builder\AbstractBuilder;
@@ -20,11 +16,9 @@ use MageOS\Seo\Model\Product\OfferBuilder;
 use MageOS\Seo\Model\Product\OfferEnricher\Pool as OfferEnricherPool;
 use MageOS\Seo\Model\Product\SchemaBuilderPool;
 use MageOS\Seo\Model\Product\Variant\ProductGroupBuilder;
-use MageOS\Seo\Model\Rebuild\HandlerPool as RebuildHandlerPool;
 use MageOS\Seo\Model\Review\AggregateRatingResolver;
 use MageOS\Seo\Model\RobotsMeta\Resolver as RobotsMetaResolver;
 use MageOS\Seo\Model\StructuredData\Compositor as StructuredDataCompositor;
-use MageOS\Seo\Model\WellKnown\EndpointPool as WellKnownEndpointPool;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -66,12 +60,6 @@ class DiWiringTest extends TestCase
         $this->assertInstanceOf(SchemaBuilderPool::class, $instance);
     }
 
-    public function testLlmsTxtBuilderIsInstantiableViaDi(): void
-    {
-        $instance = Bootstrap::getObjectManager()->get(LlmsTxtBuilder::class);
-        $this->assertInstanceOf(LlmsTxtBuilder::class, $instance);
-    }
-
     public function testRobotsMetaResolverIsInstantiableViaDi(): void
     {
         $instance = Bootstrap::getObjectManager()->get(RobotsMetaResolver::class);
@@ -100,37 +88,6 @@ class DiWiringTest extends TestCase
     {
         $instance = Bootstrap::getObjectManager()->get(FaqSourcePool::class);
         $this->assertInstanceOf(FaqSourcePool::class, $instance);
-    }
-
-    public function testFaqCollectorIsInstantiableViaDi(): void
-    {
-        $instance = Bootstrap::getObjectManager()->get(FaqCollectorInterface::class);
-        $this->assertInstanceOf(FaqCollectorInterface::class, $instance);
-    }
-
-    public function testLlmsJsonlBuilderIsInstantiableViaDi(): void
-    {
-        $instance = Bootstrap::getObjectManager()->get(JsonlBuilder::class);
-        $this->assertInstanceOf(JsonlBuilder::class, $instance);
-    }
-
-    public function testTheLlmsDocumentsAreRegisteredWithTheRebuildQueue(): void
-    {
-        /** @var RebuildHandlerPool $pool */
-        $pool = Bootstrap::getObjectManager()->get(RebuildHandlerPool::class);
-        $this->assertInstanceOf(LlmsRebuildHandler::class, $pool->get('llms'));
-        $this->assertInstanceOf(LlmsRebuildHandler::class, $pool->get('jsonl'));
-        $this->assertSame(['llms', 'jsonl'], $pool->getGroups());
-    }
-
-    public function testWellKnownEndpointPoolIsWiredWithBuiltinEndpoints(): void
-    {
-        /** @var WellKnownEndpointPool $pool */
-        $pool = Bootstrap::getObjectManager()->get(WellKnownEndpointPool::class);
-        $this->assertTrue($pool->has('ucp'));
-        $this->assertTrue($pool->has('security.txt'));
-        // Retired: see RetiredAiPluginManifestTest.
-        $this->assertFalse($pool->has('ai-plugin.json'));
     }
 
     /**

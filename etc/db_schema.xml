@@ -189,41 +189,8 @@
     </table>
 
     <!--
-        Formerly mageos_seo_faq. db_schema_whitelist.json keeps that name so setup:upgrade drops
-        the old table; its rows are not carried over.
+        The FAQ table, mageos_faq, is MageOS_Faq's. db_schema_whitelist.json keeps its pre-rename
+        name, mageos_seo_faq, which this module created, so setup:upgrade drops that table.
     -->
-    <table name="mageos_faq" resource="default" engine="innodb"
-           comment="MageOS FAQ — FAQ entries (FAQPage structured data)">
-        <column xsi:type="int" name="entity_id" unsigned="true" nullable="false" identity="true" comment="Entity ID"/>
-        <column xsi:type="varchar" name="identifier" nullable="false" length="128"
-                comment="FAQ group identifier referenced by widgets / Page Builder"/>
-        <column xsi:type="smallint" name="store_id" unsigned="true" nullable="false" default="0"
-                comment="Store view ID (0 = all stores)"/>
-        <column xsi:type="varchar" name="question" nullable="false" length="512" comment="Question text"/>
-        <column xsi:type="text" name="answer" nullable="false" comment="Answer text"/>
-        <column xsi:type="smallint" name="sort_order" unsigned="true" nullable="false" default="0"
-                comment="Sort order"/>
-        <column xsi:type="smallint" name="is_active" unsigned="true" nullable="false" default="1"
-                comment="Enabled flag"/>
-        <column xsi:type="timestamp" name="updated_at" nullable="false" default="CURRENT_TIMESTAMP"
-                on_update="true" comment="Last updated"/>
-        <constraint xsi:type="primary" referenceId="PRIMARY">
-            <column name="entity_id"/>
-        </constraint>
-        <index referenceId="MAGEOS_FAQ_IDENTIFIER_STORE_IDX" indexType="btree">
-            <column name="identifier"/>
-            <column name="store_id"/>
-        </index>
-        <!--
-            store_id sits second in the index above, so the foreign key needs its own.
-            identifier is a free-text grouping key and references nothing.
-        -->
-        <constraint xsi:type="foreign" referenceId="MAGEOS_FAQ_STORE_ID_STORE_STORE_ID"
-                    table="mageos_faq" column="store_id"
-                    referenceTable="store" referenceColumn="store_id" onDelete="CASCADE"/>
-        <index referenceId="MAGEOS_FAQ_STORE_ID" indexType="btree">
-            <column name="store_id"/>
-        </index>
-    </table>
 
 </schema>

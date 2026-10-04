@@ -5,15 +5,14 @@
     // Test/Integration against a real database/framework: resource models and
     // the collection-backed repositories (their WHERE clauses and per-row
     // ordering are invisible to a doubled collection, so those mutants are
-    // unkillable in unit tests by design), schema/meta providers, the
-    // llms.txt/llms.jsonl builders and the Organization repository. Infection
-    // cannot boot Magento to run those suites locally. Catalog/CurrentEntity is
-    // pure Registry delegation. Cron/ is outside the scanned directories.
+    // unkillable in unit tests by design), schema/meta providers and the
+    // Organization repository. Infection cannot boot Magento to run those suites
+    // locally. Catalog/CurrentEntity is pure Registry delegation.
     //
-    // Faq/GroupReader and Review/NativeAggregateRatingProvider joined that list
-    // when their queries moved onto collections: their tests now double a
-    // generated CollectionFactory, so they carry the magento-generated group
-    // excluded below and cannot run here. Cms/HomePageLoader is the same case:
+    // Review/NativeAggregateRatingProvider joined that list when its query moved
+    // onto a collection: its test now doubles a generated CollectionFactory, so
+    // it carries the magento-generated group excluded below and cannot run
+    // here. Cms/HomePageLoader is the same case:
     // it loads the home page with core's own call, through the generated
     // PageFactory — kept to that one call so CmsPageResolver stays in this run.
     // Product/OverrideRepository is a collection-backed repository too; it was
@@ -27,9 +26,6 @@
             "Cms/HomePageLoader.php",
             "Config/Source/LogoSource.php",
             "Config/Source/OrgType.php",
-            "Faq/GroupReader.php",
-            "LlmsJsonl/JsonlBuilder.php",
-            "LlmsTxt",
             "MetaTag/Provider",
             "Organization.php",
             "OrganizationRepository.php",

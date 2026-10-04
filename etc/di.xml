@@ -9,15 +9,6 @@
     <preference for="MageOS\Seo\Api\OrganizationRepositoryInterface"
                 type="MageOS\Seo\Model\OrganizationRepository"/>
 
-    <preference for="MageOS\Seo\Api\FaqCollectorInterface"
-                type="MageOS\Seo\Model\Faq\Collector"/>
-
-    <preference for="MageOS\Seo\Api\FaqRepositoryInterface"
-                type="MageOS\Seo\Model\FaqRepository"/>
-    <!-- FaqRepositoryInterface::getList()'s results: core's SearchResults under the FAQ interface. -->
-    <preference for="MageOS\Seo\Api\Data\FaqSearchResultsInterface"
-                type="MageOS\Seo\Model\FaqSearchResults"/>
-
     <preference for="MageOS\Seo\Api\Sitemap\RebuildRequesterInterface"
                 type="MageOS\Seo\Model\Sitemap\RebuildRequester"/>
 
@@ -27,36 +18,10 @@
                 type="MageOS\Seo\Model\Product\Variant\QueryStringUrlResolver"/>
 
     <!-- ═══════════════════════════════════════════════════════════════════
-         FAQ SOURCE POOL — bridges add sources (product-attribute, 3rd-party) here
+         FAQ SOURCE POOL — empty here. A FAQ module (MageOS_Faq's table, a product-attribute
+         source, a third-party extension) adds its FaqSourceProviderInterface to the pool's
+         "sources" argument from its own di.xml.
          ═══════════════════════════════════════════════════════════════════ -->
-
-    <type name="MageOS\Seo\Model\Faq\SourcePool">
-        <arguments>
-            <argument name="sources" xsi:type="array">
-                <item name="table"
-                      xsi:type="object">MageOS\Seo\Model\Faq\Source\TableFaqSource</item>
-            </argument>
-        </arguments>
-    </type>
-
-    <!-- FAQ admin grid: collection for the listing UI component data source -->
-    <virtualType name="MageOS\Seo\Model\ResourceModel\Faq\Grid\Collection"
-                 type="Magento\Framework\View\Element\UiComponent\DataProvider\SearchResult">
-        <arguments>
-            <argument name="mainTable" xsi:type="string">mageos_faq</argument>
-            <argument name="resourceModel" xsi:type="string">MageOS\Seo\Model\ResourceModel\Faq</argument>
-        </arguments>
-    </virtualType>
-
-    <type name="Magento\Framework\View\Element\UiComponent\DataProvider\CollectionFactory">
-        <arguments>
-            <argument name="collections" xsi:type="array">
-                <item name="mageos_faq_listing_data_source" xsi:type="string">
-                    MageOS\Seo\Model\ResourceModel\Faq\Grid\Collection
-                </item>
-            </argument>
-        </arguments>
-    </type>
 
     <!-- ═══════════════════════════════════════════════════════════════════
          CATEGORY INHERITANCE — where a category's settings are looked for
@@ -290,39 +255,6 @@
     </type>
 
     <!-- ═══════════════════════════════════════════════════════════════════
-         LLMS.TXT SECTION PROVIDERS
-         Other modules add sections from their own di.xml.
-         ═══════════════════════════════════════════════════════════════════ -->
-
-    <!-- llms.jsonl line providers — bridge modules append catalog lines (e.g. vendor LocalBusiness) -->
-    <type name="MageOS\Seo\Model\LlmsJsonl\JsonlBuilder">
-        <arguments>
-            <argument name="lineProviders" xsi:type="array">
-                <!--
-                    Bridge example (from a marketplace module's di.xml):
-                    <item name="vendors"
-                          xsi:type="object">YourVendor\Module\Model\LlmsJsonl\VendorLineProvider</item>
-                -->
-            </argument>
-        </arguments>
-    </type>
-
-    <type name="MageOS\Seo\Model\LlmsTxt\LlmsTxtBuilder">
-        <arguments>
-            <argument name="sectionProviders" xsi:type="array">
-                <item name="faq"
-                      xsi:type="object">MageOS\Seo\Model\LlmsTxt\FaqLlmsSectionProvider</item>
-                <!--
-                    Bridge modules register their section providers here.
-                    Example (from a marketplace module's di.xml):
-                    <item name="vendors"
-                          xsi:type="object">YourVendor\Module\Model\LlmsTxt\VendorSectionProvider</item>
-                -->
-            </argument>
-        </arguments>
-    </type>
-
-    <!-- ═══════════════════════════════════════════════════════════════════
          PRODUCT OFFER ENRICHERS + AGGREGATE RATING POOL
          Offer enrichers are consumed by Model\Product\OfferBuilder (every product and variant
          offer), rating providers by AbstractBuilder::buildBase(). Bridge modules add their own
@@ -399,22 +331,12 @@
          PLUGINS
          ═══════════════════════════════════════════════════════════════════ -->
 
-    <!-- AI crawler directives appended to robots.txt -->
-    <type name="Magento\Robots\Model\Robots">
-        <plugin name="mageos_aeo_ai_robots_directives"
-                type="MageOS\Seo\Plugin\Robots\AppendAiDirectivesPlugin"
-                sortOrder="10"/>
-    </type>
-
     <!-- Mass attribute updates write straight to the EAV tables without saving the
          products, so no save event reports them. Registered globally: the admin mass
          actions, REST and any other caller reach the same service. -->
     <type name="Magento\Catalog\Model\Product\Action">
         <plugin name="mageos_seo_invalidate_sitemap_on_mass_attribute_update"
                 type="MageOS\Seo\Plugin\Catalog\Product\Action\InvalidateSitemapOnMassAttributeUpdate"
-                sortOrder="10"/>
-        <plugin name="mageos_aeo_invalidate_jsonl_on_mass_attribute_update"
-                type="MageOS\Seo\Plugin\Catalog\Product\Action\InvalidateJsonlOnMassAttributeUpdate"
                 sortOrder="10"/>
     </type>
 
@@ -432,27 +354,10 @@
         <arguments/>
     </type>-->
 
-    <!-- ═══════════════════════════════════════════════════════════════════
-         WELL-KNOWN ENDPOINT REGISTRY (GEO / agentic discovery)
-         Bridge modules add /.well-known/* documents by appending to this pool
-         from their own di.xml — no edit to MageOS_Seo required.
-         ═══════════════════════════════════════════════════════════════════ -->
-    <type name="MageOS\Seo\Model\WellKnown\EndpointPool">
-        <arguments>
-            <argument name="endpoints" xsi:type="array">
-                <item name="ucp" xsi:type="object">MageOS\Seo\Model\WellKnown\Endpoint\UcpEndpoint</item>
-                <item name="security.txt"
-                xsi:type="object">MageOS\Seo\Model\WellKnown\Endpoint\SecurityTxtEndpoint</item>
-            </argument>
-        </arguments>
-    </type>
-
     <!-- Register the CLI commands -->
     <type name="Magento\Framework\Console\CommandList">
         <arguments>
             <argument name="commands" xsi:type="array">
-                <item name="mageos_agentic_ucp_keygen"
-                      xsi:type="object">MageOS\Seo\Console\Command\UcpKeygenCommand</item>
                 <item name="mageos_seo_rebuild"
                       xsi:type="object">MageOS\Seo\Console\Command\RegenerateFeedsCommand</item>
             </argument>
@@ -473,43 +378,17 @@
     <!--
         Paths served directly as public documents: no session is started for them (the
         SessionStartChecker plugin in etc/frontend/di.xml), so no cookie and no no-cache headers land
-        on responses meant to be shared-cached. Each serving area registers its own.
+        on responses meant to be shared-cached. Each module that serves such documents registers its
+        own paths and prefixes on this type from its di.xml (MageOS_Aeo's llms documents, for one).
     -->
-    <type name="MageOS\Seo\Model\Router\PublicPaths">
-        <arguments>
-            <argument name="paths" xsi:type="array">
-                <!-- The llms documents (Router\LlmsTxtRouter) -->
-                <item name="llms" xsi:type="string">llms.txt</item>
-                <item name="llms_full" xsi:type="string">llms-full.txt</item>
-                <item name="llms_jsonl" xsi:type="string">llms.jsonl</item>
-            </argument>
-            <argument name="prefixes" xsi:type="array">
-                <!-- The agentic-discovery documents (Router\WellKnownRouter::PREFIX) -->
-                <item name="well_known" xsi:type="string">.well-known/</item>
-                <!-- The internal controller URLs, which the canonical-path redirect sends back -->
-                <item name="aeo_front_name" xsi:type="string">mageos-aeo/</item>
-                <item name="agentic_front_name" xsi:type="string">mageos-agentic/</item>
-            </argument>
-        </arguments>
-    </type>
 
     <!--
         Rebuild queue groups other than the sitemap's (Api\Rebuild\GroupHandlerInterface): the
-        consumer, the regenerate command and every setup run find them here. The pool is built for
-        every save an observer inspects, so a handler takes its builder as a proxy.
+        consumer, the regenerate command and every setup run find them in Model\Rebuild\HandlerPool.
+        A module registers its group there from its own di.xml (MageOS_Aeo's llms documents, for
+        one); a handler takes its builder as a proxy, since the pool is built for every save an
+        observer inspects.
     -->
-    <type name="MageOS\Seo\Model\Rebuild\HandlerPool">
-        <arguments>
-            <argument name="handlers" xsi:type="array">
-                <item name="llms" xsi:type="object">MageOS\Seo\Model\Feed\LlmsRebuildHandler</item>
-            </argument>
-        </arguments>
-    </type>
-    <type name="MageOS\Seo\Model\Feed\LlmsRebuildHandler">
-        <arguments>
-            <argument name="feedRegenerator" xsi:type="object">MageOS\Seo\Model\Feed\FeedRegenerator\Proxy</argument>
-        </arguments>
-    </type>
 
     <!--
         Sitemap item providers.

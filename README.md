@@ -1,6 +1,6 @@
 # MageOS_Seo
 
-A comprehensive Magento 2 **SEO + AEO + GEO** module: JSON-LD structured data, Open Graph / Twitter meta, canonical & robots management, hreflang, FAQ rich results, answer-engine identity (LocalBusiness / Article / Event / Speakable), and generative/agentic discoverability via `/llms.txt`, `/llms.jsonl`, AI-crawler robots directives, and `/.well-known/` manifests (UCP, security.txt).
+A comprehensive Magento 2 **SEO + AEO** module: JSON-LD structured data, Open Graph / Twitter meta, canonical & robots management, hreflang, sitemaps, and answer-engine identity (LocalBusiness / Article / Event / Speakable). Three modules build on it: [MageOS_Faq](https://github.com/mage-os-lab/module-faq) adds FAQ rich results, [MageOS_Aeo](https://github.com/mage-os-lab/module-aeo) the `/llms.txt`, `/llms-full.txt` and `/llms.jsonl` documents and AI-crawler robots directives, and [MageOS_Agentic](https://github.com/mage-os-lab/module-agentic) the `/.well-known/ucp` agentic commerce profile.
 
 Every cross-cutting concern is built as an **extensible provider pool** — a second module contributes a provider through its own `di.xml` without ever editing this module.
 
@@ -9,8 +9,8 @@ Every cross-cutting concern is built as an **extensible provider pool** — a se
 ## What it covers
 
 - **SEO** — structured data, meta tags, canonicals, robots meta, pagination handling, hreflang.
-- **AEO** (Answer Engine Optimisation) — FAQ rich results, LocalBusiness, Article, Event, Speakable, aggregate ratings, merchant policies.
-- **GEO** (Generative Engine Optimisation / agentic commerce) — `/llms.txt`, `/llms.jsonl`, AI-crawler robots directives, and the `/.well-known/` agentic-discovery manifests.
+- **AEO** (Answer Engine Optimisation) — LocalBusiness, Article, Event, Speakable, aggregate ratings, merchant policies, and the FAQ source pool that FAQ rich results draw on.
+- **The shared layer its companion modules build on** — the rebuild queue and `seo:rebuild` command, the FAQ source pool, the Organization, the public-path registry, and the admin tab and ACL resource their settings sit under.
 
 ---
 
@@ -36,20 +36,13 @@ Every cross-cutting concern is built as an **extensible provider pool** — a se
 
 ### Answer-engine (AEO)
 
-- **FAQ subsystem** — managed FAQ records with a theme-agnostic `<details>` renderer, a Magento **Widget**, a native **Page Builder** content type, and a request-scoped collector that keeps FAQPage JSON-LD in parity with visible content. FAQ blocks carry cache identities, so FPC pages are purged automatically when a FAQ changes.
+- **FAQ source pool** — `FaqSourceProviderInterface` sources (empty by default) that MageOS_Aeo's llms documents read their FAQ groups from. [MageOS_Faq](https://github.com/mage-os-lab/module-faq) registers its FAQ table here, and adds the FAQ Manager, widget, Page Builder content type and FAQPage JSON-LD.
 - **LocalBusiness** — address, telephone and email on every organisation type; geo coordinates and price range for local businesses.
 - **Article / Event / Speakable** — bridge pools (empty by default) fed by blog/event modules, plus a configurable Speakable selector set.
 
-### Generative / agentic (GEO)
-
-- **`/llms.txt`** (concise) and **`/llms-full.txt`** (extended, with category tree) for LLM crawlers.
-- **`/llms.jsonl`** — NDJSON product catalogue feed for AI catalogue consumers (off by default).
-- **AI-crawler robots directives** — per-user-agent Allow/Disallow blocks appended to `robots.txt` for 14 known AI crawlers (off by default).
-- **`/.well-known/` registry** — `ucp` (Universal Commerce Protocol business profile) and `security.txt`, both served through a pluggable endpoint registry; ECDSA P-256 signing-key generation via CLI.
-
 ### Translations
 
-- **en_US** (the source), **en_GB** and **nl_NL**. The admin follows the admin user's locale; the llms documents are written in each store view's language. See [docs/translations.md](docs/translations.md).
+- **en_US** (the source), **en_GB** and **nl_NL**. The admin follows the admin user's locale. See [docs/translations.md](docs/translations.md).
 
 ---
 
@@ -79,7 +72,7 @@ bin/magento cache:flush
 
 ## Important: configure Organisation before going live
 
-> **The module works immediately after install, but structured data, `/llms.txt`, and the Organisation JSON-LD node will be empty until you fill in the Organisation details.**
+> **The module works immediately after install, but structured data and the Organisation JSON-LD node will be empty until you fill in the Organisation details** (and so will MageOS_Aeo's `/llms.txt`, when installed).
 
 Go to **Marketing > SEO > Organization** and complete all fields before putting the site live.
 
@@ -101,7 +94,7 @@ Without a Name and URL saved, the Organization node in JSON-LD will render with 
 
 ## Admin configuration
 
-**Stores > Configuration > MageOS SEO** holds four sections:
+**Stores > Configuration > MageOS SEO** holds two sections. MageOS_Aeo, when installed, adds AI Information & Crawlers, and MageOS_Agentic adds Agentic Commerce (UCP).
 
 ### SEO Configuration (`mageos_seo_general`)
 
@@ -109,17 +102,10 @@ Without a Name and URL saved, the Organization node in JSON-LD will render with 
 | --- | --- | --- |
 | Open Graph Tags | Enable OG/Twitter tags | Yes |
 | Structured Data (JSON-LD) | Master switch, default product template, ItemList toggle & max, most variants per configurable product, aggregate rating | Yes / GenericProduct |
+| Canonical URLs | Canonical link on CMS pages and the home page | Yes |
 | Robots Meta | Product / category / **CMS** / search results defaults, pagination policy | *(empty — Magento default applies)* |
 | Hreflang | Enable, language-only, sitemap | Yes |
 | Answer Engine (AEO) | Speakable toggle + CSS selectors | No |
-
-### AI Information & Crawlers (`mageos_aeo`)
-
-| Group | Key settings | Default |
-| --- | --- | --- |
-| AI Discoverability | `/llms.txt`, `/llms-full.txt`, `/llms.jsonl`, FAQ groups in the llms documents | Yes / Yes / **No** / `global` |
-| Feed Storage | Where the pre-generated feeds are written | *(empty — `var/mageos_aeo`)* |
-| AI Crawler robots.txt | Append directives, disallow list | **No** / CCBot,Bytespider |
 
 ### SEO Merchant Policies (`mageos_seo_merchant`)
 
@@ -128,14 +114,6 @@ Without a Name and URL saved, the Organization node in JSON-LD will render with 
 | Item Condition | Default schema.org itemCondition on offers | NewCondition |
 | Return Policy | `hasMerchantReturnPolicy` on offers | Off |
 | Shipping Details | `OfferShippingDetails` on offers | Off |
-
-### Agentic Commerce (UCP) (`mageos_agentic`)
-
-| Group | Purpose | Default |
-| --- | --- | --- |
-| UCP Profile | Serve `/.well-known/ucp`, declaring what installed modules register ([docs/ucp.md](docs/ucp.md)) | Off |
-| Signing Keys | Public JWK + encrypted private key (set by keygen CLI) | — |
-| security.txt | Serve `/.well-known/security.txt` (RFC 9116) | Off |
 
 ---
 
@@ -149,51 +127,13 @@ In the **product** edit form, an **Advanced SEO** tab adds store-specific field 
 
 ## FAQ rich results
 
-Manage FAQs under **Marketing > SEO > FAQ Manager**. Each FAQ set has an identifier you reference from either placement:
-
-- **Widget** — add the *SEO FAQ List* widget to any CMS block/page or layout (works in any theme).
-- **Page Builder** — drop the native *FAQ* content type into any Page Builder stage.
-
-Both render the same theme-agnostic `<details>/<summary>` markup (no JS) and feed a single request-scoped collector, so the emitted `FAQPage` JSON-LD always matches the visible questions — even under full-page / block cache.
-
-Each question shows the browser's own open/close triangle. Magento's LESS reset hides it on Luma and Blank (`summary { display: block; }`), so the module's `view/frontend/web/css/source/_module.less` puts it back for `.mageos-faq__question` only. Hyvä's Tailwind reset keeps it without help. To restyle, override `.mageos-faq__question` in your theme.
-
-The groups selected under **AI Information & Crawlers → AI Discoverability → FAQ Groups** (default `global`) also go into `/llms.txt` and `/llms-full.txt` — see [docs/llms-txt.md](docs/llms-txt.md#faq-section).
+FAQs, their admin, the widget, the Page Builder content type and the FAQPage JSON-LD are in [MageOS_Faq](https://github.com/mage-os-lab/module-faq). This module keeps the FAQ source pool it registers with.
 
 ---
 
 ## AI discoverability
 
-| URL | Content | Default |
-| --- | --- | --- |
-| `/llms.txt` | Concise: org name, description, base URL, locale, schema types, the first 5 FAQs of the selected groups, AI contact | On |
-| `/llms-full.txt` | Extended: the above plus social profiles, full category tree, every FAQ of the selected groups | On |
-| `/llms.jsonl` | NDJSON, one compact JSON-LD `Product` node per line | Off |
-| `robots.txt` additions | Per-user-agent Allow/Disallow for known AI crawlers | Off |
-
-`/llms.txt` content draws the organisation name and description from the Organisation record — **configure Organisation first** or these documents will be incomplete.
-
-These documents are pre-generated to files (by default `var/mageos_aeo/`) and served from there; web requests never build them. **Multi-server deployments** must point the web servers and the cron/consumer host at a shared mount, which takes one entry in each machine's `app/etc/env.php` as well as the admin setting — see [Storing the feeds outside var/](docs/feeds.md#storing-the-feeds-outside-var-multi-server).
-
----
-
-## Agentic commerce (`/.well-known/`)
-
-A pluggable endpoint registry serves agentic-discovery manifests (all off by default):
-
-| URL | Purpose |
-| --- | --- |
-| `/.well-known/ucp` | Universal Commerce Protocol business profile (UCP 2026-08-25): the services and capabilities installed modules register — none by default — and the public signing keys. See [docs/ucp.md](docs/ucp.md) |
-| `/.well-known/security.txt` | RFC 9116 security contact disclosure |
-
-### Generate UCP signing keys
-
-```bash
-bin/magento ucp:keygen --website=1
-bin/magento cache:flush config
-```
-
-This generates an ECDSA P-256 keypair, stores the private key **encrypted**, and stores/prints the public JWK, which the profile publishes in `keys`. The private key is never printed, and a stored key carrying private material makes the endpoint answer 500 rather than serve it.
+`/llms.txt`, `/llms-full.txt`, `/llms.jsonl` and the AI-crawler directives in `robots.txt` are in [MageOS_Aeo](https://github.com/mage-os-lab/module-aeo). This module keeps the rebuild queue they are built through, and the Organization, locale and FAQ sources they describe.
 
 ---
 
@@ -244,12 +184,8 @@ Every cross-cutting concern is a provider pool wired via `di.xml`, so another mo
 | Hreflang resolvers | `HreflangResolverInterface` | collect-all |
 | Article / Event data providers | `ArticleDataProviderInterface` / `EventDataProviderInterface` | collect-all |
 | FAQ source providers | `FaqSourceProviderInterface` | collect-all |
-| llms.txt section providers | `LlmsTxtSectionProviderInterface` | collect-all |
-| llms.jsonl line providers | `JsonlLineProviderInterface` | collect-all |
-| Well-known endpoints | `WellKnownEndpointInterface` | by path segment |
 | Rebuild queue groups | `Api\Rebuild\GroupHandlerInterface` | by group name ([docs/extending.md](docs/extending.md#rebuilding-your-own-output-through-the-queue)) |
-| UCP capability providers | `UcpCapabilityProviderInterface` | collect-all, grouped by name ([docs/ucp.md](docs/ucp.md)) |
-| UCP service providers | `UcpServiceProviderInterface` | collect-all, one per transport binding |
+| Public documents (no session) | `Model\Router\PublicPaths` (di.xml `paths` / `prefixes`) | lookup by path |
 
 Example — add a robots-meta provider for blog pages from your module's `di.xml`:
 

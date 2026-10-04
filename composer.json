@@ -10,7 +10,6 @@
         "magento/framework": "^103.0.7",
         "magento/framework-message-queue": "*",
         "magento/module-backend": "*",
-        "magento/module-cache-invalidate": "*",
         "magento/module-catalog": "*",
         "magento/module-cms": "*",
         "magento/module-config": "*",
@@ -20,17 +19,11 @@
         "magento/module-inventory-sales-api": "*",
         "magento/module-media-storage": "*",
         "magento/module-message-queue": "*",
-        "magento/module-page-cache": "*",
         "magento/module-review": "*",
-        "magento/module-robots": "*",
         "magento/module-sitemap": "*",
         "magento/module-store": "*",
         "magento/module-ui": "*",
-        "magento/module-url-rewrite": "*",
-        "magento/module-widget": "*"
-    },
-    "suggest": {
-        "magento/module-page-builder": "Adds the FAQ content type to Page Builder. Everything else in this module works without it."
+        "magento/module-url-rewrite": "*"
     },
     "require-dev": {
         "bitexpert/phpstan-magento": "^0.42",

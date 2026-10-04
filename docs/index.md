@@ -1,6 +1,6 @@
 # MageOS_Seo — Documentation
 
-The SEO module provides structured data (JSON-LD), Open Graph meta tags, canonical URL management, robots meta control, per-category and per-product SEO configuration, and AI-crawler discoverability for MageOS / Magento 2.
+The SEO module provides structured data (JSON-LD), Open Graph meta tags, canonical URL management, robots meta control, XML sitemaps, and per-category and per-product SEO configuration for MageOS / Magento 2. The llms documents and AI-crawler directives are in [MageOS_Aeo](https://github.com/mage-os-lab/module-aeo).
 
 ---
 
@@ -16,11 +16,11 @@ The SEO module provides structured data (JSON-LD), Open Graph meta tags, canonic
 | [Robots Meta](robots-meta.md) | Global defaults and per-page overrides | Admin / SEO manager |
 | [Per-Category SEO](category-seo.md) | Schema template, field config, robots, ItemList per category | Admin / merchandiser |
 | [Per-Product SEO](product-seo.md) | Field overrides and robots meta per product per store | Admin / merchandiser |
-| [AI Discoverability (llms.txt)](llms-txt.md) | `/llms.txt`, `/llms-full.txt` and `/llms.jsonl` — what they contain | Admin / developer |
+| [AI Discoverability (llms.txt)](https://github.com/mage-os-lab/module-aeo/blob/main/docs/llms-txt.md) | In MageOS_Aeo: `/llms.txt`, `/llms-full.txt` and `/llms.jsonl` — what they contain | Admin / developer |
 | [Hreflang Alternates & Sitemap](hreflang.md) | Head alternates and those in `sitemap.xml` — what appears in them | Developer / SEO manager |
 | [XML Sitemap](sitemap.md) | The sitemap generator, its file layout, rebuilding on change, and how to extend it | Developer / SEO manager |
-| [UCP Profile](ucp.md) | `/.well-known/ucp` — what it declares, registering a UCP service or capability, signing keys | Developer |
-| [Pre-generated Feeds](feeds.md) | The machinery behind the three llms documents: rebuilds, caching, storage, multi-server, CLI | Developer / DevOps |
+| [UCP Profile](https://github.com/mage-os-lab/module-agentic/blob/main/docs/ucp.md) | In MageOS_Agentic: `/.well-known/ucp` — what it declares, registering a UCP service or capability, signing keys | Developer |
+| [Pre-generated Feeds](https://github.com/mage-os-lab/module-aeo/blob/main/docs/feeds.md) | In MageOS_Aeo: the machinery behind the three llms documents — rebuilds, caching, storage, multi-server, CLI | Developer / DevOps |
 | [Extending the Module](extending.md) | Adding providers, builders, and section content | Developer |
 | [Translations](translations.md) | The shipped locales, what is translated, overriding a phrase, adding a locale | Admin / developer |
 
@@ -30,11 +30,10 @@ The SEO module provides structured data (JSON-LD), Open Graph meta tags, canonic
 
 After installing and running `bin/magento setup:upgrade`:
 
-1. Go to **Marketing → SEO → Organization** and fill in Name, URL, Description, Logo, and any social profiles. Without this, JSON-LD and `/llms.txt` will output empty values.
-2. Go to **Stores → Configuration → MageOS SEO** and verify the defaults in its four sections (SEO, SEO Merchant Policies, AI Information & Crawlers, Agentic Commerce (UCP)) suit your store.
+1. Go to **Marketing → SEO → Organization** and fill in Name, URL, Description, Logo, and any social profiles. Without this, JSON-LD (and MageOS_Aeo's `/llms.txt`, when installed) will output empty values.
+2. Go to **Stores → Configuration → MageOS SEO** and verify the defaults in its two sections (SEO, SEO Merchant Policies) suit your store.
 3. Assign a schema template to each top-level category via **Catalog → Categories → SEO (Structured Data) tab**.
-4. Nothing to do for `/llms.txt`, `/llms-full.txt` or `/llms.jsonl`: a router serves them at those paths. Do **not** add URL rewrites for them — a rewrite fights the router (see [feeds.md](feeds.md)).
-5. Flush the cache.
+4. Flush the cache.
 
 ---
 
@@ -43,7 +42,7 @@ After installing and running `bin/magento setup:upgrade`:
 | Menu path | Purpose |
 |---|---|
 | Marketing → SEO → Organization | Site identity settings — name, URL, logo, socials |
-| Stores → Configuration → MageOS SEO | All feature toggles and defaults, in four sections |
+| Stores → Configuration → MageOS SEO | All feature toggles and defaults, in two sections (MageOS_Aeo and MageOS_Agentic add one each) |
 | Catalog → Categories → (open a category) → SEO (Structured Data) | Per-category schema template and overrides |
 | Catalog → Products → (open a product) → Advanced SEO | Per-product field overrides and robots |
 
@@ -56,10 +55,11 @@ After installing and running `bin/magento setup:upgrade`:
 | `mageos_seo_organization` | Organisation identity settings, one row per scope (store/website/default) |
 | `mageos_seo_category_config` | Per-category SEO overrides, one row per category per store view |
 | `mageos_seo_product_override` | Per-product field overrides, one row per product per store view |
-| `mageos_faq` | FAQ entries, grouped by identifier, one row per entry per store view |
 
-Records go when what they describe goes. `mageos_seo_category_config`,
-`mageos_seo_product_override` and `mageos_faq` carry foreign keys with `ON DELETE CASCADE`
+The FAQ table, `mageos_faq`, is [MageOS_Faq](https://github.com/mage-os-lab/module-faq)'s.
+
+Records go when what they describe goes. `mageos_seo_category_config` and
+`mageos_seo_product_override` carry foreign keys with `ON DELETE CASCADE`
 to `catalog_category_entity`, `catalog_product_entity` and `store`, so deleting a category, a
 product or a store view removes its SEO records with it — including when a deleted website or
 store group takes its store views down with it, which happens in the database without any event
@@ -85,9 +85,8 @@ All paths live under `mageos_seo_general/`:
 | `mageos_seo_general/structured_data/category_item_list_enabled` | 1 | ItemList on category pages |
 | `mageos_seo_general/structured_data/category_item_list_max` | 36 | Max items in ItemList |
 | `mageos_seo_general/structured_data/has_variant_max` | 50 | Most sellable children a configurable product may have and still be a ProductGroup of its variants; more gets one AggregateOffer (0 = always the AggregateOffer). Global only. See [structured-data.md](structured-data.md#configurable-products) |
-| `mageos_aeo/feeds/storage_dir` | *(empty)* | Where the pre-generated feeds are written; empty = `var/mageos_aeo`. Restricted: inside the installation only `var/`, and anywhere else only under a root declared in `app/etc/env.php` as `mageos_aeo/feed_storage_roots` — see [feeds.md](feeds.md#storing-the-feeds-outside-var-multi-server) |
-| `mageos_aeo/llms_txt/enabled` | 1 | Serve /llms.txt |
-| `mageos_aeo/llms_txt/full_enabled` | 1 | Serve /llms-full.txt |
+| `mageos_seo_general/canonical/cms_enabled` | 1 | Canonical link on CMS pages and the home page. See [canonical-urls.md](canonical-urls.md#where-canonicals-are-set) |
+| `mageos_seo_general/hreflang/enabled` | 1 | Hreflang alternates in the page head. See [hreflang.md](hreflang.md) |
 | `mageos_seo_general/robots_meta/product_default` | *(empty)* | Default for product pages (empty = Magento's Design → Search Engine Robots setting) |
 | `mageos_seo_general/robots_meta/category_default` | *(empty)* | Default for category pages (empty = Magento's Design → Search Engine Robots setting) |
 | `mageos_seo_general/robots_meta/search_default` | *(empty)* | Default for search result pages, quick and advanced (empty = Magento's Design → Search Engine Robots setting). See [robots-meta.md](robots-meta.md#global-defaults) on robots meta against robots.txt |

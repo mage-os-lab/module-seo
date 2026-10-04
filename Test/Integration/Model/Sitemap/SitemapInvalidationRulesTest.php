@@ -62,13 +62,17 @@ class SitemapInvalidationRulesTest extends TestCase
     /**
      * @return void
      */
+    #[DataFixture(CategoryFixture::class, as: 'category')]
     #[DataFixture(ProductFixture::class, as: 'product')]
     public function testProductChangesQueueTheProductsOnlyWhenWhatIsListedChanges(): void
     {
         $this->aGeneratedSitemap();
-        $sku = (string) DataFixtureStorageManager::getStorage()->get('product')->getSku();
+        $sku        = (string) DataFixtureStorageManager::getStorage()->get('product')->getSku();
+        $categoryId = (int) DataFixtureStorageManager::getStorage()->get('category')->getId();
 
         $this->assertQueuedBy([], fn () => $this->saveProduct($sku, ['name' => 'Renamed']));
+        // The product's sitemap URL carries no category path, so its categories are not listed.
+        $this->assertQueuedBy([], fn () => $this->saveProduct($sku, ['category_ids' => [$categoryId]]));
         $this->assertQueuedBy(
             ['sitemap-products'],
             fn () => $this->saveProduct($sku, ['url_key' => 'renamed-' . uniqid()])

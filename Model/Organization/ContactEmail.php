@@ -13,8 +13,8 @@ use MageOS\Seo\Api\OrganizationRepositoryInterface;
 /**
  * The address the current store view publishes for automated queries.
  *
- * This class owns that choice. Its caller is /llms.txt and /llms-full.txt (Model\LlmsTxt\LlmsTxtBuilder,
- * the "AI Contact" section).
+ * This class owns that choice. Its caller is /llms.txt and /llms-full.txt (MageOS_Aeo's
+ * Model\LlmsTxt\LlmsTxtBuilder, the "AI Contact" section).
  *
  * In order:
  * 1. the Organization's Contact Email — the address this module publishes as the Organization's

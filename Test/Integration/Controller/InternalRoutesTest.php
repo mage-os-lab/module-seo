@@ -8,8 +8,8 @@ use Magento\TestFramework\TestCase\AbstractController;
 use PHPUnit\Framework\Attributes\DataProvider;
 
 /**
- * The standard-router URLs behind the served documents: each owner's frontName answers with a 301 to
- * the document's canonical path, and the retired shared frontName answers nothing.
+ * The retired shared frontName `mageos-seo` answers nothing. The documents' own internal URLs are
+ * their modules' (MageOS_Aeo's `mageos-aeo`, MageOS_Agentic's `mageos-agentic`).
  *
  * One dispatch per test: resetRequest() leaves the shared response in place.
  *
@@ -17,28 +17,6 @@ use PHPUnit\Framework\Attributes\DataProvider;
  */
 class InternalRoutesTest extends AbstractController
 {
-    /**
-     * @return void
-     */
-    public function testTheLlmsDocumentsInternalUrlRedirectsToItsCanonicalPath(): void
-    {
-        $this->dispatch('mageos-aeo/llms/index');
-
-        $this->assertSame(301, $this->getResponse()->getHttpResponseCode());
-        $this->assertRedirect($this->stringEndsWith('/llms.txt'));
-    }
-
-    /**
-     * @return void
-     */
-    public function testAWellKnownDocumentsInternalUrlRedirectsToItsCanonicalPath(): void
-    {
-        $this->dispatch('mageos-agentic/wellknown/index/endpoint/ucp');
-
-        $this->assertSame(301, $this->getResponse()->getHttpResponseCode());
-        $this->assertRedirect($this->stringEndsWith('/.well-known/ucp'));
-    }
-
     /**
      * @dataProvider retiredUrls
      * @param string $url

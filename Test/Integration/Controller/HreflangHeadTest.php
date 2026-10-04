@@ -9,6 +9,7 @@ use Magento\Cms\Api\Data\PageInterface;
 use Magento\Cms\Api\PageRepositoryInterface;
 use Magento\Cms\Model\PageFactory;
 use Magento\Framework\App\Config\MutableScopeConfigInterface;
+use Magento\Framework\View\Page\Config as PageConfig;
 use Magento\Store\Model\StoreManagerInterface;
 use Magento\Store\Test\Fixture\Store as StoreFixture;
 use Magento\TestFramework\Fixture\DataFixture;
@@ -103,6 +104,41 @@ class HreflangHeadTest extends AbstractController
         $this->assertStringStartsWith(self::GERMAN_HOST, $alternates['de-DE'] ?? '');
         $this->assertStringStartsWith(self::FRENCH_HOST, $alternates['fr-FR'] ?? '');
         $this->assertArrayNotHasKey('en-US', $alternates);
+    }
+
+    /**
+     * The alternates are page assets, one per code under a name of its own, so other code can read
+     * or replace them through the page config. A name is needed: the collection is keyed by it, and
+     * the page's own alternate has the canonical's URL.
+     *
+     * @return void
+     */
+    #[DataFixture(StoreFixture::class, as: 'german')]
+    #[DataFixture(StoreFixture::class, as: 'french')]
+    #[DataFixture(ProductFixture::class, as: 'product')]
+    public function testTheAlternatesArePageAssets(): void
+    {
+        $this->threeLanguagesWithoutEnglish();
+        $this->_objectManager->get(MutableScopeConfigInterface::class)
+            ->setValue('web/url/redirect_to_base', '0', 'store', $this->code('german'));
+        $this->_objectManager->get(StoreManagerInterface::class)->setCurrentStore($this->code('german'));
+
+        $this->productPage();
+        $assets = $this->hreflangAssets();
+        ksort($assets);
+
+        // de and fr too: the language-only alternates, on by default.
+        $this->assertSame(
+            [
+                'mageos_seo_hreflang_de',
+                'mageos_seo_hreflang_de-DE',
+                'mageos_seo_hreflang_fr',
+                'mageos_seo_hreflang_fr-FR',
+            ],
+            array_keys($assets)
+        );
+        $this->assertStringStartsWith(self::GERMAN_HOST, $assets['mageos_seo_hreflang_de-DE']);
+        $this->assertStringStartsWith(self::FRENCH_HOST, $assets['mageos_seo_hreflang_fr-FR']);
     }
 
     /**
@@ -283,8 +319,26 @@ class HreflangHeadTest extends AbstractController
      */
     private function alternates(string $body): array
     {
-        preg_match_all('#<link rel="alternate" hreflang="([^"]+)"\s+href="([^"]+)"/>#', $body, $links);
+        preg_match_all('#<link rel="alternate" hreflang="([^"]+)"\s+href="([^"]+)"\s*/>#', $body, $links);
 
         return array_combine($links[1], array_map('html_entity_decode', $links[2]));
+    }
+
+    /**
+     * The page's hreflang assets, as the page config holds them after the dispatch: asset name =>
+     * its URL.
+     *
+     * @return array<string,string>
+     */
+    private function hreflangAssets(): array
+    {
+        $assets = [];
+        foreach ($this->_objectManager->get(PageConfig::class)->getAssetCollection()->getAll() as $name => $asset) {
+            if ($asset->getContentType() === 'hreflang') {
+                $assets[(string) $name] = html_entity_decode($asset->getUrl());
+            }
+        }
+
+        return $assets;
     }
 }

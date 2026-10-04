@@ -9,15 +9,6 @@
       xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
     <body>
         <referenceBlock name="head.additional">
-            <block class="MageOS\Seo\Block\Canonical"
-                   name="mageos_seo.canonical"
-                   template="MageOS_Seo::seo/canonical.phtml"/>
-
-            <block class="MageOS\Seo\Block\Hreflang"
-                   name="mageos_seo.hreflang"
-                   template="MageOS_Seo::seo/hreflang.phtml"
-                   after="mageos_seo.canonical"/>
-
             <block class="MageOS\Seo\Block\JsonLd"
                    name="mageos_seo.json_ld"
                    template="MageOS_Seo::seo/json-ld.phtml"/>
@@ -26,16 +17,5 @@
                    name="mageos_seo.meta_tags"
                    template="MageOS_Seo::seo/meta-tags.phtml"/>
         </referenceBlock>
-
-        <!--
-            FAQ structured data renders at end of body so all visible FAQ elements (widgets, Page
-            Builder) have registered their groups with the collector. JSON-LD is valid anywhere in
-            the document.
-        -->
-        <referenceContainer name="before.body.end">
-            <block class="MageOS\Seo\Block\FaqJsonLd"
-                   name="mageos_faq.json_ld"
-                   template="MageOS_Seo::faq/json-ld.phtml"/>
-        </referenceContainer>
     </body>
 </page>

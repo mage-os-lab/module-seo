@@ -32,6 +32,10 @@ Checked against the llms.txt spec (v2, 10 August 2026), the reference parser
   applicable. `/llms-full.txt` and `/llms.jsonl` keep 503.
 - **Disabled files are not claimed by the router**, so a static file or another module
   can serve the path.
+- **The llms router runs before core's URL-rewrite router** (sortOrder 15, was 20).
+  - The two shared a sortOrder, so their order depended on how the di.xml files merged.
+  - On Mage-OS 3.5 the rewrite router ran first, so a URL rewrite for an enabled file's path
+    could take that path. Such a rewrite is a redirect or a CMS page's rewrite.
 - **`/llms.jsonl` description** is one line and cut at a word boundary, with `…`.
 - `LlmsTxtBuilder` takes a new `SitemapUrlResolver` argument (before
   `sectionProviders`), and `LlmsTxtRouter` takes `Model\Aeo\Config`; with DI nothing
@@ -54,6 +58,10 @@ Checked against the llms.txt spec (v2, 10 August 2026), the reference parser
 
 ### Added
 
+- **Canonical URLs → Use Canonical Link Meta Tag For CMS Pages** (`mageos_seo_general/canonical/cms_enabled`,
+  per store view, default Yes): turns off the canonical link this module adds to CMS pages and the
+  home page. Named like core's "Use Canonical Link Meta Tag For Categories/Products". See
+  `docs/canonical-urls.md`.
 - **Translations:** `i18n/en_US.csv` (the source), `en_GB.csv` (British spelling, only where it
   differs) and `nl_NL.csv`. Everything user-facing is now translatable:
   - the configuration, forms, menu and ACL titles;
@@ -152,6 +160,73 @@ Checked against the llms.txt spec (v2, 10 August 2026), the reference parser
 
 ### Removed
 
+- **Moved to MageOS_Agentic** ([mage-os/module-agentic](https://github.com/mage-os-lab/module-agentic)):
+  the `/.well-known/` endpoint registry and router, the UCP business profile at `/.well-known/ucp`
+  and the `ucp:keygen` command. Install that module to keep serving the profile; it requires this
+  one.
+  - **Breaking: the namespace is `MageOS\Agentic\`**, where it was `MageOS\Seo\`:
+    `Api\WellKnownEndpointInterface`, `Api\UcpCapabilityProviderInterface`,
+    `Api\UcpServiceProviderInterface`, `Model\WellKnown\*`, `Model\Ucp\*`,
+    `Model\Router\WellKnownRouter`, `Controller\Wellknown\Index` and
+    `Console\Command\UcpKeygenCommand`.
+  - **Unchanged:** the settings (`mageos_agentic/*`), the ACL resource `MageOS_Agentic::config`, the
+    internal URL `mageos-agentic/…` and the command name.
+  - **`/.well-known/security.txt` is removed, not moved.** Core's Magento_Securitytxt serves it:
+    configure it under **Stores → Configuration → Security → Security.txt**. Gone with it: the
+    settings `mageos_agentic/security_txt/*` (saved values stay in `core_config_data`, unread),
+    `Model\Ucp\SecurityTxtBuilder`, `Model\WellKnown\Endpoint\SecurityTxtEndpoint`,
+    `Model\Config\Backend\SecurityTxtExpires` and `Block\Adminhtml\System\Config\Field\Date`.
+  - `Model\Router\PublicPaths` and `Model\Router\CanonicalPathRedirect` stay here: MageOS_Agentic
+    registers its paths with them.
+  - Other entries in this release that mention the UCP profile, ai-plugin.json or security.txt
+    describe them before the move.
+- **Moved to MageOS_Faq** ([mage-os/module-faq](https://github.com/mage-os-lab/module-faq)):
+  the FAQ entity and its `mageos_faq` table, the repository, the FAQ Manager, the widget, the Page
+  Builder content type and the FAQPage JSON-LD. Install that module to keep them; it requires this
+  one.
+  - **Breaking: the namespace is `MageOS\Faq\`**, where it was `MageOS\Seo\`:
+    `Api\FaqRepositoryInterface`, `Api\FaqCollectorInterface`, `Api\Data\FaqInterface`,
+    `Api\Data\FaqSearchResultsInterface`, `Model\Faq`, `Model\FaqRepository`, `Model\Faq\GroupReader`,
+    `Model\Faq\Collector`, `Model\Faq\Source\TableFaqSource`, `Model\ResourceModel\Faq`,
+    `Block\FaqJsonLd`, `Block\AbstractFaqElement`, `Block\Widget\FaqList`, and the admin blocks,
+    controllers and UI classes. The templates are `MageOS_Faq::faq/…`.
+  - **Unchanged:** the table and its rows, the ACL resource and menu item `MageOS_Faq::faq`, the
+    admin URLs, the cache tags, the model events, the widget id, the Page Builder content type and
+    the CSS classes.
+  - **Stays here:** the FAQ source pool (`Model\Faq\SourcePool`) and its contract
+    (`Api\FaqSourceProviderInterface`), which the llms documents read; MageOS_Faq registers its table
+    there. Without a source registered, the llms documents have no FAQ section.
+  - `magento/module-widget` and the `magento/module-page-builder` suggestion go with it, and
+    Magento_Widget and Magento_PageBuilder leave `etc/module.xml`'s sequence: nothing else here uses
+    them.
+- **Moved to MageOS_Aeo** ([mage-os/module-aeo](https://github.com/mage-os-lab/module-aeo)):
+  `/llms.txt`, `/llms-full.txt` and `/llms.jsonl`, their feed storage and nightly cron job, and the
+  AI crawler directives in `robots.txt`. Install that module to keep serving them; it requires this
+  one.
+  - **Breaking: the namespace is `MageOS\Aeo\`**, where it was `MageOS\Seo\`:
+    `Api\LlmsTxtSectionProviderInterface`, `Api\JsonlLineProviderInterface`, `Model\Feed\*`,
+    `Model\LlmsTxt\*`, `Model\LlmsJsonl\*`, `Model\Router\LlmsTxtRouter`, `Model\Cache\CleaningMode`,
+    `Model\Config\Backend\FeedStorageDir`, `Model\Config\Source\{AiBots,FaqGroups}`, the llms
+    controllers and observers, `Plugin\Robots\AppendAiDirectivesPlugin`,
+    `Plugin\Catalog\Product\Action\InvalidateJsonlOnMassAttributeUpdate`, `Cron\RegenerateFeeds`,
+    `Exception\FeedRebuildInProgressException` and `Setup\Patch\Data\RemoveHreflangSitemap`.
+    `Model\Aeo\Config` becomes `MageOS\Aeo\Model\Config`.
+  - **Unchanged:** the settings (`mageos_aeo/*`), the ACL resource `MageOS_Aeo::config`, the
+    `env.php` key, the storage directory, the cache tags, the cron job, the rebuild lock, the feed
+    groups `llms` and `jsonl`, and the internal URLs `mageos-aeo/…`.
+  - Their log lines start `MageOS_Aeo:`, and the comment above the AI crawler groups in
+    `robots.txt` reads `# AI crawlers (managed by MageOS_Aeo)`.
+  - `RemoveHreflangSitemap` keeps its MageOS_Seo class name as an alias, so it is not applied a
+    second time.
+  - **Stays here:** the rebuild queue, its consumer and `seo:rebuild`, which MageOS_Aeo registers
+    its groups with; the FAQ source pool; `Model\Organization\ContactEmail` and the locale, which
+    the documents read; and `Model\Router\PublicPaths` and `CanonicalPathRedirect`, which keep
+    sessions off their URLs. With MageOS_Aeo not installed, a plain `seo:rebuild` has no group to
+    rebuild, and says how to rebuild the sitemaps.
+  - `magento/module-robots`, `magento/module-page-cache` and `magento/module-cache-invalidate` go
+    with it, and Magento_Robots leaves `etc/module.xml`'s sequence: nothing else here uses them.
+  - Other entries in this release that mention the llms documents, the feeds or the AI crawler
+    directives describe them before the move.
 - `Setup\Patch\Data\RenameOrganisationTypes` and `ResourceModel\Organisation::renameOrgType()`,
   its only user. The patch renamed stored `EducationalOrg` / `GovernmentOrg` types to their
   schema.org names; the table it worked on is dropped by the Organization rename (see Changed), so
@@ -503,6 +578,20 @@ Checked against the llms.txt spec (v2, 10 August 2026), the reference parser
 
 ### Changed
 
+- **The CMS canonical and the hreflang alternates are page assets** (review A5), added the way core
+  adds its catalog canonicals: `PageConfig::addRemotePageAsset()`. Other code now finds them in the
+  page's asset collection.
+  - `CanonicalUrlManager::setCanonical()` replaces the CMS canonical like any other.
+  - **The canonical** is content type `canonical`. It is added by `Observer\AddCanonicalLink`.
+  - **The alternates** are content type `hreflang`, one asset per code, named
+    `mageos_seo_hreflang_<code>`. They are added by `Observer\AddHreflangLinks`.
+  - Both observers run on `layout_generate_blocks_after`.
+  - **Breaking for layout customisations:** the blocks `mageos_seo.canonical` and
+    `mageos_seo.hreflang`, their classes (`Block\Canonical`, `Block\Hreflang`) and their templates
+    are gone. To turn the output off, use **Use Canonical Link Meta Tag For CMS Pages** (see Added)
+    and **Enable Hreflang Tags**.
+  - The links print with the other head assets, `<link rel="canonical" href="…" />`, instead of
+    in `head.additional`. URLs are escaped as before.
 - **Admin text is in US English;** en_GB restores the British forms. "Colour" becomes Color,
   "Organiser" Organizer, "watercolour" watercolor, "catalogue" catalog and "Canonicalisation"
   Canonicalization. Field and template codes are unchanged.

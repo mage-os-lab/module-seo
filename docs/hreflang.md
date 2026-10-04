@@ -10,6 +10,20 @@ alternates two ways:
 
 Both are built from the same data, so a page and the sitemap never disagree.
 
+The head's alternates are page assets, added the way core adds its canonicals
+(`PageConfig::addRemotePageAsset()`), so other code can read or replace them through the page
+config:
+
+- content type `hreflang`;
+- one asset per code, named `mageos_seo_hreflang_<code>` (`mageos_seo_hreflang_de-DE`,
+  `mageos_seo_hreflang_x-default`). The page config keys assets by name, or by URL when there is
+  none, and the page's own alternate has the canonical's URL;
+- attributes `rel="alternate"` and `hreflang="<code>"`.
+
+`Observer\AddHreflangLinks` adds them on `layout_generate_blocks_after`. **To turn them off:**
+**Stores → Configuration → MageOS SEO → SEO Configuration → Hreflang (Multistore) → Enable
+Hreflang Tags** (`mageos_seo_general/hreflang/enabled`), per store view. It is on by default.
+
 How the sitemap is generated, rebuilt and stored is in [sitemap.md](sitemap.md) — this page is
 about what goes in it. The dedicated `/hreflang-sitemap.xml` earlier versions served is retired:
 see [The retired /hreflang-sitemap.xml](#the-retired-hreflang-sitemapxml).
