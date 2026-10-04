@@ -216,6 +216,55 @@ class ConfigurableProductOutputTest extends AbstractController
     }
 
     /**
+     * With every child out of stock, nothing can price the product.
+     *
+     * Core's final price for it is then 0 (ConfigurablePriceResolver casts the null of no saleable
+     * children), which Google reads as free. Google also requires a price on every Offer, so the
+     * node carries no offer at all, rather than a false price or an Offer without one.
+     *
+     * @return void
+     */
+    #[
+        DataFixture(AttributeFixture::class, ['options' => ['S', 'M']], 'size'),
+        DataFixture(
+            ProductFixture::class,
+            [
+                'sku'                  => self::SKU . '-s',
+                'price'                => 10,
+                'extension_attributes' => ['stock_item' => ['qty' => 0, 'is_in_stock' => false]],
+            ],
+            's'
+        ),
+        DataFixture(
+            ProductFixture::class,
+            [
+                'sku'                  => self::SKU . '-m',
+                'price'                => 20,
+                'extension_attributes' => ['stock_item' => ['qty' => 0, 'is_in_stock' => false]],
+            ],
+            'm'
+        ),
+        DataFixture(
+            ConfigurableProductFixture::class,
+            [
+                'sku'      => self::SKU,
+                'url_key'  => self::SKU,
+                '_options' => ['$size$'],
+                '_links'   => ['$s$', '$m$'],
+            ],
+            'configurable'
+        ),
+    ]
+    public function testWithEveryChildOutOfStockTheProductHasNoOffer(): void
+    {
+        $node = $this->productNode($this->productPage('configurable'));
+
+        $this->assertSame('Product', $node['@type'] ?? null, 'No sellable child, so no ProductGroup.');
+        $this->assertSame(self::SKU, $node['sku'] ?? null);
+        $this->assertArrayNotHasKey('offers', $node);
+    }
+
+    /**
      * The barcode attribute is not used in product listing, so core's children arrive without it.
      *
      * @return void

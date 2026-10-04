@@ -19,6 +19,10 @@ use MageOS\Seo\Service\CurrencyService;
  * `priceValidUntil` and the offer enrichers (shipping, returns, item condition) cannot differ
  * between them. To add to every offer, register an `Api\OfferEnricherInterface` in
  * `Model\Product\OfferEnricher\Pool`; to change one, plug in to build().
+ *
+ * A product whose price is not known (Model\Product\FinalPrice) gets no offer: build() returns an
+ * empty array and the caller leaves `offers` out. Google requires a price on every Offer and reads
+ * 0 as free, so neither an Offer without a price nor one priced 0 would be true.
  */
 class OfferBuilder
 {
@@ -33,6 +37,7 @@ class OfferBuilder
      * @param DateTime $dateTime
      * @param OfferEnricherPool $offerEnricherPool
      * @param ChildProducts $childProducts
+     * @param FinalPrice $finalPrice
      */
     public function __construct(
         private readonly StoreManagerInterface $storeManager,
@@ -40,7 +45,8 @@ class OfferBuilder
         private readonly AvailabilityResolver  $availabilityResolver,
         private readonly DateTime              $dateTime,
         private readonly OfferEnricherPool     $offerEnricherPool,
-        private readonly ChildProducts         $childProducts
+        private readonly ChildProducts         $childProducts,
+        private readonly FinalPrice            $finalPrice
     ) {
     }
 
@@ -48,7 +54,8 @@ class OfferBuilder
      * Build the offer for a product at a URL.
      *
      * An `Offer` with the product's price; for a configurable whose sellable children are priced
-     * differently, an `AggregateOffer` from the lowest to the highest.
+     * differently, an `AggregateOffer` from the lowest to the highest. An empty array when the
+     * price is not known: the caller leaves `offers` out.
      *
      * @param ProductInterface $product
      * @param string $url The URL the offer is made at: the product's page, or a variant's
@@ -56,10 +63,15 @@ class OfferBuilder
      */
     public function build(ProductInterface $product, string $url): array
     {
+        $price = $this->finalPrice->get($product);
+        if ($price === null) {
+            return [];
+        }
+
         $offer = [
             '@type'         => 'Offer',
             'url'           => $url,
-            'price'         => $this->resolvePrice($product),
+            'price'         => $this->currencyService->formatAmountForLlms($price),
             'priceCurrency' => $this->currencyService->getCurrentCurrencyCode(),
             'availability'  => $this->availabilityResolver->resolve($product),
         ];
@@ -87,36 +99,25 @@ class OfferBuilder
     }
 
     /**
-     * Resolve the scalar price value: the product's final price, in the display currency.
-     *
-     * PriceInfo amounts are already in the current (display) currency: core RegularPrice,
-     * SpecialPrice and CatalogRulePrice::getValue() convert with PriceCurrency. They are used as
-     * they are; converting again would apply the rate twice.
-     *
-     * @param ProductInterface $product
-     * @return string
-     */
-    private function resolvePrice(ProductInterface $product): string
-    {
-        return $this->currencyService->formatAmountForLlms($this->finalPrice($product));
-    }
-
-    /**
      * Resolve a low/high price range for a configurable whose children differ in price, or null.
      *
-     * Read from the sellable children's own final prices — the same basis resolvePrice() uses
-     * for one product. (Core's `FinalPrice::getMinimalPrice()` reads `minimal_price`, which only
-     * a collection load with price data sets: on a product page it is 0.) Null keeps the
-     * single Offer: any other product type, fewer than two children, or one price for all.
+     * Read from the sellable children's own final prices — the same basis as the product's own
+     * price. (Core's `FinalPrice::getMinimalPrice()` reads `minimal_price`, which only a
+     * collection load with price data sets: on a product page it is 0.) A child whose price is not
+     * known is left out of the range. Null keeps the single Offer: any other product type, fewer
+     * than two priced children, or one price for all.
      *
      * @param ProductInterface $product
      * @return array{low: float, high: float}|null
      */
     private function resolvePriceRange(ProductInterface $product): ?array
     {
-        $prices = array_map(
-            fn (ProductInterface $child): float => $this->finalPrice($child),
-            $this->childProducts->get($product)
+        $prices = array_filter(
+            array_map(
+                fn (ProductInterface $child): ?float => $this->finalPrice->get($child),
+                $this->childProducts->get($product)
+            ),
+            static fn (?float $price): bool => $price !== null
         );
         if (\count($prices) < 2) {
             return null;
@@ -182,17 +183,5 @@ class OfferBuilder
         $today = $this->dateTime->date('Y-m-d');
 
         return $specialTo !== '' && $specialTo >= $today ? $specialTo : null;
-    }
-
-    /**
-     * The product's final price, in base currency.
-     *
-     * @param ProductInterface $product
-     * @return float
-     */
-    private function finalPrice(ProductInterface $product): float
-    {
-        /** @var \Magento\Catalog\Model\Product $product */
-        return (float) $product->getPriceInfo()->getPrice('final_price')->getValue();
     }
 }

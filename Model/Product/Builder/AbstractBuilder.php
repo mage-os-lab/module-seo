@@ -75,9 +75,14 @@ abstract class AbstractBuilder implements ProductSchemaBuilderInterface
             'name'     => $product->getName(),
             'url'      => $productUrl,
             'sku'      => $product->getSku(),
-            // An Offer, or an AggregateOffer for a configurable priced across a range.
-            'offers'   => $this->offerBuilder->build($product, $productUrl),
         ];
+
+        // An Offer, or an AggregateOffer for a configurable priced across a range. None when the
+        // price is not known: see OfferBuilder.
+        $offer = $this->offerBuilder->build($product, $productUrl);
+        if ($offer !== []) {
+            $schema['offers'] = $offer;
+        }
 
         // Description
         $rawDesc = (string) $product->getShortDescription() ?: (string) $product->getDescription();

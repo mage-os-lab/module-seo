@@ -8,6 +8,24 @@ hardcoded version field).
 
 ## [Unreleased]
 
+### Fixed
+
+- **A product whose price is not known has no offer, instead of one priced 0.00.** An out-of-stock
+  configurable has no saleable child, so Magento prices it 0, and its JSON-LD said it was free.
+  - The product node now has no `offers` when the price is not known: Google reads 0 as free, and
+    requires a price on every Offer.
+  - Unknown means a composite product (configurable, grouped, bundle) priced 0, or a price lookup
+    that throws, which is now logged with the SKU.
+  - A simple product priced 0 keeps its `0.00`: it is free.
+  - New: `Model\Product\FinalPrice` makes the decision, for the structured data and for
+    MageOS_Aeo's `/llms.jsonl`.
+  - `OfferBuilder`'s constructor takes it after `ChildProducts`. `OfferBuilder::build()` returns an
+    empty array when the price is not known, and `AbstractBuilder::buildBase()` and the
+    ProductGroup's variants then leave `offers` out.
+  - See `docs/structured-data.md`.
+
+## [1.2.0]
+
 Pre-release review hardening pass (July 2026). Breaking renames are included
 deliberately: nothing has shipped yet, so names are settled now, before they
 become public contract.

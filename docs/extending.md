@@ -160,6 +160,7 @@ class VehicleBuilder extends AbstractBuilder
 
 Rules to follow:
 - Always call `$this->buildBase()` first — it provides the base product node with offers, images, and description. The offer comes from `Model\Product\OfferBuilder`, the one place offers are built; to change every offer, register an `OfferEnricherInterface` or plug in to `OfferBuilder::build()` rather than editing the node here.
+- **The node may have no `offers`.** When the product's price is not known, `OfferBuilder::build()` returns an empty array and `buildBase()` leaves `offers` out (see [structured-data.md](structured-data.md#a-product-whose-price-is-not-known-has-no-offer)). Check `isset($schema['offers'])` before writing into it, as `LocalExperienceBuilder` does. A plugin on `build()` receives the empty array too. `SchemaRegistry::mergeNested('offers', …)` would create an offer with no price on such a product, so check that the stored schema has one first.
 - Don't handle configurable products yourself: after your builder runs, `Model\Product\Variant\ProductGroupBuilder` turns a configurable's node into a ProductGroup of its variants, for every template (see [structured-data.md](structured-data.md#configurable-products)).
 - If your builder declares its own constructor, pass AbstractBuilder's arguments through: `StoreManagerInterface`, `ImageHelper`, `Config`, `OfferBuilder`, `AggregateRatingResolver`, `GtinValidator`.
 - Check `\in_array($fieldCode, $enabledFields)` before reading optional attributes.

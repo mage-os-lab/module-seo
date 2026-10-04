@@ -6,6 +6,7 @@ namespace MageOS\Seo\Test\Unit\Model\Product\Builder;
 
 use Magento\Catalog\Helper\Image as ImageHelper;
 use Magento\Catalog\Model\Product;
+use Magento\Catalog\Model\Product\Type\AbstractType;
 use Magento\Framework\Pricing\Price\PriceInterface;
 use Magento\Framework\Pricing\PriceInfoInterface;
 use Magento\Framework\Stdlib\DateTime\DateTime;
@@ -151,5 +152,38 @@ class LocalExperienceBuilderTest extends TestCase
         );
         $schema = $this->builder->build($this->product, ['availabilityStarts'], []);
         $this->assertSame('2026-08-01', $schema['offers']['availabilityStarts']);
+    }
+
+    /**
+     * A product whose price is not known has no offer (see OfferBuilder). The dates belong on the
+     * offer, so they are left out rather than put on an Offer of their own, and the rest is built.
+     */
+    public function testWithoutAnOfferTheDatesAreLeftOutAndTheRestIsBuilt(): void
+    {
+        $price = $this->createStub(PriceInterface::class);
+        $price->method('getValue')->willReturn(0.0);
+        $priceInfo = $this->createStub(PriceInfoInterface::class);
+        $priceInfo->method('getPrice')->willReturn($price);
+        $type = $this->createStub(AbstractType::class);
+        $type->method('isComposite')->willReturn(true);
+
+        // A composite product nothing can price: core gives it 0.
+        $product = $this->createStub(Product::class);
+        $product->method('getPriceInfo')->willReturn($priceInfo);
+        $product->method('getTypeInstance')->willReturn($type);
+        $product->method('getProductUrl')->willReturn('https://example.com/pottery');
+        $product->method('getMediaGalleryImages')->willReturn(null);
+        $product->method('getData')->willReturnCallback(
+            static fn (string $key) => match ($key) {
+                'availability_starts' => '2026-08-01',
+                'location'            => 'Studio 5, Bristol',
+                default               => null,
+            }
+        );
+
+        $schema = $this->builder->build($product, ['availabilityStarts', 'location'], []);
+
+        $this->assertArrayNotHasKey('offers', $schema);
+        $this->assertSame('Studio 5, Bristol', $this->findAdditionalProperty($schema, 'location')['value'] ?? null);
     }
 }
