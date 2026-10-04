@@ -40,6 +40,7 @@ class Config
      * Core's General → Locale Options → Locale (Directory\Helper\Data::XML_PATH_DEFAULT_LOCALE).
      */
     public const XML_LOCALE_CODE                   = 'general/locale/code';
+    public const XML_CANONICAL_CMS_ENABLED         = 'mageos_seo_general/canonical/cms_enabled';
     public const XML_HREFLANG_ENABLED              = 'mageos_seo_general/hreflang/enabled';
     public const XML_HREFLANG_XDEFAULT_STORE       = 'mageos_seo_general/hreflang/xdefault_store_id';
     public const XML_HREFLANG_EXCLUDED_STORES      = 'mageos_seo_general/hreflang/excluded_store_ids';
@@ -291,6 +292,21 @@ class Config
     {
         return (string) $this->scopeConfig->getValue(
             self::XML_ROBOTS_PAGINATED,
+            ScopeInterface::SCOPE_STORE,
+            $storeId
+        );
+    }
+
+    /**
+     * Check if CMS pages, the home page included, get a canonical link.
+     *
+     * @param int|string|null $storeId
+     * @return bool
+     */
+    public function isCmsCanonicalEnabled(int|string|null $storeId = null): bool
+    {
+        return (bool) $this->scopeConfig->getValue(
+            self::XML_CANONICAL_CMS_ENABLED,
             ScopeInterface::SCOPE_STORE,
             $storeId
         );

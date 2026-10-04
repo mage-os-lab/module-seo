@@ -25,14 +25,24 @@ This service is the single authoritative place for canonical manipulation across
 | Product page (no variant) | Magento core (`catalog/seo/product_canonical_tag`) | Product URL |
 | Product page (variant active) | Bridge module via `CanonicalUrlManager` | Variant-specific URL |
 | Category page | Magento core (`catalog/seo/category_canonical_tag`) | Category URL |
-| Home page | `Block\Canonical` (fallback) | Store base URL |
-| CMS page | `Block\Canonical` (fallback) | Store base URL + page identifier |
+| Home page | `Observer\AddCanonicalLink` | Store base URL |
+| CMS page | `Observer\AddCanonicalLink` | Store base URL + page identifier |
 
-The fallback block only renders on CMS pages — those carrying the `cms_page_view` handle, which
-core adds to the home page and every CMS page — and only when no other
-canonical asset is already present (detected by asset content type). It deliberately stays off
-search, cart, checkout and account pages — canonicalising those URLs would legitimise duplicate
-URLs instead of consolidating them — and never derives URLs from the request Host header.
+The CMS canonical is added only on CMS pages — those carrying the `cms_page_view` handle, which
+core adds to the home page and every CMS page — and only when no other canonical asset is already
+present (detected by asset content type). It deliberately stays off search, cart, checkout and
+account pages — canonicalising those URLs would legitimise duplicate URLs instead of consolidating
+them — and never derives URLs from the request Host header.
+
+It is a page asset, added as core adds its catalog canonicals:
+`PageConfig::addRemotePageAsset($url, 'canonical', ['attributes' => ['rel' => 'canonical']])`.
+So other code finds it in the page's asset collection, and `CanonicalUrlManager` replaces it like
+any other canonical. It is added on `layout_generate_blocks_after`, once every block's
+`_prepareLayout()` has run, so a canonical a block added there is seen and left alone.
+
+**To turn it off:** **Stores → Configuration → MageOS SEO → SEO Configuration → Canonical URLs →
+Use Canonical Link Meta Tag For CMS Pages** (`mageos_seo_general/canonical/cms_enabled`), per
+store view. It is on by default.
 
 Core's product/category canonical tags are **disabled by default** in Magento; enable them under
 **Stores → Configuration → Catalog → Catalog → Search Engine Optimization** if you want catalog
@@ -52,7 +62,8 @@ $canonicalManager->setCanonical(
 ```
 
 The manager removes every asset in the page asset collection whose content type is `canonical`
-(this is how both core and this module register canonical link assets), then adds the new one.
+(this is how both core and this module add canonical links, this module's CMS canonical included),
+then adds the new one.
 The legacy third `$urlKey` parameter is retained for backward compatibility but ignored.
 
 ---
@@ -74,10 +85,10 @@ With the manager, the first one is removed before the second is added, so only o
 
 ## CMS pages
 
-Magento core does not emit canonicals for CMS pages, so `Block\Canonical` covers them with
+Magento core does not emit canonicals for CMS pages, so `Observer\AddCanonicalLink` covers them with
 `CmsPageResolver::currentUrl()` — the same URL the page's `og:url` and WebPage node carry: the
-store base URL plus the page identifier, and the bare base URL on the home page. This does not
-interact with `CanonicalUrlManager`.
+store base URL plus the page identifier, and the bare base URL on the home page. A module that
+calls `CanonicalUrlManager::setCanonical()` on a CMS page replaces it.
 
 **The home page** is recognised as core's router recognises it: the request's path is empty
 (`Framework\App\Router\Base::parseRequest()` routes an empty path to `web/default/front`, after
@@ -87,11 +98,11 @@ it — by identifier, or by page ID when the value is numeric — and canonicali
 What the module does not treat as the home page:
 
 - `/cms/index/index` (or `/cms`): the same action and content at another URL — it gets no
-  canonical from this block.
+  canonical from this module.
 - `/home`, or any page's own identifier: routing that path is core's business, and the module
   follows whatever core serves there.
 - `/` when **Default Web URL** (`web/default/front`) points somewhere other than `cms`: `/` then
-  serves no CMS page, and this block stays off it.
+  serves no CMS page, and this module adds no canonical to it.
 
 ---
 

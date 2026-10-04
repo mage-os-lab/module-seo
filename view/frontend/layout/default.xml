@@ -9,15 +9,6 @@
       xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
     <body>
         <referenceBlock name="head.additional">
-            <block class="MageOS\Seo\Block\Canonical"
-                   name="mageos_seo.canonical"
-                   template="MageOS_Seo::seo/canonical.phtml"/>
-
-            <block class="MageOS\Seo\Block\Hreflang"
-                   name="mageos_seo.hreflang"
-                   template="MageOS_Seo::seo/hreflang.phtml"
-                   after="mageos_seo.canonical"/>
-
             <block class="MageOS\Seo\Block\JsonLd"
                    name="mageos_seo.json_ld"
                    template="MageOS_Seo::seo/json-ld.phtml"/>

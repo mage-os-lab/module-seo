@@ -78,6 +78,12 @@ class ConfigTest extends TestCase
                 [self::STORE_ID],
                 $store,
             ],
+            'cms canonical'       => [
+                'isCmsCanonicalEnabled',
+                Config::XML_CANONICAL_CMS_ENABLED,
+                [self::STORE_ID],
+                $store,
+            ],
             'hreflang'            => ['isHreflangEnabled', Config::XML_HREFLANG_ENABLED, [self::STORE_ID], $store],
             'speakable'           => [
                 'isSpeakableEnabled',

@@ -216,6 +216,13 @@ that says nothing defers to its parent.<br/><br/>
 for this store view, anywhere up the tree, outranks anything set globally. With one store view the
 two behave identically.<br/><br/>
 Global only — this decides how store-view scope itself is resolved."
+"Canonical URLs","Canonical URLs"
+"Use Canonical Link Meta Tag For CMS Pages","Use Canonical Link Meta Tag For CMS Pages"
+"Adds a canonical link to CMS pages and the home page, which Magento does
+not. Product and category canonicals are Magento's settings, under Catalog → Catalog → Search
+Engine Optimization.","Adds a canonical link to CMS pages and the home page, which Magento does
+not. Product and category canonicals are Magento's settings, under Catalog → Catalog → Search
+Engine Optimization."
 "Robots Meta Defaults","Robots Meta Defaults"
 "Product Pages Default","Product Pages Default"
 "When set to ""Use Magento Default"", the core Design > Search Engine

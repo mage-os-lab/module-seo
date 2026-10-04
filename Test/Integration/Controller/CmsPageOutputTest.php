@@ -8,7 +8,9 @@ use Magento\Cms\Api\Data\PageInterface;
 use Magento\Cms\Api\PageRepositoryInterface;
 use Magento\Cms\Model\PageFactory;
 use Magento\Framework\App\Config\MutableScopeConfigInterface;
+use Magento\Framework\View\Page\Config as PageConfig;
 use Magento\TestFramework\TestCase\AbstractController;
+use MageOS\Seo\Model\Config;
 
 /**
  * A CMS page's URL in its WebPage node, og:url and canonical — the home page's included.
@@ -106,6 +108,39 @@ class CmsPageOutputTest extends AbstractController
         $this->assertSame(self::BASE . $identifier, $node['url'] ?? null);
         $this->assertSame(self::BASE . $identifier, $this->ogUrl($body));
         $this->assertSame(self::BASE . $identifier, $this->canonical($body));
+    }
+
+    /**
+     * The canonical is a page asset, as core's catalog canonicals are, so other code can read it
+     * or replace it through the page config instead of meeting a tag it cannot see.
+     *
+     * @return void
+     */
+    public function testTheCanonicalIsAPageAsset(): void
+    {
+        $identifier = 'mageos-seo-asset-' . uniqid();
+        $page       = $this->page($identifier, 'MageOS SEO Asset');
+
+        $this->rendered('cms/page/view/page_id/' . $page->getId());
+
+        $this->assertSame([self::BASE . $identifier], $this->canonicalAssets());
+    }
+
+    /**
+     * Use Canonical Link Meta Tag For CMS Pages, set to No, leaves CMS pages without one.
+     *
+     * @return void
+     */
+    public function testWithTheSettingOffACmsPageHasNoCanonical(): void
+    {
+        $this->_objectManager->get(MutableScopeConfigInterface::class)
+            ->setValue(Config::XML_CANONICAL_CMS_ENABLED, '0', 'store', 'default');
+        $page = $this->page('mageos-seo-off-' . uniqid(), 'MageOS SEO Off');
+
+        $body = $this->rendered('cms/page/view/page_id/' . $page->getId());
+
+        $this->assertSame('', $this->canonical($body));
+        $this->assertSame([], $this->canonicalAssets());
     }
 
     /**
@@ -284,5 +319,22 @@ class CmsPageOutputTest extends AbstractController
         return preg_match('#<link rel="canonical" href="([^"]*)"#', $body, $match) === 1
             ? html_entity_decode($match[1])
             : '';
+    }
+
+    /**
+     * The URLs of the page's canonical assets, as the page config holds them after the dispatch.
+     *
+     * @return string[]
+     */
+    private function canonicalAssets(): array
+    {
+        $urls = [];
+        foreach ($this->_objectManager->get(PageConfig::class)->getAssetCollection()->getAll() as $asset) {
+            if ($asset->getContentType() === 'canonical') {
+                $urls[] = html_entity_decode($asset->getUrl());
+            }
+        }
+
+        return $urls;
     }
 }

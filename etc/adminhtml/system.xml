@@ -86,6 +86,19 @@ Global only — this decides how store-view scope itself is resolved.]]></commen
                 </field>
             </group>
 
+            <group id="canonical" translate="label" type="text" sortOrder="30"
+                   showInDefault="1" showInWebsite="1" showInStore="1">
+                <label>Canonical URLs</label>
+                <field id="cms_enabled" translate="label comment" type="select"
+                       sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Use Canonical Link Meta Tag For CMS Pages</label>
+                    <comment><![CDATA[Adds a canonical link to CMS pages and the home page, which Magento does
+not. Product and category canonicals are Magento's settings, under Catalog → Catalog → Search
+Engine Optimization.]]></comment>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                </field>
+            </group>
+
             <group id="robots_meta" translate="label" type="text" sortOrder="40"
                    showInDefault="1" showInWebsite="1" showInStore="1">
                 <label>Robots Meta Defaults</label>

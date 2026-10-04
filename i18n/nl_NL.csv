@@ -204,6 +204,11 @@ that says nothing defers to its parent.<br/><br/>
 for this store view, anywhere up the tree, outranks anything set globally. With one store view the
 two behave identically.<br/><br/>
 Global only — this decides how store-view scope itself is resolved.","Waar de SEO-instellingen van een categorie vandaan komen als die categorie ze niet zelf instelt. Elke instelling wordt apart bepaald, dus een categorie kan haar schemasjabloon van de ene plek halen en haar robots-instructie van een andere.<br/><br/><strong>Categorie eerst</strong> past bij een catalogus waarvan de boom de betekenis draagt: een instelling op een categorie geldt voor die categorie, of ze nu globaal of voor één winkelweergave is ingesteld, en alleen een categorie die niets instelt, valt terug op haar bovenliggende categorie.<br/><br/><strong>Winkelweergave eerst</strong> past bij winkelweergaven met een eigen SEO-beleid: alles wat voor deze winkelweergave is ingesteld, waar ook in de boom, gaat voor op alles wat globaal is ingesteld. Met één winkelweergave werken beide hetzelfde.<br/><br/>Alleen globaal — dit bepaalt hoe de scope van een winkelweergave zelf wordt bepaald."
+"Canonical URLs","Canonieke URL's"
+"Use Canonical Link Meta Tag For CMS Pages","Canonieke link-metatag gebruiken voor CMS-pagina's"
+"Adds a canonical link to CMS pages and the home page, which Magento does
+not. Product and category canonicals are Magento's settings, under Catalog → Catalog → Search
+Engine Optimization.","Voegt een canonieke link toe aan CMS-pagina's en de startpagina, wat Magento zelf niet doet. Canonieke links voor producten en categorieën zijn instellingen van Magento, onder Catalogus → Catalogus → Zoekmachineoptimalisatie."
 "Robots Meta Defaults","Standaardwaarden robots-meta"
 "Product Pages Default","Standaard voor productpagina's"
 "When set to ""Use Magento Default"", the core Design > Search Engine

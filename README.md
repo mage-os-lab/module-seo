@@ -102,6 +102,7 @@ Without a Name and URL saved, the Organization node in JSON-LD will render with 
 | --- | --- | --- |
 | Open Graph Tags | Enable OG/Twitter tags | Yes |
 | Structured Data (JSON-LD) | Master switch, default product template, ItemList toggle & max, most variants per configurable product, aggregate rating | Yes / GenericProduct |
+| Canonical URLs | Canonical link on CMS pages and the home page | Yes |
 | Robots Meta | Product / category / **CMS** / search results defaults, pagination policy | *(empty — Magento default applies)* |
 | Hreflang | Enable, language-only, sitemap | Yes |
 | Answer Engine (AEO) | Speakable toggle + CSS selectors | No |

@@ -85,6 +85,8 @@ All paths live under `mageos_seo_general/`:
 | `mageos_seo_general/structured_data/category_item_list_enabled` | 1 | ItemList on category pages |
 | `mageos_seo_general/structured_data/category_item_list_max` | 36 | Max items in ItemList |
 | `mageos_seo_general/structured_data/has_variant_max` | 50 | Most sellable children a configurable product may have and still be a ProductGroup of its variants; more gets one AggregateOffer (0 = always the AggregateOffer). Global only. See [structured-data.md](structured-data.md#configurable-products) |
+| `mageos_seo_general/canonical/cms_enabled` | 1 | Canonical link on CMS pages and the home page. See [canonical-urls.md](canonical-urls.md#where-canonicals-are-set) |
+| `mageos_seo_general/hreflang/enabled` | 1 | Hreflang alternates in the page head. See [hreflang.md](hreflang.md) |
 | `mageos_seo_general/robots_meta/product_default` | *(empty)* | Default for product pages (empty = Magento's Design → Search Engine Robots setting) |
 | `mageos_seo_general/robots_meta/category_default` | *(empty)* | Default for category pages (empty = Magento's Design → Search Engine Robots setting) |
 | `mageos_seo_general/robots_meta/search_default` | *(empty)* | Default for search result pages, quick and advanced (empty = Magento's Design → Search Engine Robots setting). See [robots-meta.md](robots-meta.md#global-defaults) on robots meta against robots.txt |

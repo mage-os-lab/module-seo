@@ -14,5 +14,14 @@
         <!-- Core's product Open Graph block duplicates every tag this module emits. -->
         <observer name="mageos_seo_remove_core_open_graph"
                   instance="MageOS\Seo\Observer\RemoveCoreOpenGraph"/>
+        <!--
+            The CMS canonical and the hreflang alternates, as page assets, the way core adds its
+            catalog canonicals. Switched off by Use Canonical Link Meta Tag For CMS Pages and
+            Enable Hreflang Tags.
+        -->
+        <observer name="mageos_seo_add_canonical_link"
+                  instance="MageOS\Seo\Observer\AddCanonicalLink"/>
+        <observer name="mageos_seo_add_hreflang_links"
+                  instance="MageOS\Seo\Observer\AddHreflangLinks"/>
     </event>
 </config>

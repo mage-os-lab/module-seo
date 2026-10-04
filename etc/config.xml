@@ -23,6 +23,9 @@
                 -->
                 <inheritance_strategy>category_first</inheritance_strategy>
             </category_config>
+            <canonical>
+                <cms_enabled>1</cms_enabled>
+            </canonical>
             <robots_meta>
                 <!--
                     Defaults are intentionally empty ("no opinion"): the providers then

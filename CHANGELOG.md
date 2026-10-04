@@ -58,6 +58,10 @@ Checked against the llms.txt spec (v2, 10 August 2026), the reference parser
 
 ### Added
 
+- **Canonical URLs → Use Canonical Link Meta Tag For CMS Pages** (`mageos_seo_general/canonical/cms_enabled`,
+  per store view, default Yes): turns off the canonical link this module adds to CMS pages and the
+  home page. Named like core's "Use Canonical Link Meta Tag For Categories/Products". See
+  `docs/canonical-urls.md`.
 - **Translations:** `i18n/en_US.csv` (the source), `en_GB.csv` (British spelling, only where it
   differs) and `nl_NL.csv`. Everything user-facing is now translatable:
   - the configuration, forms, menu and ACL titles;
@@ -574,6 +578,20 @@ Checked against the llms.txt spec (v2, 10 August 2026), the reference parser
 
 ### Changed
 
+- **The CMS canonical and the hreflang alternates are page assets** (review A5), added the way core
+  adds its catalog canonicals: `PageConfig::addRemotePageAsset()`. Other code now finds them in the
+  page's asset collection.
+  - `CanonicalUrlManager::setCanonical()` replaces the CMS canonical like any other.
+  - **The canonical** is content type `canonical`. It is added by `Observer\AddCanonicalLink`.
+  - **The alternates** are content type `hreflang`, one asset per code, named
+    `mageos_seo_hreflang_<code>`. They are added by `Observer\AddHreflangLinks`.
+  - Both observers run on `layout_generate_blocks_after`.
+  - **Breaking for layout customisations:** the blocks `mageos_seo.canonical` and
+    `mageos_seo.hreflang`, their classes (`Block\Canonical`, `Block\Hreflang`) and their templates
+    are gone. To turn the output off, use **Use Canonical Link Meta Tag For CMS Pages** (see Added)
+    and **Enable Hreflang Tags**.
+  - The links print with the other head assets, `<link rel="canonical" href="…" />`, instead of
+    in `head.additional`. URLs are escaped as before.
 - **Admin text is in US English;** en_GB restores the British forms. "Colour" becomes Color,
   "Organiser" Organizer, "watercolour" watercolor, "catalogue" catalog and "Canonicalisation"
   Canonicalization. Field and template codes are unchanged.
