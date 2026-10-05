@@ -53,6 +53,8 @@ class Config
     public const XML_SITEMAP_REBUILD_ON_CHANGE     = 'sitemap/generate/mageos_seo_rebuild_on_change';
     public const XML_AEO_SPEAKABLE_ENABLED         = 'mageos_seo_general/aeo/speakable_enabled';
     public const XML_AEO_SPEAKABLE_SELECTORS       = 'mageos_seo_general/aeo/speakable_css_selectors';
+    public const XML_RETURN_POLICY_ENABLED         = 'mageos_seo_merchant/return/enabled';
+    public const XML_RETURN_POLICY_URL             = 'mageos_seo_merchant/return/policy_url';
 
     /**
      * Initialize Config with scope configuration.
@@ -515,5 +517,30 @@ class Config
         }
 
         return array_values(array_filter(array_map('trim', preg_split('/\r\n|\r|\n/', $raw) ?: [])));
+    }
+
+    /**
+     * The store view's returns policy page, or null while the return policy is off or names none.
+     *
+     * The URL is only shown in the admin while the return policy is on, so a value left behind
+     * when it was switched off is not used. Read by the offers' merchantReturnLink and by
+     * MageOS_Aeo's Policies section in /llms.txt.
+     *
+     * @param int $storeId
+     * @return string|null
+     */
+    public function getReturnPolicyUrl(int $storeId): ?string
+    {
+        if (!$this->scopeConfig->isSetFlag(self::XML_RETURN_POLICY_ENABLED, ScopeInterface::SCOPE_STORE, $storeId)) {
+            return null;
+        }
+
+        $url = trim((string) $this->scopeConfig->getValue(
+            self::XML_RETURN_POLICY_URL,
+            ScopeInterface::SCOPE_STORE,
+            $storeId
+        ));
+
+        return $url === '' ? null : $url;
     }
 }

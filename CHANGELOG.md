@@ -32,6 +32,9 @@ hardcoded version field).
 - `bin/magento seo:rebuild -g sitemaps-missing` runs the sitemaps' first build, so every group the
   admin message lists has a command.
 - Requires `magento/module-admin-notification` and `magento/module-cron`.
+- `Model\Config::getReturnPolicyUrl()`: the store view's returns policy page, or null while the
+  return policy is off. The offers' `merchantReturnLink` and MageOS_Aeo's Policies section in
+  `/llms.txt` read it; `ReturnPolicyEnricher`'s constructor takes `Config` last.
 
 ### Changed
 

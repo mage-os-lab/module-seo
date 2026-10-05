@@ -234,6 +234,24 @@ class ConfigTest extends TestCase
         $this->assertSame([], $this->config([])->getSpeakableCssSelectors(self::STORE_ID));
     }
 
+    public function testTheReturnPolicyUrlIsReadOnlyWhileTheReturnPolicyIsOn(): void
+    {
+        $enabled = Config::XML_RETURN_POLICY_ENABLED;
+        $url     = Config::XML_RETURN_POLICY_URL;
+
+        $this->assertSame(
+            'https://shop.test/returns',
+            $this->config([$enabled => '1', $url => ' https://shop.test/returns '])->getReturnPolicyUrl(self::STORE_ID)
+        );
+        $this->assertSame([$url, ScopeInterface::SCOPE_STORE, self::STORE_ID], end($this->reads));
+        $this->assertNull(
+            $this->config([$enabled => '0', $url => 'https://shop.test/returns'])->getReturnPolicyUrl(self::STORE_ID),
+            'A value left behind while the policy is off is not used.'
+        );
+        $this->assertSame([$enabled, ScopeInterface::SCOPE_STORE, self::STORE_ID], end($this->reads));
+        $this->assertNull($this->config([$enabled => '1', $url => ''])->getReturnPolicyUrl(self::STORE_ID));
+    }
+
     /**
      * Config over the given values by path, recording every read in $this->reads.
      *
