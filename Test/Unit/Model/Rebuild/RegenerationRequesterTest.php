@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 namespace MageOS\Seo\Test\Unit\Model\Rebuild;
 
+use Magento\Framework\DB\Adapter\AdapterInterface;
+use Magento\Framework\Flag\FlagResource;
 use Magento\Framework\FlagManager;
 use Magento\Framework\MessageQueue\PublisherInterface;
 use Magento\Framework\Stdlib\DateTime\DateTime;
+use MageOS\Seo\Model\Rebuild\DeferredRequest;
 use MageOS\Seo\Model\Rebuild\ProblemLog;
 use MageOS\Seo\Model\Rebuild\RegenerationRequester;
 use PHPUnit\Framework\TestCase;
@@ -122,7 +125,8 @@ class RegenerationRequesterTest extends TestCase
         FlagManager $flagManager,
         ?PublisherInterface $publisher = null,
         ?LoggerInterface $logger = null,
-        ?ProblemLog $problemLog = null
+        ?ProblemLog $problemLog = null,
+        ?FlagResource $flagResource = null
     ): RegenerationRequester {
         $dateTime = $this->createStub(DateTime::class);
         $dateTime->method('gmtTimestamp')->willReturn(self::NOW);
@@ -132,8 +136,71 @@ class RegenerationRequesterTest extends TestCase
             $publisher ?? $this->createStub(PublisherInterface::class),
             $dateTime,
             $logger ?? $this->createStub(LoggerInterface::class),
-            $problemLog ?? $this->createStub(ProblemLog::class)
+            $problemLog ?? $this->createStub(ProblemLog::class),
+            $flagResource ?? $this->flagResource(0)
         );
+    }
+
+    /**
+     * Issue #22: inside a transaction nothing is written or published until the commit; the
+     * callback core runs at the commit does both.
+     *
+     * @return void
+     */
+    public function testInsideATransactionTheRequestWaitsForTheCommit(): void
+    {
+        $flagManager = $this->createMock(FlagManager::class);
+        $flagManager->method('getFlagData')->willReturn(null);
+        $flagManager->expects($this->never())->method('saveFlag');
+        $publisher = $this->createMock(PublisherInterface::class);
+        $publisher->expects($this->never())->method('publish');
+        $callbacks    = [];
+        $flagResource = $this->flagResource(1, $callbacks);
+
+        $this->requester($flagManager, $publisher, null, null, $flagResource)->request('llms');
+
+        $this->assertCount(1, $callbacks);
+        $this->assertInstanceOf(DeferredRequest::class, $callbacks[0]);
+        $this->assertSame('llms', $callbacks[0]->group());
+    }
+
+    /**
+     * At the commit the transaction level is back to 0, so the callback queues the rebuild.
+     *
+     * @return void
+     */
+    public function testTheDeferredRequestQueuesTheRebuildOnceCommitted(): void
+    {
+        $flagManager = $this->createMock(FlagManager::class);
+        $flagManager->method('getFlagData')->willReturn(null);
+        $flagManager->expects($this->once())->method('saveFlag')->with('mageos_seo_feed_pending_llms', self::NOW);
+        $publisher = $this->createMock(PublisherInterface::class);
+        $publisher->expects($this->once())->method('publish')->with(RegenerationRequester::TOPIC, 'llms');
+
+        (new DeferredRequest($this->requester($flagManager, $publisher), 'llms'))();
+    }
+
+    /**
+     * A flag resource whose connection is at the given transaction level, collecting callbacks.
+     *
+     * @param int $transactionLevel
+     * @param array<int, mixed> $callbacks
+     * @return FlagResource
+     */
+    private function flagResource(int $transactionLevel, array &$callbacks = []): FlagResource
+    {
+        $connection = $this->createStub(AdapterInterface::class);
+        $connection->method('getTransactionLevel')->willReturn($transactionLevel);
+        $flagResource = $this->createStub(FlagResource::class);
+        $flagResource->method('getConnection')->willReturn($connection);
+        $flagResource->method('addCommitCallback')->willReturnCallback(
+            function ($callback) use (&$callbacks, $flagResource): FlagResource {
+                $callbacks[] = $callback;
+                return $flagResource;
+            }
+        );
+
+        return $flagResource;
     }
 
     /**

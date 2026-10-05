@@ -8,6 +8,32 @@ hardcoded version field).
 
 ## [Unreleased]
 
+### Fixed
+
+- **Rebuilds are queued once the change is committed**
+  ([#22](https://github.com/mage-os-lab/module-seo/issues/22)). A save queued its rebuild during
+  the save, before the commit: on AMQP a consumer could rebuild from the data before the change,
+  and a rolled-back change was still rebuilt. `RegenerationRequester::request()` inside a
+  transaction now waits for the commit, and a rollback drops it; outside one it queues at once.
+- **A long-running consumer builds from current data**
+  ([module-aeo #9](https://github.com/mage-os-lab/module-aeo/issues/9)). Magento resets nothing
+  between a consumer's messages, so the Organization, stock IDs, the sitemap list and the
+  configuration stayed as the first message loaded them. Before each build the consumer now resets
+  the services listed for `Model\Rebuild\BuildFreshness`, and reloads the configuration and store
+  list when a configuration change was saved since.
+- **The consumer no longer spins while another process holds a rebuild's lock.** It put the
+  message straight back, and took it again at once. It now waits for the lock, up to 10 minutes,
+  before putting it back.
+- **Switching sitemap generation or Rebuild on Change on queues a rebuild.** It queued none:
+  whether any sitemap is rebuilt was asked of the configuration before the save, when both were
+  still off.
+
+### Changed
+
+- Indexer lag is documented, not handled. With indexers on Update by Schedule, a rebuild can run
+  before the indexers have caught up with the same change; the next change, or the nightly
+  generation, catches up. See `docs/sitemap.md`, "When a rebuild runs".
+
 ## [1.2.1] — 2026-10-05
 
 ### Added

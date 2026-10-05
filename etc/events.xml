@@ -74,10 +74,15 @@
     <event name="config_data_save_after">
         <observer name="mageos_seo_invalidate_sitemap_on_config_save"
                   instance="MageOS\Seo\Observer\InvalidateSitemap"/>
+        <!-- A running rebuild consumer reloads its configuration before its next build. -->
+        <observer name="mageos_seo_mark_config_changed_on_save"
+                  instance="MageOS\Seo\Observer\MarkConfigChanged"/>
     </event>
     <event name="config_data_delete_after">
         <observer name="mageos_seo_invalidate_sitemap_on_config_delete"
                   instance="MageOS\Seo\Observer\InvalidateSitemap"/>
+        <observer name="mageos_seo_mark_config_changed_on_delete"
+                  instance="MageOS\Seo\Observer\MarkConfigChanged"/>
     </event>
 
     <!--

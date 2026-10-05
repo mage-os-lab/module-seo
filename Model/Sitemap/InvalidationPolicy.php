@@ -11,6 +11,7 @@ use Magento\Framework\App\Config\Value as ConfigValue;
 use Magento\Framework\Event;
 use Magento\Framework\Model\AbstractModel;
 use MageOS\Seo\Api\Sitemap\ItemProviderInterface;
+use MageOS\Seo\Model\Config;
 use MageOS\Seo\Model\Rebuild\ChangeInspector;
 
 /**
@@ -154,6 +155,35 @@ class InvalidationPolicy
             // Store saves, scope deletions, anything unrecognised: any URL can have changed.
             default                             => [RebuildGroup::ALL_TYPES],
         };
+    }
+
+    /**
+     * Whether the change behind an event switched sitemap generation or Rebuild on Change.
+     *
+     * Either way, on or off. Such a change is queued without asking isEnabled(): while the save
+     * runs, the configuration in memory is still the one from before it — core's config model
+     * reloads it only after its transaction — so switching either on would read as nothing to
+     * rebuild. The rebuild itself
+     * runs later, with the configuration as saved, and does nothing if they were switched off.
+     *
+     * @param Event $event
+     * @return bool
+     */
+    public function isSitemapSwitch(Event $event): bool
+    {
+        $entity = $event->getData('data_object');
+
+        return $entity instanceof ConfigValue
+            && \in_array(
+                (string) $entity->getData('path'),
+                [Config::XML_SITEMAP_GENERATOR, Config::XML_SITEMAP_REBUILD_ON_CHANGE],
+                true
+            )
+            && $this->changeInspector->isChangedConfigUnder(
+                (string) $event->getName(),
+                $entity,
+                [(string) $entity->getData('path')]
+            );
     }
 
     /**

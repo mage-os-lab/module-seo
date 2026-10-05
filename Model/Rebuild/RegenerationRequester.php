@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace MageOS\Seo\Model\Rebuild;
 
+use Magento\Framework\Flag\FlagResource;
 use Magento\Framework\FlagManager;
 use Magento\Framework\MessageQueue\PublisherInterface;
 use Magento\Framework\Stdlib\DateTime\DateTime;
@@ -21,6 +22,13 @@ use Psr\Log\LoggerInterface;
  * The flag records when the request was queued. A request still pending after
  * STALE_AFTER_SECONDS is treated as lost (consumer not running, message purged) and
  * queued again, so a single lost message cannot switch event-driven rebuilds off for good.
+ *
+ * A request made inside a transaction — every save observer's, since core dispatches save_after
+ * before the commit — waits for the commit (DeferredRequest). Published at once, a message could
+ * reach a consumer on a transport outside the database (AMQP) before the change is visible to it,
+ * and its rebuild would show the data from before; a rolled-back change would still be rebuilt,
+ * and its pending flag would be invisible to the consumer clearing it. Whether the change matters
+ * is still decided during the save, while the entity still knows what changed.
  */
 class RegenerationRequester
 {
@@ -42,18 +50,22 @@ class RegenerationRequester
      * @param DateTime $dateTime
      * @param LoggerInterface $logger
      * @param ProblemLog $problemLog
+     * @param FlagResource $flagResource
      */
     public function __construct(
         private readonly FlagManager        $flagManager,
         private readonly PublisherInterface $publisher,
         private readonly DateTime           $dateTime,
         private readonly LoggerInterface    $logger,
-        private readonly ProblemLog         $problemLog
+        private readonly ProblemLog         $problemLog,
+        private readonly FlagResource       $flagResource
     ) {
     }
 
     /**
      * Queue a rebuild of the given group unless one is already pending.
+     *
+     * Inside a transaction, the request waits for the commit and is dropped by a rollback.
      *
      * Best effort: a queue/flag failure is logged, never thrown — freshness
      * must not break saves or frontend requests (the nightly cron is the backstop).
@@ -62,6 +74,34 @@ class RegenerationRequester
      * @return void
      */
     public function request(string $group): void
+    {
+        try {
+            $connection = $this->flagResource->getConnection();
+            if ($connection !== false && $connection->getTransactionLevel() > 0) {
+                $this->flagResource->addCommitCallback(new DeferredRequest($this, $group));
+                return;
+            }
+        } catch (\Throwable $e) {
+            $this->logger->error(
+                'MageOS_Seo: could not defer feed regeneration to the commit: ' . $e->getMessage(),
+                ['exception' => $e, 'group' => $group]
+            );
+            return;
+        }
+
+        $this->queueNow($group);
+    }
+
+    /**
+     * Queue the rebuild now: write the pending flag and publish, unless one is already pending.
+     *
+     * For DeferredRequest, run at the commit; anything else calls request(), which waits for the
+     * commit of a transaction it is called in.
+     *
+     * @param string $group
+     * @return void
+     */
+    public function queueNow(string $group): void
     {
         try {
             $now          = (int) $this->dateTime->gmtTimestamp();

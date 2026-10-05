@@ -24,6 +24,7 @@ use MageOS\Seo\Model\Sitemap\GenerationLock;
 use MageOS\Seo\Model\Sitemap\Generator;
 use MageOS\Seo\Model\Sitemap\Rebuilder;
 use MageOS\Seo\Test\Integration\Model\Sitemap\Fixture\HeldSitemapLocks;
+use MageOS\Seo\Test\Integration\Rebuild\CommitsDeferredRequests;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -36,6 +37,7 @@ use PHPUnit\Framework\TestCase;
 class RebuilderTest extends TestCase
 {
     use GeneratesSitemaps;
+    use CommitsDeferredRequests;
 
     private const DIRECTORY = 'media/sitemap';
 
@@ -233,6 +235,7 @@ class RebuilderTest extends TestCase
         sleep(1);
         Bootstrap::getObjectManager()->get(OverrideRepository::class)
             ->save((int) $product->getId(), 0, ['robots_meta' => 'NOINDEX,FOLLOW']);
+        $this->commitDeferredRequests();
 
         $this->assertNotNull($flags->getFlagData('mageos_seo_feed_pending_sitemap-products'), 'The change was queued.');
         Bootstrap::getObjectManager()->get(RegenerateConsumer::class)->process('sitemap-products');

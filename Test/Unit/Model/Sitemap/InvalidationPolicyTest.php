@@ -159,6 +159,33 @@ class InvalidationPolicyTest extends TestCase
         )));
     }
 
+    public function testSwitchingTheGeneratorOrRebuildOnChangeIsASwitchWhicheverWayItGoes(): void
+    {
+        // Asked even when no sitemap is rebuilt on change: during the save that is still the
+        // configuration from before it.
+        $policy = $this->policy(false);
+
+        foreach (['sitemap/generate/mageos_seo_generator', 'sitemap/generate/mageos_seo_rebuild_on_change'] as $path) {
+            $this->assertTrue(
+                $policy->isSitemapSwitch($this->event('config_data_save_after', $this->configValue($path, true))),
+                $path
+            );
+            $this->assertTrue(
+                $policy->isSitemapSwitch($this->event('config_data_delete_after', $this->configValue($path, false))),
+                $path . ' removed with "Use Default"'
+            );
+            $this->assertFalse(
+                $policy->isSitemapSwitch($this->event('config_data_save_after', $this->configValue($path, false))),
+                $path . ' saved unchanged'
+            );
+        }
+        $maxLines = $this->configValue('sitemap/limit/max_lines', true);
+        $this->assertFalse(
+            $policy->isSitemapSwitch($this->event('config_data_save_after', $maxLines)),
+            'Another sitemap setting is not a switch.'
+        );
+    }
+
     public function testConfigurationRebuildsEveryTypeOnlyUnderSitemapPathsAndWhenChanged(): void
     {
         $policy = $this->policy();

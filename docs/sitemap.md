@@ -175,7 +175,29 @@ date is worth.
   is configured. Changes are queued, and a burst of saves is one rebuild per kind of page. A
   rebuild the consumer has not picked up within an hour is queued again, with a warning in the log.
 
-**No** turns this off per store view: sitemaps then change at their next generation only.
+**No** turns this off per store view: sitemaps then change at their next generation only. Switching
+it, or the generator, on queues every kind of page at once, so the sitemaps catch up with what
+changed while it was off.
+
+### When a rebuild runs
+
+- **After the change is committed.** A change is queued once the save that made it commits, and
+  not at all if it rolls back, so a consumer never rebuilds from the data before it. This matters on
+  AMQP, where a message is visible as soon as it is sent; the database queue only showed it at the
+  commit anyway.
+- **From current data.** One consumer process takes many messages, and Magento resets nothing
+  between them. Before each build the consumer resets the services that remember what they loaded
+  (the Organization, stock IDs, the list of sitemaps), and reloads the configuration and store list
+  when a configuration change was saved since it last loaded them. A module of yours that
+  remembers data adds its service to `MageOS\Seo\Model\Rebuild\BuildFreshness`'s `services` in
+  di.xml; it must implement `Magento\Framework\ObjectManager\ResetAfterRequestInterface`.
+- **One at a time.** When another process is writing the same files — the nightly cron, a
+  second consumer, `seo:rebuild` — the consumer waits for it, up to 10 minutes, then builds. Only a
+  wait that runs out puts the request back on the queue.
+- **Not after the indexers.** With indexers on Update by Schedule, a rebuild can run before the
+  indexer cron has caught up with the same change, and show the index from before it: a price, a
+  stock status, a category's products. The next change, or the nightly generation, catches up.
+  Nothing waits for the indexers.
 
 ### Sitemaps with no file
 

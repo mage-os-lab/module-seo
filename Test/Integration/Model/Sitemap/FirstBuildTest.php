@@ -13,8 +13,10 @@ use Magento\TestFramework\Fixture\DataFixture;
 use Magento\TestFramework\Helper\Bootstrap;
 use MageOS\Seo\Model\Config;
 use MageOS\Seo\Model\Config\Source\SitemapGenerator;
+use MageOS\Seo\Model\Rebuild\BuildFreshness;
 use MageOS\Seo\Model\Rebuild\RegenerateConsumer;
 use MageOS\Seo\Setup\RecurringData;
+use MageOS\Seo\Test\Integration\Rebuild\CommitsDeferredRequests;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -28,6 +30,7 @@ use PHPUnit\Framework\TestCase;
 class FirstBuildTest extends TestCase
 {
     use GeneratesSitemaps;
+    use CommitsDeferredRequests;
 
     private const DIRECTORY = 'media/sitemap';
 
@@ -194,6 +197,11 @@ class FirstBuildTest extends TestCase
      */
     private function consume(): void
     {
+        // These tests set their configuration in memory. A configuration change recorded earlier
+        // (the sandbox's install records some) would make the consumer reload it from the
+        // database first (BuildFreshness), which is what a consumer must do, but would throw the
+        // tests' values away.
+        Bootstrap::getObjectManager()->get(FlagManager::class)->deleteFlag(BuildFreshness::CONFIG_CHANGED_FLAG);
         Bootstrap::getObjectManager()->get(RegenerateConsumer::class)->process('sitemaps-missing');
     }
 
@@ -213,6 +221,9 @@ class FirstBuildTest extends TestCase
      */
     private function flags(): FlagManager
     {
+        // Requests made inside the test's transaction wait for a commit that never comes.
+        $this->commitDeferredRequests();
+
         return Bootstrap::getObjectManager()->get(FlagManager::class);
     }
 }

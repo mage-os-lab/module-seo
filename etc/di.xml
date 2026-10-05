@@ -390,6 +390,21 @@
     </type>
 
     <!--
+        What a long-running rebuild consumer resets before each build: services that remember what
+        they loaded, each a ResetAfterRequestInterface. Another module adds its own here, from its
+        own di.xml, under a name of its own.
+    -->
+    <type name="MageOS\Seo\Model\Rebuild\BuildFreshness">
+        <arguments>
+            <argument name="services" xsi:type="array">
+                <item name="organization" xsi:type="object">MageOS\Seo\Model\OrganizationRepository</item>
+                <item name="availability" xsi:type="object">MageOS\Seo\Model\Product\AvailabilityResolver</item>
+                <item name="sitemaps" xsi:type="object">MageOS\Seo\Model\Sitemap\RebuildableSitemaps</item>
+            </argument>
+        </arguments>
+    </type>
+
+    <!--
         Paths served directly as public documents: no session is started for them (the
         SessionStartChecker plugin in etc/frontend/di.xml), so no cookie and no no-cache headers land
         on responses meant to be shared-cached. Each module that serves such documents registers its
