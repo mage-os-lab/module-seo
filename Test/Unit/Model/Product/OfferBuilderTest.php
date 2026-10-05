@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace MageOS\Seo\Test\Unit\Model\Product;
 
 use Magento\Catalog\Model\Product;
+use Magento\Catalog\Model\Product\Type\AbstractType;
 use Magento\ConfigurableProduct\Pricing\Price\ConfigurableOptionsProviderInterface;
 use Magento\Framework\Pricing\Price\PriceInterface;
 use Magento\Framework\Pricing\PriceInfoInterface;
@@ -13,11 +14,13 @@ use Magento\Store\Model\Store;
 use Magento\Store\Model\StoreManagerInterface;
 use MageOS\Seo\Api\OfferEnricherInterface;
 use MageOS\Seo\Model\Product\AvailabilityResolver;
+use MageOS\Seo\Model\Product\FinalPrice;
 use MageOS\Seo\Model\Product\OfferBuilder;
 use MageOS\Seo\Model\Product\OfferEnricher\Pool as OfferEnricherPool;
 use MageOS\Seo\Model\Product\Variant\ChildProducts;
 use MageOS\Seo\Test\Unit\Service\CurrencyServices;
 use PHPUnit\Framework\TestCase;
+use Psr\Log\LoggerInterface;
 
 /**
  * The one offer builder: an Offer for any product at the URL given, and an AggregateOffer for a
@@ -168,6 +171,37 @@ class OfferBuilderTest extends TestCase
         $this->assertSame('GBP', $offer['priceCurrency']);
     }
 
+    /**
+     * With no sellable child, core prices a configurable 0, which Google reads as free. Google also
+     * requires a price on every Offer, so there is no offer at all: the caller leaves `offers` out.
+     */
+    public function testAConfigurableNothingCanPriceHasNoOffer(): void
+    {
+        $offer = $this->offerBuilder([])->build($this->product('configurable', 0.0), self::URL);
+
+        $this->assertSame([], $offer);
+    }
+
+    public function testASimpleProductPricedZeroIsFree(): void
+    {
+        $offer = $this->offerBuilder()->build($this->product('simple', 0.0), self::URL);
+
+        $this->assertSame('0.00', $offer['price']);
+    }
+
+    public function testAChildWhosePriceCannotBeReadIsLeftOutOfTheRange(): void
+    {
+        // Built on its own: a stubbed method keeps the first behaviour it is given.
+        $unreadable = $this->createStub(Product::class);
+        $unreadable->method('getPriceInfo')->willThrowException(new \RuntimeException('No price index'));
+        $children = [$this->product('simple', 30), $unreadable, $this->product('simple', 10)];
+
+        $offer = $this->offerBuilder($children)->build($this->product('configurable', 10), self::URL);
+
+        $this->assertSame('10.00', $offer['lowPrice']);
+        $this->assertSame('30.00', $offer['highPrice']);
+    }
+
     public function testChildrenAreLookedUpForAConfigurableOnly(): void
     {
         $optionsProvider = $this->createMock(ConfigurableOptionsProviderInterface::class);
@@ -215,7 +249,8 @@ class OfferBuilderTest extends TestCase
             $availability,
             $dateTime,
             new OfferEnricherPool($enrichers),
-            new ChildProducts($optionsProvider)
+            new ChildProducts($optionsProvider),
+            new FinalPrice($this->createStub(LoggerInterface::class))
         );
     }
 
@@ -239,9 +274,13 @@ class OfferBuilderTest extends TestCase
         $priceInfo = $this->createStub(PriceInfoInterface::class);
         $priceInfo->method('getPrice')->willReturn($price);
 
+        $type = $this->createStub(AbstractType::class);
+        $type->method('isComposite')->willReturn($typeId === 'configurable');
+
         $data    = ['special_to_date' => $specialToDate, 'special_price' => $specialPrice];
         $product = $this->createStub(Product::class);
         $product->method('getTypeId')->willReturn($typeId);
+        $product->method('getTypeInstance')->willReturn($type);
         $product->method('getPriceInfo')->willReturn($priceInfo);
         $product->method('getData')->willReturnCallback(
             static fn (string $key = '') => $data[$key] ?? null

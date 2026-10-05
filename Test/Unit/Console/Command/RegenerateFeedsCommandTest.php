@@ -13,6 +13,7 @@ use MageOS\Seo\Console\Command\RegenerateFeedsCommand;
 use MageOS\Seo\Exception\RebuildInProgressException;
 use MageOS\Seo\Exception\SitemapRebuildInProgressException;
 use MageOS\Seo\Model\Rebuild\HandlerPool;
+use MageOS\Seo\Model\Rebuild\ProblemLog;
 use MageOS\Seo\Model\Sitemap\RebuildableSitemaps;
 use MageOS\Seo\Model\Sitemap\Rebuilder as SitemapRebuilder;
 use MageOS\Seo\Model\Sitemap\RebuildGroup;
@@ -56,6 +57,37 @@ class RegenerateFeedsCommandTest extends TestCase
         $this->assertStringContainsString('Feed groups: one, two.', $command->getHelp());
     }
 
+    /**
+     * A run by hand records its result like the queue does, so a successful one clears the problems
+     * the admin shows for the group.
+     */
+    public function testARunOfOneGroupRecordsItsResult(): void
+    {
+        $handler = $this->createStub(GroupHandlerInterface::class);
+        $handler->method('getGroups')->willReturn(['one', 'two']);
+        $handler->method('rebuild')->willReturn([]);
+        $problemLog = $this->createMock(ProblemLog::class);
+        $problemLog->expects($this->once())->method('rebuilding')->with('one');
+        $problemLog->expects($this->once())->method('rebuilt')->with('one', []);
+
+        $this->tester($handler, problemLog: $problemLog)->execute(['--group' => ['one']]);
+    }
+
+    /**
+     * A run of every group is not recorded here: its results are not per group. Handlers record
+     * their own.
+     */
+    public function testARunOfEveryGroupRecordsNothingItself(): void
+    {
+        $handler = $this->createStub(GroupHandlerInterface::class);
+        $handler->method('getGroups')->willReturn(['one', 'two']);
+        $handler->method('rebuild')->willReturn([]);
+        $problemLog = $this->createMock(ProblemLog::class);
+        $problemLog->expects($this->never())->method('rebuilt');
+
+        $this->tester($handler, problemLog: $problemLog)->execute([]);
+    }
+
     public function testBuildingTheCommandAsksTheHandlersNothing(): void
     {
         // bin/magento builds every command at start-up — setup:install included, before any store
@@ -68,7 +100,8 @@ class RegenerateFeedsCommandTest extends TestCase
             $this->createStub(State::class),
             $this->createStub(SitemapRebuilder::class),
             $this->createStub(RebuildableSitemaps::class),
-            new RebuildGroup()
+            new RebuildGroup(),
+            $this->createStub(ProblemLog::class)
         );
 
         $this->assertSame('seo:rebuild', $command->getName());
@@ -194,9 +227,24 @@ class RegenerateFeedsCommandTest extends TestCase
         $this->assertSame(Command::INVALID, $tester->execute(['--group' => ['sitemap-blog']]));
         $this->assertStringContainsString('Unknown feed group(s): sitemap-blog', $tester->getDisplay());
         $this->assertStringContainsString(
-            'one, two, sitemap-pages, sitemap-products, sitemap-*',
+            'one, two, sitemap-pages, sitemap-products, sitemap-*, sitemaps-missing',
             $tester->getDisplay()
         );
+    }
+
+    public function testTheFirstBuildGroupWritesTheSitemapsThatHaveNoFileAndRecordsTheResult(): void
+    {
+        // The admin's rebuild message gives a command for every group it lists, this one included.
+        $rebuilder = $this->sitemapRebuilder();
+        $rebuilder->expects($this->once())->method('buildMissing')->willReturn([4 => 'disk full']);
+        $rebuilder->expects($this->never())->method('rebuildOnDemand');
+        $problemLog = $this->createMock(ProblemLog::class);
+        $problemLog->expects($this->once())->method('rebuilt')->with(RebuildGroup::MISSING, [4 => 'disk full']);
+
+        $tester = $this->tester($this->handler(), rebuilder: $rebuilder, problemLog: $problemLog);
+
+        $this->assertSame(Command::FAILURE, $tester->execute(['--group' => [RebuildGroup::MISSING]]));
+        $this->assertStringContainsString('sitemaps-missing, sitemap 4: disk full', $tester->getDisplay());
     }
 
     public function testNoSitemapToRebuildIsSaidAndIsNotAFailure(): void
@@ -269,6 +317,7 @@ class RegenerateFeedsCommandTest extends TestCase
      * @param SitemapRebuilder|null $rebuilder
      * @param Sitemap[]|null $sitemaps
      * @param RegenerateFeedsCommand|null $command Receives the command under test
+     * @param ProblemLog|null $problemLog
      * @param-out RegenerateFeedsCommand $command
      * @return CommandTester
      */
@@ -277,7 +326,8 @@ class RegenerateFeedsCommandTest extends TestCase
         ?State $state = null,
         ?SitemapRebuilder $rebuilder = null,
         ?array $sitemaps = null,
-        ?RegenerateFeedsCommand &$command = null
+        ?RegenerateFeedsCommand &$command = null,
+        ?ProblemLog $problemLog = null
     ): CommandTester {
         if ($state === null) {
             $state = $this->createStub(State::class);
@@ -291,7 +341,8 @@ class RegenerateFeedsCommandTest extends TestCase
             $state,
             $rebuilder ?? $this->createStub(SitemapRebuilder::class),
             $rebuildableSitemaps,
-            new RebuildGroup()
+            new RebuildGroup(),
+            $problemLog ?? $this->createStub(ProblemLog::class)
         );
 
         return new CommandTester($command);

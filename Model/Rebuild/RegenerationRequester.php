@@ -41,12 +41,14 @@ class RegenerationRequester
      * @param PublisherInterface $publisher
      * @param DateTime $dateTime
      * @param LoggerInterface $logger
+     * @param ProblemLog $problemLog
      */
     public function __construct(
         private readonly FlagManager        $flagManager,
         private readonly PublisherInterface $publisher,
         private readonly DateTime           $dateTime,
-        private readonly LoggerInterface    $logger
+        private readonly LoggerInterface    $logger,
+        private readonly ProblemLog         $problemLog
     ) {
     }
 
@@ -69,15 +71,18 @@ class RegenerationRequester
                 if (is_numeric($pendingSince) && $now - (int) $pendingSince < self::STALE_AFTER_SECONDS) {
                     return;
                 }
+                $queuedAt = is_numeric($pendingSince) ? gmdate('c', (int) $pendingSince) : 'an unknown time';
                 $this->logger->warning(
                     \sprintf(
                         'MageOS_Seo: the "%s" feed rebuild queued at %s was never picked up; queueing it again.'
                         . ' Check that the mageosSeoFeedRegenerate consumer is running.',
                         $group,
-                        is_numeric($pendingSince) ? gmdate('c', (int) $pendingSince) : 'an unknown time'
+                        $queuedAt
                     ),
                     ['group' => $group]
                 );
+                // Shown in the admin until the consumer takes a message again (see ProblemLog).
+                $this->problemLog->stalled($group, is_numeric($pendingSince) ? (int) $pendingSince : null);
             }
 
             $this->flagManager->saveFlag(self::FLAG_PREFIX . $group, $now);

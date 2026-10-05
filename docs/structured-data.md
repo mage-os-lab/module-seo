@@ -72,6 +72,30 @@ This means the product JSON-LD block always contains exactly one product node, r
 
 ---
 
+## A product whose price is not known has no offer
+
+A product's offer carries its final price, in the display currency. When that price is not known,
+the product node has **no `offers` at all**:
+
+- **A composite product nothing can price** — a configurable, grouped or bundle product whose final
+  price is 0. Magento prices such a product from its options, and gives it 0 when no option can price
+  it: an out-of-stock configurable has no saleable child.
+- **A price lookup that fails.** The error is logged (`MageOS_Seo: could not read the final price of
+  product "<sku>"`), so the cause can be found.
+
+Not a price of 0, because Google reads `"price": 0` as free, and its merchant listings need a price
+above zero. And not an Offer without a price either, because Google requires `price` on every Offer.
+A Product without `offers` is still eligible for product snippets when it has `aggregateRating` or
+`review`.
+
+A simple product priced 0 is free, and its offer says so. A fixed-price bundle priced 0 is the one
+case read as unknown when it is free.
+
+`Model\Product\FinalPrice` makes this decision for the structured data and for MageOS_Aeo's
+`/llms.jsonl`, so the two never disagree.
+
+---
+
 ## An offer's priceValidUntil
 
 `priceValidUntil` is published only where the catalogue has the date, never made up. An offer

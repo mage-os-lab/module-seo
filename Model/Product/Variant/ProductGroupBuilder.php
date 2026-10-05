@@ -217,7 +217,11 @@ class ProductGroupBuilder
             $node['additionalProperty'] = $additional;
         }
 
-        $node['offers'] = $this->offerBuilder->build($variant, $this->urlResolver->getUrl($product, $variant));
+        // None when the variant's price is not known: see OfferBuilder.
+        $offer = $this->offerBuilder->build($variant, $this->urlResolver->getUrl($product, $variant));
+        if ($offer !== []) {
+            $node['offers'] = $offer;
+        }
 
         return $node;
     }

@@ -8,6 +8,60 @@ hardcoded version field).
 
 ## [Unreleased]
 
+## [1.2.1] — 2026-10-05
+
+### Added
+
+- **SEO files that are out of date are shown in the admin,** so a failing rebuild is not noticed only
+  in the log, weeks later. See `docs/rebuild-problems.md`.
+  - The System Messages bar lists each problem until a rebuild gets through: which files, for which
+    store or Site Map, since when, when they are retried without anyone acting, and why. Admins whose
+    role includes Marketing → SEO (`MageOS_Seo::seo`) see it.
+  - The inbox gets one entry when a problem first appears.
+  - A problem is a rebuild that failed (the previous file is still served), a file written incomplete
+    (reported by the module that builds it), or a rebuild queued over an hour ago that the queue has
+    not picked up.
+  - Times are in the admin's language and the configured timezone. The retry time is the next run of
+    the cron job that rebuilds the files, worked out as Magento's cron works it out: core's sitemap
+    cron while Site Map generation is enabled, or the job a handler names.
+  - What a sitemap rebuild, `seo:rebuild -g` or another module's handler returns is recorded by the
+    queue consumer and the command. Core's sitemap cron and the Generate button settle the sitemap
+    they write.
+- **`Api\Rebuild\GroupDescriptionInterface`** (`@api`), for a rebuild handler to label its files and
+  name the cron job that retries them. Optional; see `docs/extending.md`.
+- `Model\Rebuild\ProblemLog`, for a handler to report a file written incomplete (`degraded()`) and
+  to bracket a rebuild that does not go through the queue.
+- `bin/magento seo:rebuild -g sitemaps-missing` runs the sitemaps' first build, so every group the
+  admin message lists has a command.
+- Requires `magento/module-admin-notification` and `magento/module-cron`.
+- `Model\Config::getReturnPolicyUrl()`: the store view's returns policy page, or null while the
+  return policy is off. The offers' `merchantReturnLink` and MageOS_Aeo's Policies section in
+  `/llms.txt` read it; `ReturnPolicyEnricher`'s constructor takes `Config` last.
+
+### Changed
+
+- The constructors of `Model\Rebuild\RegenerateConsumer`, `Model\Rebuild\RegenerationRequester`,
+  `Console\Command\RegenerateFeedsCommand` and `Plugin\Sitemap\UseSeoGenerator` take
+  `Model\Rebuild\ProblemLog` (the plugin also `RebuildGroup`).
+
+### Fixed
+
+- **A product whose price is not known has no offer, instead of one priced 0.00.** An out-of-stock
+  configurable has no saleable child, so Magento prices it 0, and its JSON-LD said it was free.
+  - The product node now has no `offers` when the price is not known: Google reads 0 as free, and
+    requires a price on every Offer.
+  - Unknown means a composite product (configurable, grouped, bundle) priced 0, or a price lookup
+    that throws, which is now logged with the SKU.
+  - A simple product priced 0 keeps its `0.00`: it is free.
+  - New: `Model\Product\FinalPrice` makes the decision, for the structured data and for
+    MageOS_Aeo's `/llms.jsonl`.
+  - `OfferBuilder`'s constructor takes it after `ChildProducts`. `OfferBuilder::build()` returns an
+    empty array when the price is not known, and `AbstractBuilder::buildBase()` and the
+    ProductGroup's variants then leave `offers` out.
+  - See `docs/structured-data.md`.
+
+## [1.2.0] — 2026-10-04
+
 Pre-release review hardening pass (July 2026). Breaking renames are included
 deliberately: nothing has shipped yet, so names are settled now, before they
 become public contract.

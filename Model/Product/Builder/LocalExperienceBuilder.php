@@ -45,15 +45,18 @@ class LocalExperienceBuilder extends AbstractBuilder
     public function build(ProductInterface $product, array $enabledFields, array $overrides): array
     {
         $schema = $this->buildBase($product);
+        // The dates belong to the offer, which there is none of when the price is not known
+        // (see OfferBuilder).
+        $hasOffer = isset($schema['offers']);
 
-        if (\in_array('availabilityStarts', $enabledFields, true)) {
+        if ($hasOffer && \in_array('availabilityStarts', $enabledFields, true)) {
             $starts = $overrides['availabilityStarts'] ?? $this->attr($product, 'availability_starts');
             if ($starts !== '') {
                 $schema['offers']['availabilityStarts'] = $starts;
             }
         }
 
-        if (\in_array('availabilityEnds', $enabledFields, true)) {
+        if ($hasOffer && \in_array('availabilityEnds', $enabledFields, true)) {
             $ends = $overrides['availabilityEnds'] ?? $this->attr($product, 'availability_ends');
             if ($ends !== '') {
                 $schema['offers']['availabilityEnds'] = $ends;

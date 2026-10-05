@@ -8,6 +8,7 @@ use Magento\Catalog\Api\Data\ProductInterface;
 use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Store\Model\ScopeInterface;
 use MageOS\Seo\Api\OfferEnricherInterface;
+use MageOS\Seo\Model\Config;
 
 /**
  * Adds a hasMerchantReturnPolicy node to the Offer from store configuration.
@@ -27,7 +28,7 @@ class ReturnPolicyEnricher implements OfferEnricherInterface
      */
     public const MAX_COUNTRIES = 50;
 
-    private const XML_ENABLED         = 'mageos_seo_merchant/return/enabled';
+    private const XML_ENABLED         = Config::XML_RETURN_POLICY_ENABLED;
     private const XML_WORLDWIDE       = 'mageos_seo_merchant/return/worldwide';
     private const XML_COUNTRY         = 'mageos_seo_merchant/return/applicable_country';
     private const XML_POLICY_CATEGORY = 'mageos_seo_merchant/return/policy_category';
@@ -35,17 +36,18 @@ class ReturnPolicyEnricher implements OfferEnricherInterface
     private const XML_METHOD          = 'mageos_seo_merchant/return/method';
     private const XML_FEES            = 'mageos_seo_merchant/return/fees';
     private const XML_REFUND_TYPE     = 'mageos_seo_merchant/return/refund_type';
-    private const XML_POLICY_URL      = 'mageos_seo_merchant/return/policy_url';
 
     private const FINITE_WINDOW = 'https://schema.org/MerchantReturnFiniteReturnWindow';
 
     /**
      * @param ScopeConfigInterface $scopeConfig
      * @param CountryList $countryList
+     * @param Config $seoConfig
      */
     public function __construct(
         private readonly ScopeConfigInterface $scopeConfig,
-        private readonly CountryList          $countryList
+        private readonly CountryList          $countryList,
+        private readonly Config               $seoConfig
     ) {
     }
 
@@ -90,8 +92,8 @@ class ReturnPolicyEnricher implements OfferEnricherInterface
             }
         }
 
-        $url = $this->value(self::XML_POLICY_URL, $storeId);
-        if ($url !== '') {
+        $url = $this->seoConfig->getReturnPolicyUrl($storeId);
+        if ($url !== null) {
             $policy['merchantReturnLink'] = $url;
         }
 

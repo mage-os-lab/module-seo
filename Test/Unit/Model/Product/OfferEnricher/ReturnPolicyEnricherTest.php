@@ -6,6 +6,7 @@ namespace MageOS\Seo\Test\Unit\Model\Product\OfferEnricher;
 
 use Magento\Catalog\Api\Data\ProductInterface;
 use Magento\Framework\App\Config\ScopeConfigInterface;
+use MageOS\Seo\Model\Config;
 use MageOS\Seo\Model\Product\OfferEnricher\CountryList;
 use MageOS\Seo\Model\Product\OfferEnricher\ReturnPolicyEnricher;
 use PHPUnit\Framework\MockObject\Stub;
@@ -32,7 +33,11 @@ class ReturnPolicyEnricherTest extends TestCase
     {
         $this->scopeConfig = $this->createStub(ScopeConfigInterface::class);
         $this->product     = $this->createStub(ProductInterface::class);
-        $this->enricher    = new ReturnPolicyEnricher($this->scopeConfig, new CountryList());
+        $this->enricher    = new ReturnPolicyEnricher(
+            $this->scopeConfig,
+            new CountryList(),
+            new Config($this->scopeConfig)
+        );
     }
 
     /**

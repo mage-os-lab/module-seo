@@ -19,6 +19,7 @@ The SEO module provides structured data (JSON-LD), Open Graph meta tags, canonic
 | [AI Discoverability (llms.txt)](https://github.com/mage-os-lab/module-aeo/blob/main/docs/llms-txt.md) | In MageOS_Aeo: `/llms.txt`, `/llms-full.txt` and `/llms.jsonl` — what they contain | Admin / developer |
 | [Hreflang Alternates & Sitemap](hreflang.md) | Head alternates and those in `sitemap.xml` — what appears in them | Developer / SEO manager |
 | [XML Sitemap](sitemap.md) | The sitemap generator, its file layout, rebuilding on change, and how to extend it | Developer / SEO manager |
+| [When SEO Files Are Out of Date](rebuild-problems.md) | The admin message when a sitemap or feed rebuild fails, when it is retried, and how to retry sooner | Admin / developer |
 | [UCP Profile](https://github.com/mage-os-lab/module-agentic/blob/main/docs/ucp.md) | In MageOS_Agentic: `/.well-known/ucp` — what it declares, registering a UCP service or capability, signing keys | Developer |
 | [Pre-generated Feeds](https://github.com/mage-os-lab/module-aeo/blob/main/docs/feeds.md) | In MageOS_Aeo: the machinery behind the three llms documents — rebuilds, caching, storage, multi-server, CLI | Developer / DevOps |
 | [Extending the Module](extending.md) | Adding providers, builders, and section content | Developer |

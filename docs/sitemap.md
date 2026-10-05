@@ -205,6 +205,10 @@ after. The **Generate** button and the cron wait up to 60 seconds for a rebuild 
 report that the sitemap is being written by another process. The wait is the `fullGenerationWait`
 argument of `MageOS\Seo\Model\Sitemap\Generator` in di.xml.
 
+A rebuild that fails leaves the previous file in place and is shown in the admin's System Messages
+bar until a rebuild, the **Generate** button or Magento's cron writes the sitemap. See
+[rebuild-problems.md](rebuild-problems.md).
+
 ### Changes that are not seen
 
 A rebuild follows Magento's own save events, so a change made around them is not seen:

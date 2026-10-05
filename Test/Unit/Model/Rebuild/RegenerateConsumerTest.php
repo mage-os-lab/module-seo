@@ -8,6 +8,7 @@ use MageOS\Seo\Api\Rebuild\GroupHandlerInterface;
 use MageOS\Seo\Exception\RebuildInProgressException;
 use MageOS\Seo\Exception\SitemapRebuildInProgressException;
 use MageOS\Seo\Model\Rebuild\HandlerPool;
+use MageOS\Seo\Model\Rebuild\ProblemLog;
 use MageOS\Seo\Model\Rebuild\RegenerateConsumer;
 use MageOS\Seo\Model\Rebuild\RegenerationRequester;
 use MageOS\Seo\Model\Sitemap\Rebuilder as SitemapRebuilder;
@@ -206,21 +207,62 @@ class RegenerateConsumerTest extends TestCase
      * @param GroupHandlerInterface|null $handler
      * @param RegenerationRequester|null $requester
      * @param LoggerInterface|null $logger
+     * @param ProblemLog|null $problemLog
      * @return RegenerateConsumer
      */
     private function consumer(
         ?SitemapRebuilder $rebuilder = null,
         ?GroupHandlerInterface $handler = null,
         ?RegenerationRequester $requester = null,
-        ?LoggerInterface $logger = null
+        ?LoggerInterface $logger = null,
+        ?ProblemLog $problemLog = null
     ): RegenerateConsumer {
         return new RegenerateConsumer(
             new HandlerPool([$handler ?? $this->handler]),
             $requester ?? $this->requester,
             $logger ?? $this->logger,
             $rebuilder ?? $this->createStub(SitemapRebuilder::class),
-            new RebuildGroup()
+            new RebuildGroup(),
+            $problemLog ?? $this->createStub(ProblemLog::class)
         );
+    }
+
+    public function testWhatTheRebuildFoundBecomesTheGroupsProblems(): void
+    {
+        $this->handler->method('rebuild')->willReturn([3 => 'Disk full']);
+        $problemLog = $this->createMock(ProblemLog::class);
+        $problemLog->expects($this->once())->method('rebuilding')->with('one');
+        $problemLog->expects($this->once())->method('rebuilt')->with('one', [3 => 'Disk full']);
+
+        $this->consumer(problemLog: $problemLog)->process('one');
+    }
+
+    public function testARebuildRefusedAsAlreadyRunningRecordsNothing(): void
+    {
+        $this->handler->method('rebuild')->willThrowException(new RebuildInProgressException(__('Busy')));
+        $problemLog = $this->createMock(ProblemLog::class);
+        $problemLog->expects($this->once())->method('abandoned')->with('one');
+        $problemLog->expects($this->never())->method('rebuilt');
+
+        $this->consumer(problemLog: $problemLog)->process('one');
+    }
+
+    public function testARebuildThatThrowsIsAProblemForTheWholeGroup(): void
+    {
+        $this->handler->method('rebuild')->willThrowException(new \RuntimeException('Out of memory'));
+        $problemLog = $this->createMock(ProblemLog::class);
+        $problemLog->expects($this->once())->method('rebuilt')->with('one', [ProblemLog::ALL => 'Out of memory']);
+
+        $this->expectException(\RuntimeException::class);
+        $this->consumer(problemLog: $problemLog)->process('one');
+    }
+
+    public function testTakingAMessageMeansTheQueueIsProcessedAgain(): void
+    {
+        $problemLog = $this->createMock(ProblemLog::class);
+        $problemLog->expects($this->once())->method('resumed');
+
+        $this->consumer(problemLog: $problemLog)->process('one');
     }
 
     /**

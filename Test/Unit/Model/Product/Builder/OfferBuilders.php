@@ -8,10 +8,12 @@ use Magento\ConfigurableProduct\Pricing\Price\ConfigurableOptionsProviderInterfa
 use Magento\Framework\Stdlib\DateTime\DateTime;
 use Magento\Store\Model\StoreManagerInterface;
 use MageOS\Seo\Model\Product\AvailabilityResolver;
+use MageOS\Seo\Model\Product\FinalPrice;
 use MageOS\Seo\Model\Product\OfferBuilder;
 use MageOS\Seo\Model\Product\OfferEnricher\Pool as OfferEnricherPool;
 use MageOS\Seo\Model\Product\Variant\ChildProducts;
 use MageOS\Seo\Service\CurrencyService;
+use Psr\Log\LoggerInterface;
 
 /**
  * A real OfferBuilder over a builder test's own collaborators, so the offer a template builder
@@ -41,7 +43,8 @@ trait OfferBuilders
             $availabilityResolver,
             $dateTime,
             $offerEnricherPool,
-            new ChildProducts($this->createStub(ConfigurableOptionsProviderInterface::class))
+            new ChildProducts($this->createStub(ConfigurableOptionsProviderInterface::class)),
+            new FinalPrice($this->createStub(LoggerInterface::class))
         );
     }
 }
