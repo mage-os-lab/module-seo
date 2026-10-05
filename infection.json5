@@ -17,6 +17,9 @@
     // PageFactory — kept to that one call so CmsPageResolver stays in this run.
     // Product/OverrideRepository is a collection-backed repository too; it was
     // excluded with the rest of Category/ until it moved to Product/.
+    // Rebuild/CronExpressionMatcher and Sitemap/SitemapFile are the HomePageLoader
+    // case again: one call each through a generated factory (ScheduleFactory,
+    // SitemapFactory), so RetrySchedule and ProblemFormatter stay in this run.
     "source": {
         "directories": ["Model", "Observer", "Service"],
         "excludes": [
@@ -30,7 +33,9 @@
             "Organization.php",
             "OrganizationRepository.php",
             "Product/OverrideRepository.php",
+            "Rebuild/CronExpressionMatcher.php",
             "Review/NativeAggregateRatingProvider.php",
+            "Sitemap/SitemapFile.php",
             "StructuredData/Provider/CategorySchemaProvider.php",
             "StructuredData/Provider/CmsPageSchemaProvider.php",
             "StructuredData/Provider/ProductSchemaProvider.php"

@@ -1,6 +1,7 @@
 <?xml version="1.0"?>
 <!--
-    Admin-area-only wiring: the catalog edit form SEO fieldsets.
+    Admin-area-only wiring: the catalog edit form SEO fieldsets, and the rebuild-problems system
+    message.
 
     The fieldsets are saved by observers in etc/adminhtml/events.xml. Core's admin save
     controllers call the models' save() directly, so plugins on the catalog repositories
@@ -8,6 +9,18 @@
 -->
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+
+    <!--
+        The System Messages bar, while a pre-generated file is out of date (see
+        Model\Rebuild\ProblemLog). Registered the way core registers its indexer and cache messages.
+    -->
+    <type name="Magento\Framework\Notification\MessageList">
+        <arguments>
+            <argument name="messages" xsi:type="array">
+                <item name="mageos_seo_rebuild_problems" xsi:type="string">MageOS\Seo\Model\System\Message\RebuildProblems</item>
+            </argument>
+        </arguments>
+    </type>
 
     <!--
         Both form modifier pools are virtual types, so they are extended with <virtualType>.

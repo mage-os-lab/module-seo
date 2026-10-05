@@ -366,12 +366,26 @@
     <!--
         Every registered command is instantiated when bin/magento starts — setup:install included,
         before any store exists — so nothing this command needs may be built until it runs: the
-        handler pool (whose handlers read store configuration) and the sitemap generator are proxies.
+        handler pool (whose handlers read store configuration), the sitemap generator and the problem
+        log (whose notifier builds the admin inbox) are proxies.
     -->
     <type name="MageOS\Seo\Console\Command\RegenerateFeedsCommand">
         <arguments>
             <argument name="handlerPool" xsi:type="object">MageOS\Seo\Model\Rebuild\HandlerPool\Proxy</argument>
             <argument name="sitemapRebuilder" xsi:type="object">MageOS\Seo\Model\Sitemap\Rebuilder\Proxy</argument>
+            <argument name="problemLog" xsi:type="object">MageOS\Seo\Model\Rebuild\ProblemLog\Proxy</argument>
+        </arguments>
+    </type>
+
+    <!--
+        The rebuild problem log is built wherever a rebuild is requested or run: every save an
+        observer inspects, the consumer, the cron. Its formatter reads store, sitemap and cron
+        configuration and reaches the handler pool, and is needed only to word an inbox entry: a
+        proxy, which also keeps a handler's builder that reports to the log from depending on itself.
+    -->
+    <type name="MageOS\Seo\Model\Rebuild\ProblemLog">
+        <arguments>
+            <argument name="formatter" xsi:type="object">MageOS\Seo\Model\Rebuild\ProblemFormatter\Proxy</argument>
         </arguments>
     </type>
 

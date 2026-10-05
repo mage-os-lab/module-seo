@@ -7,6 +7,7 @@ namespace MageOS\Seo\Test\Unit\Model\Rebuild;
 use Magento\Framework\FlagManager;
 use Magento\Framework\MessageQueue\PublisherInterface;
 use Magento\Framework\Stdlib\DateTime\DateTime;
+use MageOS\Seo\Model\Rebuild\ProblemLog;
 use MageOS\Seo\Model\Rebuild\RegenerationRequester;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
@@ -114,12 +115,14 @@ class RegenerationRequesterTest extends TestCase
      * @param FlagManager $flagManager
      * @param PublisherInterface|null $publisher
      * @param LoggerInterface|null $logger
+     * @param ProblemLog|null $problemLog
      * @return RegenerationRequester
      */
     private function requester(
         FlagManager $flagManager,
         ?PublisherInterface $publisher = null,
-        ?LoggerInterface $logger = null
+        ?LoggerInterface $logger = null,
+        ?ProblemLog $problemLog = null
     ): RegenerationRequester {
         $dateTime = $this->createStub(DateTime::class);
         $dateTime->method('gmtTimestamp')->willReturn(self::NOW);
@@ -128,7 +131,43 @@ class RegenerationRequesterTest extends TestCase
             $flagManager,
             $publisher ?? $this->createStub(PublisherInterface::class),
             $dateTime,
-            $logger ?? $this->createStub(LoggerInterface::class)
+            $logger ?? $this->createStub(LoggerInterface::class),
+            $problemLog ?? $this->createStub(ProblemLog::class)
         );
+    }
+
+    /**
+     * A request still pending after an hour means the consumer is not taking messages: the admin
+     * is told, besides the log.
+     */
+    public function testAStaleRequestShowsTheQueueAsStalled(): void
+    {
+        $flagManager = $this->createStub(FlagManager::class);
+        $flagManager->method('getFlagData')->willReturn(self::NOW - RegenerationRequester::STALE_AFTER_SECONDS);
+        $problemLog = $this->createMock(ProblemLog::class);
+        $problemLog->expects($this->once())->method('stalled')
+            ->with('llms', self::NOW - RegenerationRequester::STALE_AFTER_SECONDS);
+
+        $this->requester($flagManager, problemLog: $problemLog)->request('llms');
+    }
+
+    public function testAStalledRequestWithAnUnreadableQueuedTimeSaysItIsUnknown(): void
+    {
+        $flagManager = $this->createStub(FlagManager::class);
+        $flagManager->method('getFlagData')->willReturn('not-a-timestamp');
+        $problemLog = $this->createMock(ProblemLog::class);
+        $problemLog->expects($this->once())->method('stalled')->with('llms', null);
+
+        $this->requester($flagManager, problemLog: $problemLog)->request('llms');
+    }
+
+    public function testAFreshRequestShowsNothing(): void
+    {
+        $flagManager = $this->createStub(FlagManager::class);
+        $flagManager->method('getFlagData')->willReturn(self::NOW - 60);
+        $problemLog = $this->createMock(ProblemLog::class);
+        $problemLog->expects($this->never())->method('stalled');
+
+        $this->requester($flagManager, problemLog: $problemLog)->request('llms');
     }
 }

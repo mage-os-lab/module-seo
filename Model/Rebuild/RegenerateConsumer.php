@@ -31,13 +31,15 @@ class RegenerateConsumer
      * @param LoggerInterface $logger
      * @param SitemapRebuilder $sitemapRebuilder
      * @param RebuildGroup $rebuildGroup
+     * @param ProblemLog $problemLog
      */
     public function __construct(
         private readonly HandlerPool           $handlerPool,
         private readonly RegenerationRequester $regenerationRequester,
         private readonly LoggerInterface       $logger,
         private readonly SitemapRebuilder      $sitemapRebuilder,
-        private readonly RebuildGroup          $rebuildGroup
+        private readonly RebuildGroup          $rebuildGroup,
+        private readonly ProblemLog            $problemLog
     ) {
     }
 
@@ -52,6 +54,9 @@ class RegenerateConsumer
      */
     public function process(string $group): void
     {
+        // A message taken is the queue being processed: whatever had stalled is moving again.
+        $this->problemLog->resumed();
+
         $firstBuild  = $group === RebuildGroup::MISSING;
         $sitemapType = $this->rebuildGroup->typeOf($group);
         $handler     = $firstBuild || $sitemapType !== null ? null : $this->handlerPool->get($group);
@@ -68,15 +73,20 @@ class RegenerateConsumer
         // build must queue exactly one follow-up rebuild, not be lost.
         $this->regenerationRequester->acknowledge($group);
 
+        // What the rebuild reports — its failures, and what a handler marks degraded while it
+        // runs — becomes the group's problems in the admin (see ProblemLog).
+        $this->problemLog->rebuilding($group);
         try {
             if ($firstBuild) {
-                $this->sitemapRebuilder->buildMissing();
+                $failures = $this->sitemapRebuilder->buildMissing();
             } elseif ($sitemapType !== null) {
-                $this->sitemapRebuilder->rebuild($sitemapType);
-            } elseif ($handler !== null) {
-                $handler->rebuild($group);
+                $failures = $this->sitemapRebuilder->rebuild($sitemapType);
+            } else {
+                $failures = $handler !== null ? $handler->rebuild($group) : [];
             }
+            $this->problemLog->rebuilt($group, $failures);
         } catch (RebuildInProgressException) {
+            $this->problemLog->abandoned($group);
             // The flag was cleared a moment ago, so dropping this message would lose the
             // invalidation that caused it: the build that holds the lock may already have passed
             // the data this message was about. Ask again instead.
@@ -84,6 +94,9 @@ class RegenerateConsumer
             $this->logger->info(
                 'MageOS_Seo: a rebuild of ' . $group . ' is already running; re-queued.'
             );
+        } catch (\Throwable $e) {
+            $this->problemLog->rebuilt($group, [ProblemLog::ALL => $e->getMessage()]);
+            throw $e;
         }
     }
 }

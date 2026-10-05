@@ -13,6 +13,7 @@ All major composition points are exposed as injectable arrays in `di.xml`. Bridg
 | Custom page `<title>` provider | `PageTitleProviderInterface` | `Model\PageTitle\Compositor` → `providers` array |
 | New product schema template | `ProductSchemaBuilderInterface` | `Model\Product\SchemaBuilderPool` → `builders` array |
 | Your own pre-generated output, rebuilt on change | `Api\Rebuild\GroupHandlerInterface` | `Model\Rebuild\HandlerPool` → `handlers` array |
+| Its label and retry time in the admin's rebuild message | `Api\Rebuild\GroupDescriptionInterface` | Implemented by the same handler |
 
 ---
 
@@ -275,6 +276,64 @@ the first time it is asked.
 
 For a new **type of page in the XML sitemaps**, use `Api\Sitemap\RebuildRequesterInterface`
 instead. See [sitemap.md](sitemap.md).
+
+### Telling the admin about your files
+
+When a rebuild fails, the admin shows it until a rebuild gets through (see
+[rebuild-problems.md](rebuild-problems.md)). What your handler's `rebuild()` returns is recorded for
+you, store ID => error, whenever the queue or `seo:rebuild -g` runs it. A clean result clears the
+group's problems.
+
+**Label your files and name the cron job that rebuilds them** by also implementing
+`Api\Rebuild\GroupDescriptionInterface`. Without it, the admin is shown your group name and told
+the files are retried when their content next changes.
+
+```php
+use Magento\Framework\Phrase;
+use MageOS\Seo\Api\Rebuild\GroupDescriptionInterface;
+
+class BlogFeedHandler implements GroupHandlerInterface, GroupDescriptionInterface
+{
+    // ...
+
+    public function getLabel(string $group): Phrase
+    {
+        return __('blog-feed.xml');                  // what the admin calls the files
+    }
+
+    public function getScheduledJob(string $group): ?string
+    {
+        return 'vendor_blog_rebuild_feed';          // the job's name in your crontab.xml, or null
+    }
+}
+```
+
+The job's next run is shown as when a failure is retried, so the job must rebuild the group in a
+way that is recorded too. A job that calls something other than your handler brackets the rebuild
+itself, with `MageOS\Seo\Model\Rebuild\ProblemLog`:
+
+```php
+$this->problemLog->rebuilding('blog-feed');
+try {
+    $failures = $this->builder->buildForEveryStore();
+} catch (\Throwable $e) {
+    $this->problemLog->rebuilt('blog-feed', [ProblemLog::ALL => $e->getMessage()]);
+    throw $e;
+}
+$this->problemLog->rebuilt('blog-feed', $failures);
+```
+
+Brackets nest: when the queue runs your handler and your handler brackets the group as well, only
+the outer bracket records, with what both found.
+
+**Report a file written with something missing** while the rebuild runs. The reason is a phrase,
+so the admin reads it in their language:
+
+```php
+$this->problemLog->degraded('blog-feed', $storeId, __('The author lookup failed, so posts have no author.'));
+```
+
+Outside a rebuild, from a storefront request say, a report is ignored: log it as well.
 
 ---
 
