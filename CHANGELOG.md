@@ -8,6 +8,8 @@ hardcoded version field).
 
 ## [Unreleased]
 
+## [1.2.1] — 2026-10-05
+
 ### Added
 
 - **SEO files that are out of date are shown in the admin,** so a failing rebuild is not noticed only
@@ -58,7 +60,7 @@ hardcoded version field).
     ProductGroup's variants then leave `offers` out.
   - See `docs/structured-data.md`.
 
-## [1.2.0]
+## [1.2.0] — 2026-10-04
 
 Pre-release review hardening pass (July 2026). Breaking renames are included
 deliberately: nothing has shipped yet, so names are settled now, before they
