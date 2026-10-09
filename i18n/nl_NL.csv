@@ -238,8 +238,9 @@ exactly one store view.","Voeg automatisch hreflang=""en"" toe als een basistaal
 empty to use the store's locale. A region is an ISO 3166-1 country code: the United Kingdom is
 <code>GB</code>, not <code>UK</code>.","De codes waarop deze winkelweergave zich richt, gescheiden door komma's — bijvoorbeeld <code>en-GB</code>, of <code>es-MX, es-AR, es-CL</code> voor één winkel die meerdere regio's bedient. Laat leeg om de landinstelling van de winkel te gebruiken. Een regio is een ISO 3166-1-landcode: het Verenigd Koninkrijk is <code>GB</code>, niet <code>UK</code>."
 "x-default Store View",x-default-winkelweergave
-"Store view to advertise as hreflang x-default. Leave unset to omit x-default.
-Set per website where websites serve different markets.","Winkelweergave die als hreflang x-default wordt aangeboden. Laat leeg om x-default weg te laten. Stel dit per website in als websites verschillende markten bedienen."
+"Store view to advertise as hreflang x-default. Choose None to omit x-default.
+Set per website where websites serve different markets.","Winkelweergave die als hreflang x-default wordt aangeboden. Kies Geen om x-default weg te laten. Stel dit per website in als websites verschillende markten bedienen."
+"-- None --","-- Geen --"
 "Exclude Store Views","Winkelweergaven uitsluiten"
 "Store views to omit from all hreflang output (e.g. staging or internal stores).","Winkelweergaven die uit alle hreflang-uitvoer worden weggelaten (bijv. staging- of interne winkels)."
 "Add Hreflang Alternates to sitemap.xml","Hreflang-alternatieven toevoegen aan sitemap.xml"

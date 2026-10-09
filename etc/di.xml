@@ -400,6 +400,7 @@
                 <item name="organization" xsi:type="object">MageOS\Seo\Model\OrganizationRepository</item>
                 <item name="availability" xsi:type="object">MageOS\Seo\Model\Product\AvailabilityResolver</item>
                 <item name="sitemaps" xsi:type="object">MageOS\Seo\Model\Sitemap\RebuildableSitemaps</item>
+                <item name="hreflang" xsi:type="object">MageOS\Seo\Model\Hreflang\StoreLocaleMap</item>
             </argument>
         </arguments>
     </type>

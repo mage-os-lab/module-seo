@@ -261,9 +261,10 @@ empty to use the store's locale. A region is an ISO 3166-1 country code: the Uni
 empty to use the store's locale. A region is an ISO 3166-1 country code: the United Kingdom is
 <code>GB</code>, not <code>UK</code>."
 "x-default Store View","x-default Store View"
-"Store view to advertise as hreflang x-default. Leave unset to omit x-default.
-Set per website where websites serve different markets.","Store view to advertise as hreflang x-default. Leave unset to omit x-default.
+"Store view to advertise as hreflang x-default. Choose None to omit x-default.
+Set per website where websites serve different markets.","Store view to advertise as hreflang x-default. Choose None to omit x-default.
 Set per website where websites serve different markets."
+"-- None --","-- None --"
 "Exclude Store Views","Exclude Store Views"
 "Store views to omit from all hreflang output (e.g. staging or internal stores).","Store views to omit from all hreflang output (e.g. staging or internal stores)."
 "Add Hreflang Alternates to sitemap.xml","Add Hreflang Alternates to sitemap.xml"

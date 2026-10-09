@@ -6,7 +6,6 @@ namespace MageOS\Seo\Test\Unit\Model\Hreflang;
 
 use Magento\Directory\Model\ResourceModel\Country\Collection;
 use Magento\Directory\Model\ResourceModel\Country\CollectionFactory;
-use Magento\Framework\DataObject;
 use MageOS\Seo\Model\Hreflang\CodeList;
 use MageOS\Seo\Model\Hreflang\CodeValidator;
 use PHPUnit\Framework\Attributes\Group;
@@ -68,6 +67,21 @@ class CodeListTest extends TestCase
         $this->assertSame([], $checked['rejected']);
     }
 
+    public function testTheDirectoryIsReadOnceUntilReset(): void
+    {
+        // The hreflang map checks each store view's codes as it builds: one read for all of them.
+        $collection = $this->createStub(Collection::class);
+        $collection->method('getAllIds')->willReturn($this->countries);
+        $factory = $this->createMock(CollectionFactory::class);
+        $factory->expects($this->exactly(2))->method('create')->willReturn($collection);
+        $codeList = $this->codeList($factory);
+
+        $codeList->check(['en-GB']);
+        $codeList->check(['de-DE', 'en-US']);
+        $codeList->_resetState();
+        $codeList->check(['en-GB']);
+    }
+
     public function testCodesWithoutARegionNeedNoDirectory(): void
     {
         $factory = $this->createMock(CollectionFactory::class);
@@ -92,26 +106,24 @@ class CodeListTest extends TestCase
      */
     private function check(array $entered): array
     {
-        $filtered   = [];
-        $collection = $this->createStub(Collection::class);
-        $collection->method('addFieldToFilter')->willReturnCallback(
-            function (string $field, array $condition) use (&$filtered, $collection): Collection {
-                $filtered = $condition['in'] ?? [];
-                return $collection;
-            }
-        );
-        $collection->method('getIterator')->willReturnCallback(
-            function () use (&$filtered): \ArrayIterator {
-                return new \ArrayIterator(array_map(
-                    static fn (string $id): DataObject => new DataObject(['id' => $id]),
-                    array_values(array_intersect($filtered, $this->countries))
-                ));
-            }
-        );
+        return $this->codeList()->check($entered);
+    }
 
-        $factory = $this->createStub(CollectionFactory::class);
-        $factory->method('create')->willReturn($collection);
+    /**
+     * A code list over a directory holding $this->countries.
+     *
+     * @param CollectionFactory|null $factory
+     * @return CodeList
+     */
+    private function codeList(?CollectionFactory $factory = null): CodeList
+    {
+        if ($factory === null) {
+            $collection = $this->createStub(Collection::class);
+            $collection->method('getAllIds')->willReturn($this->countries);
+            $factory = $this->createStub(CollectionFactory::class);
+            $factory->method('create')->willReturn($collection);
+        }
 
-        return (new CodeList(new CodeValidator(), $factory))->check($entered);
+        return new CodeList(new CodeValidator(), $factory);
     }
 }

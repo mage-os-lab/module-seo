@@ -54,11 +54,15 @@ must point at the canonical URL of the entity, not at one path through the catal
 
 The set of store views an entity is advertised in — its *alternate set* — is either every
 active store view, or only those of the current website, depending on whether hreflang is
-limited to the current website. A store view contributes only when hreflang is enabled for it
-and it has a resolvable locale.
+limited to the current website. A store view contributes only when hreflang is enabled for it,
+it is not excluded, and it has a valid code (see below). One that does not is no alternate of any
+other store view either: their heads and sitemaps leave it out.
 
 Alternates need **at least two** store views in the set: one store view has nothing to be an
 alternate of, so its pages' heads and its sitemap URLs carry none.
+
+**Exclude Store Views** lists every store view, active or not, so an exclusion stays in place while
+a store view is turned off and on again. Clearing every selection removes every exclusion.
 
 ---
 
@@ -89,6 +93,13 @@ discard a whole alternate set over one bad annotation:
 - a code listed twice is refused, whatever its case; everything is stored normalised (`en_gb`
   is saved as `en-GB`).
 
+The same check runs when the codes are **read**, whatever set them: `config.php`, `env.php`,
+`bin/magento config:set` and a direct database write never pass through the admin. A code that
+fails is left out, and logged as a warning at most once every five minutes per store view and code.
+A store view none of whose codes pass uses its locale's code, which is checked the same way: the
+locale `fil_PH` (Filipino, which has no two-letter language code) gives no code at all, so such a
+store view needs a configured code to take part.
+
 **One code, one store view.** Two alternates with the same code are invalid, so when store views
 claim the same code — typically two store views on the same locale — the **lowest store view ID
 keeps it** and the other loses only that code. A store view whose every code is taken drops out
@@ -109,8 +120,10 @@ could not say which of them is meant; nor does a language a store view already a
 website**: a `.com` website can send unmatched visitors to its US store while a `.co.uk` website
 sends them to its UK store. The website default applies to websites that do not set their own.
 
-The chosen store view must itself be in the alternate set — enabled, not excluded, and on the
-same website when alternates are limited to the current website — or no x-default is written.
+The chosen store view must itself be in the alternate set — active, with hreflang on, not
+excluded, and on the same website when alternates are limited to the current website — or no
+x-default is written. Choose **-- None --** to write none. Only active store views are offered; one
+chosen before it was turned off shows as -- None --, which is also what the storefront does with it.
 
 ---
 

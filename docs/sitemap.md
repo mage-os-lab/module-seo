@@ -187,7 +187,8 @@ changed while it was off.
   commit anyway.
 - **From current data.** One consumer process takes many messages, and Magento resets nothing
   between them. Before each build the consumer resets the services that remember what they loaded
-  (the Organization, stock IDs, the list of sitemaps), and reloads the configuration and store list
+  (the Organization, stock IDs, the list of sitemaps, the hreflang store map), and reloads the
+  configuration and store list
   when a configuration change was saved since it last loaded them. A module of yours that
   remembers data adds its service to `MageOS\Seo\Model\Rebuild\BuildFreshness`'s `services` in
   di.xml; it must implement `Magento\Framework\ObjectManager\ResetAfterRequestInterface`.

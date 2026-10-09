@@ -107,6 +107,42 @@ class HreflangHeadTest extends AbstractController
     }
 
     /**
+     * A store view with hreflang off is no alternate, and so no x-default either (#28): French is off
+     * and chosen as x-default, and the German page lists only English and German.
+     *
+     * Three store views, so that the set left without French still has two and is declared.
+     *
+     * @return void
+     */
+    #[DataFixture(StoreFixture::class, as: 'german')]
+    #[DataFixture(StoreFixture::class, as: 'french')]
+    #[DataFixture(ProductFixture::class, as: 'product')]
+    public function testAStoreViewWithHreflangOffIsNoAlternateNorXDefault(): void
+    {
+        $this->inLanguage('german', 'de-DE', self::GERMAN_HOST);
+        $this->inLanguage('french', 'fr-FR', self::FRENCH_HOST);
+
+        $config       = $this->_objectManager->get(MutableScopeConfigInterface::class);
+        $storeManager = $this->_objectManager->get(StoreManagerInterface::class);
+        $french       = $storeManager->getStore($this->code('french'));
+        $config->setValue(Config::XML_HREFLANG_ENABLED, '0', 'store', $this->code('french'));
+        $config->setValue(
+            Config::XML_HREFLANG_XDEFAULT_STORE,
+            (string) $french->getId(),
+            'websites',
+            $french->getWebsite()->getCode()
+        );
+        $config->setValue('web/url/redirect_to_base', '0', 'store', $this->code('german'));
+        $storeManager->setCurrentStore($this->code('german'));
+
+        $alternates = $this->alternates($this->productPage());
+        ksort($alternates);
+
+        // de and en too: the language-only alternates, on by default.
+        $this->assertSame(['de', 'de-DE', 'en', 'en-US'], array_keys($alternates));
+    }
+
+    /**
      * The alternates are page assets, one per code under a name of its own, so other code can read
      * or replace them through the page config. A name is needed: the collection is keyed by it, and
      * the page's own alternate has the canonical's URL.

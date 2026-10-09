@@ -15,6 +15,7 @@ use Magento\TestFramework\Fixture\DataFixtureStorageManager;
 use Magento\TestFramework\Helper\Bootstrap;
 use MageOS\Seo\Model\Cms\ConfigRepository;
 use MageOS\Seo\Model\Config;
+use MageOS\Seo\Model\Hreflang\StoreLocaleMap;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -168,6 +169,33 @@ class HreflangTest extends TestCase
         foreach ($this->generateFor($this->defaultStoreId()) as $name => $xml) {
             $this->assertStringContainsString('xmlns:xhtml="http://www.w3.org/1999/xhtml"', $xml, $name);
         }
+    }
+
+    /**
+     * Issue #28: a store view with hreflang off is no alternate of the others, and comes back when
+     * it is switched on again.
+     *
+     * The map is built once per request and once per queue message; here, between the two
+     * generations, it is reset as the next request would find it.
+     *
+     * @return void
+     */
+    #[DataFixture(StoreFixture::class, as: 'german')]
+    #[DataFixture(ProductFixture::class, as: 'product')]
+    public function testAStoreViewWithHreflangOffIsNoAlternate(): void
+    {
+        $code = (string) DataFixtureStorageManager::getStorage()->get('german')->getCode();
+        $this->twoLanguages();
+        $this->setStoreConfig(Config::XML_HREFLANG_ENABLED, '0', $code);
+
+        $off = $this->rowFor($this->parsed($this->generateFor($this->defaultStoreId())), $this->productUrlKey());
+        $this->assertSame([], $off['links'], 'With German off, English has no other store view to list.');
+
+        $this->setStoreConfig(Config::XML_HREFLANG_ENABLED, '1', $code);
+        Bootstrap::getObjectManager()->get(StoreLocaleMap::class)->reset();
+
+        $on = $this->rowFor($this->parsed($this->generateFor($this->defaultStoreId())), $this->productUrlKey());
+        $this->assertStringStartsWith(self::GERMAN_HOST, (string) ($on['links']['de-DE'] ?? ''));
     }
 
     /**

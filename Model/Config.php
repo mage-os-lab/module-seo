@@ -369,7 +369,11 @@ class Config
     }
 
     /**
-     * Return the hreflang codes a store view claims, normalised, or none when it relies on its locale.
+     * Return the hreflang codes configured for a store view, as stored.
+     *
+     * None when it relies on its locale. Saved through the admin they are already checked and
+     * normalised; set any other way they may not be. Model\Hreflang\StoreLocaleMap checks them as it
+     * reads them (Hreflang\CodeList).
      *
      * @param int $storeId
      * @return string[]

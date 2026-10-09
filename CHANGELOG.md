@@ -57,6 +57,25 @@ hardcoded version field).
   `product:price:amount` 0.00 while its structured data had no price, and a price that could not be
   read was dropped silently. Open Graph now takes the price from `Model\Product\FinalPrice`, as the
   structured data does: no price tags when it's unknown, and a failed read is logged.
+- **A store view with hreflang off is no alternate**
+  ([#28](https://github.com/mage-os-lab/module-seo/issues/28)). Enabled store views linked to it in
+  the head and the sitemap, and it could be x-default, though its own pages link back to nothing.
+  It could also take a code shared with an enabled store view of a higher ID. `StoreLocaleMap` now
+  leaves it out, so none of these sees it.
+- **Hreflang codes are checked whatever set them**
+  ([#29](https://github.com/mage-os-lab/module-seo/issues/29)). Only the admin checked them: a code
+  from `config.php`, `env.php`, `config:set` or the database was published as it was, malformed,
+  with a region that doesn't exist (`en-UK`) or twice. The codes, and the locale code a store view
+  falls back on, now pass the admin's own check as they are read; one that fails is left out and
+  logged as a warning at most once every five minutes. A store view whose locale has no two-letter
+  language, such as `fil_PH`, now needs a configured code to take part.
+- **x-default can be set to none**
+  ([#35](https://github.com/mage-os-lab/module-seo/issues/35)). The field said "Leave unset" but had
+  no empty choice, and offered inactive store views. It now starts with "-- None --" and lists active
+  store views only.
+- **Clearing every excluded store view saves**
+  ([#36](https://github.com/mage-os-lab/module-seo/issues/36)). An empty multiselect sent nothing, so
+  the previous exclusions stayed.
 
 ### Changed
 
@@ -76,8 +95,12 @@ hardcoded version field).
   `GetStockItemConfigurationInterface`. `Model\Product\OfferBuilder` no longer takes `DateTime`.
   `Model\Product\Variant\ProductGroupBuilder` takes `AvailabilityResolver`,
   `Model\MetaTag\Provider\ProductMetaProvider` takes `FinalPrice`, and `Model\Product\FinalPrice`
-  takes `Model\Config`. None of them is `@api`, but a subclass that overrides one of these
-  constructors must follow.
+  takes `Model\Config`. `Model\Hreflang\StoreLocaleMap` also takes `Hreflang\CodeList`, a cache and a
+  logger. None of them is `@api`, but a subclass that overrides one of these constructors must
+  follow.
+- **The consumer resets the hreflang store map before each build,** with the other services listed
+  for `Model\Rebuild\BuildFreshness`, so a hreflang setting changed since shows in the next rebuild.
+  `Hreflang\CodeList` reads the country list once per request, not once per check.
 - **Requires `magento/module-catalog-inventory`**, for the stock item's manage-stock setting and its
   configured default. It is part of every installation with MSI.
 

@@ -183,15 +183,16 @@ empty to use the store's locale. A region is an ISO 3166-1 country code: the Uni
                 <field id="xdefault_store_id" translate="label comment" type="select"
                        sortOrder="30" showInDefault="1" showInWebsite="1" showInStore="0">
                     <label>x-default Store View</label>
-                    <comment>Store view to advertise as hreflang x-default. Leave unset to omit x-default.
+                    <comment>Store view to advertise as hreflang x-default. Choose None to omit x-default.
 Set per website where websites serve different markets.</comment>
-                    <source_model>MageOS\Seo\Model\Config\Source\StoreViews</source_model>
+                    <source_model>MageOS\Seo\Model\Config\Source\XDefaultStoreViews</source_model>
                 </field>
                 <field id="excluded_store_ids" translate="label comment" type="multiselect"
                        sortOrder="40" showInDefault="1" showInWebsite="0" showInStore="0">
                     <label>Exclude Store Views</label>
                     <comment>Store views to omit from all hreflang output (e.g. staging or internal stores).</comment>
                     <source_model>MageOS\Seo\Model\Config\Source\StoreViews</source_model>
+                    <can_be_empty>1</can_be_empty>
                 </field>
                 <field id="sitemap_enabled" translate="label comment" type="select"
                        sortOrder="50" showInDefault="1" showInWebsite="0" showInStore="0">

@@ -5,16 +5,28 @@ declare(strict_types=1);
 namespace MageOS\Seo\Model\Hreflang;
 
 use Magento\Directory\Model\ResourceModel\Country\CollectionFactory as CountryCollectionFactory;
+use Magento\Framework\ObjectManager\ResetAfterRequestInterface;
 
 /**
  * Checks a store view's list of hreflang codes, and sorts what can be kept from what cannot.
  *
  * Shared by the admin field (Model\Config\Backend\HreflangCodes), which refuses a list with any
- * problem, and the MageOS_Hreflang migration, which keeps the good codes and reports the rest: both
- * must mean the same thing by "valid".
+ * problem, the MageOS_Hreflang migration, which keeps the good codes and reports the rest, and
+ * Model\Hreflang\StoreLocaleMap, which uses the good codes of every store view whatever set them
+ * (issue #29): all must mean the same thing by "valid".
+ *
+ * The country directory is read once, all of it, and kept until the request ends: the map checks
+ * every store view's codes as it builds.
  */
-class CodeList
+class CodeList implements ResetAfterRequestInterface
 {
+    /**
+     * Every country code Magento's directory knows, once read.
+     *
+     * @var string[]|null
+     */
+    private ?array $countries = null;
+
     /**
      * @param CodeValidator $codeValidator
      * @param CountryCollectionFactory $countryCollectionFactory
@@ -102,14 +114,18 @@ class CodeList
             return [];
         }
 
-        $collection = $this->countryCollectionFactory->create();
-        $collection->addFieldToFilter('country_id', ['in' => $regions]);
+        $this->countries ??= array_map('strval', $this->countryCollectionFactory->create()->getAllIds());
 
-        $known = [];
-        foreach ($collection as $country) {
-            $known[] = (string) $country->getId();
-        }
+        return array_values(array_diff($regions, $this->countries));
+    }
 
-        return array_values(array_diff($regions, $known));
+    /**
+     * Forget the country directory between requests (worker mode).
+     *
+     * @return void
+     */
+    public function _resetState(): void // phpcs:ignore PSR2.Methods.MethodDeclaration.Underscore -- framework interface
+    {
+        $this->countries = null;
     }
 }
