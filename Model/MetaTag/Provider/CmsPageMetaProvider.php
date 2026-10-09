@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace MageOS\Seo\Model\MetaTag\Provider;
 
+use Magento\Cms\Model\Template\FilterProvider;
 use Magento\Store\Model\StoreManagerInterface;
 use MageOS\Seo\Api\MetaTagProviderInterface;
 use MageOS\Seo\Model\Cms\CmsPageResolver;
@@ -20,6 +21,7 @@ class CmsPageMetaProvider implements MetaTagProviderInterface
         private readonly CmsPageResolver       $cmsPageResolver,
         private readonly Config                $seoConfig,
         private readonly StoreManagerInterface $storeManager,
+        private readonly FilterProvider        $filterProvider,
     ) {
     }
 
@@ -61,7 +63,8 @@ class CmsPageMetaProvider implements MetaTagProviderInterface
                 $tags[] = ['property' => 'og:description', 'content' => mb_substr($metaDescription, 0, 160)];
             }
 
-            $image = $this->extractFirstImage((string) $page->getContent());
+            $content = $this->filterProvider->getPageFilter()->filter($page->getContent());
+            $image = $this->extractFirstImage((string) $content);
             if ($image !== '') {
                 if (!str_starts_with($image, 'http')) {
                     $image = $baseUrl . '/' . ltrim($image, '/');
