@@ -16,6 +16,7 @@ class CmsPageMetaProvider implements MetaTagProviderInterface
      * @param CmsPageResolver $cmsPageResolver
      * @param Config $seoConfig
      * @param StoreManagerInterface $storeManager
+     * @param FilterProvider $filterProvider
      */
     public function __construct(
         private readonly CmsPageResolver       $cmsPageResolver,
@@ -63,7 +64,7 @@ class CmsPageMetaProvider implements MetaTagProviderInterface
                 $tags[] = ['property' => 'og:description', 'content' => mb_substr($metaDescription, 0, 160)];
             }
 
-            $content = $this->filterProvider->getPageFilter()->filter($page->getContent());
+            $content = $this->filterProvider->getPageFilter()->filter((string) $page->getContent());
             $image = $this->extractFirstImage((string) $content);
             if ($image !== '') {
                 if (!str_starts_with($image, 'http')) {
