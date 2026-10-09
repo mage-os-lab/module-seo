@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace MageOS\Seo\Test\Integration;
 
+use Magento\Framework\ObjectManager\ConfigInterface as ObjectManagerConfig;
+use Magento\Sitemap\Model\Sitemap as CoreSitemap;
 use Magento\TestFramework\Helper\Bootstrap;
 use MageOS\Seo\Api\OrganizationRepositoryInterface;
 use MageOS\Seo\Model\Faq\SourcePool as FaqSourcePool;
@@ -18,6 +20,9 @@ use MageOS\Seo\Model\Product\SchemaBuilderPool;
 use MageOS\Seo\Model\Product\Variant\ProductGroupBuilder;
 use MageOS\Seo\Model\Review\AggregateRatingResolver;
 use MageOS\Seo\Model\RobotsMeta\Resolver as RobotsMetaResolver;
+use MageOS\Seo\Model\Sitemap\FileRemover;
+use MageOS\Seo\Model\Sitemap\RebuildableSitemaps;
+use MageOS\Seo\Model\Sitemap\Writer;
 use MageOS\Seo\Model\StructuredData\Compositor as StructuredDataCompositor;
 use PHPUnit\Framework\TestCase;
 
@@ -88,6 +93,32 @@ class DiWiringTest extends TestCase
     {
         $instance = Bootstrap::getObjectManager()->get(FaqSourcePool::class);
         $this->assertInstanceOf(FaqSourcePool::class, $instance);
+    }
+
+    /**
+     * Review H2: the classes that read and write sitemap files are given the filesystem core's
+     * own sitemap is given under remote storage — every directory remote, not only media — and
+     * can be built with it.
+     */
+    public function testSitemapFilesGoThroughTheFilesystemCoresSitemapUses(): void
+    {
+        $objectManager = Bootstrap::getObjectManager();
+        $config        = $objectManager->get(ObjectManagerConfig::class);
+
+        $this->assertSame(
+            ['instance' => 'fullRemoteFilesystem'],
+            $config->getArguments(CoreSitemap::class)['filesystem'] ?? null,
+            "Core's own sitemap is the reference."
+        );
+        foreach ([Writer::class, RebuildableSitemaps::class, FileRemover::class] as $class) {
+            $this->assertSame(
+                ['instance' => 'fullRemoteFilesystem'],
+                $config->getArguments($class)['filesystem'] ?? null,
+                $class
+            );
+        }
+        $this->assertInstanceOf(FileRemover::class, $objectManager->create(FileRemover::class));
+        $this->assertInstanceOf(RebuildableSitemaps::class, $objectManager->create(RebuildableSitemaps::class));
     }
 
     /**

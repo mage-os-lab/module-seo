@@ -24,8 +24,13 @@ use MageOS\Seo\Model\Rebuild\ChangeInspector;
  *   cheap, a missed one leaves a sitemap stale until the next.
  *
  * A change is relevant when it can change what a sitemap lists — which pages, at which URLs, with
- * which alternates, left out as NOINDEX or not. `<lastmod>` and images are left to the nightly run:
- * counting them would rebuild the products for almost every catalogue edit.
+ * which alternates, left out as NOINDEX or not — and, while a sitemap lists product images (core's
+ * image policy), what a product's image rows are made of: its name, its base image and thumbnail,
+ * its gallery (issue #23). Requests coalesce — one rebuild of a type is pending at a time — so a
+ * run of edits costs one rebuild, not one each.
+ *
+ * `<lastmod>` alone is not counted: every save changes it. It is brought up to date by the next
+ * rebuild of the type, or by Magento's scheduled generation, which is off by default.
  */
 class InvalidationPolicy
 {
@@ -34,9 +39,20 @@ class InvalidationPolicy
     public const EVENT_CMS_PAGE_SAVE = 'cms_page_save_after';
 
     /**
+     * Dispatched once by Magento's product import, after every bunch, whatever its behaviour.
+     */
+    public const EVENT_PRODUCT_IMPORT = 'catalog_product_import_finish_before';
+
+    /**
      * Product fields that change which products a sitemap lists, or at which URL.
      */
     private const PRODUCT_FIELDS = ['url_key', 'status', 'visibility'];
+
+    /**
+     * Product fields a product's image rows are made of, while a sitemap lists images: the name is
+     * the image title, the base image or the gallery the images, the thumbnail the PageMap one.
+     */
+    private const PRODUCT_IMAGE_FIELDS = ['name', 'image', 'thumbnail'];
 
     /**
      * Category fields that change which categories a sitemap lists, or at which URL.
@@ -117,6 +133,7 @@ class InvalidationPolicy
                 || $this->changeInspector->isNew($entity)
                 || $this->changeInspector->anyChanged($entity, self::PRODUCT_FIELDS)
                 || $this->changeInspector->websitesChanged($entity)
+                || $this->imagesChanged($entity)
                 ? [ItemProviderInterface::TYPE_PRODUCTS]
                 : [];
         }
@@ -152,6 +169,8 @@ class InvalidationPolicy
         return match ($eventName) {
             'category_move'                     => [ItemProviderInterface::TYPE_CATEGORIES],
             'catalog_product_to_website_change' => [ItemProviderInterface::TYPE_PRODUCTS],
+            // An import writes to the database directly: no save says what changed, so it counts.
+            self::EVENT_PRODUCT_IMPORT          => [ItemProviderInterface::TYPE_PRODUCTS],
             // Store saves, scope deletions, anything unrecognised: any URL can have changed.
             default                             => [RebuildGroup::ALL_TYPES],
         };
@@ -195,7 +214,26 @@ class InvalidationPolicy
     public function sitemapTypesAffectedByAttributeUpdate(array $attributeCodes): array
     {
         return array_intersect($attributeCodes, self::PRODUCT_FIELDS) !== []
+            || (array_intersect($attributeCodes, self::PRODUCT_IMAGE_FIELDS) !== []
+                && $this->rebuildableSitemaps->listsProductImages())
             ? [ItemProviderInterface::TYPE_PRODUCTS]
             : [];
+    }
+
+    /**
+     * Whether the save changed what the product's image rows are made of.
+     *
+     * Asked only while a sitemap lists product images: otherwise there are no image rows.
+     *
+     * @param Product $product
+     * @return bool
+     */
+    private function imagesChanged(Product $product): bool
+    {
+        return $this->rebuildableSitemaps->listsProductImages()
+            && (
+                $this->changeInspector->anyChanged($product, self::PRODUCT_IMAGE_FIELDS)
+                || $this->changeInspector->galleryChanged($product)
+            );
     }
 }

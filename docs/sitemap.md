@@ -55,12 +55,12 @@ on one, select **Magento** — or, better, ask for it to become an extension of 
 file set per kind of page:
 
 ```text
-sitemap.xml                  index
-sitemap-1-pages-1.xml        the home page and CMS pages
-sitemap-1-categories-1.xml   categories
-sitemap-1-products-1.xml     products
-sitemap-1-products-2.xml     … as many as the limits need
-sitemap-1-other-1.xml        URLs from other modules' providers
+sitemap.xml                    index — its name never changes
+sitemap-1-pages-a-1.xml        the home page and CMS pages
+sitemap-1-categories-a-1.xml   categories
+sitemap-1-products-a-1.xml     products
+sitemap-1-products-a-2.xml     … as many as the limits need
+sitemap-1-other-a-1.xml        URLs from other modules' providers
 ```
 
 (`1` is the store view ID, as in Magento's own file names.) Search engines need only the index:
@@ -70,11 +70,48 @@ A file ends when the next URL would take it past **Maximum No of URLs Per File**
 File Size** — measured on the row as written, so no file passes the size limit. (A single URL
 larger than the whole limit gets a file to itself; at real limits, which are megabytes, none is.)
 
-Files are written to the temporary directory and moved into place when complete, the index last,
-so the index never lists a file that is not there. Then files of this sitemap that the new set no
-longer contains are deleted — only names built from this sitemap's name, its store view and the
-known types, so another sitemap in the same directory is never touched. That includes the
-`sitemap-1-1.xml`-style files Magento's generator wrote before the switch.
+### Two sets, one index
+
+Each kind of page has **two sets** of files, `-a-` and `-b-`. A generation writes the set the index
+does not list — the files search engines can reach are never touched — and then switches the index
+to it: the next products rebuild writes `sitemap-1-products-b-1.xml`, the one after that
+`-a-` again. The index keeps its name throughout.
+
+Every file, the index too, is written under a temporary name (`….xml.tmp`) next to where it goes
+and renamed into place once complete, so no file is ever read half-written. Renaming the index is
+the moment a generation is published. Until then the index lists the previous generation, which
+is whole: a generation that fails part-way — a full disk, a lost connection, an error from a
+provider — leaves the sitemap exactly as it was.
+
+After the switch, the set the previous index listed **stays until the next publication**, so a
+crawler that read the old index a moment before still finds what it lists. Files of this sitemap
+that neither index lists are deleted: a set's files beyond what was written again, stray temporary
+files, the `sitemap-1-products-1.xml`-style names this module used before the sets, and the
+`sitemap-1-1.xml`-style files Magento's generator wrote before the switch. Only names built from
+this sitemap's name, its store view and the known types are candidates, so another sitemap in the
+same directory is never touched.
+
+In Google Search Console the children of the index show under their new names after each rebuild
+of their kind; the index itself, the one you submitted, stays the same.
+
+Nothing is staged outside the sitemap's own directory, so two installations sharing a temporary
+directory never write over each other's files.
+
+### Remote storage
+
+With remote storage (Magento_RemoteStorage, an S3 bucket for example), the files go where
+Magento's own sitemap puts them: this module is given the same `fullRemoteFilesystem` core's
+sitemap model and its admin pages are, so the admin grid, every web node and the check for a
+missing sitemap all see one set of files. Without remote storage it is the local `pub/` directory.
+The module requires Magento_RemoteStorage, which every Magento and Mage-OS installation has.
+
+### Deleting a sitemap
+
+Deleting a Site Map entry removes its files: Magento's Delete removes only the index, so the rest
+used to stay reachable, listed nowhere. Deleting a store view, a store or a website removes the
+files of its store views' entries too. Files another entry uses stay — the index while an entry
+has the same path and file name, the rest while it is also for the same store view. The files go
+once the deletion is committed; one that is rolled back keeps them.
 
 ---
 
@@ -152,16 +189,23 @@ categories or the pages — and leaves the other files as they are.
 | Change | Rewritten |
 |---|---|
 | Product added or deleted; its URL key, status, visibility or websites changed — saved, or through Update Attributes and the other mass actions | products |
+| While a sitemap lists product images (**Add Images into Sitemap** not None): a product's name, base image or thumbnail changed, or its gallery — an image added or removed, a caption, an image hidden or moved | products |
+| A product import (System → Data Transfer → Import, and importers built on Magento's), once it has finished | products |
 | Category added, deleted or moved; its URL key or **Enable Category** changed | categories |
 | CMS page added or deleted; its URL key, **Enable Page** or store views changed | pages |
 | A product's, category's or CMS page's robots directive in this module's SEO settings; a CMS page's translation group | that kind |
 | A store view saved or deleted, or a website or store deleted | every kind |
 | A setting changed under Catalog → XML Sitemap, General → Web, Catalog → Catalog → Search Engine Optimization, General → General → Locale Options, Content → Design → Configuration → Search Engine Robots, or this module's hreflang and robots settings | every kind |
 
-Anything else — a name, a description, a price, an image — does not change which URLs are listed.
-The `<lastmod>` dates and images catch up at the next generation, as they do with Magento's own
-generator: rewriting every product file for every catalogue edit would cost more than a day-old
-date is worth.
+Anything else — a description, a price, a meta title — changes nothing a sitemap holds, and
+rewrites nothing. The name and images are in a product's row only while images are listed: the
+name is each image's title. Requests for a kind of page coalesce, so a run of edits rewrites it
+once, not once per edit.
+
+The `<lastmod>` dates alone do not count: every save changes them, and rewriting every product file
+for every catalogue edit would cost more than a date is worth. They catch up at the next rewrite of
+their kind, or when Magento generates the sitemap on its schedule — which is off unless
+**Catalog → XML Sitemap → Generation Settings → Enabled** is on.
 
 ### What it needs
 
@@ -192,12 +236,13 @@ changed while it was off.
   when a configuration change was saved since it last loaded them. A module of yours that
   remembers data adds its service to `MageOS\Seo\Model\Rebuild\BuildFreshness`'s `services` in
   di.xml; it must implement `Magento\Framework\ObjectManager\ResetAfterRequestInterface`.
-- **One at a time.** When another process is writing the same files — the nightly cron, a
-  second consumer, `seo:rebuild` — the consumer waits for it, up to 10 minutes, then builds. Only a
-  wait that runs out puts the request back on the queue.
+- **One at a time.** When another process is writing the same files — Magento's scheduled
+  generation, a second consumer, `seo:rebuild` — the consumer waits for it, up to 10 minutes, then
+  builds. Only a wait that runs out puts the request back on the queue.
 - **Not after the indexers.** With indexers on Update by Schedule, a rebuild can run before the
   indexer cron has caught up with the same change, and show the index from before it: a price, a
-  stock status, a category's products. The next change, or the nightly generation, catches up.
+  stock status, a category's products. The next change, or Magento's scheduled generation where it
+  is on, catches up.
   Nothing waits for the indexers.
 
 ### Sitemaps with no file
@@ -218,9 +263,10 @@ publish** writes it; turn Rebuild on Change off for its store view until you are
 
 ### How a rebuild is written
 
-Only the files of that kind are written; the index lists them and the other kinds' files already
-in place. Each file in the index has its own file time as `<lastmod>`, so a file that was not
-rewritten keeps its date.
+Only the files of that kind are written, into their other set; the index lists them and the
+other kinds' files as it did before. A file written now is dated with the time it is published; a
+file that was not rewritten keeps the `<lastmod>` the index gave it. A sitemap written before the
+sets — or by Magento's generator — has nothing to keep, and is written whole.
 
 A sitemap is written by one process at a time. A rebuild that finds the sitemap being written —
 by the **Generate** button, Magento's cron, or another rebuild — goes back on the queue and runs
@@ -228,9 +274,9 @@ after. The **Generate** button and the cron wait up to 60 seconds for a rebuild 
 report that the sitemap is being written by another process. The wait is the `fullGenerationWait`
 argument of `MageOS\Seo\Model\Sitemap\Generator` in di.xml.
 
-A rebuild that fails leaves the previous file in place and is shown in the admin's System Messages
-bar until a rebuild, the **Generate** button or Magento's cron writes the sitemap. See
-[rebuild-problems.md](rebuild-problems.md).
+A rebuild that fails leaves the published sitemap as it was (see [Two sets, one index](#two-sets-one-index))
+and is shown in the admin's System Messages bar until a rebuild, the **Generate** button or
+Magento's cron writes the sitemap. See [rebuild-problems.md](rebuild-problems.md).
 
 ### Changes that are not seen
 
@@ -239,9 +285,11 @@ A rebuild follows Magento's own save events, so a change made around them is not
 - `bin/magento config:set --lock-env` or `--lock-config`, which write to `env.php` / `config.php`;
 - configuration written through `Magento\Framework\App\Config\Storage\WriterInterface` — data
   patches, and any module that saves its settings that way;
-- product imports (Magento's own among them) and anything else that writes to the database directly.
+- anything that writes to the database directly, other than Magento's product import (which queues
+  the products once it has finished).
 
-They reach the sitemap at its next generation, or rebuild it now:
+They reach the sitemap at the next rewrite of their kind, or when Magento generates it on its
+schedule (off by default) — or rebuild it now:
 
 ```bash
 bin/magento seo:rebuild -g sitemap-products    # one kind of page

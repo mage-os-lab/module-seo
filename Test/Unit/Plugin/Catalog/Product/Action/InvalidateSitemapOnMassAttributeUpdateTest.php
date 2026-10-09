@@ -74,7 +74,8 @@ class InvalidateSitemapOnMassAttributeUpdateTest extends TestCase
 
     /**
      * The plugin over the real policy, so the attribute rules are exercised rather than restated
-     * here. sitemapTypesAffectedByAttributeUpdate() reads no sitemap.
+     * here. Of the sitemaps it asks only whether they list product images, for an image field; the
+     * stub answers no.
      *
      * @param Invalidator $invalidator
      * @return InvalidateSitemapOnMassAttributeUpdate

@@ -76,6 +76,36 @@ hardcoded version field).
 - **Clearing every excluded store view saves**
   ([#36](https://github.com/mage-os-lab/module-seo/issues/36)). An empty multiselect sent nothing, so
   the previous exclusions stayed.
+- **A sitemap that fails to publish stays whole**
+  ([#24](https://github.com/mage-os-lab/module-seo/issues/24)). The files replaced their names one
+  at a time, then the index, so a failure part-way left the old index listing a mix of new and old
+  files. And they were moved in from the system's temporary directory, which on most setups is
+  another filesystem, where a move is a copy into the live name that a crawler can read
+  half-written. Each kind of page now has two sets of files: a rebuild writes the set the index does
+  not list, every file under a temporary name next to its own, and switches the index last. See
+  `docs/sitemap.md`, "Two sets, one index".
+- **Installations sharing a temporary directory no longer write over each other's sitemaps**
+  ([#25](https://github.com/mage-os-lab/module-seo/issues/25)). Files were staged in the system's
+  temporary directory under the sitemap's own path and name, so two installations with the same
+  sitemap could publish each other's files. Nothing is staged outside the sitemap's directory now.
+- **Sitemaps are written to remote storage.** With Magento_RemoteStorage, this module wrote the
+  sitemap to the local `pub/` of the server generating it, while the admin grid and every other
+  server looked in the bucket; every Site Map save and `setup:upgrade` then queued it again as
+  missing. The Writer, the missing check and the clean-up are given `fullRemoteFilesystem`, as
+  core's sitemap is.
+- **Deleting a sitemap removes its files.** Magento's Delete removes only the index, and deleting a
+  store view removes its entries without removing a file, so the rest stayed reachable, listed
+  nowhere. They are removed once the deletion commits, unless another entry uses them.
+- **A new name, image or caption rewrites the products' sitemap files**
+  ([#23](https://github.com/mage-os-lab/module-seo/issues/23)). While a sitemap lists product
+  images (Magento's default), a product's row carries its name as the image title, its images and
+  their captions, but only a URL key, status, visibility or website change queued a rewrite; the
+  rest waited for Magento's scheduled generation, which is off by default. A change to the name,
+  base image or thumbnail — saved or mass-updated — or to the gallery now queues the products. The
+  gallery is compared on what is shown — images, captions, hidden, position — so saving the
+  product form unchanged queues nothing.
+- **A product import rewrites the products' sitemap files.** Magento's import writes to the
+  database directly, so no save reported it; the products are now queued once an import finishes.
 
 ### Changed
 
@@ -98,6 +128,19 @@ hardcoded version field).
   takes `Model\Config`. `Model\Hreflang\StoreLocaleMap` also takes `Hreflang\CodeList`, a cache and a
   logger. None of them is `@api`, but a subclass that overrides one of these constructors must
   follow.
+- **Sitemap file names have a set: `sitemap-1-products-a-1.xml`, `…-b-1.xml`.** The index keeps its
+  name, so nothing needs resubmitting. A sitemap written with the earlier names is written whole at
+  its next rebuild, and its earlier files go at the rebuild after. Search Console shows the index's
+  children under their new names after each rebuild of their kind.
+- **Requires `magento/module-remote-storage`,** which declares `fullRemoteFilesystem`. It is part of
+  every Magento and Mage-OS installation.
+- **Sitemap classes:** `Model\Sitemap\Writer` takes `Model\Sitemap\FileNames` (new: every name a
+  sitemap's files can have) and a logger, and has `abandon()`, which the Generator calls when a
+  generation fails. `Model\Sitemap\Generator` has `getFileTypes()`. New: `Model\Sitemap\FileRemover`,
+  `Plugin\Sitemap\RemoveFilesOnDelete`, `Observer\RemoveSitemapFilesOnScopeDelete`. None is `@api`.
+- **Invalidation:** `Model\Sitemap\RebuildableSitemaps` takes core's `Magento\Sitemap\Helper\Data`
+  and has `listsProductImages()`; `Model\Rebuild\ChangeInspector` has `galleryChanged()`;
+  `Model\Sitemap\InvalidationPolicy::EVENT_PRODUCT_IMPORT`.
 - **The consumer resets the hreflang store map before each build,** with the other services listed
   for `Model\Rebuild\BuildFreshness`, so a hreflang setting changed since shows in the next rebuild.
   `Hreflang\CodeList` reads the country list once per request, not once per check.

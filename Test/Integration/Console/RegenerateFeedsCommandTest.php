@@ -80,7 +80,7 @@ class RegenerateFeedsCommandTest extends TestCase
             );
             $this->assertStringContainsString(
                 $identifier,
-                $this->pub()->readFile("media/sitemap/{$this->sitemapName}-{$this->storeId()}-pages-1.xml")
+                $this->pub()->readFile('media/sitemap/' . $this->listedFile($sitemap, 'pages'))
             );
         } finally {
             $this->removeGeneratedSitemaps();

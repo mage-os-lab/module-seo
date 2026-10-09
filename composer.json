@@ -22,6 +22,7 @@
         "magento/module-inventory-sales-api": "*",
         "magento/module-media-storage": "*",
         "magento/module-message-queue": "*",
+        "magento/module-remote-storage": "*",
         "magento/module-review": "*",
         "magento/module-sitemap": "*",
         "magento/module-store": "*",

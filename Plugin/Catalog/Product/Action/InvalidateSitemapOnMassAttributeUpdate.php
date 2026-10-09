@@ -10,7 +10,8 @@ use MageOS\Seo\Model\Sitemap\InvalidationPolicy;
 
 /**
  * Queues a rebuild of the products in the sitemaps after a mass attribute update that can change
- * which products are listed, or at which URL.
+ * which products are listed, at which URL, or — while a sitemap lists product images — their name
+ * or image roles (Sitemap\InvalidationPolicy::sitemapTypesAffectedByAttributeUpdate()).
  *
  * Mass updates — the admin "Update attributes" action, mass enable/disable, and anything else
  * using this service — write attribute values straight to the EAV tables. No product is saved,

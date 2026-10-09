@@ -67,7 +67,7 @@ class FirstBuildTest extends TestCase
         $this->consume();
 
         $this->assertArrayHasKey(
-            "{$this->sitemapName}-{$this->defaultStoreId()}-products-1.xml",
+            "{$this->sitemapName}-{$this->defaultStoreId()}-products-a-1.xml",
             $this->index($sitemap)
         );
     }

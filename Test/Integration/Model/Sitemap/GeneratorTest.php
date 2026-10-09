@@ -106,19 +106,19 @@ class GeneratorTest extends TestCase
 
         $this->assertSame(
             [
-                "{$this->sitemapName}-{$storeId}-pages-1.xml",
-                "{$this->sitemapName}-{$storeId}-categories-1.xml",
-                "{$this->sitemapName}-{$storeId}-products-1.xml",
+                "{$this->sitemapName}-{$storeId}-pages-a-1.xml",
+                "{$this->sitemapName}-{$storeId}-categories-a-1.xml",
+                "{$this->sitemapName}-{$storeId}-products-a-1.xml",
             ],
             array_keys($files)
         );
         $this->assertStringContainsString(
             (string) $storage->get('product')->getUrlKey(),
-            $files["{$this->sitemapName}-{$storeId}-products-1.xml"]
+            $files["{$this->sitemapName}-{$storeId}-products-a-1.xml"]
         );
         $this->assertStringContainsString(
             (string) $storage->get('category')->getUrlKey(),
-            $files["{$this->sitemapName}-{$storeId}-categories-1.xml"]
+            $files["{$this->sitemapName}-{$storeId}-categories-a-1.xml"]
         );
     }
 
@@ -192,6 +192,8 @@ class GeneratorTest extends TestCase
         $leftovers = [
             "{$this->sitemapName}-{$storeId}-7.xml",
             "{$this->sitemapName}-{$storeId}-products-9.xml",
+            "{$this->sitemapName}-{$storeId}-products-b-9.xml",
+            "{$this->sitemapName}-{$storeId}-pages-a-1.xml.tmp",
         ];
         $strangers = [
             "{$this->sitemapName}x-{$storeId}-1.xml",
@@ -226,7 +228,7 @@ class GeneratorTest extends TestCase
 
         $files = $this->generateFor($this->defaultStoreId());
 
-        $other = "{$this->sitemapName}-{$this->defaultStoreId()}-other-1.xml";
+        $other = "{$this->sitemapName}-{$this->defaultStoreId()}-other-a-1.xml";
         $this->assertArrayHasKey($other, $files);
         $this->assertStringContainsString(RegisteredElsewhereProvider::URL, $files[$other]);
     }

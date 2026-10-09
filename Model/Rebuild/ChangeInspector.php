@@ -50,6 +50,71 @@ class ChangeInspector
     }
 
     /**
+     * Whether the product's image gallery changed in what is shown of it.
+     *
+     * An image added or removed, or for an image kept, its caption, whether it is hidden, or its
+     * place. Compared on those alone, each read as the storefront and the sitemap read it — the
+     * store view's value, else the default's — because a gallery is saved in another shape than
+     * it was loaded in: the admin's product form posts every image back, as strings, with keys of
+     * its own and an empty "removed", whether anything changed or not. A save with no gallery data
+     * leaves the gallery as it was.
+     *
+     * @param Product $product
+     * @return bool
+     */
+    public function galleryChanged(Product $product): bool
+    {
+        $saved = $product->getData('media_gallery');
+        if (!\is_array($saved)) {
+            return false;
+        }
+
+        return $this->shownImages($product->getOrigData('media_gallery')) !== $this->shownImages($saved);
+    }
+
+    /**
+     * The images of a gallery that are not removed, by file.
+     *
+     * Each with its caption, hidden flag and position as shown.
+     *
+     * @param mixed $gallery
+     * @return array<string,array{string,int,int}>
+     */
+    private function shownImages(mixed $gallery): array
+    {
+        $images = \is_array($gallery) && \is_array($gallery['images'] ?? null) ? $gallery['images'] : [];
+
+        $shown = [];
+        foreach ($images as $image) {
+            if (!\is_array($image) || !empty($image['removed']) || (string) ($image['file'] ?? '') === '') {
+                continue;
+            }
+            $shown[(string) $image['file']] = [
+                (string) $this->shown($image, 'label'),
+                (int) $this->shown($image, 'disabled'),
+                (int) $this->shown($image, 'position'),
+            ];
+        }
+        ksort($shown);
+
+        return $shown;
+    }
+
+    /**
+     * An image's own value of a field, else its default's: the value shown.
+     *
+     * @param array<string,mixed> $image
+     * @param string $field
+     * @return mixed
+     */
+    private function shown(array $image, string $field): mixed
+    {
+        $value = $image[$field] ?? null;
+
+        return $value === null || $value === '' ? ($image[$field . '_default'] ?? $value) : $value;
+    }
+
+    /**
      * Whether the product's website assignments changed (same comparison as core's URL rewrite observer).
      *
      * @param Product $product

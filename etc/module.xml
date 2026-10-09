@@ -8,6 +8,8 @@
             <module name="Magento_Cms"/>
             <!-- After core's sitemap, so this module's di.xml replaces its item providers. -->
             <module name="Magento_Sitemap"/>
+            <!-- Declares fullRemoteFilesystem, which the sitemap's files are written through. -->
+            <module name="Magento_RemoteStorage"/>
         </sequence>
     </module>
 </config>
