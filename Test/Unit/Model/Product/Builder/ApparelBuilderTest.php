@@ -8,7 +8,6 @@ use Magento\Catalog\Helper\Image as ImageHelper;
 use Magento\Catalog\Model\Product;
 use Magento\Framework\Pricing\Price\PriceInterface;
 use Magento\Framework\Pricing\PriceInfoInterface;
-use Magento\Framework\Stdlib\DateTime\DateTime;
 use Magento\Store\Model\Store;
 use Magento\Store\Model\StoreManagerInterface;
 use MageOS\Seo\Model\Config;
@@ -59,11 +58,6 @@ class ApparelBuilderTest extends TestCase
     private Config&Stub $seoConfig;
 
     /**
-     * @var DateTime&Stub
-     */
-    private DateTime&Stub $dateTime;
-
-    /**
      * @var Product&Stub
      */
     private Product&Stub $product;
@@ -91,7 +85,6 @@ class ApparelBuilderTest extends TestCase
         $this->availabilityResolver = $this->createStub(AvailabilityResolver::class);
         $this->imageHelper     = $this->createStub(ImageHelper::class);
         $this->seoConfig       = $this->createStub(Config::class);
-        $this->dateTime        = $this->createStub(DateTime::class);
         $this->product         = $this->createStub(Product::class);
         $this->priceInfo       = $this->createMock(PriceInfoInterface::class);
         $this->finalPrice      = $this->createStub(PriceInterface::class);
@@ -99,7 +92,13 @@ class ApparelBuilderTest extends TestCase
         $this->storeManager->method('getStore')->willReturn($this->store);
         $this->store->method('getBaseUrl')->willReturn('https://example.com/');
         $this->finalPrice->method('getValue')->willReturn(59.99);
-        $this->priceInfo->method('getPrice')->with('final_price')->willReturn($this->finalPrice);
+        $this->finalPrice->method('getAmount')->willReturn($this->amount(59.99));
+        // No special price in effect: core's SpecialPrice answers false.
+        $noSpecial = $this->createStub(PriceInterface::class);
+        $noSpecial->method('getValue')->willReturn(false);
+        $this->priceInfo->method('getPrice')->willReturnCallback(
+            fn (string $code): PriceInterface => $code === 'special_price' ? $noSpecial : $this->finalPrice
+        );
         $this->product->method('getPriceInfo')->willReturn($this->priceInfo);
         $this->product->method('getName')->willReturn('Blue T-Shirt');
         $this->product->method('getSku')->willReturn('TS-BLUE-L');
@@ -117,7 +116,6 @@ class ApparelBuilderTest extends TestCase
                 $this->storeManager,
                 $this->currencyService,
                 $this->availabilityResolver,
-                $this->dateTime,
                 new OfferEnricherPool()
             ),
             new AggregateRatingResolver(),

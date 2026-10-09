@@ -5,8 +5,9 @@ declare(strict_types=1);
 namespace MageOS\Seo\Test\Unit\Model\Product\Builder;
 
 use Magento\ConfigurableProduct\Pricing\Price\ConfigurableOptionsProviderInterface;
-use Magento\Framework\Stdlib\DateTime\DateTime;
+use Magento\Framework\Pricing\Amount\AmountInterface;
 use Magento\Store\Model\StoreManagerInterface;
+use MageOS\Seo\Model\Config;
 use MageOS\Seo\Model\Product\AvailabilityResolver;
 use MageOS\Seo\Model\Product\FinalPrice;
 use MageOS\Seo\Model\Product\OfferBuilder;
@@ -26,7 +27,6 @@ trait OfferBuilders
      * @param StoreManagerInterface $storeManager
      * @param CurrencyService $currencyService
      * @param AvailabilityResolver $availabilityResolver
-     * @param DateTime $dateTime
      * @param OfferEnricherPool $offerEnricherPool
      * @return OfferBuilder
      */
@@ -34,17 +34,29 @@ trait OfferBuilders
         StoreManagerInterface $storeManager,
         CurrencyService $currencyService,
         AvailabilityResolver $availabilityResolver,
-        DateTime $dateTime,
         OfferEnricherPool $offerEnricherPool
     ): OfferBuilder {
         return new OfferBuilder(
             $storeManager,
             $currencyService,
             $availabilityResolver,
-            $dateTime,
             $offerEnricherPool,
             new ChildProducts($this->createStub(ConfigurableOptionsProviderInterface::class)),
-            new FinalPrice($this->createStub(LoggerInterface::class))
+            new FinalPrice($this->createStub(LoggerInterface::class), $this->createStub(Config::class))
         );
+    }
+
+    /**
+     * A final price's amount as the store displays it: what FinalPrice publishes.
+     *
+     * @param float $value
+     * @return AmountInterface
+     */
+    private function amount(float $value): AmountInterface
+    {
+        $amount = $this->createStub(AmountInterface::class);
+        $amount->method('getValue')->willReturn($value);
+
+        return $amount;
     }
 }

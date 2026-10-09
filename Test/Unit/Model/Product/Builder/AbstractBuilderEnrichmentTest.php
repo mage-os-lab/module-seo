@@ -8,7 +8,6 @@ use Magento\Catalog\Helper\Image as ImageHelper;
 use Magento\Catalog\Model\Product;
 use Magento\Framework\Pricing\Price\PriceInterface;
 use Magento\Framework\Pricing\PriceInfoInterface;
-use Magento\Framework\Stdlib\DateTime\DateTime;
 use Magento\Store\Model\Store;
 use Magento\Store\Model\StoreManagerInterface;
 use MageOS\Seo\Api\AggregateRatingProviderInterface;
@@ -74,6 +73,7 @@ class AbstractBuilderEnrichmentTest extends TestCase
 
         $finalPrice = $this->createStub(PriceInterface::class);
         $finalPrice->method('getValue')->willReturn(29.99);
+        $finalPrice->method('getAmount')->willReturn($this->amount(29.99));
         $priceInfo = $this->createMock(PriceInfoInterface::class);
         $priceInfo->method('getPrice')->with('final_price')->willReturn($finalPrice);
         $this->product->method('getPriceInfo')->willReturn($priceInfo);
@@ -105,7 +105,6 @@ class AbstractBuilderEnrichmentTest extends TestCase
                 $this->storeManager,
                 $currencyService,
                 $this->availabilityResolver,
-                $this->createStub(DateTime::class),
                 new OfferEnricherPool([$enricher])
             ),
             new AggregateRatingResolver([$ratingProvider]),

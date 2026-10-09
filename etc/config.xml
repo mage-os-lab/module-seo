@@ -13,6 +13,7 @@
                 <category_item_list_max>36</category_item_list_max>
                 <has_variant_max>50</has_variant_max>
                 <aggregate_rating_enabled>1</aggregate_rating_enabled>
+                <publish_zero_price>0</publish_zero_price>
             </structured_data>
             <category_config>
                 <!--

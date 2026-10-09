@@ -17,6 +17,7 @@ class Config
     public const XML_SD_CATEGORY_ITEM_LIST_MAX     = 'mageos_seo_general/structured_data/category_item_list_max';
     public const XML_SD_HAS_VARIANT_MAX            = 'mageos_seo_general/structured_data/has_variant_max';
     public const XML_SD_AGGREGATE_RATING_ENABLED   = 'mageos_seo_general/structured_data/aggregate_rating_enabled';
+    public const XML_SD_PUBLISH_ZERO_PRICE         = 'mageos_seo_general/structured_data/publish_zero_price';
 
     public const XML_CATEGORY_INHERITANCE_STRATEGY = 'mageos_seo_general/category_config/inheritance_strategy';
 
@@ -174,6 +175,21 @@ class Config
         }
 
         return max(0, (int) $value);
+    }
+
+    /**
+     * Whether a simple product priced 0 is published as free.
+     *
+     * Off by default: a price of 0 is usually one hidden from the visitor (B2B and trade stores), and
+     * Google's merchant listings refuse it. Model\Product\FinalPrice reads it for the structured
+     * data, Open Graph and MageOS_Aeo's llms.jsonl alike.
+     *
+     * @param int|string|null $storeId
+     * @return bool
+     */
+    public function isZeroPricePublished(int|string|null $storeId = null): bool
+    {
+        return $this->scopeConfig->isSetFlag(self::XML_SD_PUBLISH_ZERO_PRICE, ScopeInterface::SCOPE_STORE, $storeId);
     }
 
     /**

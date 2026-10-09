@@ -7,12 +7,13 @@ namespace MageOS\Seo\Test\Unit\Model\Product;
 use Magento\Catalog\Model\Product;
 use Magento\Catalog\Model\Product\Type\AbstractType;
 use Magento\ConfigurableProduct\Pricing\Price\ConfigurableOptionsProviderInterface;
+use Magento\Framework\Pricing\Amount\AmountInterface;
 use Magento\Framework\Pricing\Price\PriceInterface;
 use Magento\Framework\Pricing\PriceInfoInterface;
-use Magento\Framework\Stdlib\DateTime\DateTime;
 use Magento\Store\Model\Store;
 use Magento\Store\Model\StoreManagerInterface;
 use MageOS\Seo\Api\OfferEnricherInterface;
+use MageOS\Seo\Model\Config;
 use MageOS\Seo\Model\Product\AvailabilityResolver;
 use MageOS\Seo\Model\Product\FinalPrice;
 use MageOS\Seo\Model\Product\OfferBuilder;
@@ -63,19 +64,19 @@ class OfferBuilderTest extends TestCase
         $this->assertSame(['@type' => 'OfferShippingDetails'], $offer['shippingDetails']);
     }
 
-    public function testASpecialPriceWithAFutureEndDateGivesThatDate(): void
+    public function testAnActiveSpecialThatIsThePriceGivesItsEndDate(): void
     {
         $offer = $this->offerBuilder()
-            ->build($this->product('simple', 12.5, '2027-01-31 00:00:00', '9.9900'), self::URL);
+            ->build($this->product('simple', 9.99, '2027-01-31 00:00:00', 9.99), self::URL);
 
         $this->assertSame('2027-01-31', $offer['priceValidUntil']);
     }
 
-    public function testASpecialPriceEndingTodayStillGivesTheDate(): void
+    public function testASpecialEndingTodayStillGivesTheDate(): void
     {
-        // special_to_date is inclusive: the special price holds for the whole of that day.
+        // Core counts the to-date as active for the whole of that day.
         $offer = $this->offerBuilder()
-            ->build($this->product('simple', 12.5, '2026-09-25 00:00:00', '9.9900'), self::URL);
+            ->build($this->product('simple', 9.99, '2026-09-25 00:00:00', 9.99), self::URL);
 
         $this->assertSame('2026-09-25', $offer['priceValidUntil']);
     }
@@ -87,28 +88,40 @@ class OfferBuilderTest extends TestCase
         $this->assertArrayNotHasKey('priceValidUntil', $offer);
     }
 
-    public function testASpecialPriceWithoutAnEndDateGivesNoDate(): void
+    public function testAnActiveSpecialWithoutAnEndDateGivesNoDate(): void
     {
-        $offer = $this->offerBuilder()->build($this->product('simple', 12.5, null, '9.9900'), self::URL);
+        $offer = $this->offerBuilder()->build($this->product('simple', 9.99, null, 9.99), self::URL);
 
         $this->assertArrayNotHasKey('priceValidUntil', $offer);
     }
 
-    public function testASpecialPriceWhoseEndDateHasPassedGivesNoDate(): void
+    public function testAFutureSpecialGivesNoDate(): void
+    {
+        // Issue #31: a November special is not October's price, so its end date is not October's.
+        // Core's SpecialPrice answers false for a special outside its dates.
+        $offer = $this->offerBuilder()
+            ->build($this->product('simple', 12.5, '2026-11-30 00:00:00', false), self::URL);
+
+        $this->assertArrayNotHasKey('priceValidUntil', $offer);
+    }
+
+    public function testAnExpiredSpecialGivesNoDate(): void
     {
         $offer = $this->offerBuilder()
-            ->build($this->product('simple', 12.5, '2026-09-24 00:00:00', '9.9900'), self::URL);
+            ->build($this->product('simple', 12.5, '2026-09-24 00:00:00', false), self::URL);
 
         $this->assertArrayNotHasKey('priceValidUntil', $offer);
     }
 
-    public function testAnEndDateWithoutASpecialPriceGivesNoDate(): void
+    public function testASpecialBeatenByALowerPriceGivesNoDate(): void
     {
-        $offer = $this->offerBuilder()->build($this->product('simple', 12.5, '2027-01-31 00:00:00'), self::URL);
-        $empty = $this->offerBuilder()->build($this->product('simple', 12.5, '2027-01-31 00:00:00', ''), self::URL);
+        // Issue #31: a catalog rule at 8.00 is the price published, and the special's end date is
+        // not that price's.
+        $offer = $this->offerBuilder()
+            ->build($this->product('simple', 8.0, '2027-01-31 00:00:00', 9.99), self::URL);
 
+        $this->assertSame('8.00', $offer['price']);
         $this->assertArrayNotHasKey('priceValidUntil', $offer);
-        $this->assertArrayNotHasKey('priceValidUntil', $empty);
     }
 
     public function testAConfigurableWhoseChildrenDifferInPriceHasAnAggregateOffer(): void
@@ -128,6 +141,33 @@ class OfferBuilderTest extends TestCase
             ],
             $offer
         );
+    }
+
+    public function testAConfigurableIsAsAvailableAsItsBestChild(): void
+    {
+        // On the product page the children are loaded already: a configurable whose children can
+        // only be backordered is on backorder, not in stock as its own index row would say.
+        $children     = [$this->product('simple', 10), $this->product('simple', 12)];
+        $availability = $this->createMock(AvailabilityResolver::class);
+        $availability->expects($this->once())->method('best')->with($children)
+            ->willReturn(AvailabilityResolver::BACKORDER);
+        $availability->expects($this->never())->method('resolve');
+
+        $offer = $this->offerBuilder($children, availability: $availability)
+            ->build($this->product('configurable', 10), self::URL);
+
+        $this->assertSame(AvailabilityResolver::BACKORDER, $offer['availability']);
+    }
+
+    public function testAProductWithoutChildrenIsAsAvailableAsItself(): void
+    {
+        $availability = $this->createMock(AvailabilityResolver::class);
+        $availability->expects($this->once())->method('resolve')->willReturn(AvailabilityResolver::BACKORDER);
+        $availability->expects($this->never())->method('best');
+
+        $offer = $this->offerBuilder(availability: $availability)->build($this->product('simple', 10), self::URL);
+
+        $this->assertSame(AvailabilityResolver::BACKORDER, $offer['availability']);
     }
 
     public function testAConfigurableWhoseChildrenShareOnePriceKeepsAnOffer(): void
@@ -182,11 +222,11 @@ class OfferBuilderTest extends TestCase
         $this->assertSame([], $offer);
     }
 
-    public function testASimpleProductPricedZeroIsFree(): void
+    public function testASimpleProductPricedZeroHasNoOffer(): void
     {
-        $offer = $this->offerBuilder()->build($this->product('simple', 0.0), self::URL);
-
-        $this->assertSame('0.00', $offer['price']);
+        // Issue #41: unless Publish a Price of Zero is on (Model\Product\FinalPrice), a price of 0
+        // is one hidden from the visitor, not a free product.
+        $this->assertSame([], $this->offerBuilder()->build($this->product('simple', 0.0), self::URL));
     }
 
     public function testAChildWhosePriceCannotBeReadIsLeftOutOfTheRange(): void
@@ -211,19 +251,21 @@ class OfferBuilderTest extends TestCase
     }
 
     /**
-     * The offer builder, on 2026-09-25 in store time.
+     * The offer builder.
      *
      * @param Product[] $children The configurable's sellable children
      * @param OfferEnricherInterface[] $enrichers
      * @param float $rate Display currency per unit of base currency
      * @param ConfigurableOptionsProviderInterface|null $optionsProvider
+     * @param AvailabilityResolver|null $availability
      * @return OfferBuilder
      */
     private function offerBuilder(
         array $children = [],
         array $enrichers = [],
         float $rate = 1.0,
-        ?ConfigurableOptionsProviderInterface $optionsProvider = null
+        ?ConfigurableOptionsProviderInterface $optionsProvider = null,
+        ?AvailabilityResolver $availability = null
     ): OfferBuilder {
         $store = $this->createStub(Store::class);
         $store->method('getId')->willReturn(1);
@@ -232,11 +274,11 @@ class OfferBuilderTest extends TestCase
 
         $currencyService = $this->currencyService('GBP', $rate);
 
-        $availability = $this->createStub(AvailabilityResolver::class);
-        $availability->method('resolve')->willReturn(AvailabilityResolver::IN_STOCK);
-
-        $dateTime = $this->createStub(DateTime::class);
-        $dateTime->method('date')->willReturn('2026-09-25');
+        if ($availability === null) {
+            $availability = $this->createStub(AvailabilityResolver::class);
+            $availability->method('resolve')->willReturn(AvailabilityResolver::IN_STOCK);
+            $availability->method('best')->willReturn(AvailabilityResolver::IN_STOCK);
+        }
 
         if ($optionsProvider === null) {
             $optionsProvider = $this->createStub(ConfigurableOptionsProviderInterface::class);
@@ -247,37 +289,45 @@ class OfferBuilderTest extends TestCase
             $storeManager,
             $currencyService,
             $availability,
-            $dateTime,
             new OfferEnricherPool($enrichers),
             new ChildProducts($optionsProvider),
-            new FinalPrice($this->createStub(LoggerInterface::class))
+            new FinalPrice($this->createStub(LoggerInterface::class), $this->createStub(Config::class))
         );
     }
 
     /**
-     * A product as loaded: its final price, and the special price attributes as the database has them.
+     * A product as loaded: its final price, its special price as core's SpecialPrice answers (false
+     * when there is none in effect today), and its special_to_date as the database has it.
      *
      * @param string $typeId
      * @param float $finalPrice
      * @param string|null $specialToDate
-     * @param string|null $specialPrice
+     * @param float|false $special
      * @return Product
      */
     private function product(
         string $typeId,
         float $finalPrice,
         ?string $specialToDate = null,
-        ?string $specialPrice = null
+        float|false $special = false
     ): Product {
-        $price = $this->createStub(PriceInterface::class);
-        $price->method('getValue')->willReturn($finalPrice);
+        $final = $this->createStub(PriceInterface::class);
+        $final->method('getValue')->willReturn($finalPrice);
+        $displayed = $this->createStub(AmountInterface::class);
+        $displayed->method('getValue')->willReturn($finalPrice);
+        $final->method('getAmount')->willReturn($displayed);
+        $specialPrice = $this->createStub(PriceInterface::class);
+        $specialPrice->method('getValue')->willReturn($special);
         $priceInfo = $this->createStub(PriceInfoInterface::class);
-        $priceInfo->method('getPrice')->willReturn($price);
+        $priceInfo->method('getPrice')->willReturnCallback(
+            static fn (string $code): PriceInterface => $code === 'special_price' ? $specialPrice : $final
+        );
 
         $type = $this->createStub(AbstractType::class);
         $type->method('isComposite')->willReturn($typeId === 'configurable');
 
-        $data    = ['special_to_date' => $specialToDate, 'special_price' => $specialPrice];
+        // A special with an end date is stored: the attribute is there whether or not it is in effect.
+        $data    = ['special_to_date' => $specialToDate, 'special_price' => $specialToDate === null ? null : '9.9900'];
         $product = $this->createStub(Product::class);
         $product->method('getTypeId')->willReturn($typeId);
         $product->method('getTypeInstance')->willReturn($type);

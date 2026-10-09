@@ -82,34 +82,72 @@ the product node has **no `offers` at all**:
   it: an out-of-stock configurable has no saleable child.
 - **A price lookup that fails.** The error is logged (`MageOS_Seo: could not read the final price of
   product "<sku>"`), so the cause can be found.
+- **Any other product priced 0**, unless **Publish a Price of Zero** is on (Stores → Configuration →
+  MageOS SEO → Structured Data (JSON-LD); default No). A price of 0 is usually one hidden from the
+  visitor, as on B2B and trade stores, rather than a free product. With the setting on, a simple
+  product priced 0 is offered as free; a composite product priced 0 still has no offer.
+- **A price below 0.**
 
 Not a price of 0, because Google reads `"price": 0` as free, and its merchant listings need a price
 above zero. And not an Offer without a price either, because Google requires `price` on every Offer.
 A Product without `offers` is still eligible for product snippets when it has `aggregateRating` or
 `review`.
 
-A simple product priced 0 is free, and its offer says so. A fixed-price bundle priced 0 is the one
-case read as unknown when it is free.
+**The price is the one the page shows.** It is the final price's amount with the adjustments the
+store displays: including tax when prices are shown including tax, or both ways, and excluding it
+when catalog prices are entered with tax but shown without. Google expects the structured data's
+price to match the visible price, and in many countries consumer prices must be shown with tax.
 
-`Model\Product\FinalPrice` makes this decision for the structured data and for MageOS_Aeo's
-`/llms.jsonl`, so the two never disagree.
+`Model\Product\FinalPrice` makes these decisions for the structured data, Open Graph and
+MageOS_Aeo's `/llms.jsonl`, so they never disagree.
 
 ---
 
+## An offer's availability
+
+An offer says what the storefront says. On the storefront MSI answers "salable" from its stock
+index alone (in the frontend and GraphQL areas its own di.xml puts the index-based check in place
+of the full condition chain), so the structured data reads the same index:
+
+| The stock index has the product | `availability` |
+| --- | --- |
+| not salable, or not at all | `OutOfStock` |
+| salable, with a quantity above zero | `InStock` |
+| salable at zero or below, stock managed | `BackOrder`: it sells only through backorders |
+| salable at zero or below, stock not managed | `InStock` |
+| salable, a product type without a quantity of its own (configurable, bundle, grouped) | `InStock` |
+
+A configurable product's offer takes its best variant's availability instead: `InStock` if any
+variant is in stock, else `BackOrder` if any can be backordered, else `OutOfStock`. Its own index row
+says salable as soon as any child can be bought, backorders included.
+
+**Reservations are not subtracted**, as the storefront doesn't subtract them either: units ordered
+but not yet shipped still count until shipping deducts them, so a product whose last units are all
+reserved stays `InStock` on the page and in the markup alike. Google compares the markup with the
+page.
+
+`Model\Product\AvailabilityResolver` decides this for every offer. It reads a whole batch of
+products in one query (MSI's `@api` `GetStockItemsDataInterface`), plus one for whether stock is
+managed, only when some product is salable at zero or below. A configurable's variants are read as
+one batch. Before, each product cost MSI's per-product condition chain: outside the storefront
+areas, as in a feed build, a 15-variant configurable took 149 queries, and takes 14 now (Luma's
+WT02, measured with the DB profiler). When the stock cannot be read, the product is `OutOfStock`
+and the error is logged with its SKU.
+
 ## An offer's priceValidUntil
 
-`priceValidUntil` is published only where the catalogue has the date, never made up. An offer
-carries it when both of these hold:
+`priceValidUntil` is published only where the catalogue has the date, never made up, and only for
+the price the offer publishes. An offer carries the **special price end date** (`special_to_date`)
+when both of these hold:
 
-- the product has a **special price** with a value, and
-- its **special price end date** (`special_to_date`) is today or later, in the store's time.
-
-The end date is inclusive: a special price ending today holds for the whole of that day, so the date
-is still published on its last day.
+- the special price is **in effect today**, as core's `SpecialPrice` decides it from the special
+  price dates (the end date counts for the whole of that day), and
+- it **is the price published**: no lower price, a catalog price rule's say, beats it. The two are
+  compared as Magento holds them, before tax and other display adjustments.
 
 In every other case there is no `priceValidUntil`: no special price, a special price without an end
-date, an end date that has passed, or an end date without a special price. Google accepts an Offer
-without one.
+date, one that has ended or not yet begun, or one a lower price beats. A special price starting
+next month does not lend its end date to this month's price. Google accepts an Offer without one.
 
 Earlier versions filled the gap with a synthetic date, today plus **Price Valid Until (months)**.
 That date promised a validity nothing in the store backed, so it and its setting have been removed.
@@ -185,7 +223,7 @@ Codes are matched case- and underscore-insensitively. Values are the options' st
 
 **More sellable children than `has_variant_max`, or the setting at 0** — one `Product` whose offer is an `AggregateOffer` from the lowest child's price to the highest, rather than a variant list cut short that would misstate what the store sells. Children that all share one price keep a single `Offer`.
 
-Why a limit at all: Google sets none. Each variant adds an offer to the page — and a salability check on a product page that isn't cached — so the setting bounds page weight and build time for configurables with very many children.
+Why a limit at all: Google sets none. Each variant adds an offer to the page, so the setting bounds page weight and build time for configurables with very many children. Their availability is read as one batch however many there are (see [An offer's availability](#an-offers-availability)).
 
 ---
 

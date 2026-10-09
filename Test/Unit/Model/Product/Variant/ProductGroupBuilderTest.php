@@ -8,6 +8,7 @@ use Magento\Catalog\Model\Product;
 use Magento\Framework\DataObject;
 use MageOS\Seo\Api\ProductVariantUrlResolverInterface;
 use MageOS\Seo\Model\Config;
+use MageOS\Seo\Model\Product\AvailabilityResolver;
 use MageOS\Seo\Model\Product\GtinValidator;
 use MageOS\Seo\Model\Product\OfferBuilder;
 use MageOS\Seo\Model\Product\Variant\ChildProducts;
@@ -208,12 +209,23 @@ class ProductGroupBuilderTest extends TestCase
         $this->assertSame(self::NODE, $this->builder([], [])->build(self::NODE, $this->product(), []));
     }
 
+    public function testTheVariantsAvailabilityIsLookedUpTogether(): void
+    {
+        // One stock lookup for all the variants, before each variant's offer asks for its own.
+        $variants     = [$this->variant(7, 'TEE-S', []), $this->variant(8, 'TEE-M', [])];
+        $availability = $this->createMock(AvailabilityResolver::class);
+        $availability->expects($this->once())->method('prefetch')->with($variants);
+
+        $this->builder($variants, [], availabilityResolver: $availability)->build(self::NODE, $this->product(), []);
+    }
+
     /**
      * @param Product[] $variants
      * @param VariantAttribute[] $attributes
      * @param array<int, string> $gtins
      * @param int $max
      * @param GtinReader|null $gtinReader
+     * @param AvailabilityResolver|null $availabilityResolver
      * @return ProductGroupBuilder
      */
     private function builder(
@@ -221,7 +233,8 @@ class ProductGroupBuilderTest extends TestCase
         array $attributes,
         array $gtins = [],
         int $max = 50,
-        ?GtinReader $gtinReader = null
+        ?GtinReader $gtinReader = null,
+        ?AvailabilityResolver $availabilityResolver = null
     ): ProductGroupBuilder {
         $childProducts = $this->createStub(ChildProducts::class);
         $childProducts->method('get')->willReturn($variants);
@@ -254,7 +267,8 @@ class ProductGroupBuilderTest extends TestCase
             $offerBuilder,
             $gtinReader,
             new GtinValidator(),
-            $seoConfig
+            $seoConfig,
+            $availabilityResolver ?? $this->createStub(AvailabilityResolver::class)
         );
     }
 

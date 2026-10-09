@@ -8,7 +8,6 @@ use Magento\Catalog\Helper\Image as ImageHelper;
 use Magento\Catalog\Model\Product;
 use Magento\Framework\Pricing\Price\PriceInterface;
 use Magento\Framework\Pricing\PriceInfoInterface;
-use Magento\Framework\Stdlib\DateTime\DateTime;
 use Magento\Store\Model\Store;
 use Magento\Store\Model\StoreManagerInterface;
 use MageOS\Seo\Model\Config;
@@ -57,6 +56,7 @@ class FoodBuilderTest extends TestCase
         $storeManager->method('getStore')->willReturn($store);
         $store->method('getBaseUrl')->willReturn('https://example.com/');
         $finalPrice->method('getValue')->willReturn(4.99);
+        $finalPrice->method('getAmount')->willReturn($this->amount(4.99));
         $priceInfo->method('getPrice')->with('final_price')->willReturn($finalPrice);
         $this->product->method('getPriceInfo')->willReturn($priceInfo);
         $this->product->method('getName')->willReturn('Organic Honey');
@@ -76,7 +76,6 @@ class FoodBuilderTest extends TestCase
                 $storeManager,
                 $currencyService,
                 $this->availabilityResolver,
-                $this->createStub(DateTime::class),
                 new OfferEnricherPool()
             ),
             new AggregateRatingResolver(),

@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace MageOS\Seo\Model\Product;
 
 use Magento\Catalog\Api\Data\ProductInterface;
-use Magento\Framework\Stdlib\DateTime\DateTime;
 use Magento\Store\Model\StoreManagerInterface;
 use MageOS\Seo\Model\Product\OfferEnricher\Pool as OfferEnricherPool;
 use MageOS\Seo\Model\Product\Variant\ChildProducts;
@@ -34,7 +33,6 @@ class OfferBuilder
      * @param StoreManagerInterface $storeManager
      * @param CurrencyService $currencyService
      * @param AvailabilityResolver $availabilityResolver
-     * @param DateTime $dateTime
      * @param OfferEnricherPool $offerEnricherPool
      * @param ChildProducts $childProducts
      * @param FinalPrice $finalPrice
@@ -43,7 +41,6 @@ class OfferBuilder
         private readonly StoreManagerInterface $storeManager,
         private readonly CurrencyService       $currencyService,
         private readonly AvailabilityResolver  $availabilityResolver,
-        private readonly DateTime              $dateTime,
         private readonly OfferEnricherPool     $offerEnricherPool,
         private readonly ChildProducts         $childProducts,
         private readonly FinalPrice            $finalPrice
@@ -68,12 +65,17 @@ class OfferBuilder
             return [];
         }
 
+        // A configurable is as available as its best child: the children are loaded for the price
+        // range anyway, and its own index row says "in stock" even when only backorders sell.
+        $children = $this->childProducts->get($product);
         $offer = [
             '@type'         => 'Offer',
             'url'           => $url,
             'price'         => $this->currencyService->formatAmountForLlms($price),
             'priceCurrency' => $this->currencyService->getCurrentCurrencyCode(),
-            'availability'  => $this->availabilityResolver->resolve($product),
+            'availability'  => $children !== []
+                ? $this->availabilityResolver->best($children)
+                : $this->availabilityResolver->resolve($product),
         ];
 
         // itemCondition is deliberately NOT hardcoded here: ItemConditionEnricher adds
@@ -83,7 +85,7 @@ class OfferBuilder
             $offer['priceValidUntil'] = $priceValidUntil;
         }
 
-        $priceRange = $this->resolvePriceRange($product);
+        $priceRange = $this->resolvePriceRange($children);
         if ($priceRange !== null) {
             $offer = $this->buildAggregateOffer($offer, $priceRange);
         }
@@ -107,15 +109,15 @@ class OfferBuilder
      * known is left out of the range. Null keeps the single Offer: any other product type, fewer
      * than two priced children, or one price for all.
      *
-     * @param ProductInterface $product
+     * @param ProductInterface[] $children The configurable's sellable children (Variant\ChildProducts)
      * @return array{low: float, high: float}|null
      */
-    private function resolvePriceRange(ProductInterface $product): ?array
+    private function resolvePriceRange(array $children): ?array
     {
         $prices = array_filter(
             array_map(
                 fn (ProductInterface $child): ?float => $this->finalPrice->get($child),
-                $this->childProducts->get($product)
+                $children
             ),
             static fn (?float $price): bool => $price !== null
         );
@@ -129,8 +131,7 @@ class OfferBuilder
             return null;
         }
 
-        // PriceInfo amounts are already in the current (display) currency: core
-        // RegularPrice / SpecialPrice / CatalogRulePrice::getValue() convert with PriceCurrency.
+        // FinalPrice gives the amount the page shows, already in the current (display) currency.
         // Converting again would apply the rate twice.
         return [
             'low'  => $min,
@@ -159,13 +160,17 @@ class OfferBuilder
     }
 
     /**
-     * Resolve priceValidUntil: a special price's end date, and nothing made up.
+     * Resolve priceValidUntil: the end date of the special price the offer publishes.
      *
-     * The date is published only when the catalogue has one: the product has a special price, and
-     * its special_to_date is today or later in the store's time. special_to_date is inclusive — the
-     * special price holds for the whole of that day — so a price ending today still has it. Without
-     * both there is no date: a synthetic "N months from today" would promise a validity nothing
-     * backs, and Google accepts an Offer without one.
+     * Nothing is made up. Only a special price that is in effect today and is the price published has its end date
+     * published (issue #31). Core's SpecialPrice decides "in effect": its getValue() is false
+     * outside the special's dates, by core's own date rules, so a special that has ended or not yet
+     * begun gives none. A special beaten by a lower price, a catalog rule's say, is not the price
+     * published, so its end date is not that price's. The two are compared as core holds them
+     * (getValue(), before tax and other display adjustments), to the currency's two decimals.
+     *
+     * Without a special_to_date there is no date: a synthetic "N months from today" would promise a
+     * validity nothing backs, and Google accepts an Offer without one.
      *
      * @param ProductInterface $product
      * @return string|null ISO 8601 date string (Y-m-d), or null to omit the property
@@ -173,15 +178,23 @@ class OfferBuilder
     private function getPriceValidUntil(ProductInterface $product): ?string
     {
         /** @var \Magento\Catalog\Model\Product $product */
-        $specialPrice = $product->getData('special_price');
-        if ($specialPrice === null || $specialPrice === '') {
+        try {
+            $priceInfo = $product->getPriceInfo();
+            $special   = $priceInfo->getPrice('special_price')->getValue();
+            $final     = $priceInfo->getPrice('final_price')->getValue();
+        } catch (\Exception) {
+            // The price itself was read (FinalPrice logs its own failures); no date is no claim.
+            return null;
+        }
+        if ($special === false || $special === null
+            || $this->currencyService->formatAmountForLlms((float) $special)
+                !== $this->currencyService->formatAmountForLlms((float) $final)
+        ) {
             return null;
         }
 
         $specialTo = substr((string) $product->getData('special_to_date'), 0, 10);
-        // Store-timezone-aware (Stdlib DateTime::date applies the store offset).
-        $today = $this->dateTime->date('Y-m-d');
 
-        return $specialTo !== '' && $specialTo >= $today ? $specialTo : null;
+        return $specialTo !== '' ? $specialTo : null;
     }
 }

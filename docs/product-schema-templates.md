@@ -41,9 +41,9 @@ Every template builds on `AbstractBuilder::buildBase()`, which always outputs:
 - `image` (up to 5 images from the media gallery)
 - `offers` containing:
   - `price`, `priceCurrency`
-  - `availability` (InStock when MSI says the product is salable on the website's stock; BackOrder when it is not but its stock item allows backorders; OutOfStock otherwise)
+  - `availability` (InStock, BackOrder or OutOfStock, as the storefront's stock index has the product on the website's stock — see [structured-data.md](structured-data.md#an-offers-availability))
   - `itemCondition` (Stores → Configuration → MageOS SEO → SEO Merchant Policies → Item Condition → *Default Item Condition*, default NewCondition)
-  - `priceValidUntil` (the special price's end date, only when one is set and has not passed — see [structured-data.md](structured-data.md#an-offers-pricevaliduntil))
+  - `priceValidUntil` (the end date of a special price that is in effect and is the price published — see [structured-data.md](structured-data.md#an-offers-pricevaliduntil))
   - `url` (the product URL)
 
 A configurable product's node is then turned into a `ProductGroup` of its variants, each with its own offer — or, with more sellable children than the configured maximum, keeps one `AggregateOffer` over their price range. This happens after the template, for every template; see [structured-data.md](structured-data.md#configurable-products).

@@ -27,12 +27,59 @@ hardcoded version field).
 - **Switching sitemap generation or Rebuild on Change on queues a rebuild.** It queued none:
   whether any sitemap is rebuilt was asked of the configuration before the save, when both were
   still off.
+- **An offer says BackOrder only for a product that sells through backorders**
+  ([#30](https://github.com/mage-os-lab/module-seo/issues/30)). A product that could only be
+  backordered said InStock, and one nobody could order said BackOrder whenever backorders were
+  configured. Availability is now read as the storefront reads it, from MSI's stock index:
+  OutOfStock when not salable, InStock with a quantity above zero, BackOrder when salable at zero or
+  below with stock managed. A configurable's offer takes its best variant's availability. Like the
+  page, reservations are not subtracted. See `docs/structured-data.md`, "An offer's availability".
+- **`priceValidUntil` belongs to the price published**
+  ([#31](https://github.com/mage-os-lab/module-seo/issues/31)). A special price starting next month
+  lent its end date to this month's price, and so did a special a lower catalog rule beat. The date
+  is now published only for a special price core's `SpecialPrice` has in effect today and that is
+  the price the offer publishes.
+- **The offer's price is the price the page shows**
+  ([#40](https://github.com/mage-os-lab/module-seo/issues/40)). On a store that shows prices
+  including tax, the offer gave the price excluding it: the page said £340.00, the JSON-LD
+  `283.33`. `Model\Product\FinalPrice` now reads the final price's amount with the adjustments the
+  store displays, as core's price box does. That fixes the offer, an AggregateOffer's range, each
+  variant's offer, Open Graph and MageOS_Aeo's llms.jsonl alike. A store that shows prices
+  excluding tax sees no change.
+- **A price of 0 is not published as free, unless you say so**
+  ([#41](https://github.com/mage-os-lab/module-seo/issues/41)). A store that hides prices from
+  guests showed `"price": "0.00"`, which Google reads as free. A final price of 0 is now unknown,
+  so there is no price in the structured data, Open Graph or llms.jsonl, unless the new setting
+  **Publish a Price of Zero** (Structured Data (JSON-LD), default No) is on; then a simple product
+  priced 0 is offered as free. A price below 0 is never published.
+- **Open Graph leaves out a price that is not known**
+  ([#38](https://github.com/mage-os-lab/module-seo/issues/38)). An unavailable configurable said
+  `product:price:amount` 0.00 while its structured data had no price, and a price that could not be
+  read was dropped silently. Open Graph now takes the price from `Model\Product\FinalPrice`, as the
+  structured data does: no price tags when it's unknown, and a failed read is logged.
 
 ### Changed
 
 - Indexer lag is documented, not handled. With indexers on Update by Schedule, a rebuild can run
   before the indexers have caught up with the same change; the next change, or the nightly
   generation, catches up. See `docs/sitemap.md`, "When a rebuild runs".
+- **Availability is read a batch of products at a time.** `Model\Product\AvailabilityResolver` has
+  `resolveMany()`, `prefetch()` and `best()` beside `resolve()`. A batch costs one stock-index query
+  (MSI's `@api` `GetStockItemsDataInterface`), plus one for whether stock is managed when some
+  product is salable at zero or below (`Model\ResourceModel\StockItemManageStock`). A configurable's
+  variants are read as one batch. Before, each product ran MSI's per-product condition chain: outside
+  the storefront areas, as in a feed build, a 15-variant configurable took 149 queries and takes 14
+  now. MageOS_Aeo's llms.jsonl reads availability through it.
+- **Constructors:** `Model\Product\AvailabilityResolver` takes MSI's `GetStockItemsDataInterface`,
+  `IsSourceItemManagementAllowedForProductTypeInterface`, the new manage-stock resource model,
+  `StockConfigurationInterface` and a logger, in place of `IsProductSalableInterface` and
+  `GetStockItemConfigurationInterface`. `Model\Product\OfferBuilder` no longer takes `DateTime`.
+  `Model\Product\Variant\ProductGroupBuilder` takes `AvailabilityResolver`,
+  `Model\MetaTag\Provider\ProductMetaProvider` takes `FinalPrice`, and `Model\Product\FinalPrice`
+  takes `Model\Config`. None of them is `@api`, but a subclass that overrides one of these
+  constructors must follow.
+- **Requires `magento/module-catalog-inventory`**, for the stock item's manage-stock setting and its
+  configured default. It is part of every installation with MSI.
 
 ## [1.2.1] — 2026-10-05
 

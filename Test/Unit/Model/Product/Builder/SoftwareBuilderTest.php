@@ -8,7 +8,6 @@ use Magento\Catalog\Helper\Image as ImageHelper;
 use Magento\Catalog\Model\Product;
 use Magento\Framework\Pricing\Price\PriceInterface;
 use Magento\Framework\Pricing\PriceInfoInterface;
-use Magento\Framework\Stdlib\DateTime\DateTime;
 use Magento\Store\Model\Store;
 use Magento\Store\Model\StoreManagerInterface;
 use MageOS\Seo\Model\Config;
@@ -52,6 +51,7 @@ class SoftwareBuilderTest extends TestCase
         $storeManager->method('getStore')->willReturn($store);
         $store->method('getBaseUrl')->willReturn('https://example.com/');
         $finalPrice->method('getValue')->willReturn(49.00);
+        $finalPrice->method('getAmount')->willReturn($this->amount(49.00));
         $priceInfo->method('getPrice')->with('final_price')->willReturn($finalPrice);
         $this->product->method('getPriceInfo')->willReturn($priceInfo);
         $this->product->method('getName')->willReturn('Photo Editor Pro');
@@ -71,7 +71,6 @@ class SoftwareBuilderTest extends TestCase
                 $storeManager,
                 $currencyService,
                 $availability,
-                $this->createStub(DateTime::class),
                 new OfferEnricherPool()
             ),
             new AggregateRatingResolver(),

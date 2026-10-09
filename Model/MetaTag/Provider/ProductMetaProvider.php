@@ -8,6 +8,7 @@ use Magento\Catalog\Helper\Image as ImageHelper;
 use MageOS\Seo\Api\MetaTagProviderInterface;
 use MageOS\Seo\Model\Catalog\CurrentEntity;
 use MageOS\Seo\Model\Config;
+use MageOS\Seo\Model\Product\FinalPrice;
 use MageOS\Seo\Service\CurrencyService;
 
 class ProductMetaProvider implements MetaTagProviderInterface
@@ -17,12 +18,14 @@ class ProductMetaProvider implements MetaTagProviderInterface
      * @param CurrencyService $currencyService
      * @param ImageHelper $imageHelper
      * @param Config $seoConfig
+     * @param FinalPrice $finalPrice
      */
     public function __construct(
         private readonly CurrentEntity   $currentEntity,
         private readonly CurrencyService $currencyService,
         private readonly ImageHelper     $imageHelper,
-        private readonly Config          $seoConfig
+        private readonly Config          $seoConfig,
+        private readonly FinalPrice      $finalPrice
     ) {
     }
 
@@ -68,16 +71,13 @@ class ProductMetaProvider implements MetaTagProviderInterface
         } catch (\Exception) { // phpcs:ignore Magento2.CodeAnalysis.EmptyBlock.DetectedCatch -- no image, leave empty
         }
 
-        $price    = '';
+        // The price the structured data publishes, or none (issue #38): an unknown price — a
+        // composite nothing can price, or a lookup that failed, which FinalPrice logs — is left out
+        // rather than written as 0.00, which reads as free. FinalPrice's amount is already in the
+        // display currency.
+        $amount   = $this->finalPrice->get($product);
+        $price    = $amount === null ? '' : $this->currencyService->formatAmountForLlms($amount);
         $currency = $this->currencyService->getCurrentCurrencyCode();
-        try {
-            // PriceInfo amounts are already in the current (display) currency: core
-            // RegularPrice / SpecialPrice / CatalogRulePrice::getValue() convert with PriceCurrency.
-            // Converting again would apply the rate twice.
-            $amount = (float) $product->getPriceInfo()->getPrice('final_price')->getValue();
-            $price  = $this->currencyService->formatAmountForLlms($amount);
-        } catch (\Exception) { // phpcs:ignore Magento2.CodeAnalysis.EmptyBlock.DetectedCatch
-        }
 
         $tags = [
             ['property' => 'og:type',        'content' => 'product'],

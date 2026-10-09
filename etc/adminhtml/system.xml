@@ -54,8 +54,14 @@ category pages.</comment>
                 <field id="has_variant_max" translate="label comment" type="text"
                        sortOrder="50" showInDefault="1" showInWebsite="0" showInStore="0">
                     <label>Most Variants per Configurable Product</label>
-                    <comment>A configurable product with up to this many sellable children is described as a ProductGroup, each child a variant with its own offer. One with more is a single Product with an AggregateOffer over its whole price range, rather than a list cut short. 0 describes every configurable that way. Each variant costs a salability check on an uncached product page. Default: 50.</comment>
+                    <comment>A configurable product with up to this many sellable children is described as a ProductGroup, each child a variant with its own offer. One with more is a single Product with an AggregateOffer over its whole price range, rather than a list cut short. 0 describes every configurable that way. Default: 50.</comment>
                     <validate>validate-digits</validate>
+                </field>
+                <field id="publish_zero_price" translate="label comment" type="select"
+                       sortOrder="60" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Publish a Price of Zero</label>
+                    <comment>No: a product priced 0 gets no price in its structured data, Open Graph tags or llms.jsonl. Usually the price is hidden from the visitor, as on B2B and trade stores, and Google's merchant listings refuse a price of 0. Yes: a product priced 0 is offered as free.</comment>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                 </field>
                 <field id="aggregate_rating_enabled" translate="label comment" type="select"
                        sortOrder="70" showInDefault="1" showInWebsite="1" showInStore="1">

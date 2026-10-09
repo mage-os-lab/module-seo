@@ -8,7 +8,6 @@ use Magento\Catalog\Helper\Image as ImageHelper;
 use Magento\Catalog\Model\Product;
 use Magento\Framework\Pricing\Price\PriceInterface;
 use Magento\Framework\Pricing\PriceInfoInterface;
-use Magento\Framework\Stdlib\DateTime\DateTime;
 use Magento\Store\Model\Store;
 use Magento\Store\Model\StoreManagerInterface;
 use MageOS\Seo\Model\Config;
@@ -59,9 +58,11 @@ class GenericProductBuilderTest extends TestCase
     private Config&Stub $seoConfig;
 
     /**
-     * @var DateTime&Stub
+     * What core's SpecialPrice answers: false when no special price is in effect today.
+     *
+     * @var float|false
      */
-    private DateTime&Stub $dateTime;
+    private float|false $special = false;
 
     /**
      * @var Product&Stub
@@ -91,7 +92,6 @@ class GenericProductBuilderTest extends TestCase
         $this->availabilityResolver = $this->createStub(AvailabilityResolver::class);
         $this->imageHelper     = $this->createStub(ImageHelper::class);
         $this->seoConfig       = $this->createStub(Config::class);
-        $this->dateTime        = $this->createStub(DateTime::class);
         // getShortDescription / getDescription are magic __call() methods on Product.
         $this->product         = $this->createStub(Product::class);
         $this->priceInfo       = $this->createMock(PriceInfoInterface::class);
@@ -102,7 +102,12 @@ class GenericProductBuilderTest extends TestCase
         // Note: availability and getData/getAttributeText are NOT stubbed here — per-test
         // configuration avoids PHPUnit 10's first-match-wins stub ordering issue.
         $this->finalPrice->method('getValue')->willReturn(29.99);
-        $this->priceInfo->method('getPrice')->with('final_price')->willReturn($this->finalPrice);
+        $this->finalPrice->method('getAmount')->willReturn($this->amount(29.99));
+        $specialPrice = $this->createStub(PriceInterface::class);
+        $specialPrice->method('getValue')->willReturnCallback(fn (): float|false => $this->special);
+        $this->priceInfo->method('getPrice')->willReturnCallback(
+            fn (string $code): PriceInterface => $code === 'special_price' ? $specialPrice : $this->finalPrice
+        );
         $this->product->method('getPriceInfo')->willReturn($this->priceInfo);
         $this->product->method('getName')->willReturn('Test Widget');
         $this->product->method('getSku')->willReturn('SKU-001');
@@ -121,7 +126,6 @@ class GenericProductBuilderTest extends TestCase
                 $this->storeManager,
                 $this->currencyService,
                 $this->availabilityResolver,
-                $this->dateTime,
                 new OfferEnricherPool()
             ),
             new AggregateRatingResolver(),
@@ -464,7 +468,6 @@ class GenericProductBuilderTest extends TestCase
     {
         // No date is made up: without a special price's end date there is none.
         $this->availabilityResolver->method('resolve')->willReturn(AvailabilityResolver::IN_STOCK);
-        $this->dateTime->method('date')->willReturn('2026-07-10');
         $schema = $this->builder->build($this->product, [], []);
         $this->assertArrayNotHasKey('priceValidUntil', $schema['offers']);
     }
@@ -472,8 +475,9 @@ class GenericProductBuilderTest extends TestCase
     public function testBuildPriceValidUntilIsTheSpecialPriceEndDate(): void
     {
         $this->availabilityResolver->method('resolve')->willReturn(AvailabilityResolver::IN_STOCK);
-        $this->dateTime->method('date')->willReturn('2026-07-10');
-        $data = ['special_price' => '19.9900', 'special_to_date' => '2026-08-01 00:00:00'];
+        // The special price is in effect and is the price published.
+        $this->special = 29.99;
+        $data = ['special_to_date' => '2026-08-01 00:00:00'];
         $this->product->method('getData')->willReturnCallback(
             static fn (string $key): ?string => $data[$key] ?? null
         );

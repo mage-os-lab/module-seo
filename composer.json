@@ -12,6 +12,7 @@
         "magento/module-admin-notification": "*",
         "magento/module-backend": "*",
         "magento/module-catalog": "*",
+        "magento/module-catalog-inventory": "*",
         "magento/module-cms": "*",
         "magento/module-config": "*",
         "magento/module-configurable-product": "*",
