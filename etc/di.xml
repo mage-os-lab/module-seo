@@ -360,6 +360,33 @@
             <argument name="commands" xsi:type="array">
                 <item name="mageos_seo_rebuild"
                       xsi:type="object">MageOS\Seo\Console\Command\RegenerateFeedsCommand</item>
+                <item name="mageos_seo_import_legacy"
+                      xsi:type="object">MageOS\Seo\Console\Command\ImportLegacyCommand</item>
+            </argument>
+        </arguments>
+    </type>
+    <!--
+        Built when bin/magento starts, like every command, and the imports read stores and
+        configuration: a proxy, so nothing is built until the command runs.
+    -->
+    <type name="MageOS\Seo\Console\Command\ImportLegacyCommand">
+        <arguments>
+            <argument name="legacyImport" xsi:type="object">MageOS\Seo\Model\Migration\LegacyImport\Proxy</argument>
+        </arguments>
+    </type>
+
+    <!--
+        The imports from the modules this one replaces, by the name of the module each imports from
+        (see Model\Migration\LegacyImport). Proxies: the admin's System Messages build LegacyImport on
+        every admin page, and an importer is needed there only while an import is unfinished.
+    -->
+    <type name="MageOS\Seo\Model\Migration\LegacyImport">
+        <arguments>
+            <argument name="importers" xsi:type="array">
+                <item name="MageOS_MetaRobotsTag"
+                      xsi:type="object">MageOS\Seo\Model\Migration\MetaRobotsTagImporter\Proxy</item>
+                <item name="MageOS_Hreflang"
+                      xsi:type="object">MageOS\Seo\Model\Migration\HreflangImporter\Proxy</item>
             </argument>
         </arguments>
     </type>

@@ -134,6 +134,31 @@ hardcoded version field).
   product form unchanged queues nothing.
 - **A product import rewrites the products' sitemap files.** Magento's import writes to the
   database directly, so no save reported it; the products are now queued once an import finishes.
+- **A failed import from MageOS_MetaRobotsTag or MageOS_Hreflang is no longer recorded as done**
+  ([#27](https://github.com/mage-os-lab/module-seo/issues/27)). The data patches caught the failure,
+  so Magento recorded them as applied and never ran them again. A failed database write did not
+  even reach that point: it made the upgrade itself fail. Now `setup:upgrade` tries each import
+  once and never fails because of it, and whether it finished is the module's own record (the
+  `mageos_seo_legacy_import` flag). While one has not finished, and its module left data behind,
+  the admin shows a System Message. `bin/magento seo:import-legacy` runs the imports or repeats
+  them, and `--dry-run` reports what they would write. An installation that ran the earlier
+  imports has no record that they finished, so the message shows there until the command is run.
+- **The imports never replace a value already set in this module**
+  ([#26](https://github.com/mage-os-lab/module-seo/issues/26)). A product's, category's or CMS
+  page's robots setting was overwritten with the one MageOS_MetaRobotsTag's flags gave, and the
+  x-default store view with MageOS_Hreflang's. Each import now fills only what is empty, and
+  reports each value it kept, with both values, in the log and the command's output. Where this
+  module's hreflang is set to No for a store view that MageOS_Hreflang served, the No is kept, and
+  MageOS_Hreflang stays on for that store view instead of being switched off.
+- **MageOS_MetaRobotsTag's flags are imported per store view.** Its flags are store-scoped, and
+  that module applies them to each store view's own default robots, but the import read them at
+  one store view and resolved them against the default scope's robots only. A flag set for one store
+  view was applied to all of them, and a store view with another default, such as a staging store
+  view's `NOINDEX,NOFOLLOW`, got the wrong directive. Each store view an entity is on now gets the
+  directive it was served: one setting for all store views where they agree, one per store view
+  where they differ. Once the import has finished, the admin advises disabling MageOS_MetaRobotsTag,
+  which keeps applying its flags while it is enabled. See `docs/robots-meta.md`, "Moving from
+  MageOS_MetaRobotsTag". Settings imported by earlier versions are not revisited.
 
 ### Changed
 
@@ -174,6 +199,13 @@ hardcoded version field).
   `Hreflang\CodeList` reads the country list once per request, not once per check.
 - **Requires `magento/module-catalog-inventory`**, for the stock item's manage-stock setting and its
   configured default. It is part of every installation with MSI.
+- **Legacy imports:** `Model\Migration\MetaRobotsTagImporter` takes the new
+  `Model\Migration\MetaRobotsTagDirectives`, the three repositories and the purger. It and
+  `Model\Migration\HreflangImporter` implement the new `Model\Migration\LegacyImporterInterface`:
+  `import()` takes `$dryRun` and returns a report with `notes`, and `describe()` words it. The data
+  patches take the new `Model\Migration\LegacyImport`, which runs the imports and records which
+  finished. New: `Console\Command\ImportLegacyCommand`, `Model\System\Message\LegacyImportStatus`.
+  None is `@api`.
 
 ## [1.2.1] — 2026-10-05
 
