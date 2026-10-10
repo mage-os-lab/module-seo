@@ -172,6 +172,14 @@ hardcoded version field).
   - The form says what the scope being edited publishes.
   - **A record saved before this keeps publishing its stored logo URL until it is saved again with
     "Use Design Logo" or a new upload.**
+- **A category's later pages keep its robots restrictions**
+  ([#34](https://github.com/mage-os-lab/module-seo/issues/34)).
+  - With Override Robots on Paginated Pages on, page 2 and later took the Paginated Pages Robots
+    value outright. A category set to `NOINDEX`, on itself, a parent or the Category Pages
+    default, became `INDEX` on page 2 when that value was `INDEX,FOLLOW`.
+  - The value can now only add restrictions: every restriction of the category's directive is
+    kept on every page. A category that should be indexed on its later pages is set to `INDEX`.
+  - The setting's help and `docs/robots-meta.md` say so.
 - **A logo upload must be the image its name says** ([#20](https://github.com/mage-os-lab/module-seo/issues/20)).
   - Any file `getimagesize()` recognised passed under an image extension, a Flash movie named
     `.jpg` among them. Core's own validator lets through the types it does not list.
@@ -230,6 +238,9 @@ hardcoded version field).
   patches take the new `Model\Migration\LegacyImport`, which runs the imports and records which
   finished. New: `Console\Command\ImportLegacyCommand`, `Model\System\Message\LegacyImportStatus`.
   None is `@api`.
+- **Paginated robots:** `Model\RobotsMeta\Provider\CatalogPaginationRobotsProvider` takes
+  `CategoryRobotsProvider` and `DirectiveComposer`; `DirectiveComposer` has `restrictive()`.
+  Neither is `@api`.
 - **Organization logo:**
   - **`Api\Data\OrganizationInterface` (`@api`) has `getLogoSource()` and `setLogoSource()`,** with
     `LOGO_SOURCE_DESIGN` and `LOGO_SOURCE_CUSTOM`, and a `logo_source` column. A class

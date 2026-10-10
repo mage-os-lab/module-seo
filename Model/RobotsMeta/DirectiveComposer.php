@@ -49,6 +49,29 @@ class DirectiveComposer
     }
 
     /**
+     * A directive with every restriction of another carried onto it: it can only get stricter.
+     *
+     * Each `no…` token replaces its permissive counterpart in the base, or is added. Nothing
+     * permissive is carried over. So a category's NOINDEX survives a paginated value of INDEX,FOLLOW
+     * (issue #34), while the paginated value's own restrictions stay.
+     *
+     * @param string $base
+     * @param string $restrictionsFrom
+     * @return string
+     */
+    public function restrictive(string $base, string $restrictionsFrom): string
+    {
+        $directives = $this->tokens($base);
+        foreach ($this->tokens($restrictionsFrom) as $token) {
+            if ($this->isRestriction($token)) {
+                $directives = $this->withRestriction($directives, $token);
+            }
+        }
+
+        return implode(',', $directives);
+    }
+
+    /**
      * Apply a restriction: replace its permissive counterpart, or add it if neither is present.
      *
      * @param string[] $directives

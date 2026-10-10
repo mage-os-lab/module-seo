@@ -32,8 +32,8 @@ different jobs, and don't combine:
 - Do one or the other for a URL: a page blocked in robots.txt is never fetched, so its robots meta
   is never read.
 
-Paginated search results (`?p=2`) follow the same default; the Paginated Listing setting applies
-to category pages only.
+Paginated search results (`?p=2`) follow the same default; **Override Robots on Paginated Pages**
+applies to category pages only (see [Paginated category pages](#paginated-category-pages)).
 
 **Accepted values:** the dropdown offers each combination of `INDEX`/`NOINDEX` with
 `FOLLOW`/`NOFOLLOW`, each of those with `noarchive`, `INDEX,FOLLOW` with rich-preview limits
@@ -99,6 +99,29 @@ Common use cases:
 Leave it on **Inherit (parent category, then the store's Category Pages default)** to take the
 value of the nearest parent category that sets one, and failing that the store's default.
 
+### Paginated category pages
+
+**Override Robots on Paginated Pages** (off by default) gives a category's page 2 and later
+(`?p=2` onward) the **Paginated Pages Robots** value, commonly `NOINDEX,FOLLOW`, so the later
+pages of a listing stay out of the index while their links are still followed. Page 1 always
+follows the category.
+
+It can only add restrictions, never relax one. Every restriction of the category's own directive,
+set on the category, inherited from a parent or the Category Pages default, is carried onto the
+paginated value:
+
+| Category | Paginated Pages Robots | Page 2 and later |
+|---|---|---|
+| `NOINDEX,FOLLOW` | `INDEX,FOLLOW` | `NOINDEX,FOLLOW` |
+| `INDEX,NOFOLLOW` | `NOINDEX,FOLLOW` | `NOINDEX,NOFOLLOW` |
+| `INDEX,FOLLOW,noarchive` | `NOINDEX,FOLLOW` | `NOINDEX,FOLLOW,noarchive` |
+| *(none)* | `INDEX,FOLLOW` | `INDEX,FOLLOW` |
+
+There is no setting to relax a category's restriction on its later pages: a category that should
+be indexed there is set to `INDEX` itself. As for every directive of this module, core's
+**Design → Search Engine Robots** default is not one of the protected restrictions (see
+[Other modules' restrictions are kept](#other-modules-restrictions-are-kept)).
+
 ---
 
 ## Product-level override
@@ -163,6 +186,8 @@ Category Pages default (system config)
 Nearest parent category's override (see category-seo.md, Inheritance)
     ↑ overridden by
 The category's own override (mageos_seo_category_config.robots_meta)
+    + on page 2 and later, with Override Robots on Paginated Pages:
+      the Paginated Pages Robots value, keeping every restriction of the above
 ```
 
 CMS pages, which form no tree:

@@ -141,7 +141,9 @@ Default", the core Design &gt; Search Engine Robots setting applies.</comment>
                        sortOrder="40" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Override Robots on Paginated Pages</label>
                     <comment>Apply a dedicated robots meta to category listing pages from page 2 onward
-(?p=2+). Canonicalization is left to Magento's native category canonical tag.</comment>
+(?p=2+). It can only add restrictions: a category set to NOINDEX or NOFOLLOW, on itself, a parent
+category or the Category Pages default, keeps that on every page. Canonicalization is left to
+Magento's native category canonical tag.</comment>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                 </field>
                 <field id="paginated_robots" translate="label" type="select"

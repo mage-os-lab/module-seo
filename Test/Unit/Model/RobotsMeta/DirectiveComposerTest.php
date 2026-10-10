@@ -117,4 +117,49 @@ class DirectiveComposerTest extends TestCase
 
         $this->assertSame($ranAfter, $ranBefore);
     }
+
+    /**
+     * Issue #34: each restriction is carried onto the base, replacing its permissive counterpart.
+     *
+     * @return void
+     */
+    public function testRestrictiveCarriesEachRestrictionOntoTheBase(): void
+    {
+        $this->assertSame('NOINDEX,FOLLOW', $this->composer->restrictive('INDEX,FOLLOW', 'NOINDEX,FOLLOW'));
+        $this->assertSame('NOINDEX,NOFOLLOW', $this->composer->restrictive('NOINDEX,FOLLOW', 'INDEX,NOFOLLOW'));
+    }
+
+    /**
+     * @return void
+     */
+    public function testRestrictiveAddsARestrictionWithNoCounterpart(): void
+    {
+        $this->assertSame(
+            'NOINDEX,FOLLOW,noarchive',
+            $this->composer->restrictive('NOINDEX,FOLLOW', 'INDEX,FOLLOW,noarchive')
+        );
+    }
+
+    /**
+     * The base's own restrictions stay, and nothing permissive is carried onto it.
+     *
+     * @return void
+     */
+    public function testRestrictiveNeverRelaxesTheBase(): void
+    {
+        $this->assertSame('NOINDEX,NOFOLLOW', $this->composer->restrictive('NOINDEX,NOFOLLOW', 'INDEX,FOLLOW'));
+        $this->assertSame(
+            'NOINDEX,FOLLOW',
+            $this->composer->restrictive('NOINDEX,FOLLOW', 'INDEX,FOLLOW,max-snippet:-1')
+        );
+    }
+
+    /**
+     * @return void
+     */
+    public function testRestrictiveMatchesCaseInsensitivelyWithoutDuplicating(): void
+    {
+        $this->assertSame('noindex,FOLLOW', $this->composer->restrictive('noindex,FOLLOW', ' NOINDEX '));
+        $this->assertSame('INDEX,FOLLOW', $this->composer->restrictive('INDEX,FOLLOW', ''));
+    }
 }
