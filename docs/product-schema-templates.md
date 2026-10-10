@@ -44,6 +44,7 @@ Every template builds on `AbstractBuilder::buildBase()`, which always outputs:
   - `availability` (InStock, BackOrder or OutOfStock, as the storefront's stock index has the product on the website's stock — see [structured-data.md](structured-data.md#an-offers-availability))
   - `itemCondition` (Stores → Configuration → MageOS SEO → SEO Merchant Policies → Item Condition → *Default Item Condition*, default NewCondition)
   - `priceValidUntil` (the end date of a special price that is in effect and is the price published — see [structured-data.md](structured-data.md#an-offers-pricevaliduntil))
+  - `shippingDetails` when switched on (Stores → Configuration → MageOS SEO → SEO Merchant Policies → Shipping Details: a rate in the base currency, converted to the one shown, and handling and transit times — see [structured-data.md](structured-data.md#an-offers-shippingdetails))
   - `url` (the product URL)
 
 A configurable product's node is then turned into a `ProductGroup` of its variants, each with its own offer — or, with more sellable children than the configured maximum, keeps one `AggregateOffer` over their price range. This happens after the template, for every template; see [structured-data.md](structured-data.md#configurable-products).

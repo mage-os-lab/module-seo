@@ -160,6 +160,47 @@ Enrichers are merged into the offer after it is built, so the enricher's date is
 
 ---
 
+## An offer's shippingDetails
+
+With **Stores → Configuration → MageOS SEO → SEO Merchant Policies → Shipping Details → Enable
+Shipping Details Schema** on, every offer carries one `OfferShippingDetails`: a rate, a delivery
+time, and the destinations (none when shipping is worldwide, which Google reads as every country).
+`Model\Product\OfferEnricher\ShippingDetailsEnricher` builds it; `ShippingRules` holds the rules,
+which the admin checks on save and the storefront applies when it publishes.
+
+**The rate** is in the **base currency**, as product prices and core's flat-rate shipping price
+are, and is converted to the currency the visitor sees, rounded to it. So the rate and the offer's
+`priceCurrency` are always the same currency, and agree with what checkout charges. 0.00 is free
+shipping. A rate is required while shipping details are on: with none, or one that is not an
+amount of 0 or more, or one that cannot be converted, the shipping details are left out rather than
+published as free shipping or a wrong amount. Earlier versions published the configured number
+under the display currency's code without converting it: a store whose display currency differs
+from its base currency, and which entered the rate in the display currency, should enter it again
+in the base currency.
+
+**Handling and transit time** follow Google's shipping-policy reference: "you must provide either
+`value` … or `maxValue` (for an upper bound)", "`minValue` can optionally be provided", and each
+is "a non-negative, whole number" of days.
+
+| Min (days) | Max (days) | Published |
+|---|---|---|
+| empty | empty | no time |
+| empty | 3 | `maxValue: 3` |
+| 1 | 3 | `minValue: 1`, `maxValue: 3` |
+| 0 | 0 | `minValue: 0`, `maxValue: 0` (the same day) |
+| 2 | empty | refused on save; left out |
+| 5 | 2 | refused on save; left out |
+| -1, 2.5, two | any | refused on save; left out |
+
+Nothing is invented: a minimum alone is not read as a range up to 0, and a maximum alone gets no
+minimum of 0. The admin refuses the cases above, whether the group is saved in the admin or one
+field with `bin/magento config:set`. A value written past that check — straight to the database,
+or saved before it existed — is left out on the storefront and logged as a warning, at most once
+every five minutes per store view and time (`Model\Log\OccasionalLog`), so it can be found without
+filling the log.
+
+---
+
 ## Configurable products
 
 A configurable product is described the way Google's [product variant guidance](https://developers.google.com/search/docs/appearance/structured-data/product-variants) asks, from the children the storefront sells: core's `ConfigurableOptionsProviderInterface`, after its filters (enabled children, and in-stock ones unless out-of-stock products are displayed).

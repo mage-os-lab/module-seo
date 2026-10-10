@@ -320,11 +320,20 @@ for the countries chosen."
 "Destination Countries","Destination Countries"
 "The countries these shipping details apply to.","The countries these shipping details apply to."
 "Shipping Rate","Shipping Rate"
-"0.00 for free shipping. Currency follows the store display currency.","0.00 for free shipping. Currency follows the store display currency."
+"In the base currency, converted to the currency the visitor sees, as product prices are.
+0.00 for free shipping.","In the base currency, converted to the currency the visitor sees, as product prices are.
+0.00 for free shipping."
 "Handling Time Min (days)","Handling Time Min (days)"
+"Optional: the fewest days, with a maximum.","Optional: the fewest days, with a maximum."
 "Handling Time Max (days)","Handling Time Max (days)"
+"The most days, 0 for the same day.","The most days, 0 for the same day."
 "Transit Time Min (days)","Transit Time Min (days)"
 "Transit Time Max (days)","Transit Time Max (days)"
+"%1 must be a whole number of days, 0 or more.","%1 must be a whole number of days, 0 or more."
+"Enter %1 as well: a shipping time needs the most days it can take, and %2 is only the fewest.","Enter %1 as well: a shipping time needs the most days it can take, and %2 is only the fewest."
+"%1 cannot be more than %2.","%1 cannot be more than %2."
+"Shipping Rate must be an amount of 0 or more, such as 4.95. Enter 0.00 for free shipping.","Shipping Rate must be an amount of 0 or more, such as 4.95. Enter 0.00 for free shipping."
+"Enter a Shipping Rate while Enable Shipping Details Schema is Yes. Enter 0.00 for free shipping.","Enter a Shipping Rate while Enable Shipping Details Schema is Yes. Enter 0.00 for free shipping."
 Generator,Generator
 "<strong>MageOS SEO</strong> writes each sitemap as an index with a
 file per kind of page, and can add to each URL what core's generator cannot — hreflang alternates

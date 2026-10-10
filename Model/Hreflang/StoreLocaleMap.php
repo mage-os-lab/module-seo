@@ -4,13 +4,12 @@ declare(strict_types=1);
 
 namespace MageOS\Seo\Model\Hreflang;
 
-use Magento\Framework\App\CacheInterface;
 use Magento\Framework\ObjectManager\ResetAfterRequestInterface;
 use Magento\Store\Model\Store;
 use Magento\Store\Model\StoreManagerInterface;
 use MageOS\Seo\Model\Config;
+use MageOS\Seo\Model\Log\OccasionalLog;
 use MageOS\Seo\Model\Store\CanonicalBaseUrl;
-use Psr\Log\LoggerInterface;
 
 /**
  * Request-scoped map of active store views to their base URL and the hreflang codes they claim.
@@ -37,11 +36,6 @@ use Psr\Log\LoggerInterface;
 class StoreLocaleMap implements ResetAfterRequestInterface
 {
     /**
-     * Seconds between two log entries for the same rejected code.
-     */
-    private const LOG_INTERVAL = 300;
-
-    /**
      * Built maps, keyed by the website they were limited to, or "all".
      *
      * @var array<int|string,array<int,array{base_url:string,codes:string[]}>>
@@ -54,8 +48,7 @@ class StoreLocaleMap implements ResetAfterRequestInterface
      * @param CodeValidator $codeValidator
      * @param CanonicalBaseUrl $canonicalBaseUrl
      * @param CodeList $codeList
-     * @param CacheInterface $cache
-     * @param LoggerInterface $logger
+     * @param OccasionalLog $occasionalLog
      */
     public function __construct(
         private readonly StoreManagerInterface $storeManager,
@@ -63,8 +56,7 @@ class StoreLocaleMap implements ResetAfterRequestInterface
         private readonly CodeValidator         $codeValidator,
         private readonly CanonicalBaseUrl      $canonicalBaseUrl,
         private readonly CodeList              $codeList,
-        private readonly CacheInterface        $cache,
-        private readonly LoggerInterface       $logger
+        private readonly OccasionalLog         $occasionalLog
     ) {
     }
 
@@ -185,7 +177,7 @@ class StoreLocaleMap implements ResetAfterRequestInterface
     }
 
     /**
-     * Log a code the check rejected, at most once every LOG_INTERVAL seconds per store view and code.
+     * Log a code the check rejected, at most once every five minutes per store view and code.
      *
      * A map is built on every uncached page, and the code stays wrong until someone changes the
      * configuration: once in a while is enough to find it.
@@ -196,22 +188,16 @@ class StoreLocaleMap implements ResetAfterRequestInterface
      */
     private function logRejected(int $storeId, string $code): void
     {
-        $key = 'mageos_seo_hreflang_rejected_' . sha1($storeId . "\0" . $code);
-        try {
-            if ($this->cache->load($key) !== false) {
-                return;
-            }
-            $this->cache->save('1', $key, [], self::LOG_INTERVAL);
-        } catch (\Exception) { // phpcs:ignore Magento2.CodeAnalysis.EmptyBlock.DetectedCatch -- log it anyway
-        }
-
-        $this->logger->warning(\sprintf(
-            'MageOS_Seo: store view %d\'s hreflang code "%s" is not valid, so it is left out. Use a '
-            . 'two-letter language, optionally a four-letter script and an ISO 3166-1 region, each '
-            . 'code once — for example en, en-GB or zh-Hant-TW.',
-            $storeId,
-            $code
-        ));
+        $this->occasionalLog->warning(
+            'hreflang code' . "\0" . $storeId . "\0" . $code,
+            \sprintf(
+                'MageOS_Seo: store view %d\'s hreflang code "%s" is not valid, so it is left out. Use a '
+                . 'two-letter language, optionally a four-letter script and an ISO 3166-1 region, each '
+                . 'code once — for example en, en-GB or zh-Hant-TW.',
+                $storeId,
+                $code
+            )
+        );
     }
 
     /**

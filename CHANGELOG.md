@@ -10,6 +10,22 @@ hardcoded version field).
 
 ### Fixed
 
+- **Shipping times no longer invent or invert a bound**
+  ([#32](https://github.com/mage-os-lab/module-seo/issues/32)). A missing minimum or maximum was
+  published as 0, so a minimum of 2 alone became 2 to 0 days, and an inverted, negative or
+  fractional value was published as it stood. A time is now a maximum number of days, with a minimum
+  or without, as Google's shipping-policy reference reads it. The admin refuses the rest, whether
+  saved in the form or with `bin/magento config:set`. A value stored past that check is left out,
+  and logged at most once every five minutes per store view.
+- **The shipping rate is converted to the currency shown**
+  ([#33](https://github.com/mage-os-lab/module-seo/issues/33)). The configured number was
+  published under the display currency's code without converting it. The rate is now in the
+  base currency, as product prices and core's flat-rate shipping are, and is converted to the
+  currency the visitor sees. **A store whose display currency differs from its base currency, and
+  which entered the rate in the display currency, should enter it again in the base currency.**
+- **A missing shipping rate is no longer published as free shipping.** A blank rate became 0.00. A
+  rate is now required while shipping details are on, and must be an amount of 0 or more. Without
+  one, or with one that cannot be converted, the shipping details are left out.
 - **Changing SEO settings purges the cached pages built from them**
   ([#21](https://github.com/mage-os-lab/module-seo/issues/21)). Pages carried only the
   Organization's cache tag, so a change to a category's, product's or CMS page's SEO settings was

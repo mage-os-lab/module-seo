@@ -353,31 +353,42 @@ for the countries chosen.</comment>
                 <field id="rate" translate="label comment" type="text"
                        sortOrder="40" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Shipping Rate</label>
-                    <comment>0.00 for free shipping. Currency follows the store display currency.</comment>
+                    <comment>In the base currency, converted to the currency the visitor sees, as product prices are.
+0.00 for free shipping.</comment>
+                    <validate>required-entry validate-zero-or-greater</validate>
+                    <backend_model>MageOS\Seo\Model\Config\Backend\ShippingRate</backend_model>
                     <depends><field id="enabled">1</field></depends>
                 </field>
-                <field id="handling_min" translate="label" type="text"
+                <field id="handling_min" translate="label comment" type="text"
                        sortOrder="50" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Handling Time Min (days)</label>
+                    <comment>Optional: the fewest days, with a maximum.</comment>
                     <validate>validate-digits</validate>
+                    <backend_model>MageOS\Seo\Model\Config\Backend\ShippingDays</backend_model>
                     <depends><field id="enabled">1</field></depends>
                 </field>
-                <field id="handling_max" translate="label" type="text"
+                <field id="handling_max" translate="label comment" type="text"
                        sortOrder="60" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Handling Time Max (days)</label>
+                    <comment>The most days, 0 for the same day.</comment>
                     <validate>validate-digits</validate>
+                    <backend_model>MageOS\Seo\Model\Config\Backend\ShippingDays</backend_model>
                     <depends><field id="enabled">1</field></depends>
                 </field>
-                <field id="transit_min" translate="label" type="text"
+                <field id="transit_min" translate="label comment" type="text"
                        sortOrder="70" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Transit Time Min (days)</label>
+                    <comment>Optional: the fewest days, with a maximum.</comment>
                     <validate>validate-digits</validate>
+                    <backend_model>MageOS\Seo\Model\Config\Backend\ShippingDays</backend_model>
                     <depends><field id="enabled">1</field></depends>
                 </field>
-                <field id="transit_max" translate="label" type="text"
+                <field id="transit_max" translate="label comment" type="text"
                        sortOrder="80" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Transit Time Max (days)</label>
+                    <comment>The most days, 0 for the same day.</comment>
                     <validate>validate-digits</validate>
+                    <backend_model>MageOS\Seo\Model\Config\Backend\ShippingDays</backend_model>
                     <depends><field id="enabled">1</field></depends>
                 </field>
             </group>

@@ -288,11 +288,19 @@ for the countries chosen.","Voer OfferShippingDetails uit op productaanbiedingen
 "Destination Countries",Bestemmingslanden
 "The countries these shipping details apply to.","De landen waarvoor deze verzendgegevens gelden."
 "Shipping Rate",Verzendtarief
-"0.00 for free shipping. Currency follows the store display currency.","0.00 voor gratis verzending. De valuta volgt de weergavevaluta van de winkel."
+"In the base currency, converted to the currency the visitor sees, as product prices are.
+0.00 for free shipping.","In de basisvaluta, omgerekend naar de valuta die de bezoeker ziet, zoals productprijzen. 0.00 voor gratis verzending."
 "Handling Time Min (days)","Verwerkingstijd min. (dagen)"
+"Optional: the fewest days, with a maximum.","Optioneel: het minste aantal dagen, samen met een maximum."
 "Handling Time Max (days)","Verwerkingstijd max. (dagen)"
+"The most days, 0 for the same day.","Het hoogste aantal dagen, 0 voor dezelfde dag."
 "Transit Time Min (days)","Transporttijd min. (dagen)"
 "Transit Time Max (days)","Transporttijd max. (dagen)"
+"%1 must be a whole number of days, 0 or more.","%1 moet een geheel aantal dagen zijn, 0 of meer."
+"Enter %1 as well: a shipping time needs the most days it can take, and %2 is only the fewest.","Vul ook %1 in: een verzendtijd heeft het hoogste aantal dagen nodig dat het kan duren, en %2 is alleen het minste."
+"%1 cannot be more than %2.","%1 mag niet meer zijn dan %2."
+"Shipping Rate must be an amount of 0 or more, such as 4.95. Enter 0.00 for free shipping.","Verzendtarief moet een bedrag van 0 of meer zijn, zoals 4.95. Vul 0.00 in voor gratis verzending."
+"Enter a Shipping Rate while Enable Shipping Details Schema is Yes. Enter 0.00 for free shipping.","Vul een verzendtarief in zolang Verzendgegevensschema inschakelen op Ja staat. Vul 0.00 in voor gratis verzending."
 Generator,Generator
 "<strong>MageOS SEO</strong> writes each sitemap as an index with a
 file per kind of page, and can add to each URL what core's generator cannot — hreflang alternates

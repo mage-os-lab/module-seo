@@ -11,6 +11,7 @@ use MageOS\Seo\Model\Config;
 use MageOS\Seo\Model\Hreflang\CodeList;
 use MageOS\Seo\Model\Hreflang\CodeValidator;
 use MageOS\Seo\Model\Hreflang\StoreLocaleMap;
+use MageOS\Seo\Model\Log\OccasionalLog;
 use MageOS\Seo\Model\Store\CanonicalBaseUrl;
 use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
@@ -100,8 +101,10 @@ class StoreLocaleMapTest extends TestCase
             new CodeValidator(),
             $canonicalBaseUrl,
             $this->codeList(),
-            $cache ?? $this->createStub(CacheInterface::class),
-            $logger ?? $this->createStub(LoggerInterface::class)
+            new OccasionalLog(
+                $cache ?? $this->createStub(CacheInterface::class),
+                $logger ?? $this->createStub(LoggerInterface::class)
+            )
         );
     }
 
