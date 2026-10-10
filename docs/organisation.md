@@ -20,8 +20,8 @@ The form supports standard Magento store-scope switching: select a website or st
 | URL | Canonical site URL | Used as the `@id` anchor for all linked schema nodes (e.g. `https://example.com/#organization`). Include `https://`, no trailing slash. |
 | Description | Short tagline | Shown in JSON-LD `description` and at the top of `/llms.txt`. |
 | Organisation type | Schema.org `@type` | `Organization`, `Corporation`, `LocalBusiness`, `NGO`, `EducationalOrganization`, `GovernmentOrganization`. Most stores should use `Organization`; a business customers visit in person should use `LocalBusiness`. |
-| Logo | Image for the Organization `logo` node | Can use the current theme logo (from Design config) or a custom upload. |
-| Logo width / height | Pixel dimensions of the logo | Both required for a valid Organization schema. |
+| Logo | Image for the Organization `logo` node | Each store view's design logo, or a custom upload. See [Logo options](#logo-options). |
+| Logo width / height | Pixel dimensions of the logo | Both required for a valid Organization schema. They describe whichever logo is published, in either mode: where store views publish design logos of different sizes, they cannot match every one. |
 | Social profiles | Social profile URLs | Added as the `sameAs` array. One URL per row. |
 | Contact type | `contactType` for the ContactPoint node | e.g. `customer support`, `sales` |
 | Contact email | `email` for the ContactPoint node | Also the AI contact in `/llms.txt` and `/llms-full.txt`. Left blank, those fall back to the store's Customer Support email unless it is still Magento's `support@example.com` — see [AI contact](https://github.com/mage-os-lab/module-aeo/blob/main/docs/llms-txt.md#ai-contact). |
@@ -97,10 +97,50 @@ A multi-store setup with two stores (UK and US):
 
 ## Logo options
 
-The logo field has two modes:
+**Logo Source** has two modes. The choice is stored, and the logo's URL is worked out for each
+store view when a page is rendered (`Model\Organization\LogoUrl`):
 
-- **Use design logo** — automatically reads the logo configured under **Content → Design → Themes → Header Logo**. The path and URL are resolved from the current store's media URL. If the theme logo changes, the Organisation record stays in sync automatically.
-- **Custom logo** — upload a specific image file. Use this if the Organisation logo differs from the storefront header logo (e.g. a square icon for schema.org vs. a wide banner logo for the header).
+- **Use Design Logo:** each store view publishes its own design logo, the **Logo Image** set under
+  **Content → Design → Configuration**, in the store view's row, under **Header**.
+  - It is read as the storefront header reads it: at website scope in single-store mode, and only
+    when the file is in the media directory.
+  - It is published under the store view's own media URL.
+  - With no design logo set, no logo is published: the theme's placeholder logo is never
+    published as the brand's.
+  - A record at website or default scope serves every store view below it, each with its own
+    logo.
+  - A changed design logo is published without saving the Organisation again, once the page
+    cache that the change invalidated is refreshed, as for the header logo itself.
+- **Upload Custom SEO Logo:** an image uploaded here, stored under `media/mage-os/seo/logo/`.
+  - Use this when the Organisation's logo should differ from the header's: a square icon for
+    search results, say, against a wide banner in the header.
+  - It is published under each store view's media URL, never the admin's, which may not be
+    public.
+  - The last upload is kept while the design logo is used, so switching back finds it.
+
+Under **Logo Source**, the form says what the scope you are editing publishes with the design logo:
+the store's own logo for a store, or that each store publishes its own for a website or the
+default.
+
+A record saved before the source was stored, whose logo is an absolute URL, keeps publishing that
+URL until the record is saved with a new upload or with **Use Design Logo**.
+
+### Which images are accepted
+
+JPEG, PNG, GIF and WebP. An upload must be the type its name says, read from the file's bytes. It
+must be complete: its structure is walked to the end its format defines (a JPEG's end-of-image
+marker, a PNG's `IEND`, a GIF's trailer, a WebP's declared length), because decoders draw a JPEG,
+or under GD a GIF, that is cut short. And it must decode:
+
+- **JPEG, PNG and GIF** are decoded by Magento's image adapter, GD2 or ImageMagick
+  (`dev/image/default_adapter`).
+- **WebP** is decoded by ImageMagick when that is the adapter and it reads WebP, and otherwise by
+  PHP's GD. Magento's GD2 adapter cannot open WebP. Where neither ImageMagick nor GD can, a WebP
+  upload is refused with a message saying so.
+
+The type is never taken from an adapter's answer, because ImageMagick decodes whatever a file's
+content says it is, SVG and PDF included. So a Flash movie, a PDF, an SVG or any other file named as
+one of the four is refused. SVG is not accepted under its own name either: it can carry scripts.
 
 ---
 
@@ -118,19 +158,18 @@ Common profiles to include:
 
 ### Which URLs are accepted
 
-The Organisation URL, the social profiles and the logo are published into JSON-LD and Open Graph
-tags, where they end up in `href`, `src` and `@id` positions. Only addresses a browser can safely
-follow are stored:
+The Organisation URL and the social profiles are published into JSON-LD and Open Graph tags, where
+they end up in `href`, `src` and `@id` positions. Only addresses a browser can safely follow are
+stored (the logo is always an upload: see [Logo options](#logo-options)):
 
 - `http://` and `https://`;
-- a relative path, such as the media path a logo upload produces;
+- a relative path;
 - **not** `javascript:`, `data:`, `vbscript:`, `file:` or any other scheme;
 - **not** `//host/path`, which adopts the page's scheme and points at another host;
 - **not** anything containing a control character, which would break out of the attribute it is
   written into.
 
-An Organisation URL or logo that fails this is refused with a message, so nothing is silently
-changed. Invalid social profiles are dropped and named in the message, because the rest of the
+An Organisation URL that fails this is refused with a message, so nothing is silently changed. Invalid social profiles are dropped and named in the message, because the rest of the
 record is still worth saving.
 
 ---

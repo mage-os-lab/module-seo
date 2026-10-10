@@ -23,8 +23,10 @@
         <column xsi:type="varchar" name="name" nullable="false" length="255" default="" comment="Organization name"/>
         <column xsi:type="varchar" name="url" nullable="false" length="255" default=""
                 comment="Canonical organization URL"/>
+        <column xsi:type="varchar" name="logo_source" nullable="true" length="8"
+                comment="Logo source: design or custom; null for a row saved before it was stored"/>
         <column xsi:type="varchar" name="logo_path" nullable="true" length="255"
-                comment="Logo image path (media-relative)"/>
+                comment="Custom logo path (media-relative), or an older row's absolute URL"/>
         <column xsi:type="smallint" name="logo_width" nullable="true" unsigned="true" comment="Logo width in pixels"/>
         <column xsi:type="smallint" name="logo_height" nullable="true" unsigned="true" comment="Logo height in pixels"/>
         <column xsi:type="text" name="description" nullable="true" comment="Organization description / tagline"/>

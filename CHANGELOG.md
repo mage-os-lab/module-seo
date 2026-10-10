@@ -159,6 +159,30 @@ hardcoded version field).
   where they differ. Once the import has finished, the admin advises disabling MageOS_MetaRobotsTag,
   which keeps applying its flags while it is enabled. See `docs/robots-meta.md`, "Moving from
   MageOS_MetaRobotsTag". Settings imported by earlier versions are not revisited.
+- **The Organization's design logo is each store view's own, and follows changes**
+  ([#37](https://github.com/mage-os-lab/module-seo/issues/37)).
+  - "Use Design Logo" stored the admin's design logo URL at the time of saving. Whatever scope was
+    being edited, it was the admin store view's logo, on the admin's media URL. The form then
+    guessed the choice by comparing that URL with today's design logo, so a changed theme logo
+    turned it into a frozen custom logo.
+  - The choice is now stored, and the logo is worked out for each store view when a page is
+    rendered: its own design logo under its own media URL, or the custom upload under its own
+    media URL, never the admin's, which may not be public.
+  - A design logo whose file is missing is not published.
+  - The form says what the scope being edited publishes.
+  - **A record saved before this keeps publishing its stored logo URL until it is saved again with
+    "Use Design Logo" or a new upload.**
+- **A logo upload must be the image its name says** ([#20](https://github.com/mage-os-lab/module-seo/issues/20)).
+  - Any file `getimagesize()` recognised passed under an image extension, a Flash movie named
+    `.jpg` among them. Core's own validator lets through the types it does not list.
+  - A logo is now a JPEG, PNG, GIF or WebP whose bytes match its extension.
+  - It must be complete, its structure walked to the end its format defines. Decoders draw a JPEG,
+    or under GD a GIF, that is cut short.
+  - It must decode: with Magento's image adapter, GD2 or ImageMagick, or for WebP with whichever of
+    ImageMagick and GD can read it.
+  - WebP is new. Where nothing on the server can decode WebP, a WebP upload is refused with a
+    message.
+  - The type check never relies on an adapter, since ImageMagick decodes SVG and PDF too.
 
 ### Changed
 
@@ -206,6 +230,16 @@ hardcoded version field).
   patches take the new `Model\Migration\LegacyImport`, which runs the imports and records which
   finished. New: `Console\Command\ImportLegacyCommand`, `Model\System\Message\LegacyImportStatus`.
   None is `@api`.
+- **Organization logo:**
+  - **`Api\Data\OrganizationInterface` (`@api`) has `getLogoSource()` and `setLogoSource()`,** with
+    `LOGO_SOURCE_DESIGN` and `LOGO_SOURCE_CUSTOM`, and a `logo_source` column. A class
+    implementing the interface itself must add them.
+  - `getLogoPath()` is now the custom logo only, a media-relative path.
+  - `UploadLogo` returns that path as `file`.
+  - New: `Model\Organization\LogoUrl`, `LogoFileValidator`, `ImageCompleteness` and `WebpSupport`.
+  - `Model\StructuredData\Provider\OrganizationProvider` and `Controller\Adminhtml\Organization\Save`
+    take `LogoUrl`. `Ui\DataProvider\OrganizationDataProvider` takes it in place of the scope config
+    and store manager, and `UploadLogo` takes `LogoFileValidator`.
 
 ## [1.2.1] — 2026-10-05
 

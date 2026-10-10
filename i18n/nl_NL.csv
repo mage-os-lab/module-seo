@@ -2,13 +2,20 @@ Save,Opslaan
 "SEO — Organization Settings","SEO — Organisatie-instellingen"
 "No data received.","Geen gegevens ontvangen."
 "The organization URL must be an http:// or https:// address.","De URL van de organisatie moet een http://- of https://-adres zijn."
-"The logo URL must be an http:// or https:// address or a media path.","De logo-URL moet een http://- of https://-adres of een mediapad zijn."
+"The logo must be an image uploaded with this form.","Het logo moet een afbeelding zijn die met dit formulier is geüpload."
 "These social profiles were not saved — a profile must be an http:// or https:// address: %1","Deze sociale profielen zijn niet opgeslagen — een profiel moet een http://- of https://-adres zijn: %1"
 "Organization settings have been saved.","De organisatie-instellingen zijn opgeslagen."
 "Could not save: %1","Opslaan is mislukt: %1"
 "File upload failed.","Het uploaden van het bestand is mislukt."
 "Upload failed. Please try again.","Uploaden mislukt. Probeer het opnieuw."
-"The uploaded file is not a valid image.","Het geüploade bestand is geen geldige afbeelding."
+"Upload a JPEG, PNG, GIF or WebP image.","Upload een JPEG-, PNG-, GIF- of WebP-afbeelding."
+"The uploaded file is not a %1 image.","Het geüploade bestand is geen %1-afbeelding."
+"The uploaded file is a damaged or incomplete image.","Het geüploade bestand is een beschadigde of onvolledige afbeelding."
+"WebP images cannot be checked on this server. Upload a JPEG, PNG or GIF image.","WebP-afbeeldingen kunnen op deze server niet worden gecontroleerd. Upload een JPEG-, PNG- of GIF-afbeelding."
+"The image is too large to check within the server's memory limit.","De afbeelding is te groot om binnen de geheugenlimiet van de server te controleren."
+"With Use Design Logo, this store publishes no logo: it has none under Content → Design → Configuration.","Met Ontwerplogo gebruiken publiceert deze winkel geen logo: er is er geen ingesteld onder Inhoud → Ontwerp → Configuratie."
+"With Use Design Logo, this store publishes %1.","Met Ontwerplogo gebruiken publiceert deze winkel %1."
+"With Use Design Logo, each store publishes its own, from Content → Design → Configuration.","Met Ontwerplogo gebruiken publiceert elke winkel zijn eigen logo, uit Inhoud → Ontwerp → Configuratie."
 "Category first — a category's own settings win, then its nearest ancestor's","Categorie eerst — de eigen instellingen van een categorie gaan voor, daarna die van de dichtstbijzijnde bovenliggende categorie"
 "Store view first — any setting for this store view wins over any global one","Winkelweergave eerst — elke instelling voor deze winkelweergave gaat voor op elke globale instelling"
 "These hreflang codes are not valid: %1. Use a two-letter language, optionally followed by a four-letter script and a two-letter region — for example en, en-GB or zh-Hant-TW.","Deze hreflang-codes zijn ongeldig: %1. Gebruik een taalcode van twee letters, eventueel gevolgd door een schriftcode van vier letters en een regiocode van twee letters — bijvoorbeeld en, en-GB of zh-Hant-TW."
@@ -19,7 +26,7 @@ New,Nieuw
 Refurbished,Gereviseerd
 Used,Gebruikt
 Damaged,Beschadigd
-"Use Design Logo (from Stores > Design > Logo)","Ontwerplogo gebruiken (uit Winkels > Ontwerp > Logo)"
+"Use Design Logo (from Content → Design → Configuration)","Ontwerplogo gebruiken (uit Inhoud → Ontwerp → Configuratie)"
 "Upload Custom SEO Logo","Eigen SEO-logo uploaden"
 "Organization (generic)","Organisatie (algemeen)"
 Corporation,Onderneming

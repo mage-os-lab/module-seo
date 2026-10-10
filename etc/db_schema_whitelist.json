@@ -6,6 +6,7 @@
             "scope_id": true,
             "name": true,
             "url": true,
+            "logo_source": true,
             "logo_path": true,
             "logo_width": true,
             "logo_height": true,

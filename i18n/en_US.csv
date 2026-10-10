@@ -2,13 +2,20 @@ Save,Save
 "SEO — Organization Settings","SEO — Organization Settings"
 "No data received.","No data received."
 "The organization URL must be an http:// or https:// address.","The organization URL must be an http:// or https:// address."
-"The logo URL must be an http:// or https:// address or a media path.","The logo URL must be an http:// or https:// address or a media path."
+"The logo must be an image uploaded with this form.","The logo must be an image uploaded with this form."
 "These social profiles were not saved — a profile must be an http:// or https:// address: %1","These social profiles were not saved — a profile must be an http:// or https:// address: %1"
 "Organization settings have been saved.","Organization settings have been saved."
 "Could not save: %1","Could not save: %1"
 "File upload failed.","File upload failed."
 "Upload failed. Please try again.","Upload failed. Please try again."
-"The uploaded file is not a valid image.","The uploaded file is not a valid image."
+"Upload a JPEG, PNG, GIF or WebP image.","Upload a JPEG, PNG, GIF or WebP image."
+"The uploaded file is not a %1 image.","The uploaded file is not a %1 image."
+"The uploaded file is a damaged or incomplete image.","The uploaded file is a damaged or incomplete image."
+"WebP images cannot be checked on this server. Upload a JPEG, PNG or GIF image.","WebP images cannot be checked on this server. Upload a JPEG, PNG or GIF image."
+"The image is too large to check within the server's memory limit.","The image is too large to check within the server's memory limit."
+"With Use Design Logo, this store publishes no logo: it has none under Content → Design → Configuration.","With Use Design Logo, this store publishes no logo: it has none under Content → Design → Configuration."
+"With Use Design Logo, this store publishes %1.","With Use Design Logo, this store publishes %1."
+"With Use Design Logo, each store publishes its own, from Content → Design → Configuration.","With Use Design Logo, each store publishes its own, from Content → Design → Configuration."
 "Category first — a category's own settings win, then its nearest ancestor's","Category first — a category's own settings win, then its nearest ancestor's"
 "Store view first — any setting for this store view wins over any global one","Store view first — any setting for this store view wins over any global one"
 "These hreflang codes are not valid: %1. Use a two-letter language, optionally followed by a four-letter script and a two-letter region — for example en, en-GB or zh-Hant-TW.","These hreflang codes are not valid: %1. Use a two-letter language, optionally followed by a four-letter script and a two-letter region — for example en, en-GB or zh-Hant-TW."
@@ -19,7 +26,7 @@ New,New
 Refurbished,Refurbished
 Used,Used
 Damaged,Damaged
-"Use Design Logo (from Stores > Design > Logo)","Use Design Logo (from Stores > Design > Logo)"
+"Use Design Logo (from Content → Design → Configuration)","Use Design Logo (from Content → Design → Configuration)"
 "Upload Custom SEO Logo","Upload Custom SEO Logo"
 "Organization (generic)","Organization (generic)"
 Corporation,Corporation

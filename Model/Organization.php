@@ -126,6 +126,37 @@ class Organization extends AbstractExtensibleModel implements OrganizationInterf
     /**
      * @inheritdoc
      */
+    public function getLogoSource(): string
+    {
+        $source = (string) $this->getData(self::LOGO_SOURCE);
+        if ($source === self::LOGO_SOURCE_DESIGN || $source === self::LOGO_SOURCE_CUSTOM) {
+            return $source;
+        }
+
+        // Saved before the source was stored: what it published was its logo path, if it had one.
+        return $this->getLogoPath() !== '' ? self::LOGO_SOURCE_CUSTOM : self::LOGO_SOURCE_DESIGN;
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function setLogoSource(string $source): OrganizationInterface
+    {
+        if ($source !== self::LOGO_SOURCE_DESIGN && $source !== self::LOGO_SOURCE_CUSTOM) {
+            throw new \InvalidArgumentException(\sprintf(
+                'The logo source must be "%s" or "%s", not "%s".',
+                self::LOGO_SOURCE_DESIGN,
+                self::LOGO_SOURCE_CUSTOM,
+                $source
+            ));
+        }
+
+        return $this->setData(self::LOGO_SOURCE, $source);
+    }
+
+    /**
+     * @inheritdoc
+     */
     public function getLogoPath(): string
     {
         return (string) $this->getData(self::LOGO_PATH);

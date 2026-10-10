@@ -9,6 +9,7 @@ use Magento\Store\Model\Store;
 use Magento\Store\Model\StoreManagerInterface;
 use MageOS\Seo\Api\Data\OrganizationInterface;
 use MageOS\Seo\Api\OrganizationRepositoryInterface;
+use MageOS\Seo\Model\Organization\LogoUrl;
 use MageOS\Seo\Model\StructuredData\OrganizationId;
 use MageOS\Seo\Model\StructuredData\Provider\OrganizationProvider;
 use PHPUnit\Framework\MockObject\Stub;
@@ -54,10 +55,18 @@ class OrganizationProviderTest extends TestCase
      */
     private function providerWith(array $localBusinessTypes): OrganizationProvider
     {
+        // The logo as LogoUrl works it out for the rendered store view (1): here, the stored path.
+        $logoUrl = $this->createStub(LogoUrl::class);
+        $logoUrl->method('forStore')->willReturnCallback(
+            static fn (OrganizationInterface $org, int $storeId): ?string
+                => $storeId === 1 && $org->getLogoPath() !== '' ? $org->getLogoPath() : null
+        );
+
         return new OrganizationProvider(
             $this->repository,
             $this->storeManager,
             new OrganizationId($this->repository, $this->storeManager),
+            $logoUrl,
             $localBusinessTypes
         );
     }
@@ -162,6 +171,19 @@ class OrganizationProviderTest extends TestCase
         $this->assertArrayHasKey('logo', $schemas[0]);
         $this->assertSame('https://acme.com/logo.png', $schemas[0]['logo']['url']);
         $this->assertSame('ImageObject', $schemas[0]['logo']['@type']);
+    }
+
+    /**
+     * Issue #37: no logo is published where LogoUrl finds none for the store view, whatever is
+     * stored.
+     *
+     * @return void
+     */
+    public function testNoLogoWhereNoneResolvesForTheStoreView(): void
+    {
+        $this->repository->method('getForScope')->willReturn($this->acmeOrg());
+
+        $this->assertArrayNotHasKey('logo', $this->provider->getSchemas()[0]);
     }
 
     public function testLogoWidthAndHeightIncludedWhenPositive(): void

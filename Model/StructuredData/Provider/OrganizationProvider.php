@@ -7,6 +7,7 @@ namespace MageOS\Seo\Model\StructuredData\Provider;
 use Magento\Store\Model\StoreManagerInterface;
 use MageOS\Seo\Api\OrganizationRepositoryInterface;
 use MageOS\Seo\Api\StructuredDataProviderInterface;
+use MageOS\Seo\Model\Organization\LogoUrl;
 use MageOS\Seo\Model\StructuredData\OrganizationId;
 
 class OrganizationProvider implements StructuredDataProviderInterface
@@ -15,6 +16,7 @@ class OrganizationProvider implements StructuredDataProviderInterface
      * @param OrganizationRepositoryInterface $organizationRepository
      * @param StoreManagerInterface $storeManager
      * @param OrganizationId $organizationId
+     * @param LogoUrl $logoUrl
      * @param array<string,string> $localBusinessTypes The @type values that are LocalBusiness types
      *                                                 and so take geo and priceRange; di.xml sets
      *                                                 LocalBusiness, and a module that stores a
@@ -24,6 +26,7 @@ class OrganizationProvider implements StructuredDataProviderInterface
         private readonly OrganizationRepositoryInterface $organizationRepository,
         private readonly StoreManagerInterface           $storeManager,
         private readonly OrganizationId                  $organizationId,
+        private readonly LogoUrl                         $logoUrl,
         private readonly array                           $localBusinessTypes = []
     ) {
     }
@@ -60,11 +63,12 @@ class OrganizationProvider implements StructuredDataProviderInterface
             'url'      => $baseUrl,
         ];
 
-        // Logo
-        if ($org->getLogoPath() !== '') {
+        // Logo: worked out for this store view now, so a design logo follows its setting.
+        $logoUrl = $this->logoUrl->forStore($org, $storeId);
+        if ($logoUrl !== null) {
             $logoNode = [
                 '@type' => 'ImageObject',
-                'url'   => $org->getLogoPath(),
+                'url'   => $logoUrl,
             ];
             if ($org->getLogoWidth() > 0) {
                 $logoNode['width'] = $org->getLogoWidth();

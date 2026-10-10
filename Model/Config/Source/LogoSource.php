@@ -16,7 +16,7 @@ class LogoSource implements OptionSourceInterface
     public function toOptionArray(): array
     {
         return [
-            ['value' => '1', 'label' => __('Use Design Logo (from Stores > Design > Logo)')],
+            ['value' => '1', 'label' => __('Use Design Logo (from Content → Design → Configuration)')],
             ['value' => '0', 'label' => __('Upload Custom SEO Logo')],
         ];
     }
