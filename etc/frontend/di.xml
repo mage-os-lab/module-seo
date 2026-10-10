@@ -14,4 +14,15 @@
                 type="MageOS\Seo\Plugin\Session\NoSessionForPublicFeeds"/>
     </type>
 
+    <!--
+        Record the SEO settings each storefront page reads, as the cache tags Block\JsonLd gives the
+        page (issue #21). Frontend only: nothing else is cached by page, and sitemap and feed builds
+        would otherwise collect a tag for every entity they read.
+    -->
+    <type name="MageOS\Seo\Model\PageCache\DependencyCollector">
+        <arguments>
+            <argument name="recording" xsi:type="boolean">true</argument>
+        </arguments>
+    </type>
+
 </config>

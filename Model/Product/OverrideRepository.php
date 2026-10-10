@@ -6,6 +6,8 @@ namespace MageOS\Seo\Model\Product;
 
 use Magento\Framework\Data\Collection as DataCollection;
 use Magento\Framework\ObjectManager\ResetAfterRequestInterface;
+use MageOS\Seo\Model\PageCache\DependencyCollector;
+use MageOS\Seo\Model\PageCache\SeoCacheTags;
 use MageOS\Seo\Model\ProductOverride;
 use MageOS\Seo\Model\ResourceModel\ProductOverride as ProductOverrideResource;
 use MageOS\Seo\Model\ResourceModel\ProductOverride\CollectionFactory;
@@ -21,10 +23,14 @@ class OverrideRepository implements ResetAfterRequestInterface
     /**
      * @param CollectionFactory $collectionFactory
      * @param ProductOverrideResource $resource
+     * @param DependencyCollector $dependencies
+     * @param SeoCacheTags $cacheTags
      */
     public function __construct(
         private readonly CollectionFactory       $collectionFactory,
-        private readonly ProductOverrideResource $resource
+        private readonly ProductOverrideResource $resource,
+        private readonly DependencyCollector     $dependencies,
+        private readonly SeoCacheTags            $cacheTags
     ) {
     }
 
@@ -39,6 +45,8 @@ class OverrideRepository implements ResetAfterRequestInterface
      */
     public function getForProduct(int $productId, int $storeId): array
     {
+        $this->dependencies->record([$this->cacheTags->product($productId)]);
+
         return $this->cache["{$productId}_{$storeId}"] ??= $this->load([$productId], $storeId)[$productId];
     }
 

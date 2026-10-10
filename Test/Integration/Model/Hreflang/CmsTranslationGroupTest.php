@@ -153,8 +153,13 @@ class CmsTranslationGroupTest extends TestCase
         $this->createPage([0], $group);
         $deletedId = end($this->createdPageIds);
 
+        // Tagged as the member's page is: with its own SEO tag and its group's (issue #21).
         $cache = Bootstrap::getObjectManager()->get(FullPageCache::class);
-        $cache->save('<html>old alternates</html>', 'mageos_seo_group_member', ['cms_p_' . $memberId]);
+        $cache->save(
+            '<html>old alternates</html>',
+            'mageos_seo_group_member',
+            ['mageos_seo_cms_' . $memberId, 'mageos_seo_hreflang_' . substr(sha1($group), 0, 16)]
+        );
 
         Bootstrap::getObjectManager()->get(PageRepositoryInterface::class)->deleteById($deletedId);
 

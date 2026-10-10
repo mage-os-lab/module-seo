@@ -97,12 +97,15 @@
 
     <!--
         Moving a category re-parents it: its own URL changes (core regenerates the rewrites on
-        catalog_category_move_after). The event is dispatched by Category::move() after its
-        transaction commits, for the admin tree and the REST move alike.
+        catalog_category_move_after), and everything beneath it inherits its SEO settings from new
+        ancestors. The event is dispatched by Category::move() after its transaction commits, for
+        the admin tree and the REST move alike.
     -->
     <event name="category_move">
         <observer name="mageos_seo_invalidate_sitemap_on_category_move"
                   instance="MageOS\Seo\Observer\InvalidateSitemap"/>
+        <observer name="mageos_seo_purge_category_pages_on_move"
+                  instance="MageOS\Seo\Observer\PurgeCategoryPages"/>
     </event>
 
     <!--
@@ -175,6 +178,9 @@
     <event name="catalog_category_delete_commit_after">
         <observer name="mageos_seo_invalidate_sitemap_on_category_delete"
                   instance="MageOS\Seo\Observer\InvalidateSitemap"/>
+        <!-- Its SEO rows go by foreign key, past the resource model that would purge their pages. -->
+        <observer name="mageos_seo_purge_category_pages_on_delete"
+                  instance="MageOS\Seo\Observer\PurgeCategoryPages"/>
     </event>
     <event name="cms_page_delete_commit_after">
         <observer name="mageos_seo_invalidate_sitemap_on_cms_delete"

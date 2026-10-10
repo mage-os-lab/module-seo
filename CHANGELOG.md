@@ -10,6 +10,18 @@ hardcoded version field).
 
 ### Fixed
 
+- **Changing SEO settings purges the cached pages built from them**
+  ([#21](https://github.com/mage-os-lab/module-seo/issues/21)). Pages carried only the
+  Organization's cache tag, so a change to a category's, product's or CMS page's SEO settings was
+  served from the page cache until it expired. A category's change missed most: the categories
+  beneath it inherit its settings and the products in them read it for their schema. Each page now
+  carries a tag for every entity whose settings it read, ancestors included. Every write to the
+  settings — the admin forms, imports, the repositories — purges those tags once committed, for
+  the built-in cache and Varnish alike. Moving or deleting a category purges what inherited from
+  it. A CMS page moving between translation groups purges both groups' pages, from any write, not
+  only the admin form. **After upgrading, flush the page cache once:** pages cached before carry
+  none of the new tags. Changes in Stores → Configuration still need the Page Cache refreshed, as
+  core's do. See docs/extending.md, "Cache considerations".
 - **Rebuilds are queued once the change is committed**
   ([#22](https://github.com/mage-os-lab/module-seo/issues/22)). A save queued its rebuild during
   the save, before the commit: on AMQP a consumer could rebuild from the data before the change,

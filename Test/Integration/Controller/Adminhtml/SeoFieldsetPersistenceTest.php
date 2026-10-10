@@ -309,6 +309,41 @@ class SeoFieldsetPersistenceTest extends AbstractBackendController
     }
 
     /**
+     * Issue #21: saving a category's SEO in the admin purges the cached pages beneath it — its
+     * child's, which inherits it — once the category's save has committed, and no others.
+     *
+     * The admin observer writes the SEO row inside the category's own transaction, so the purge
+     * waits for that transaction's commit; with database isolation off, the commit is real.
+     *
+     * @magentoCache full_page enabled
+     * @return void
+     */
+    #[DataFixture(CategoryFixture::class, as: 'category')]
+    #[DataFixture(CategoryFixture::class, ['parent_id' => '$category.id$'], 'child')]
+    #[DataFixture(CategoryFixture::class, as: 'other')]
+    public function testSavingACategorysSeoPurgesThePagesBeneathIt(): void
+    {
+        $categoryId = $this->fixtureId('category');
+        $cache      = $this->_objectManager->get(FullPageCache::class);
+        $cache->save(
+            '<html>child</html>',
+            'mageos_seo_child_page',
+            ['mageos_seo_cat_' . $this->fixtureId('child'), 'mageos_seo_cat_' . $categoryId]
+        );
+        $cache->save('<html>other</html>', 'mageos_seo_other_page', ['mageos_seo_cat_' . $this->fixtureId('other')]);
+
+        $response = $this->dispatchCategorySave([
+            'entity_id'              => $categoryId,
+            'store_id'               => 0,
+            'mageos_seo_robots_meta' => 'NOINDEX,FOLLOW',
+        ]);
+
+        $this->assertFalse($response['error'], 'Response messages: ' . $response['messages']);
+        $this->assertFalse($cache->load('mageos_seo_child_page'), 'The child category\'s page was not purged.');
+        $this->assertSame('<html>other</html>', $cache->load('mageos_seo_other_page'));
+    }
+
+    /**
      * Saving the category form in a store view writes that store view's row only.
      *
      * @return void
@@ -492,7 +527,7 @@ class SeoFieldsetPersistenceTest extends AbstractBackendController
         $joiner  = $this->createCmsPage([$storeId]);
 
         $cache = $this->_objectManager->get(FullPageCache::class);
-        $cache->save('<html>old alternates</html>', 'mageos_seo_group_member', ['cms_p_' . $member]);
+        $cache->save('<html>old alternates</html>', 'mageos_seo_group_member', $this->memberPageTags($member));
 
         $this->dispatchCmsPageSave($joiner, [$storeId], '', 'about-us');
 
@@ -515,7 +550,7 @@ class SeoFieldsetPersistenceTest extends AbstractBackendController
         $repository->save($leaver, ['hreflang_group' => 'about-us']);
 
         $cache = $this->_objectManager->get(FullPageCache::class);
-        $cache->save('<html>old alternates</html>', 'mageos_seo_group_member', ['cms_p_' . $member]);
+        $cache->save('<html>old alternates</html>', 'mageos_seo_group_member', $this->memberPageTags($member));
 
         $this->dispatchCmsPageSave($leaver, [$storeId], '', '');
 
@@ -538,11 +573,27 @@ class SeoFieldsetPersistenceTest extends AbstractBackendController
         $repository->save($saved, ['hreflang_group' => 'about-us']);
 
         $cache = $this->_objectManager->get(FullPageCache::class);
-        $cache->save('<html>current alternates</html>', 'mageos_seo_group_member', ['cms_p_' . $member]);
+        $cache->save(
+            '<html>current alternates</html>',
+            'mageos_seo_group_member',
+            $this->memberPageTags($member)
+        );
 
         $this->dispatchCmsPageSave($saved, [$storeId], '', 'about-us');
 
         $this->assertSame('<html>current alternates</html>', $cache->load('mageos_seo_group_member'));
+    }
+
+    /**
+     * The cache tags of a page in the "about-us" group, as the page carries them: its own SEO tag
+     * and its group's (issue #21).
+     *
+     * @param int $pageId
+     * @return string[]
+     */
+    private function memberPageTags(int $pageId): array
+    {
+        return ['mageos_seo_cms_' . $pageId, 'mageos_seo_hreflang_' . substr(sha1('about-us'), 0, 16)];
     }
 
     /**

@@ -26,6 +26,10 @@
     // Sitemap/FileRemover reads them the same way, and works on real files and
     // the commit callbacks of a real transaction: Test/Integration/Model/Sitemap/
     // FileRemovalTest covers it, with a rolled-back deletion among its cases.
+    // PageCache/CacheTagCleaner is the HomePageLoader case once more: one call
+    // through the generated CacheContextFactory, kept apart so Purger, which
+    // decides when pages are purged, stays in this run; the purge itself is
+    // tested against the real cache by Test/Integration/PageCache.
     "source": {
         "directories": ["Model", "Observer", "Service"],
         "excludes": [
@@ -38,6 +42,7 @@
             "MetaTag/Provider",
             "Organization.php",
             "OrganizationRepository.php",
+            "PageCache/CacheTagCleaner.php",
             "Product/OverrideRepository.php",
             "Rebuild/CronExpressionMatcher.php",
             "Review/NativeAggregateRatingProvider.php",

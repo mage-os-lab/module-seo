@@ -12,6 +12,7 @@ use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Store\Model\ScopeInterface;
 use MageOS\Seo\Model\Category\ConfigRepository as CategoryConfigRepository;
 use MageOS\Seo\Model\Cms\ConfigRepository as CmsPageConfigRepository;
+use MageOS\Seo\Model\PageCache\Purger;
 use MageOS\Seo\Model\Product\OverrideRepository;
 use MageOS\Seo\Model\ResourceModel\MetaRobotsTagFlags;
 
@@ -49,6 +50,7 @@ class MetaRobotsTagImporter
      * @param ScopeConfigInterface $scopeConfig
      * @param MetaRobotsTagFlags $flags
      * @param FlagsToDirective $flagsToDirective
+     * @param Purger $purger
      */
     public function __construct(
         private readonly ProductCollectionFactory  $productCollectionFactory,
@@ -60,22 +62,26 @@ class MetaRobotsTagImporter
         private readonly EavConfig                 $eavConfig,
         private readonly ScopeConfigInterface      $scopeConfig,
         private readonly MetaRobotsTagFlags        $flags,
-        private readonly FlagsToDirective          $flagsToDirective
+        private readonly FlagsToDirective          $flagsToDirective,
+        private readonly Purger                    $purger
     ) {
     }
 
     /**
      * Import every flagged product, category and CMS page.
      *
+     * One page cache purge for the whole import, not one per row written: a catalogue can carry
+     * thousands of flags.
+     *
      * @return array<string, int> Rows written, keyed by entity type
      */
     public function import(): array
     {
-        return [
+        return $this->purger->batch(fn (): array => [
             'product'  => $this->importProducts(),
             'category' => $this->importCategories(),
             'cms_page' => $this->importCmsPages(),
-        ];
+        ]);
     }
 
     /**

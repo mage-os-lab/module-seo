@@ -16,6 +16,7 @@ use MageOS\Seo\Model\Cms\ConfigRepository as CmsPageConfigRepository;
 use MageOS\Seo\Model\Cms\HreflangGroup;
 use MageOS\Seo\Model\Config;
 use MageOS\Seo\Model\Hreflang\CodeList;
+use MageOS\Seo\Model\PageCache\Purger;
 use MageOS\Seo\Model\ResourceModel\MetaRobotsTagFlags;
 
 /**
@@ -69,6 +70,7 @@ class HreflangImporter
      * @param CmsPageConfigRepository $cmsPageConfigRepository
      * @param HreflangGroup $hreflangGroup
      * @param MetaRobotsTagFlags $cmsPageColumns Answers whether a cms_page column exists
+     * @param Purger $purger
      */
     public function __construct(
         private readonly ConfigCollectionFactory  $configCollectionFactory,
@@ -80,7 +82,8 @@ class HreflangImporter
         private readonly CmsPageCollectionFactory $cmsPageCollectionFactory,
         private readonly CmsPageConfigRepository  $cmsPageConfigRepository,
         private readonly HreflangGroup            $hreflangGroup,
-        private readonly MetaRobotsTagFlags       $cmsPageColumns
+        private readonly MetaRobotsTagFlags       $cmsPageColumns,
+        private readonly Purger                   $purger
     ) {
     }
 
@@ -287,28 +290,35 @@ class HreflangImporter
         $collection = $this->cmsPageCollectionFactory->create();
         $collection->addFieldToFilter(self::THEIR_COLUMN, ['neq' => '']);
 
-        $grouped = 0;
-        foreach ($collection as $page) {
-            $pageId = (int) $page->getId();
-            $value  = (string) $page->getData(self::THEIR_COLUMN);
-            $group  = $this->hreflangGroup->slugify($value);
+        // One page cache purge for the whole import, not one per page grouped.
+        return $this->purger->batch(function () use ($collection, &$notes): int {
+            $grouped = 0;
+            foreach ($collection as $page) {
+                $pageId = (int) $page->getId();
+                $value  = (string) $page->getData(self::THEIR_COLUMN);
+                $group  = $this->hreflangGroup->slugify($value);
 
-            if ($group === null) {
-                $notes[] = \sprintf('CMS page %d: "%s" cannot be a translation group; skipped.', $pageId, $value);
-                continue;
-            }
-            if ($this->cmsPageConfigRepository->getHreflangGroup($pageId) !== null) {
-                continue;
-            }
-            if ($group !== $this->hreflangGroup->normalise($value)) {
-                $notes[] = \sprintf('CMS page %d: "%s" imported as "%s".', $pageId, $value, $group);
+                if ($group === null) {
+                    $notes[] = \sprintf(
+                        'CMS page %d: "%s" cannot be a translation group; skipped.',
+                        $pageId,
+                        $value
+                    );
+                    continue;
+                }
+                if ($this->cmsPageConfigRepository->getHreflangGroup($pageId) !== null) {
+                    continue;
+                }
+                if ($group !== $this->hreflangGroup->normalise($value)) {
+                    $notes[] = \sprintf('CMS page %d: "%s" imported as "%s".', $pageId, $value, $group);
+                }
+
+                $this->cmsPageConfigRepository->save($pageId, ['hreflang_group' => $group]);
+                $grouped++;
             }
 
-            $this->cmsPageConfigRepository->save($pageId, ['hreflang_group' => $group]);
-            $grouped++;
-        }
-
-        return $grouped;
+            return $grouped;
+        });
     }
 
     /**

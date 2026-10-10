@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace MageOS\Seo\Test\Unit\Model\Product;
 
 use Magento\Framework\Model\AbstractModel;
+use MageOS\Seo\Model\PageCache\DependencyCollector;
+use MageOS\Seo\Model\PageCache\SeoCacheTags;
 use MageOS\Seo\Model\Product\OverrideRepository;
 use MageOS\Seo\Model\ProductOverride;
 use MageOS\Seo\Model\ResourceModel\ProductOverride as ProductOverrideResource;
@@ -44,11 +46,38 @@ class OverrideRepositoryTest extends TestCase
      */
     private array $saved = [];
 
+    /**
+     * What the repository told the page cache the page read.
+     *
+     * @var DependencyCollector
+     */
+    private DependencyCollector $dependencies;
+
     protected function setUp(): void
     {
-        $this->rows       = [];
-        $this->filterSets = [];
-        $this->saved      = [];
+        $this->rows         = [];
+        $this->filterSets   = [];
+        $this->saved        = [];
+        $this->dependencies = new DependencyCollector(true);
+    }
+
+    public function testThePageDependsOnTheProductItRead(): void
+    {
+        // Issue #21. Recorded on a memoised read too: the memo outlives a request's recording.
+        $repository = $this->repository();
+        $repository->getForProduct(10, 2);
+        $this->dependencies->_resetState();
+        $repository->getForProduct(10, 2);
+
+        $this->assertSame(['mageos_seo_prod_10'], $this->dependencies->tags());
+    }
+
+    public function testABulkReadIsNotRecorded(): void
+    {
+        // The sitemap's reads, which no cached page is built from.
+        $this->repository()->getForProducts([10, 11], 2);
+
+        $this->assertSame([], $this->dependencies->tags());
     }
 
     public function testGetForProductMergesStoreRowOverGlobalAndMemoises(): void
@@ -214,7 +243,7 @@ class OverrideRepositoryTest extends TestCase
             }
         );
 
-        return new OverrideRepository($collectionFactory, $resource);
+        return new OverrideRepository($collectionFactory, $resource, $this->dependencies, new SeoCacheTags());
     }
 
     /**

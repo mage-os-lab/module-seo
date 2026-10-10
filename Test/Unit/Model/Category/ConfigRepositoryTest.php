@@ -12,6 +12,8 @@ use MageOS\Seo\Model\Category\Inheritance\StoreFirstOrder;
 use MageOS\Seo\Model\Category\InheritanceResolver;
 use MageOS\Seo\Model\CategoryConfig;
 use MageOS\Seo\Model\Config as SeoConfig;
+use MageOS\Seo\Model\PageCache\DependencyCollector;
+use MageOS\Seo\Model\PageCache\SeoCacheTags;
 use MageOS\Seo\Model\ResourceModel\CategoryConfig as CategoryConfigResource;
 use MageOS\Seo\Model\ResourceModel\CategoryConfig\Collection;
 use MageOS\Seo\Model\ResourceModel\CategoryConfig\CollectionFactory;
@@ -56,12 +58,43 @@ class ConfigRepositoryTest extends TestCase
      */
     private string $strategy = 'category_first';
 
+    /**
+     * What the repository told the page cache the page read.
+     *
+     * @var DependencyCollector
+     */
+    private DependencyCollector $dependencies;
+
     protected function setUp(): void
     {
-        $this->rows       = [];
-        $this->filterSets = [];
-        $this->saved      = [];
-        $this->strategy   = 'category_first';
+        $this->rows         = [];
+        $this->filterSets   = [];
+        $this->saved        = [];
+        $this->strategy     = 'category_first';
+        $this->dependencies = new DependencyCollector(true);
+    }
+
+    public function testThePageDependsOnTheCategoryAndEveryAncestorConfiguredOrNot(): void
+    {
+        // Issue #21: a setting added to an ancestor later changes what the category resolves to.
+        $this->rows = [['category_id' => 14, 'store_id' => 0, 'robots_meta' => 'NOINDEX']];
+
+        $this->repository()->getForCategory(14, ['1', '2', '5', '9', '14'], 1);
+
+        $this->assertSame(['mageos_seo_cat_14', 'mageos_seo_cat_9', 'mageos_seo_cat_5'], $this->dependencies->tags());
+    }
+
+    public function testAMemoisedReadIsRecordedToo(): void
+    {
+        // The memo outlives a worker-mode request's recording, which is cleared between requests.
+        $repository = $this->repository();
+        $repository->getForCategory(14, ['1', '2', '9', '14'], 1);
+        $this->dependencies->_resetState();
+
+        $repository->getForCategory(14, ['1', '2', '9', '14'], 1);
+
+        $this->assertCount(1, $this->filterSets, 'The second read came from the memo.');
+        $this->assertSame(['mageos_seo_cat_14', 'mageos_seo_cat_9'], $this->dependencies->tags());
     }
 
     public function testTheJsonFieldsComeBackDecoded(): void
@@ -337,7 +370,9 @@ class ConfigRepositoryTest extends TestCase
                 'category_first' => new CategoryFirstOrder(),
                 'store_first'    => new StoreFirstOrder(),
             ]),
-            $seoConfig
+            $seoConfig,
+            $this->dependencies,
+            new SeoCacheTags()
         );
     }
 

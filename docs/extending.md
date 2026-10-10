@@ -405,3 +405,22 @@ You can return multiple handles from `getHandles()` — the provider runs if any
 ## Cache considerations
 
 Providers registered via `di.xml` are part of the same fully-cacheable request as the built-in providers. Your provider must not introduce any output that varies per-customer or session — use customer data sections for personalised content, never inside a provider. The `cacheable="false"` attribute must never be added to the `Block\JsonLd` or `Block\MetaTags` blocks, even indirectly.
+
+### When cached pages are purged
+
+A page built from this module's per-entity SEO settings carries a cache tag for each entity whose settings it read. A change to those settings purges the pages that read them, including pages that only inherit them, and no others.
+
+| Tag | Settings | Carried by |
+|---|---|---|
+| `mageos_seo_cat_<id>` | A category's | Its page, the pages of every category beneath it (they inherit its settings field by field), and the pages of products whose schema reads it through their first category |
+| `mageos_seo_prod_<id>` | A product's overrides | The product's pages |
+| `mageos_seo_cms_<id>` | A CMS page's | The page |
+| `mageos_seo_hreflang_<hash>` | A CMS translation group's members | The pages of the group, whose heads list one another |
+
+Tags are per entity, not per store view: a store view's row purges the entity's pages in every store view.
+
+- **Recording.** The repositories record what each storefront page reads (`Model\PageCache\DependencyCollector`), and `Block\JsonLd::getIdentities()` hands the tags to the page cache with the page. A provider of your own that reads these settings through the repositories is covered without doing anything. The block stays in the layout when JSON-LD is switched off in the admin. Removing it from the layout stops changes to SEO settings purging pages.
+- **Purging.** Every write to the settings tables purges the tags of the rows it changed: the admin forms, the repositories, the migration importers, and the resource models called directly. A save that changes nothing purges nothing, and moving or deleting a category purges its tag. The purge is core's `clean_cache_by_tags`, which the built-in cache, Varnish and CDN modules observe.
+- **After the commit.** The purge waits for the write's transaction to commit: a page requested in between would be cached again with the old settings. A transaction committed on the connection itself rather than through a resource model leaves the purge for the next commit. Data patches are the case in point, since `setup:upgrade` commits them that way; deploys flush the cache anyway.
+- **Not purged: Stores → Configuration.** As with core's own settings, saving the configuration marks the Page Cache invalidated. Refresh it in System → Cache Management, which also purges Varnish.
+- **After upgrading** to a version with these tags, flush the page cache once: pages cached before the upgrade carry none of them.

@@ -10,15 +10,15 @@ use Magento\Framework\Event\Observer;
 use Magento\Framework\Message\ManagerInterface;
 use MageOS\Seo\Model\Cms\ConfigRepository;
 use MageOS\Seo\Model\Cms\HreflangGroup;
-use MageOS\Seo\Model\Cms\TranslationGroupCache;
 use MageOS\Seo\Observer\Adminhtml\SaveCmsPageSeoConfig;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
 
 /**
- * Which values reach the repository, and when the translation group's other pages are refreshed.
- * That the admin form and this observer agree on the row is covered end to end by
- * Test/Integration/Controller/Adminhtml/SeoFieldsetPersistenceTest.
+ * Which values reach the repository. That the admin form and this observer agree on the row is
+ * covered end to end by Test/Integration/Controller/Adminhtml/SeoFieldsetPersistenceTest; that a
+ * change of group purges both groups' pages, by Test/Integration/PageCache/SeoPagePurgeTest, as the
+ * resource model does it for every write.
  */
 class SaveCmsPageSeoConfigTest extends TestCase
 {
@@ -73,32 +73,6 @@ class SaveCmsPageSeoConfigTest extends TestCase
         ])));
     }
 
-    public function testChangingTheGroupRefreshesBothGroupsPages(): void
-    {
-        $repository = $this->createStub(ConfigRepository::class);
-        $repository->method('getHreflangGroup')->willReturn('old-group');
-        $cache = $this->createMock(TranslationGroupCache::class);
-        $cache->expects($this->once())->method('purge')->with(['old-group', 'new-group']);
-
-        $this->observer($repository, null, $cache)->execute($this->eventFor($this->page(7, [
-            SaveCmsPageSeoConfig::FIELD_HREFLANG_GROUP => 'new-group',
-        ])));
-    }
-
-    public function testAnUnchangedGroupRefreshesNothing(): void
-    {
-        // Every save of the form posts the group back; only a change reaches other pages.
-        $repository = $this->createStub(ConfigRepository::class);
-        $repository->method('getHreflangGroup')->willReturn('about-us');
-        $cache = $this->createMock(TranslationGroupCache::class);
-        $cache->expects($this->never())->method('purge');
-
-        $this->observer($repository, null, $cache)->execute($this->eventFor($this->page(7, [
-            SaveCmsPageSeoConfig::FIELD_ROBOTS_META    => 'NOINDEX,FOLLOW',
-            SaveCmsPageSeoConfig::FIELD_HREFLANG_GROUP => 'About-Us',
-        ])));
-    }
-
     public function testASaveFailureIsAWarningNotAnError(): void
     {
         $repository = $this->createStub(ConfigRepository::class);
@@ -106,27 +80,10 @@ class SaveCmsPageSeoConfigTest extends TestCase
         $messages = $this->createMock(ManagerInterface::class);
         $messages->expects($this->once())->method('addWarningMessage')
             ->with($this->stringContains('SEO settings could not be saved'));
-        $cache = $this->createMock(TranslationGroupCache::class);
-        $cache->expects($this->never())->method('purge');
-
-        $this->observer($repository, $messages, $cache)->execute($this->eventFor($this->page(7, [
-            SaveCmsPageSeoConfig::FIELD_HREFLANG_GROUP => 'about-us',
-        ])));
-    }
-
-    public function testAFailedRefreshIsLoggedWithoutClaimingTheSaveFailed(): void
-    {
-        $repository = $this->createStub(ConfigRepository::class);
-        $repository->method('getHreflangGroup')->willReturn(null);
-        $cache = $this->createStub(TranslationGroupCache::class);
-        $cache->method('purge')->willThrowException(new \RuntimeException('Varnish unreachable'));
-        $messages = $this->createMock(ManagerInterface::class);
-        $messages->expects($this->never())->method('addWarningMessage');
         $logger = $this->createMock(LoggerInterface::class);
-        $logger->expects($this->once())->method('error')
-            ->with($this->stringContains('could not refresh the translation group'));
+        $logger->expects($this->once())->method('error')->with($this->stringContains('Deadlock'));
 
-        $this->observer($repository, $messages, $cache, $logger)->execute($this->eventFor($this->page(7, [
+        $this->observer($repository, $messages, $logger)->execute($this->eventFor($this->page(7, [
             SaveCmsPageSeoConfig::FIELD_HREFLANG_GROUP => 'about-us',
         ])));
     }
@@ -134,20 +91,17 @@ class SaveCmsPageSeoConfigTest extends TestCase
     /**
      * @param ConfigRepository $repository
      * @param ManagerInterface|null $messages
-     * @param TranslationGroupCache|null $cache
      * @param LoggerInterface|null $logger
      * @return SaveCmsPageSeoConfig
      */
     private function observer(
         ConfigRepository $repository,
         ?ManagerInterface $messages = null,
-        ?TranslationGroupCache $cache = null,
         ?LoggerInterface $logger = null
     ): SaveCmsPageSeoConfig {
         return new SaveCmsPageSeoConfig(
             $repository,
             new HreflangGroup(),
-            $cache ?? $this->createStub(TranslationGroupCache::class),
             $messages ?? $this->createStub(ManagerInterface::class),
             $logger ?? $this->createStub(LoggerInterface::class)
         );

@@ -8,48 +8,24 @@ use Magento\Cms\Api\Data\PageInterface;
 use Magento\Framework\Event;
 use Magento\Framework\Event\Observer;
 use MageOS\Seo\Model\Cms\ConfigRepository;
-use MageOS\Seo\Model\Cms\TranslationGroupCache;
 use MageOS\Seo\Observer\RemoveCmsPageConfigOnDelete;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
 
 /**
- * A deleted CMS page's configuration rows go with it, and its translation group's cached pages are
- * purged; a failure is logged, never turned into an error for the delete that already happened.
+ * A deleted CMS page's configuration rows go with it; a failure is logged, never turned into an
+ * error for the delete that already happened. That the rows' deletion purges the cached pages of
+ * the page's translation group is the resource model's, tested end to end by
+ * Test/Integration/Model/Hreflang/CmsTranslationGroupTest.
  */
 class RemoveCmsPageConfigOnDeleteTest extends TestCase
 {
-    /**
-     * The calls made, in order.
-     *
-     * @var string[]
-     */
-    private array $calls = [];
-
-    public function testTheGroupIsReadThenTheRowsDeletedThenTheGroupPurged(): void
+    public function testThePagesRowsAreDeleted(): void
     {
         $repository = $this->createMock(ConfigRepository::class);
-        $repository->expects($this->once())->method('getHreflangGroup')->with(12)
-            ->willReturnCallback(function (): string {
-                $this->calls[] = 'read group';
+        $repository->expects($this->once())->method('deleteForPages')->with([12]);
 
-                return 'about-us';
-            });
-        $repository->expects($this->once())->method('deleteForPages')->with([12])
-            ->willReturnCallback(function (): int {
-                $this->calls[] = 'delete rows';
-
-                return 1;
-            });
-        $cache = $this->createMock(TranslationGroupCache::class);
-        $cache->expects($this->once())->method('purge')->with(['about-us'])
-            ->willReturnCallback(function (): void {
-                $this->calls[] = 'purge group';
-            });
-
-        $this->observer($repository, $cache)->execute($this->event(['object' => $this->page(12)]));
-
-        $this->assertSame(['read group', 'delete rows', 'purge group'], $this->calls);
+        $this->observer($repository)->execute($this->event(['object' => $this->page(12)]));
     }
 
     public function testThePageMayArriveAsPage(): void
@@ -70,21 +46,9 @@ class RemoveCmsPageConfigOnDeleteTest extends TestCase
         );
     }
 
-    public function testAPageWithoutAGroupIsPurgedAsNoGroup(): void
-    {
-        // TranslationGroupCache::purge() ignores nulls: a page in no group purges nothing.
-        $repository = $this->createStub(ConfigRepository::class);
-        $repository->method('getHreflangGroup')->willReturn(null);
-        $cache = $this->createMock(TranslationGroupCache::class);
-        $cache->expects($this->once())->method('purge')->with([null]);
-
-        $this->observer($repository, $cache)->execute($this->event(['object' => $this->page(12)]));
-    }
-
     public function testSomethingOtherThanAPageIsIgnored(): void
     {
         $repository = $this->createMock(ConfigRepository::class);
-        $repository->expects($this->never())->method('getHreflangGroup');
         $repository->expects($this->never())->method('deleteForPages');
 
         $this->observer($repository)->execute($this->event(['object' => new \stdClass()]));
@@ -93,15 +57,14 @@ class RemoveCmsPageConfigOnDeleteTest extends TestCase
 
     public function testAPageWithoutAnIdIsIgnored(): void
     {
-        // Nothing is read either, and nothing logged: the guard stops it, not the catch below it.
+        // Nothing is logged: the guard stops it, not the catch below it.
         $repository = $this->createMock(ConfigRepository::class);
-        $repository->expects($this->never())->method('getHreflangGroup');
         $repository->expects($this->never())->method('deleteForPages');
         $logger = $this->createMock(LoggerInterface::class);
         $logger->expects($this->never())->method('error');
 
-        $this->observer($repository, null, $logger)->execute($this->event(['object' => $this->page(null)]));
-        $this->observer($repository, null, $logger)->execute($this->event(['object' => $this->page(0)]));
+        $this->observer($repository, $logger)->execute($this->event(['object' => $this->page(null)]));
+        $this->observer($repository, $logger)->execute($this->event(['object' => $this->page(0)]));
     }
 
     public function testAFailureIsLoggedWithThePageAndNotRethrown(): void
@@ -109,33 +72,28 @@ class RemoveCmsPageConfigOnDeleteTest extends TestCase
         $failure    = new \RuntimeException('Deadlock');
         $repository = $this->createStub(ConfigRepository::class);
         $repository->method('deleteForPages')->willThrowException($failure);
-        $cache = $this->createMock(TranslationGroupCache::class);
-        $cache->expects($this->never())->method('purge');
         $logger = $this->createMock(LoggerInterface::class);
         $logger->expects($this->once())->method('error')->with(
             'MageOS_Seo: could not remove the SEO configuration of deleted CMS page 12',
             ['exception' => $failure]
         );
 
-        $this->observer($repository, $cache, $logger)->execute($this->event(['object' => $this->page(12)]));
+        $this->observer($repository, $logger)->execute($this->event(['object' => $this->page(12)]));
     }
 
     /**
      * The observer, with stubs for whatever the test does not look at.
      *
      * @param ConfigRepository $repository
-     * @param TranslationGroupCache|null $cache
      * @param LoggerInterface|null $logger
      * @return RemoveCmsPageConfigOnDelete
      */
     private function observer(
         ConfigRepository $repository,
-        ?TranslationGroupCache $cache = null,
         ?LoggerInterface $logger = null
     ): RemoveCmsPageConfigOnDelete {
         return new RemoveCmsPageConfigOnDelete(
             $repository,
-            $cache ?? $this->createStub(TranslationGroupCache::class),
             $logger ?? $this->createStub(LoggerInterface::class)
         );
     }
