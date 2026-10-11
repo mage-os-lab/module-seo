@@ -12,6 +12,7 @@ use Magento\InventorySalesApi\Api\Data\SalesChannelInterface;
 use Magento\InventorySalesApi\Api\StockResolverInterface;
 use Magento\InventorySalesApi\Model\GetStockItemsDataInterface;
 use Magento\Store\Model\StoreManagerInterface;
+use MageOS\Seo\Api\Product\AvailabilityResolverInterface;
 use MageOS\Seo\Model\ResourceModel\StockItemManageStock;
 use Psr\Log\LoggerInterface;
 
@@ -39,17 +40,17 @@ use Psr\Log\LoggerInterface;
  *
  * resolve() answers one product from what prefetch() loaded, or as a batch of one.
  * Model\Product\Variant\ProductGroupBuilder prefetches a configurable and its variants together.
+ *
+ * The stock index is MSI's, so this module requires MSI (review M3, decision D1b): composer.json
+ * requires the three modules that implement the interfaces taken here, and `module:disable` refuses
+ * to switch them off underneath it.
  */
-class AvailabilityResolver implements ResetAfterRequestInterface
+class AvailabilityResolver implements AvailabilityResolverInterface, ResetAfterRequestInterface
 {
-    public const IN_STOCK     = 'https://schema.org/InStock';
-    public const OUT_OF_STOCK = 'https://schema.org/OutOfStock';
-    public const BACKORDER    = 'https://schema.org/BackOrder';
-
     /**
-     * Most available first: the order best() ranks by.
+     * Known to be sellable, most available first: the order best() ranks by.
      */
-    private const RANK = [self::IN_STOCK, self::BACKORDER, self::OUT_OF_STOCK];
+    private const SELLABLE = [self::IN_STOCK, self::BACKORDER];
 
     /**
      * @var array<string, int> website code => stock ID
@@ -57,7 +58,9 @@ class AvailabilityResolver implements ResetAfterRequestInterface
     private array $stockIds = [];
 
     /**
-     * @var array<string, string> "stock ID:SKU" => availability, from prefetch()
+     * Availability from prefetch(), by "stock ID:SKU"; null where its lookup failed.
+     *
+     * @var array<string, string|null>
      */
     private array $prefetched = [];
 
@@ -82,15 +85,16 @@ class AvailabilityResolver implements ResetAfterRequestInterface
     }
 
     /**
-     * The availability of one product.
+     * The availability of one product, or null when its stock could not be read.
      *
      * From what prefetch() loaded, or looked up as a batch of one. A lookup that fails is logged
-     * with the SKU and answers OutOfStock: the page still renders, and the log says why.
+     * with the SKU and answers null: the page still renders, without an availability nothing backs
+     * (review low item, decision D8a: it was OutOfStock), and the log says why.
      *
      * @param ProductInterface $product
-     * @return string
+     * @return string|null
      */
-    public function resolve(ProductInterface $product): string
+    public function resolve(ProductInterface $product): ?string
     {
         $sku = (string) $product->getSku();
         if ($sku === '') {
@@ -99,15 +103,18 @@ class AvailabilityResolver implements ResetAfterRequestInterface
 
         try {
             $key = $this->getCurrentStockId() . ':' . $sku;
+            if (\array_key_exists($key, $this->prefetched)) {
+                return $this->prefetched[$key];
+            }
 
-            return $this->prefetched[$key] ?? ($this->resolveMany([$product])[$sku] ?? self::OUT_OF_STOCK);
+            return $this->resolveMany([$product])[$sku] ?? self::OUT_OF_STOCK;
         } catch (\Exception $e) {
             $this->logger->error(
                 \sprintf('MageOS_Seo: could not read the stock of product "%s": %s', $sku, $e->getMessage()),
                 ['exception' => $e]
             );
 
-            return self::OUT_OF_STOCK;
+            return null;
         }
     }
 
@@ -174,8 +181,8 @@ class AvailabilityResolver implements ResetAfterRequestInterface
     /**
      * Look up products together, so resolve() answers each of them without another lookup.
      *
-     * A lookup that fails is logged once, and the products answer OutOfStock: a configurable's
-     * variants must not each fail and log again.
+     * A lookup that fails is logged once, and the products answer null (decision D8a): a
+     * configurable's variants must not each fail and log again.
      *
      * @param ProductInterface[] $products
      * @return void
@@ -188,7 +195,8 @@ class AvailabilityResolver implements ResetAfterRequestInterface
             // the time ProductGroupBuilder asks for the same products.
             $products = array_filter(
                 $products,
-                fn (ProductInterface $product): bool => !isset($this->prefetched[$stockId . ':' . $product->getSku()])
+                fn (ProductInterface $product): bool
+                    => !\array_key_exists($stockId . ':' . $product->getSku(), $this->prefetched)
             );
             if ($products === []) {
                 return;
@@ -210,7 +218,7 @@ class AvailabilityResolver implements ResetAfterRequestInterface
             );
             $stockId = $this->stockIds[(string) $this->storeManager->getWebsite()->getCode()] ?? 0;
             foreach ($skus as $sku) {
-                $this->prefetched[$stockId . ':' . $sku] = self::OUT_OF_STOCK;
+                $this->prefetched[$stockId . ':' . $sku] = null;
             }
         }
     }
@@ -218,22 +226,23 @@ class AvailabilityResolver implements ResetAfterRequestInterface
     /**
      * The most available of several products.
      *
-     * InStock if any is, else BackOrder if any is, else OutOfStock (also for none).
+     * InStock if any is, else BackOrder if any is. Otherwise null when some could not be read, as
+     * they might be sellable (decision D8a), and OutOfStock when none could be (also for none).
      *
      * @param ProductInterface[] $products
-     * @return string
+     * @return string|null
      */
-    public function best(array $products): string
+    public function best(array $products): ?string
     {
         $this->prefetch($products);
-        $found = array_map(fn (ProductInterface $product): string => $this->resolve($product), $products);
-        foreach (self::RANK as $availability) {
+        $found = array_map(fn (ProductInterface $product): ?string => $this->resolve($product), $products);
+        foreach (self::SELLABLE as $availability) {
             if (\in_array($availability, $found, true)) {
                 return $availability;
             }
         }
 
-        return self::OUT_OF_STOCK;
+        return \in_array(null, $found, true) ? null : self::OUT_OF_STOCK;
     }
 
     /**

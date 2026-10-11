@@ -11,6 +11,7 @@ use MageOS\Seo\Model\Category\ConfigRepository as CategoryConfigRepository;
 use MageOS\Seo\Model\Category\PathResolver as CategoryPathResolver;
 use MageOS\Seo\Model\Product\OverrideRepository;
 use MageOS\Seo\Model\Product\SchemaBuilderPool;
+use MageOS\Seo\Model\Product\SchemaCategory;
 use MageOS\Seo\Model\Product\SchemaRegistry;
 use MageOS\Seo\Model\Product\SchemaTemplateResolver;
 use MageOS\Seo\Model\Product\Variant\ProductGroupBuilder;
@@ -27,6 +28,7 @@ class ProductSchemaProvider implements StructuredDataProviderInterface
      * @param SchemaTemplateResolver $templateResolver
      * @param CategoryPathResolver $categoryPathResolver
      * @param ProductGroupBuilder $productGroupBuilder
+     * @param SchemaCategory $schemaCategory
      */
     public function __construct(
         private readonly CurrentEntity             $currentEntity,
@@ -37,7 +39,8 @@ class ProductSchemaProvider implements StructuredDataProviderInterface
         private readonly StoreManagerInterface     $storeManager,
         private readonly SchemaTemplateResolver    $templateResolver,
         private readonly CategoryPathResolver      $categoryPathResolver,
-        private readonly ProductGroupBuilder       $productGroupBuilder
+        private readonly ProductGroupBuilder       $productGroupBuilder,
+        private readonly SchemaCategory            $schemaCategory
     ) {
     }
 
@@ -63,9 +66,9 @@ class ProductSchemaProvider implements StructuredDataProviderInterface
         $storeId    = (int) $this->storeManager->getStore()->getId();
         $productId  = (int) $product->getId();
 
-        // Resolve category config (template + fields) — use first assigned category
-        $categoryIds  = $product->getCategoryIds();
-        $categoryId   = !empty($categoryIds) ? (int) reset($categoryIds) : 0;
+        // The category config (template + fields) of the category in the URL, else of the product's
+        // deepest category in the store's tree (SchemaCategory).
+        $categoryId   = $this->schemaCategory->forProduct($product, $storeId);
         $categoryRow  = $this->categoryConfigRepository->getForCategory(
             $categoryId,
             $this->categoryPathResolver->forCategoryId($categoryId, $storeId),

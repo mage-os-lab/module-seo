@@ -8,10 +8,13 @@ parameters:
     paths:
         - Api
         - Block
+        - Console
         - Controller
+        - Exception
         - Observer
         - Model
         - Plugin
+        - Setup
         - Ui
         - Test
     treatPhpDocTypesAsCertain: false

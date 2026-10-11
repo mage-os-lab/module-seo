@@ -13,8 +13,9 @@ use Magento\Framework\Pricing\PriceInfoInterface;
 use MageOS\Seo\Model\Catalog\CurrentEntity;
 use MageOS\Seo\Model\Config;
 use MageOS\Seo\Model\MetaTag\Provider\ProductMetaProvider;
+use MageOS\Seo\Model\Product\AvailabilityResolver;
 use MageOS\Seo\Model\Product\FinalPrice;
-use MageOS\Seo\Test\Unit\Service\CurrencyServices;
+use MageOS\Seo\Test\Unit\Model\Price\SchemaPrices;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
 
@@ -23,7 +24,7 @@ use Psr\Log\LoggerInterface;
  */
 class ProductMetaProviderTest extends TestCase
 {
-    use CurrencyServices;
+    use SchemaPrices;
 
     public function testAKnownPriceIsPublishedWithItsCurrency(): void
     {
@@ -85,12 +86,16 @@ class ProductMetaProviderTest extends TestCase
         $config->method('isOgTagsEnabled')->willReturn(true);
         $config->method('isZeroPricePublished')->willReturn($publishZero);
 
+        $availability = $this->createStub(AvailabilityResolver::class);
+        $availability->method('resolve')->willReturn(AvailabilityResolver::IN_STOCK);
+
         return new ProductMetaProvider(
             $currentEntity,
-            $this->currencyService('GBP'),
+            $this->schemaPrice('GBP'),
             $imageHelper,
             $config,
-            new FinalPrice($logger ?? $this->createStub(LoggerInterface::class), $config)
+            new FinalPrice($logger ?? $this->createStub(LoggerInterface::class), $config),
+            $availability
         );
     }
 

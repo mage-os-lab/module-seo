@@ -8,6 +8,7 @@ use Magento\Framework\Flag\FlagResource;
 use Magento\Framework\FlagManager;
 use Magento\Framework\MessageQueue\PublisherInterface;
 use Magento\Framework\Stdlib\DateTime\DateTime;
+use MageOS\Seo\Api\Rebuild\RegenerationRequesterInterface;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -30,7 +31,7 @@ use Psr\Log\LoggerInterface;
  * and its pending flag would be invisible to the consumer clearing it. Whether the change matters
  * is still decided during the save, while the entity still knows what changed.
  */
-class RegenerationRequester
+class RegenerationRequester implements RegenerationRequesterInterface
 {
     public const TOPIC = 'mageos.seo.feed.regenerate';
 

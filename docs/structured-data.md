@@ -52,8 +52,14 @@ Built-in providers, in order:
 | `CategorySchemaProvider` | `catalog_category_view` | CollectionPage + optional ItemList |
 | `ProductSchemaProvider` | `catalog_product_view` | Dispatches to template builder pool |
 | `CmsPageSchemaProvider` | `cms_page_view` (every CMS page and the home page) | WebPage node at `CmsPageResolver::currentUrl()` |
-| `ArticleSchemaProvider` | `*` | BlogPosting, from the first `ArticleDataProviderInterface` with an article for the page — none registered by default |
-| `EventSchemaProvider` | `*` | One Event per event from every matching `EventDataProviderInterface` — none registered by default |
+| `ArticleSchemaProvider` | `*` | BlogPosting, from the first `ArticleDataProviderInterface` with an article for the page — none registered by default. Author and publisher reference the Organization while one is published |
+| `EventSchemaProvider` | `*` | One Event per event from every matching `EventDataProviderInterface` — none registered by default. The organizer references the Organization while one is published |
+
+**References to the Organization.** A node points at the Organization by its `@id`
+(`Model\StructuredData\OrganizationId`) only while the Organization is published, which it is once
+it has a name: `OrganizationProvider` writes no Organization node without one. Until then a
+BlogPosting has no author or publisher and an Event no organizer, rather than an `@id` no node on
+the page carries.
 | `SpeakableProvider` | `catalog_product_view` | With Speakable on: the product page's WebPage, carrying `speakable` (see [Speakable](#speakable)) |
 
 Bridge modules add their own providers by registering them in their own `di.xml` — the Seo module is never modified.
@@ -131,8 +137,14 @@ products in one query (MSI's `@api` `GetStockItemsDataInterface`), plus one for 
 managed, only when some product is salable at zero or below. A configurable's variants are read as
 one batch. Before, each product cost MSI's per-product condition chain: outside the storefront
 areas, as in a feed build, a 15-variant configurable took 149 queries, and takes 14 now (Luma's
-WT02, measured with the DB profiler). When the stock cannot be read, the product is `OutOfStock`
-and the error is logged with its SKU.
+WT02, measured with the DB profiler).
+
+**When the stock cannot be read, availability is left out**, and the error is logged with its SKU.
+The offer keeps its price and URL, Open Graph has no `product:availability`, and MageOS_Aeo's
+llms.jsonl line has no availability. Saying `OutOfStock` would publish a guess as a fact: an
+in-stock product would be marked unbuyable for as long as the page stayed cached. A configurable
+takes its best variant among those read; when none of those is sellable and some could not be
+read, its availability is left out too, since a variant not read may be in stock.
 
 ## An offer's priceValidUntil
 
@@ -302,6 +314,35 @@ Only `cssSelector` is emitted: Google takes `cssSelector` or `xPath`, never both
 **Stores → Configuration → MageOS SEO → SEO → Structured Data (JSON-LD) → Enable JSON-LD Output**
 
 When disabled, the `Block\JsonLd` block renders an empty string. No JSON-LD is output anywhere on the site. This is a per-store-view setting.
+
+---
+
+## The theme's microdata
+
+**Stores → Configuration → MageOS SEO → SEO → Structured Data (JSON-LD) → Remove the Theme's
+Product Microdata** (default Yes, per store view).
+
+Magento_Catalog's product page layout, which Luma and Blank render, marks the product up in
+schema.org microdata as well: `itemscope itemtype="http://schema.org/Product"` on the body and the
+page wrapper, `itemprop` on the name, SKU, description, image and price, and `<meta itemprop>`
+elements for values the page doesn't show. Magento_Review nests its AggregateRating and Review items
+in it. Search engines read that as a second Product beside this module's JSON-LD, with fewer
+properties and its own idea of the offer.
+
+With the setting on, `Plugin\View\RemoveThemeMicrodata` removes it from the product page's HTML
+after the page is rendered, the way core's `JsFooterPlugin` rewrites the body:
+
+- the attributes `itemscope`, `itemtype`, `itemprop`, `itemid` and `itemref`, everywhere on the
+  page: the reviews go with the Product, or they would be Reviews of nothing;
+- `<meta>` and `<link>` elements that carry `itemprop`, which exist only for the microdata.
+
+The elements themselves stay. It runs only when the page carries this module's Product JSON-LD
+(`SchemaRegistry` has a node), so a page is never left with no product markup: with the JSON-LD
+off, the theme's microdata stays. `<script>` and `<style>` contents are left untouched. The page is
+rewritten before the page cache stores it. If the rewrite fails, the page is sent as rendered and a
+warning is logged.
+
+Set it to No to keep the theme's microdata.
 
 ---
 

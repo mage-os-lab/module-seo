@@ -8,6 +8,7 @@ use Magento\Framework\App\Config\Initial as InitialConfig;
 use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Store\Model\ScopeInterface;
 use Magento\Store\Model\StoreManagerInterface;
+use MageOS\Seo\Api\ContactEmailInterface;
 use MageOS\Seo\Api\OrganizationRepositoryInterface;
 
 /**
@@ -25,7 +26,7 @@ use MageOS\Seo\Api\OrganizationRepositoryInterface;
  *    shipped value is read from the merged config.xml defaults rather than written here;
  * 3. none: ''.
  */
-class ContactEmail
+class ContactEmail implements ContactEmailInterface
 {
     private const XML_SUPPORT_EMAIL = 'trans_email/ident_support/email';
 

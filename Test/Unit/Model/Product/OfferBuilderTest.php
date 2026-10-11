@@ -18,8 +18,9 @@ use MageOS\Seo\Model\Product\AvailabilityResolver;
 use MageOS\Seo\Model\Product\FinalPrice;
 use MageOS\Seo\Model\Product\OfferBuilder;
 use MageOS\Seo\Model\Product\OfferEnricher\Pool as OfferEnricherPool;
-use MageOS\Seo\Model\Product\Variant\ChildProducts;
-use MageOS\Seo\Test\Unit\Service\CurrencyServices;
+use MageOS\Seo\Model\Product\OfferSummary;
+use MageOS\Seo\Test\Unit\Model\Price\SchemaPrices;
+use MageOS\Seo\Test\Unit\Model\Product\Variant\ChildProductsOverProvider;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
 
@@ -29,7 +30,8 @@ use Psr\Log\LoggerInterface;
  */
 class OfferBuilderTest extends TestCase
 {
-    use CurrencyServices;
+    use SchemaPrices;
+    use ChildProductsOverProvider;
 
     private const URL = 'https://example.com/tee.html';
 
@@ -170,6 +172,36 @@ class OfferBuilderTest extends TestCase
         $this->assertSame(AvailabilityResolver::BACKORDER, $offer['availability']);
     }
 
+    /**
+     * Decision D8a: a stock lookup that failed leaves availability out, rather than claiming
+     * OutOfStock, which nothing backs.
+     */
+    public function testAnUnknownAvailabilityIsLeftOut(): void
+    {
+        $availability = $this->createStub(AvailabilityResolver::class);
+        $availability->method('resolve')->willReturn(null);
+
+        $offer = $this->offerBuilder(availability: $availability)->build($this->product('simple', 10), self::URL);
+
+        $this->assertArrayNotHasKey('availability', $offer);
+        $this->assertSame('10.00', $offer['price']);
+    }
+
+    /**
+     * Decision D8a, for a configurable whose children's stock could not be read.
+     */
+    public function testAConfigurableOfUnknownAvailabilityLeavesItOut(): void
+    {
+        $children     = [$this->product('simple', 10), $this->product('simple', 12)];
+        $availability = $this->createStub(AvailabilityResolver::class);
+        $availability->method('best')->willReturn(null);
+
+        $offer = $this->offerBuilder($children, availability: $availability)
+            ->build($this->product('configurable', 10), self::URL);
+
+        $this->assertArrayNotHasKey('availability', $offer);
+    }
+
     public function testAConfigurableWhoseChildrenShareOnePriceKeepsAnOffer(): void
     {
         $children = [$this->product('simple', 15), $this->product('simple', 15)];
@@ -272,7 +304,7 @@ class OfferBuilderTest extends TestCase
         $storeManager = $this->createStub(StoreManagerInterface::class);
         $storeManager->method('getStore')->willReturn($store);
 
-        $currencyService = $this->currencyService('GBP', $rate);
+        $schemaPrice = $this->schemaPrice('GBP', $rate);
 
         if ($availability === null) {
             $availability = $this->createStub(AvailabilityResolver::class);
@@ -287,11 +319,13 @@ class OfferBuilderTest extends TestCase
 
         return new OfferBuilder(
             $storeManager,
-            $currencyService,
-            $availability,
+            $schemaPrice,
             new OfferEnricherPool($enrichers),
-            new ChildProducts($optionsProvider),
-            new FinalPrice($this->createStub(LoggerInterface::class), $this->createStub(Config::class))
+            new OfferSummary(
+                new FinalPrice($this->createStub(LoggerInterface::class), $this->createStub(Config::class)),
+                $this->childProductsOver($optionsProvider),
+                $availability
+            )
         );
     }
 

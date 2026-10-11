@@ -10,6 +10,7 @@ use Magento\Framework\Notification\NotifierInterface;
 use Magento\Framework\ObjectManager\ResetAfterRequestInterface;
 use Magento\Framework\Phrase;
 use Magento\Framework\Stdlib\DateTime\DateTime;
+use MageOS\Seo\Api\Rebuild\ProblemLogInterface;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -41,7 +42,7 @@ use Psr\Log\LoggerInterface;
  * @phpstan-type Entry array{kind: string, reason: string, arguments: string[]|null, since: int|null}
  * @phpstan-type NewEntry array{kind: string, reason: string, arguments: string[]|null, since?: int|null}
  */
-class ProblemLog implements ResetAfterRequestInterface
+class ProblemLog implements ProblemLogInterface, ResetAfterRequestInterface
 {
     public const FLAG = 'mageos_seo_rebuild_problems';
 
@@ -54,10 +55,8 @@ class ProblemLog implements ResetAfterRequestInterface
      */
     public const GROUP_QUEUE = 'queue';
 
-    /**
-     * The ID of a problem with the whole group, rather than one store view or sitemap.
-     */
-    public const ALL = 'all';
+    // ALL, the ID of a problem with the whole group rather than one store view or sitemap, is
+    // ProblemLogInterface's.
 
     private const LOCK = 'mageos_seo_rebuild_problems';
 

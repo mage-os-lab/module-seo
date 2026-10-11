@@ -6,9 +6,10 @@ namespace MageOS\Seo\Model;
 
 use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Store\Model\ScopeInterface;
+use MageOS\Seo\Api\StorefrontSettingsInterface;
 use MageOS\Seo\Model\Config\Source\SitemapGenerator;
 
-class Config
+class Config implements StorefrontSettingsInterface
 {
     public const XML_OG_TAGS_ENABLED               = 'mageos_seo_general/og_tags/enabled';
     public const XML_SD_ENABLED                    = 'mageos_seo_general/structured_data/enabled';
@@ -18,6 +19,7 @@ class Config
     public const XML_SD_HAS_VARIANT_MAX            = 'mageos_seo_general/structured_data/has_variant_max';
     public const XML_SD_AGGREGATE_RATING_ENABLED   = 'mageos_seo_general/structured_data/aggregate_rating_enabled';
     public const XML_SD_PUBLISH_ZERO_PRICE         = 'mageos_seo_general/structured_data/publish_zero_price';
+    public const XML_SD_REMOVE_THEME_MICRODATA     = 'mageos_seo_general/structured_data/remove_theme_microdata';
 
     public const XML_CATEGORY_INHERITANCE_STRATEGY = 'mageos_seo_general/category_config/inheritance_strategy';
 
@@ -202,6 +204,21 @@ class Config
     {
         return (bool) $this->scopeConfig->getValue(
             self::XML_SD_AGGREGATE_RATING_ENABLED,
+            ScopeInterface::SCOPE_STORE,
+            $storeId
+        );
+    }
+
+    /**
+     * Whether the theme's Product microdata is removed from product pages this module describes.
+     *
+     * @param int|string|null $storeId
+     * @return bool
+     */
+    public function isThemeMicrodataRemoved(int|string|null $storeId = null): bool
+    {
+        return (bool) $this->scopeConfig->getValue(
+            self::XML_SD_REMOVE_THEME_MICRODATA,
             ScopeInterface::SCOPE_STORE,
             $storeId
         );

@@ -70,6 +70,12 @@ category pages.</comment>
 pluggable — native Magento reviews by default, or a bridge module (Yotpo, Trustpilot, …).</comment>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                 </field>
+                <field id="remove_theme_microdata" translate="label comment" type="select"
+                       sortOrder="80" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Remove the Theme's Product Microdata</label>
+                    <comment>Yes: product pages describe the product once, in this structured data. Luma's product page also marks the product up in microdata (its name, price, image and reviews), which search engines read as a second Product. While this structured data is on, that microdata is removed from the product page. No: the theme's microdata stays.</comment>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                </field>
             </group>
 
             <group id="category_config" translate="label" type="text" sortOrder="25"
@@ -133,9 +139,9 @@ Robots setting applies.</comment>
                        sortOrder="35" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Search Results Pages Default</label>
                     <source_model>MageOS\Seo\Model\Config\Source\RobotsMeta</source_model>
-                    <comment>Quick and advanced search results. NOINDEX,FOLLOW keeps them out of the index;
-to stop them being crawled at all, disallow them in robots.txt instead. When set to "Use Magento
-Default", the core Design &gt; Search Engine Robots setting applies.</comment>
+                    <comment>Quick and advanced search results. NOINDEX,FOLLOW (the default) keeps them out of the
+index; to stop them being crawled at all, disallow them in robots.txt instead. When set to "Use
+Magento Default", the core Design &gt; Search Engine Robots setting applies.</comment>
                 </field>
                 <field id="paginated_enabled" translate="label comment" type="select"
                        sortOrder="40" showInDefault="1" showInWebsite="1" showInStore="1">

@@ -27,7 +27,7 @@ When disabled, no `og:` or `product:` meta tags are output anywhere on the site.
 | `og:image` | First product image URL |
 | `product:price:amount` | Final price formatted to 2 decimal places: the price the structured data publishes (`Model\Product\FinalPrice`) |
 | `product:price:currency` | ISO currency code (e.g. `GBP`) |
-| `product:availability` | `instock` or `out of stock` |
+| `product:availability` | `in stock`, `available for order` (on backorder) or `out of stock`, from the stock index the structured data reads; left out when the stock could not be read |
 
 The price is the one the page shows, including tax when the store shows prices including tax. When
 it is not known, both price tags are left out rather than written as `0.00`, which reads as free: a

@@ -10,18 +10,18 @@ use Magento\Framework\App\CacheInterface;
 use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\Pricing\PriceCurrencyInterface;
 use MageOS\Seo\Model\Log\OccasionalLog;
+use MageOS\Seo\Model\Price\SchemaPrice;
 use MageOS\Seo\Model\Product\OfferEnricher\CountryList;
 use MageOS\Seo\Model\Product\OfferEnricher\ShippingDetailsEnricher;
 use MageOS\Seo\Model\Product\OfferEnricher\ShippingRules;
-use MageOS\Seo\Service\CurrencyService;
-use MageOS\Seo\Test\Unit\Service\CurrencyServices;
+use MageOS\Seo\Test\Unit\Model\Price\SchemaPrices;
 use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
 
 class ShippingDetailsEnricherTest extends TestCase
 {
-    use CurrencyServices;
+    use SchemaPrices;
 
     /**
      * @var ScopeConfigInterface&Stub
@@ -29,9 +29,9 @@ class ShippingDetailsEnricherTest extends TestCase
     private ScopeConfigInterface&Stub $scopeConfig;
 
     /**
-     * @var CurrencyService
+     * @var SchemaPrice
      */
-    private CurrencyService $currencyService;
+    private SchemaPrice $schemaPrice;
 
     /**
      * @var ProductInterface&Stub
@@ -60,7 +60,7 @@ class ShippingDetailsEnricherTest extends TestCase
     protected function setUp(): void
     {
         $this->scopeConfig     = $this->createStub(ScopeConfigInterface::class);
-        $this->currencyService = $this->currencyService();
+        $this->schemaPrice     = $this->schemaPrice();
         $this->product         = $this->createStub(ProductInterface::class);
         $this->logged          = [];
         $this->enricher        = $this->enricher($this->priceCurrency());
@@ -97,7 +97,7 @@ class ShippingDetailsEnricherTest extends TestCase
 
         return new ShippingDetailsEnricher(
             $this->scopeConfig,
-            $this->currencyService,
+            $this->schemaPrice,
             new CountryList(),
             new ShippingRules(),
             $priceCurrency,

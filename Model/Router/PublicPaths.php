@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace MageOS\Seo\Model\Router;
 
+use MageOS\Seo\Api\Router\PublicPathsInterface;
+
 /**
  * The paths served directly as public documents — the llms files, the `/.well-known/` documents and
  * their internal controller URLs — as the modules that serve them register them.
@@ -20,7 +22,7 @@ namespace MageOS\Seo\Model\Router;
  *
  * Paths are compared without surrounding slashes.
  */
-class PublicPaths
+class PublicPaths implements PublicPathsInterface
 {
     /**
      * @param string[] $paths Exact request paths, without surrounding slashes

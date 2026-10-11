@@ -8,6 +8,7 @@ use Magento\Framework\App\RequestInterface;
 use Magento\Framework\Controller\Result\Redirect;
 use Magento\Framework\Controller\Result\RedirectFactory;
 use Magento\Store\Model\StoreManagerInterface;
+use MageOS\Seo\Api\Router\CanonicalPathRedirectInterface;
 
 /**
  * 301-redirects a directly served document's request back to its canonical path.
@@ -15,11 +16,11 @@ use Magento\Store\Model\StoreManagerInterface;
  * The routers match on path only, but the FPC/Varnish cache key includes the query string — so
  * /llms.txt?x=1, ?x=2, … would each be a separate cache miss regenerating the document (a cheap
  * amplification loop against expensive builders). The same applies to the standard-router URLs
- * (/mageos-aeo/llms/index, /mageos-agentic/wellknown/index/endpoint/ucp), which would otherwise be
- * duplicate-content URLs with their own cache
- * entries. Used by the llms and the `/.well-known/` controllers alike.
+ * (/mageos-aeo/llms/index, /mageos-agentic/wellknown/index/endpoint/ucp) and to a trailing slash
+ * (/llms.txt/), which would otherwise be duplicate-content URLs with their own cache entries. Used
+ * by the llms and the `/.well-known/` controllers alike.
  */
-class CanonicalPathRedirect
+class CanonicalPathRedirect implements CanonicalPathRedirectInterface
 {
     /**
      * @param RequestInterface $request
@@ -43,7 +44,9 @@ class CanonicalPathRedirect
     {
         /** @var \Magento\Framework\App\Request\Http $request */
         $request  = $this->request;
-        $pathInfo = trim($request->getPathInfo(), '/');
+        // Only the leading slash is dropped: /llms.txt/ is another URL, with its own cache entry,
+        // and was served as a second copy while both slashes were trimmed.
+        $pathInfo = ltrim($request->getPathInfo(), '/');
         $query    = $request->getQuery()->toArray();
 
         if ($query === [] && $pathInfo === trim($canonicalPath, '/')) {

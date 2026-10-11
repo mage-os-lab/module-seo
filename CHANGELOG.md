@@ -8,8 +8,115 @@ hardcoded version field).
 
 ## [Unreleased]
 
+The next release is **2.0.0**: other modules now reach this one through `Api` interfaces, and MSI
+is required. MageOS_Aeo, MageOS_Faq and MageOS_Agentic require `^2.0`.
+
+### Upgrading to 2.0.0
+
+Every breaking change since 1.2.1, each described under its heading below:
+
+- **MSI is required.** Composer now requires `magento/module-inventory-sales`,
+  `-inventory-indexer` and `-inventory-configuration`, and `module:disable` refuses to disable
+  them while this module is enabled. Availability is read through their service contracts.
+- **Type against the `Api` interfaces.** Every class another module uses has an interface in
+  `Api/`, with a preference to the class (the table in `docs/extending.md`, "The module's
+  contract"). The classes themselves are not `@api`: their constructors may change in any
+  release, and some do in this one. A di.xml that fills `HandlerPool`, `PublicPaths` or the FAQ
+  `SourcePool` can name the interface instead; the class name still works.
+- **`Service\CurrencyService` is removed.** `Api\SchemaPriceInterface` (`Model\Price\SchemaPrice`)
+  formats an amount as `0.00` and gives the current currency code, which was all of it that was
+  used.
+- **`CanonicalUrlManager::setCanonical()` takes two arguments.** The third, `$urlKey`, was ignored;
+  a call passing it fails. Type against `Api\CanonicalUrlManagerInterface`.
+- **`ProblemLog::ALL` is `Api\Rebuild\ProblemLogInterface::ALL`.**
+- **`AvailabilityResolver::resolve()` and `best()` return null** when the stock could not be read,
+  where they returned OutOfStock.
+- **`Api\Data\OrganizationInterface` has `getLogoSource()` and `setLogoSource()`.** A class
+  implementing the interface itself must add them. `getLogoPath()` is the custom logo only.
+- **Search results pages default to `NOINDEX,FOLLOW`.** A value already saved is kept.
+- **The ACL resources moved;** their IDs did not, so roles keep their grants.
+- **The `rs_` attribute fallbacks are gone.**
+- **Product pages lose Luma's microdata** while the structured data is on: set **Remove the
+  Theme's Product Microdata** to No to keep it.
+- **Sitemap file names have a set** (`…-a-1.xml`, `…-b-1.xml`); the index keeps its name.
+- **Shipping rates are in the base currency.** Re-enter one entered in a different display
+  currency.
+- **Flush the page cache once after upgrading:** pages cached before carry none of the new cache
+  tags.
+- **Constructors changed** throughout; a subclass that overrides one follows. The lists are under
+  Changed.
+
+### Added
+
+- **`Api` interfaces for every class the companion modules use** (review M8, decision D7b):
+  - `Api\Rebuild\`: `RegenerationRequesterInterface`, `InvalidatorInterface`,
+    `ProblemLogInterface`, `ChangeInspectorInterface`, `HandlerPoolInterface`;
+  - `Api\Router\`: `PublicPathsInterface`, `CanonicalPathRedirectInterface`;
+  - `Api\Product\`: `AvailabilityResolverInterface`, `FinalPriceInterface`,
+    `SchemaTemplatesInterface`, `OfferSummaryInterface`;
+  - `Api\Robots\PageDirectivesInterface`;
+  - `Api\`: `SchemaPriceInterface`, `FaqSourcePoolInterface`, `ContactEmailInterface`,
+    `StorefrontSettingsInterface`, `CanonicalUrlManagerInterface`.
+
+  Each holds what other modules use and nothing more, and is `@api`. Two classes stay classes,
+  extended without `@api`: `Exception\RebuildInProgressException` and
+  `Model\ResourceModel\AbstractConnectedResource`. See `docs/extending.md`, "The module's contract".
+- **`Model\Product\OfferSummary`** (`Api\Product\OfferSummaryInterface`): a product's price, a
+  configurable's price range and its best variant's availability, as the offer publishes them.
+  The offer is built from it, and MageOS_Aeo's llms.jsonl reads it, so the two agree.
+- **`Model\RobotsMeta\PageDirectives`** (`Api\Robots\PageDirectivesInterface`): the robots
+  directive each product and category page has, categories inherited along their path, core's
+  default where this module has none. The sitemap leaves NOINDEX pages out through it, and
+  MageOS_Aeo's feeds do too.
+- **A feed reads a page of configurables' variants at once.** `Api\Product\OfferSummaryInterface`
+  has `prefetch()`: the variants of a page of products in one of core's child collections
+  (`Model\Product\Variant\ChildLoader`, `Model\ResourceModel\VariantLinks`), their stock in one
+  lookup. Read one configurable at a time through core's provider, each cost ten queries, its
+  gallery and configurable attributes among them; MageOS_Aeo's llms.jsonl build on Luma's sample
+  catalogue went from 2,440 queries to 821. Product pages keep core's path.
+- **`Api\Product\VariantImageInterface`:** a product's base image, or for a configurable without
+  one, its first sold variant's, from the variants already read. Core's `getImage()` loads all of a
+  configurable's variants for that.
+- **The variants described are the ones the storefront sells, in every area.** Core registers its
+  configurable status and stock filters for the frontend only, so a feed built by the queue or cron
+  included disabled variants. `Model\Product\Variant\StorefrontOptionsFilter` (di.xml) applies both
+  wherever `ChildProducts` is asked. A module that adds a filter to core's frontend composite adds
+  it there too, for the feeds. `ChildProducts` takes the filter, `VariantLinks`, `ChildLoader` and a
+  logger.
+- **Remove the Theme's Product Microdata** (Structured Data (JSON-LD), default Yes, per store
+  view; review M9, decision D4a). Luma's product page marks the product up in microdata, its name,
+  price, image and reviews, which search engines read as a second Product beside this module's.
+  While the page has this module's Product JSON-LD, the microdata attributes and `<meta>`/`<link>`
+  elements are removed from the product page (`Plugin\View\RemoveThemeMicrodata`). Scripts and
+  styles are left alone. See `docs/structured-data.md`, "The theme's microdata".
+
 ### Fixed
 
+- **A product's schema template no longer follows the visitor's browsing** (review M6, decision
+  D9b). It came from the category the session last visited, so the page cache kept whichever
+  template the first visitor's history gave. It now comes from the URL's category when that is one
+  of the product's categories under the store's root, else from the product's deepest category
+  under the root, ties going to the lowest ID (`Model\Product\SchemaCategory`).
+- **A stock lookup that fails no longer says OutOfStock** (decision D8a). The offer, Open Graph
+  and MageOS_Aeo's llms.jsonl leave availability out instead, and the failure is logged as before.
+- **Open Graph's `product:availability` is read from the stock index,** as the structured data's
+  is, and uses Meta's values: `in stock`, `available for order` (backorders) or `out of stock`.
+  It came from `isSalable()` and wrote `oos` for out of stock. With the stock unreadable, the tag is
+  left out.
+- **A CMS page's `og:image` renders no widget twice** (review M10). The whole content went through
+  the page filter to find the first image, rendering every widget on it a second time, and any
+  failure was swallowed. Only the first image's `src` is filtered now, so `{{media url=…}}` still
+  resolves, and a failure is logged.
+- **An article or event no longer points at an Organization the page doesn't have.** A BlogPosting's
+  author and publisher, and an Event's organizer, referenced the Organization's `@id` whether or not
+  one was published; with none configured it was the bare `/#organization`, which no node carries.
+  They are now left out until the Organization has a name, the point at which it is published
+  (`Model\StructuredData\OrganizationId::getPublishedId()`, which replaces `getId()`, and
+  `isPublished()`, which `OrganizationProvider` now asks too). No module registered an article or
+  event provider until mage-os/module-blog-seo, so nothing showed it before.
+- **`/llms.txt/`, with a trailing slash, 301s to `/llms.txt`** (`CanonicalPathRedirect`), as a
+  query string does. It was served as a second copy, with its own cache entry. The same holds for
+  every path the redirect guards, `/.well-known/ucp` included.
 - **Shipping times no longer invent or invert a bound**
   ([#32](https://github.com/mage-os-lab/module-seo/issues/32)). A missing minimum or maximum was
   published as 0, so a minimum of 2 alone became 2 to 0 days, and an inverted, negative or
@@ -257,6 +364,42 @@ hardcoded version field).
   - `Model\StructuredData\Provider\OrganizationProvider` and `Controller\Adminhtml\Organization\Save`
     take `LogoUrl`. `Ui\DataProvider\OrganizationDataProvider` takes it in place of the scope config
     and store manager, and `UploadLogo` takes `LogoFileValidator`.
+- **MSI is required** (review M3, decision D1b). Composer requires
+  `magento/module-inventory-sales`, `-inventory-indexer` and `-inventory-configuration`, which
+  supply the stock services availability is read through. Core's dependency check reads
+  composer.json, so `module:disable` now refuses them while this module is enabled.
+- **Search results pages default to `NOINDEX,FOLLOW`** (decision D10a), Google's advice for
+  internal search. They defaulted to "Use Magento Default". A value saved for them is kept. See
+  `docs/robots-meta.md`.
+- **The permissions sit under their menus** (decision D11a). `MageOS_Seo::seo`, with
+  `MageOS_Seo::organization`, is under Marketing, where the SEO menu is; it was a top-level node
+  beside Marketing and Stores. `MageOS_Seo::config` is under Stores → Settings → Configuration,
+  with every other configuration section's. The IDs are unchanged, so roles keep their grants.
+- **`CanonicalUrlManager` implements `Api\CanonicalUrlManagerInterface`** (decision D14), and
+  `setCanonical()` drops its third argument, `$urlKey`, which nothing read.
+- **Constructors (2.0):**
+  - `Model\Product\OfferBuilder` takes `StoreManagerInterface`, `Api\SchemaPriceInterface`,
+    `OfferEnricherPool` and `Model\Product\OfferSummary`; `buildAggregateOffer()` takes the
+    children, the low price and the high price.
+  - `Model\MetaTag\Provider\ProductMetaProvider` takes `Api\SchemaPriceInterface` and
+    `AvailabilityResolver`; `Model\MetaTag\Provider\CmsPageMetaProvider` takes a logger.
+  - `Model\Product\OfferEnricher\ShippingDetailsEnricher` takes `Api\SchemaPriceInterface` in place
+    of `CurrencyService`.
+  - `Model\StructuredData\Provider\ProductSchemaProvider` takes `Model\Product\SchemaCategory`.
+  - `Model\Sitemap\Robots\Enricher` takes `Config`, `Api\Robots\PageDirectivesInterface`,
+    `CmsPageRobotsProvider` and `CmsPageResolver`: products' and categories' directives come from
+    `PageDirectives`.
+- **Composer requires `magento/module-eav` and `magento/module-catalog-url-rewrite`,** which the
+  code already used.
+
+### Removed
+
+- **`Service\CurrencyService`** and its test. `Api\SchemaPriceInterface` replaces the two methods
+  in use. The rest was unused, and `currencyFormatter()` passed a symbol where `NumberFormatter`
+  wants an ISO code.
+- **The `rs_` attribute fallbacks** in the Generic, Home Decor and Apparel builders. An attribute
+  such as `rs_weight` came from the module's origin; this module defines none, and none is read.
+- **`ProblemLog::ALL`**, now `Api\Rebuild\ProblemLogInterface::ALL`.
 
 ## [1.2.1] — 2026-10-05
 

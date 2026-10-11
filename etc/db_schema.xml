@@ -145,7 +145,7 @@
         </index>
     </table>
 
-    <!-- FAQ entries, grouped by a named identifier referenced from widgets / Page Builder -->
+    <!-- Per-CMS-page settings: the robots override and the hreflang translation group -->
     <table name="mageos_seo_cms_page_config" resource="default" engine="innodb"
            comment="MageOS SEO — per-CMS-page SEO configuration">
         <column xsi:type="int" name="entity_id" unsigned="true" nullable="false" identity="true" comment="Entity ID"/>

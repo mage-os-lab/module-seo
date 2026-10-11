@@ -40,7 +40,7 @@ class ArticleSchemaProviderTest extends TestCase
         $this->layout->method('getUpdate')->willReturn($this->layoutUpdate);
         $this->layoutUpdate->method('getHandles')->willReturn(['blog_post_view']);
         $this->organizationId = $this->createStub(OrganizationId::class);
-        $this->organizationId->method('getId')->willReturn('https://acme.com/#organization');
+        $this->organizationId->method('getPublishedId')->willReturn('https://acme.com/#organization');
     }
 
     /**
@@ -131,6 +131,25 @@ class ArticleSchemaProviderTest extends TestCase
         $this->assertSame('A guide.', $node['description']);
         $this->assertSame(['markets'], $node['keywords']);
         $this->assertArrayNotHasKey('speakable', $node, 'Speakable is off.');
+    }
+
+    /**
+     * Decision (a), 2026-10-11: with no Organization published, the BlogPosting names no author or
+     * publisher, rather than pointing at an Organization node the page doesn't have.
+     *
+     * @return void
+     */
+    public function testWithNoOrganizationPublishedThereIsNoAuthorOrPublisher(): void
+    {
+        $this->organizationId = $this->createStub(OrganizationId::class);
+        $this->organizationId->method('getPublishedId')->willReturn(null);
+        $article = ['headline' => 'X', 'url' => 'https://acme.com/x', 'datePublished' => '2026-01-01'];
+
+        $node = $this->provider([$this->makeDataProvider($article)])->getSchemas()[0] ?? [];
+
+        $this->assertSame('BlogPosting', $node['@type'] ?? null);
+        $this->assertArrayNotHasKey('author', $node);
+        $this->assertArrayNotHasKey('publisher', $node);
     }
 
     public function testTheBlogPostingCarriesTheSpeakableSpecification(): void

@@ -31,7 +31,7 @@
     // decides when pages are purged, stays in this run; the purge itself is
     // tested against the real cache by Test/Integration/PageCache.
     "source": {
-        "directories": ["Model", "Observer", "Service"],
+        "directories": ["Model", "Observer"],
         "excludes": [
             "ResourceModel",
             "Catalog/CurrentEntity.php",

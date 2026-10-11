@@ -204,6 +204,8 @@ category pages."
 "Output aggregateRating (review score + count) on product schema. Source is
 pluggable — native Magento reviews by default, or a bridge module (Yotpo, Trustpilot, …).","Output aggregateRating (review score + count) on product schema. Source is
 pluggable — native Magento reviews by default, or a bridge module (Yotpo, Trustpilot, …)."
+"Remove the Theme's Product Microdata","Remove the Theme's Product Microdata"
+"Yes: product pages describe the product once, in this structured data. Luma's product page also marks the product up in microdata (its name, price, image and reviews), which search engines read as a second Product. While this structured data is on, that microdata is removed from the product page. No: the theme's microdata stays.","Yes: product pages describe the product once, in this structured data. Luma's product page also marks the product up in microdata (its name, price, image and reviews), which search engines read as a second Product. While this structured data is on, that microdata is removed from the product page. No: the theme's microdata stays."
 "Category SEO Settings","Category SEO Settings"
 "Inheritance Strategy","Inheritance Strategy"
 "Where a category's SEO settings come from when it does not set
@@ -240,11 +242,11 @@ Robots setting applies."
 "Category Pages Default","Category Pages Default"
 "CMS Pages Default","CMS Pages Default"
 "Search Results Pages Default","Search Results Pages Default"
-"Quick and advanced search results. NOINDEX,FOLLOW keeps them out of the index;
-to stop them being crawled at all, disallow them in robots.txt instead. When set to ""Use Magento
-Default"", the core Design > Search Engine Robots setting applies.","Quick and advanced search results. NOINDEX,FOLLOW keeps them out of the index;
-to stop them being crawled at all, disallow them in robots.txt instead. When set to ""Use Magento
-Default"", the core Design > Search Engine Robots setting applies."
+"Quick and advanced search results. NOINDEX,FOLLOW (the default) keeps them out of the
+index; to stop them being crawled at all, disallow them in robots.txt instead. When set to ""Use
+Magento Default"", the core Design > Search Engine Robots setting applies.","Quick and advanced search results. NOINDEX,FOLLOW (the default) keeps them out of the
+index; to stop them being crawled at all, disallow them in robots.txt instead. When set to ""Use
+Magento Default"", the core Design > Search Engine Robots setting applies."
 "Override Robots on Paginated Pages","Override Robots on Paginated Pages"
 "Apply a dedicated robots meta to category listing pages from page 2 onward
 (?p=2+). It can only add restrictions: a category set to NOINDEX or NOFOLLOW, on itself, a parent

@@ -10,10 +10,13 @@
     </rule>
     <file>Api</file>
     <file>Block</file>
+    <file>Console</file>
     <file>Controller</file>
+    <file>Exception</file>
     <file>Observer</file>
     <file>Model</file>
     <file>Plugin</file>
+    <file>Setup</file>
     <file>Ui</file>
     <file>Test</file>
 </ruleset>

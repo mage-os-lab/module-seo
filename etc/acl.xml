@@ -4,10 +4,26 @@
     <acl>
         <resources>
             <resource id="Magento_Backend::admin">
-                <resource id="MageOS_Seo::seo" title="SEO" translate="title" sortOrder="80">
-                    <resource id="MageOS_Seo::organization" title="Organization Settings" translate="title"
-                              sortOrder="10"/>
-                    <resource id="MageOS_Seo::config" title="SEO Configuration" translate="title" sortOrder="20"/>
+                <!--
+                    Where the admin pages are, as core's permissions are (review low item, decision
+                    D11a): Organization under Marketing → SEO, like its menu item, and the
+                    configuration section under Stores → Settings → Configuration, with every other
+                    section's. The resource IDs are unchanged, so roles keep their grants.
+                    MageOS_Faq's FAQ Manager sits under MageOS_Seo::seo beside Organization.
+                -->
+                <resource id="Magento_Backend::marketing">
+                    <resource id="MageOS_Seo::seo" title="SEO" translate="title" sortOrder="45">
+                        <resource id="MageOS_Seo::organization" title="Organization Settings" translate="title"
+                                  sortOrder="10"/>
+                    </resource>
+                </resource>
+                <resource id="Magento_Backend::stores">
+                    <resource id="Magento_Backend::stores_settings">
+                        <resource id="Magento_Config::config">
+                            <resource id="MageOS_Seo::config" title="SEO Configuration" translate="title"
+                                      sortOrder="200"/>
+                        </resource>
+                    </resource>
                 </resource>
             </resource>
         </resources>

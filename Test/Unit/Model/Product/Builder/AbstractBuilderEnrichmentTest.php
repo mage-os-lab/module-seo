@@ -18,7 +18,7 @@ use MageOS\Seo\Model\Product\Builder\GenericProductBuilder;
 use MageOS\Seo\Model\Product\GtinValidator;
 use MageOS\Seo\Model\Product\OfferEnricher\Pool as OfferEnricherPool;
 use MageOS\Seo\Model\Review\AggregateRatingResolver;
-use MageOS\Seo\Test\Unit\Service\CurrencyServices;
+use MageOS\Seo\Test\Unit\Model\Price\SchemaPrices;
 use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
 
@@ -29,7 +29,7 @@ use PHPUnit\Framework\TestCase;
  */
 class AbstractBuilderEnrichmentTest extends TestCase
 {
-    use CurrencyServices;
+    use SchemaPrices;
     use OfferBuilders;
 
     /**
@@ -93,7 +93,7 @@ class AbstractBuilderEnrichmentTest extends TestCase
         $ratingProvider->method('getRating')->willReturn($rating);
         $ratingProvider->method('getPriority')->willReturn(100);
 
-        $currencyService = $this->currencyService();
+        $schemaPrice     = $this->schemaPrice();
         $imageHelper = $this->createStub(ImageHelper::class);
         $imageHelper->method('init')->willReturnSelf();
 
@@ -103,7 +103,7 @@ class AbstractBuilderEnrichmentTest extends TestCase
             $this->seoConfig,
             $this->offerBuilder(
                 $this->storeManager,
-                $currencyService,
+                $schemaPrice,
                 $this->availabilityResolver,
                 new OfferEnricherPool([$enricher])
             ),

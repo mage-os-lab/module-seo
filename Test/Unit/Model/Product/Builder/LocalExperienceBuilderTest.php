@@ -17,13 +17,13 @@ use MageOS\Seo\Model\Product\Builder\LocalExperienceBuilder;
 use MageOS\Seo\Model\Product\GtinValidator;
 use MageOS\Seo\Model\Product\OfferEnricher\Pool as OfferEnricherPool;
 use MageOS\Seo\Model\Review\AggregateRatingResolver;
-use MageOS\Seo\Test\Unit\Service\CurrencyServices;
+use MageOS\Seo\Test\Unit\Model\Price\SchemaPrices;
 use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
 
 class LocalExperienceBuilderTest extends TestCase
 {
-    use CurrencyServices;
+    use SchemaPrices;
     use OfferBuilders;
 
     /**
@@ -40,7 +40,7 @@ class LocalExperienceBuilderTest extends TestCase
     {
         $storeManager    = $this->createStub(StoreManagerInterface::class);
         $store           = $this->createStub(Store::class);
-        $currencyService = $this->currencyService();
+        $schemaPrice     = $this->schemaPrice();
         $imageHelper     = $this->createStub(ImageHelper::class);
         $seoConfig       = $this->createStub(Config::class);
         $priceInfo       = $this->createMock(PriceInfoInterface::class);
@@ -70,7 +70,7 @@ class LocalExperienceBuilderTest extends TestCase
             $seoConfig,
             $this->offerBuilder(
                 $storeManager,
-                $currencyService,
+                $schemaPrice,
                 $availability,
                 new OfferEnricherPool()
             ),

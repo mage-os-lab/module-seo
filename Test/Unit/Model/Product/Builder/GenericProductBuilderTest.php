@@ -11,20 +11,20 @@ use Magento\Framework\Pricing\PriceInfoInterface;
 use Magento\Store\Model\Store;
 use Magento\Store\Model\StoreManagerInterface;
 use MageOS\Seo\Model\Config;
+use MageOS\Seo\Model\Price\SchemaPrice;
 use MageOS\Seo\Model\Product\AvailabilityResolver;
 use MageOS\Seo\Model\Product\Builder\GenericProductBuilder;
 use MageOS\Seo\Model\Product\GtinValidator;
 use MageOS\Seo\Model\Product\OfferEnricher\Pool as OfferEnricherPool;
 use MageOS\Seo\Model\Review\AggregateRatingResolver;
-use MageOS\Seo\Service\CurrencyService;
-use MageOS\Seo\Test\Unit\Service\CurrencyServices;
+use MageOS\Seo\Test\Unit\Model\Price\SchemaPrices;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
 
 class GenericProductBuilderTest extends TestCase
 {
-    use CurrencyServices;
+    use SchemaPrices;
     use OfferBuilders;
 
     /**
@@ -38,9 +38,9 @@ class GenericProductBuilderTest extends TestCase
     private Store&Stub $store;
 
     /**
-     * @var CurrencyService
+     * @var SchemaPrice
      */
-    private CurrencyService $currencyService;
+    private SchemaPrice $schemaPrice;
 
     /**
      * @var AvailabilityResolver&Stub
@@ -88,7 +88,7 @@ class GenericProductBuilderTest extends TestCase
     {
         $this->storeManager    = $this->createStub(StoreManagerInterface::class);
         $this->store           = $this->createStub(Store::class);
-        $this->currencyService = $this->currencyService();
+        $this->schemaPrice     = $this->schemaPrice();
         $this->availabilityResolver = $this->createStub(AvailabilityResolver::class);
         $this->imageHelper     = $this->createStub(ImageHelper::class);
         $this->seoConfig       = $this->createStub(Config::class);
@@ -124,7 +124,7 @@ class GenericProductBuilderTest extends TestCase
             $this->seoConfig,
             $this->offerBuilder(
                 $this->storeManager,
-                $this->currencyService,
+                $this->schemaPrice,
                 $this->availabilityResolver,
                 new OfferEnricherPool()
             ),
@@ -401,6 +401,21 @@ class GenericProductBuilderTest extends TestCase
         $schema = $this->builder->build($this->product, ['weight'], []);
         $this->assertArrayHasKey('weight', $schema);
         $this->assertSame('1.5kg', $schema['weight']);
+    }
+
+    /**
+     * Review low item: an `rs_weight` attribute is a leftover of the module's origin, not one this
+     * module defines, and is not read.
+     */
+    public function testAnRsPrefixedAttributeIsNotReadAsADimension(): void
+    {
+        $this->availabilityResolver->method('resolve')->willReturn(AvailabilityResolver::IN_STOCK);
+        $this->product->method('getData')->willReturnCallback(
+            fn (string $key) => $key === 'rs_weight' ? '1.5kg' : null
+        );
+        $this->product->method('getAttributeText')->willReturn(false);
+        $schema = $this->builder->build($this->product, ['weight'], []);
+        $this->assertArrayNotHasKey('weight', $schema);
     }
 
     public function testBuildOverridesAppliedToFinalSchema(): void

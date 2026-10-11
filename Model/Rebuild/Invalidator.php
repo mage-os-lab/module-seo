@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace MageOS\Seo\Model\Rebuild;
 
+use MageOS\Seo\Api\Rebuild\InvalidatorInterface;
 use MageOS\Seo\Model\Sitemap\InvalidationPolicy as SitemapInvalidationPolicy;
 use MageOS\Seo\Model\Sitemap\RebuildGroup;
 
@@ -20,7 +21,7 @@ use MageOS\Seo\Model\Sitemap\RebuildGroup;
  * A group that nothing can build is not queued at all: a sitemap group while no sitemap would be
  * rebuilt, a handler's group while its handler reports it disabled everywhere.
  */
-class Invalidator
+class Invalidator implements InvalidatorInterface
 {
     /**
      * @param RegenerationRequester $regenerationRequester

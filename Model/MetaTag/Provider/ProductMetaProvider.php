@@ -6,26 +6,40 @@ namespace MageOS\Seo\Model\MetaTag\Provider;
 
 use Magento\Catalog\Helper\Image as ImageHelper;
 use MageOS\Seo\Api\MetaTagProviderInterface;
+use MageOS\Seo\Api\SchemaPriceInterface;
 use MageOS\Seo\Model\Catalog\CurrentEntity;
 use MageOS\Seo\Model\Config;
+use MageOS\Seo\Model\Product\AvailabilityResolver;
 use MageOS\Seo\Model\Product\FinalPrice;
-use MageOS\Seo\Service\CurrencyService;
 
 class ProductMetaProvider implements MetaTagProviderInterface
 {
     /**
+     * schema.org availability => Open Graph's product:availability, in the values Meta's catalog
+     * reference lists for Open Graph ("in stock", "out of stock", "available for order",
+     * "discontinued"). A backorder can be bought, but only to be supplied later: available for order.
+     */
+    private const OG_AVAILABILITY = [
+        AvailabilityResolver::IN_STOCK     => 'in stock',
+        AvailabilityResolver::BACKORDER    => 'available for order',
+        AvailabilityResolver::OUT_OF_STOCK => 'out of stock',
+    ];
+
+    /**
      * @param CurrentEntity $currentEntity
-     * @param CurrencyService $currencyService
+     * @param SchemaPriceInterface $schemaPrice
      * @param ImageHelper $imageHelper
      * @param Config $seoConfig
      * @param FinalPrice $finalPrice
+     * @param AvailabilityResolver $availabilityResolver
      */
     public function __construct(
-        private readonly CurrentEntity   $currentEntity,
-        private readonly CurrencyService $currencyService,
-        private readonly ImageHelper     $imageHelper,
-        private readonly Config          $seoConfig,
-        private readonly FinalPrice      $finalPrice
+        private readonly CurrentEntity        $currentEntity,
+        private readonly SchemaPriceInterface $schemaPrice,
+        private readonly ImageHelper          $imageHelper,
+        private readonly Config               $seoConfig,
+        private readonly FinalPrice           $finalPrice,
+        private readonly AvailabilityResolver $availabilityResolver
     ) {
     }
 
@@ -76,8 +90,8 @@ class ProductMetaProvider implements MetaTagProviderInterface
         // rather than written as 0.00, which reads as free. FinalPrice's amount is already in the
         // display currency.
         $amount   = $this->finalPrice->get($product);
-        $price    = $amount === null ? '' : $this->currencyService->formatAmountForLlms($amount);
-        $currency = $this->currencyService->getCurrentCurrencyCode();
+        $price    = $amount === null ? '' : $this->schemaPrice->amount($amount);
+        $currency = $this->schemaPrice->currencyCode();
 
         $tags = [
             ['property' => 'og:type',        'content' => 'product'],
@@ -98,8 +112,12 @@ class ProductMetaProvider implements MetaTagProviderInterface
             $tags[] = ['property' => 'product:price:currency', 'content' => $currency];
         }
 
-        $availability = ($product->isSalable()) ? 'instock' : 'oos';
-        $tags[] = ['property' => 'product:availability', 'content' => $availability];
+        // From the stock index the structured data reads, so the two never disagree (isSalable() could:
+        // review low item). A lookup that failed is left out, not published as out of stock (D8a).
+        $availability = $this->availabilityResolver->resolve($product);
+        if ($availability !== null && isset(self::OG_AVAILABILITY[$availability])) {
+            $tags[] = ['property' => 'product:availability', 'content' => self::OG_AVAILABILITY[$availability]];
+        }
 
         return $tags;
     }

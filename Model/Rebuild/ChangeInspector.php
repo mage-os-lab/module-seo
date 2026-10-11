@@ -7,6 +7,7 @@ namespace MageOS\Seo\Model\Rebuild;
 use Magento\Catalog\Model\Product;
 use Magento\Framework\App\Config\Value as ConfigValue;
 use Magento\Framework\Model\AbstractModel;
+use MageOS\Seo\Api\Rebuild\ChangeInspectorInterface;
 
 /**
  * What a save changed: the questions every invalidation policy asks of the entity an event carries.
@@ -15,7 +16,7 @@ use Magento\Framework\Model\AbstractModel;
  * modules rebuild through the queue, so each answers "can this change what I show?" from the same
  * reading of a save.
  */
-class ChangeInspector
+class ChangeInspector implements ChangeInspectorInterface
 {
     /**
      * Whether the saved entity was created by this save.

@@ -58,18 +58,16 @@ class OrganizationIdTest extends TestCase
         $this->assertSame('https://acme.com/#organization', $this->organizationId->fromUrl('https://acme.com/'));
     }
 
-    public function testGetIdWithExplicitScopeUsesRepository(): void
+    public function testThePublishedIdWithAnExplicitScopeUsesTheRepository(): void
     {
-        $org = $this->createStub(OrganizationInterface::class);
-        $org->method('getUrl')->willReturn('https://acme.com/');
         $repository = $this->createMock(OrganizationRepositoryInterface::class);
         $repository->expects($this->once())
-            ->method('getForScope')->with(2, 3)->willReturn($org);
+            ->method('getForScope')->with(2, 3)->willReturn($this->organization('Acme Ltd', 'https://acme.com/'));
 
-        $this->assertSame('https://acme.com/#organization', $this->organizationId($repository)->getId(2, 3));
+        $this->assertSame('https://acme.com/#organization', $this->organizationId($repository)->getPublishedId(2, 3));
     }
 
-    public function testGetIdResolvesScopeFromStoreManagerWhenNotGiven(): void
+    public function testThePublishedIdResolvesTheScopeFromTheStoreManagerWhenNotGiven(): void
     {
         $store   = $this->createStub(StoreInterface::class);
         $website = $this->createStub(WebsiteInterface::class);
@@ -78,12 +76,50 @@ class OrganizationIdTest extends TestCase
         $this->storeManager->method('getStore')->willReturn($store);
         $this->storeManager->method('getWebsite')->willReturn($website);
 
-        $org = $this->createStub(OrganizationInterface::class);
-        $org->method('getUrl')->willReturn('https://acme.com');
         $repository = $this->createMock(OrganizationRepositoryInterface::class);
         $repository->expects($this->once())
-            ->method('getForScope')->with(5, 7)->willReturn($org);
+            ->method('getForScope')->with(5, 7)->willReturn($this->organization('Acme Ltd', 'https://acme.com'));
 
-        $this->assertSame('https://acme.com/#organization', $this->organizationId($repository)->getId());
+        $this->assertSame('https://acme.com/#organization', $this->organizationId($repository)->getPublishedId());
+    }
+
+    /**
+     * Decision (a), 2026-10-11: with no Organization published there is nothing to reference. The id
+     * was "/#organization", which no node on the page has, wherever an article or event pointed at it.
+     *
+     * @return void
+     */
+    public function testThereIsNoIdWhileNoOrganizationIsPublished(): void
+    {
+        $this->repository->method('getForScope')->willReturn($this->organization('', ''));
+
+        $this->assertNull($this->organizationId->getPublishedId(1, 1));
+    }
+
+    /**
+     * An Organization is published once it has a name: OrganizationProvider writes no node without one.
+     *
+     * @return void
+     */
+    public function testAnOrganizationIsPublishedOnceItHasAName(): void
+    {
+        $this->assertTrue($this->organizationId->isPublished($this->organization('Acme Ltd', '')));
+        $this->assertFalse($this->organizationId->isPublished($this->organization('', 'https://acme.com')));
+    }
+
+    /**
+     * An Organization record with the given name and URL.
+     *
+     * @param string $name
+     * @param string $url
+     * @return OrganizationInterface
+     */
+    private function organization(string $name, string $url): OrganizationInterface
+    {
+        $org = $this->createStub(OrganizationInterface::class);
+        $org->method('getName')->willReturn($name);
+        $org->method('getUrl')->willReturn($url);
+
+        return $org;
     }
 }

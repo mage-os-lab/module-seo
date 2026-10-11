@@ -186,15 +186,18 @@ class AvailabilityResolverTest extends TestCase
         $this->resolver(getStockItemsData: $getStockItemsData)->resolveMany([$this->product('a')]);
     }
 
-    public function testAFailedLookupForOneProductIsLoggedAndOutOfStock(): void
+    /**
+     * Review low item, decision D8a: a lookup that failed says nothing about the stock, so the
+     * answer is unknown (null), not OutOfStock.
+     */
+    public function testAFailedLookupForOneProductIsLoggedAndUnknown(): void
     {
         $getStockItemsData = $this->createStub(GetStockItemsDataInterface::class);
         $getStockItemsData->method('execute')->willThrowException(new LocalizedException(__('index gone')));
         $logger = $this->createMock(LoggerInterface::class);
         $logger->expects($this->once())->method('error')->with($this->stringContains('"a"'));
 
-        $this->assertSame(
-            AvailabilityResolver::OUT_OF_STOCK,
+        $this->assertNull(
             $this->resolver(getStockItemsData: $getStockItemsData, logger: $logger)->resolve($this->product('a'))
         );
     }
@@ -213,7 +216,11 @@ class AvailabilityResolverTest extends TestCase
         $this->assertSame(AvailabilityResolver::OUT_OF_STOCK, $resolver->resolve($this->product('b')));
     }
 
-    public function testAFailedPrefetchIsLoggedOnceAndItsProductsAreOutOfStock(): void
+    /**
+     * Decision D8a: the products of a failed prefetch are unknown, and are not looked up again
+     * one by one, logging the same failure for each.
+     */
+    public function testAFailedPrefetchIsLoggedOnceAndItsProductsAreUnknown(): void
     {
         $getStockItemsData = $this->createMock(GetStockItemsDataInterface::class);
         $getStockItemsData->expects($this->once())
@@ -225,8 +232,21 @@ class AvailabilityResolverTest extends TestCase
 
         $resolver->prefetch([$this->product('a'), $this->product('b')]);
 
-        $this->assertSame(AvailabilityResolver::OUT_OF_STOCK, $resolver->resolve($this->product('a')));
-        $this->assertSame(AvailabilityResolver::OUT_OF_STOCK, $resolver->resolve($this->product('b')));
+        $this->assertNull($resolver->resolve($this->product('a')));
+        $this->assertNull($resolver->resolve($this->product('b')));
+    }
+
+    /**
+     * Decision D8a: the best of several products is unknown when nothing known beats OutOfStock and
+     * some could not be read; one known to be in stock or on backorder still answers.
+     */
+    public function testTheBestOfProductsSomeOfWhichAreUnknown(): void
+    {
+        $getStockItemsData = $this->createStub(GetStockItemsDataInterface::class);
+        $getStockItemsData->method('execute')->willThrowException(new LocalizedException(__('index gone')));
+        $resolver = $this->resolver(getStockItemsData: $getStockItemsData);
+
+        $this->assertNull($resolver->best([$this->product('a'), $this->product('b')]));
     }
 
     public function testTheBestOfSeveralProducts(): void

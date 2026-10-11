@@ -7,13 +7,14 @@ namespace MageOS\Seo\Test\Unit\Model\Product\Builder;
 use Magento\ConfigurableProduct\Pricing\Price\ConfigurableOptionsProviderInterface;
 use Magento\Framework\Pricing\Amount\AmountInterface;
 use Magento\Store\Model\StoreManagerInterface;
+use MageOS\Seo\Api\SchemaPriceInterface;
 use MageOS\Seo\Model\Config;
 use MageOS\Seo\Model\Product\AvailabilityResolver;
 use MageOS\Seo\Model\Product\FinalPrice;
 use MageOS\Seo\Model\Product\OfferBuilder;
 use MageOS\Seo\Model\Product\OfferEnricher\Pool as OfferEnricherPool;
-use MageOS\Seo\Model\Product\Variant\ChildProducts;
-use MageOS\Seo\Service\CurrencyService;
+use MageOS\Seo\Model\Product\OfferSummary;
+use MageOS\Seo\Test\Unit\Model\Product\Variant\ChildProductsOverProvider;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -23,26 +24,30 @@ use Psr\Log\LoggerInterface;
  */
 trait OfferBuilders
 {
+    use ChildProductsOverProvider;
+
     /**
      * @param StoreManagerInterface $storeManager
-     * @param CurrencyService $currencyService
+     * @param SchemaPriceInterface $schemaPrice
      * @param AvailabilityResolver $availabilityResolver
      * @param OfferEnricherPool $offerEnricherPool
      * @return OfferBuilder
      */
     private function offerBuilder(
         StoreManagerInterface $storeManager,
-        CurrencyService $currencyService,
+        SchemaPriceInterface $schemaPrice,
         AvailabilityResolver $availabilityResolver,
         OfferEnricherPool $offerEnricherPool
     ): OfferBuilder {
         return new OfferBuilder(
             $storeManager,
-            $currencyService,
-            $availabilityResolver,
+            $schemaPrice,
             $offerEnricherPool,
-            new ChildProducts($this->createStub(ConfigurableOptionsProviderInterface::class)),
-            new FinalPrice($this->createStub(LoggerInterface::class), $this->createStub(Config::class))
+            new OfferSummary(
+                new FinalPrice($this->createStub(LoggerInterface::class), $this->createStub(Config::class)),
+                $this->childProductsOver($this->createStub(ConfigurableOptionsProviderInterface::class)),
+                $availabilityResolver
+            )
         );
     }
 

@@ -5,9 +5,10 @@ declare(strict_types=1);
 namespace MageOS\Seo\Model\Product;
 
 use Magento\Catalog\Api\Data\ProductInterface;
+use MageOS\Seo\Api\Product\SchemaTemplatesInterface;
 use MageOS\Seo\Api\ProductSchemaBuilderInterface;
 
-class SchemaBuilderPool
+class SchemaBuilderPool implements SchemaTemplatesInterface
 {
     /**
      * @param array<mixed> $builders

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace MageOS\Seo\Model\Product;
 
 use Magento\Catalog\Api\Data\ProductInterface;
+use MageOS\Seo\Api\Product\FinalPriceInterface;
 use MageOS\Seo\Model\Config;
 use Psr\Log\LoggerInterface;
 
@@ -32,7 +33,7 @@ use Psr\Log\LoggerInterface;
  * - any other product priced 0, unless Publish a Price of Zero is on (issue #41). A price of 0 is
  *   usually one hidden from the visitor, as on B2B and trade stores, rather than a free product.
  */
-class FinalPrice
+class FinalPrice implements FinalPriceInterface
 {
     /**
      * @param LoggerInterface $logger

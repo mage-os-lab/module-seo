@@ -48,7 +48,7 @@ class OrganizationProvider implements StructuredDataProviderInterface
         $websiteId = (int) $this->storeManager->getWebsite()->getId();
         $org       = $this->organizationRepository->getForScope($storeId, $websiteId);
 
-        if ($org->getName() === '') {
+        if (!$this->organizationId->isPublished($org)) {
             return [];
         }
 

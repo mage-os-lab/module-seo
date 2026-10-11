@@ -9,8 +9,8 @@ use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\Pricing\PriceCurrencyInterface;
 use Magento\Store\Model\ScopeInterface;
 use MageOS\Seo\Api\OfferEnricherInterface;
+use MageOS\Seo\Api\SchemaPriceInterface;
 use MageOS\Seo\Model\Log\OccasionalLog;
-use MageOS\Seo\Service\CurrencyService;
 
 /**
  * Adds an OfferShippingDetails node (one rate and delivery time) to the Offer from store configuration.
@@ -52,7 +52,7 @@ class ShippingDetailsEnricher implements OfferEnricherInterface
 
     /**
      * @param ScopeConfigInterface $scopeConfig
-     * @param CurrencyService $currencyService
+     * @param SchemaPriceInterface $schemaPrice
      * @param CountryList $countryList
      * @param ShippingRules $shippingRules
      * @param PriceCurrencyInterface $priceCurrency
@@ -60,7 +60,7 @@ class ShippingDetailsEnricher implements OfferEnricherInterface
      */
     public function __construct(
         private readonly ScopeConfigInterface   $scopeConfig,
-        private readonly CurrencyService        $currencyService,
+        private readonly SchemaPriceInterface   $schemaPrice,
         private readonly CountryList            $countryList,
         private readonly ShippingRules          $shippingRules,
         private readonly PriceCurrencyInterface $priceCurrency,
@@ -176,7 +176,7 @@ class ShippingDetailsEnricher implements OfferEnricherInterface
 
         return [
             '@type'    => 'MonetaryAmount',
-            'value'    => $this->currencyService->formatAmountForLlms($amount),
+            'value'    => $this->schemaPrice->amount($amount),
             'currency' => $currency,
         ];
     }

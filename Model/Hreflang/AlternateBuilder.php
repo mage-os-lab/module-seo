@@ -12,7 +12,7 @@ use MageOS\Seo\Model\Config;
 /**
  * Turns a set of region links into the full hreflang alternate set.
  *
- * Shared by ResolverPool (head tags) and SitemapGenerator (sitemap) so the language-only,
+ * Shared by ResolverPool (head tags) and Sitemap\Hreflang\Enricher (sitemap) so the language-only,
  * x-default and single-store rules live in one place. Returns [] when fewer than two distinct
  * codes are present (a page with one annotation has nothing to be an alternate of).
  *
@@ -30,9 +30,9 @@ class AlternateBuilder
      * add, remove or rewrite entries. A value that is not an array is ignored, so a broken observer
      * cannot take the page down with it.
      *
-     * In the sitemap the set is built once and the file copied to every store view sharing it, so
-     * an observer's answer must depend only on what the transport holds — not on which store view
-     * happens to be current.
+     * In the sitemap the sets are built a chunk of items at a time, during a rebuild the consumer or
+     * cron runs, so an observer's answer must depend only on what the transport holds — not on
+     * request state, such as which store view happens to be current.
      */
     public const EVENT_AFTER = 'mageos_seo_hreflang_alternates_after';
 

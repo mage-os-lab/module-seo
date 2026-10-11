@@ -13,12 +13,17 @@ The module controls the `<meta name="robots">` tag on product, category and CMS 
 | Product pages | *(empty — use Magento default)* | Applies to all product pages without a specific override |
 | Category pages | *(empty — use Magento default)* | Applies to all category pages without a specific override |
 | CMS pages | *(empty — use Magento default)* | Applies to all CMS pages, the home page included, without a specific override |
-| Search results pages | *(empty — use Magento default)* | Applies to quick search and advanced search results |
+| Search results pages | `NOINDEX,FOLLOW` | Applies to quick search and advanced search results |
 
-The defaults ship empty ("Use Magento Default"): until you configure a value, Magento core's
+The page defaults ship empty ("Use Magento Default"): until you configure a value, Magento core's
 **Design → Search Engine Robots** setting stays in charge, so installing the module never
 re-opens a NOINDEXed environment. These are per-store-view settings — you can set a stricter
 default (e.g. `NOINDEX,FOLLOW`) on a specific store view while keeping another value globally.
+
+Search results pages are the exception: they ship as `NOINDEX,FOLLOW`, Google's advice for
+internal search. Like any value here it replaces core's setting on those pages, so a staging site
+set to `NOINDEX,NOFOLLOW` gets `NOINDEX,FOLLOW` on its search pages: still out of the index. Set it
+to "Use Magento Default" to let core's setting decide them too.
 
 **Search results pages: index or crawl?** The two ways of handling internal search results do
 different jobs, and don't combine:

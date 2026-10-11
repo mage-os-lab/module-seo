@@ -81,7 +81,7 @@ class HomeDecorBuilder extends AbstractBuilder
             if (!\in_array($dim, $enabledFields, true)) {
                 continue;
             }
-            $value = $overrides[$dim] ?? $this->attr($product, $dim) ?: $this->attr($product, 'rs_' . $dim);
+            $value = $overrides[$dim] ?? $this->attr($product, $dim);
             if ($value !== '') {
                 $schema[$dim] = $value;
             }
