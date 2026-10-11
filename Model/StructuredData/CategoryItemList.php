@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace MageOS\Seo\Model\StructuredData;
 
 use Magento\Catalog\Api\Data\CategoryInterface;
+use Magento\Catalog\Model\Category;
 use Magento\Catalog\Model\Layer\Resolver as LayerResolver;
 use Magento\Catalog\Model\Product;
 use Magento\Store\Model\StoreManagerInterface;
@@ -25,6 +26,9 @@ use MageOS\Seo\Model\Config;
  * That is also what makes the node correct: the positions and the item set now come from the page
  * as rendered, including every layered-navigation filter and the visitor's own sort order and
  * page size, instead of being reconstructed from request parameters.
+ *
+ * So there is no node where the page shows no products: a "Static block only" category, or a
+ * collection the listing did not load. The node never loads the collection itself.
  */
 class CategoryItemList
 {
@@ -52,7 +56,7 @@ class CategoryItemList
     public function build(): array
     {
         $category = $this->currentCategory();
-        if ($category === null) {
+        if ($category === null || $this->showsNoProducts($category)) {
             return [];
         }
 
@@ -87,6 +91,19 @@ class CategoryItemList
     }
 
     /**
+     * Whether the category page shows no products: its display mode is "Static block only".
+     *
+     * Core's category template then renders no product list (review finding M1).
+     *
+     * @param CategoryInterface $category
+     * @return bool
+     */
+    private function showsNoProducts(CategoryInterface $category): bool
+    {
+        return $category instanceof Category && $category->getData('display_mode') === Category::DM_PAGE;
+    }
+
+    /**
      * Whether this category emits an ItemList: its own setting, else the global one.
      *
      * @param CategoryInterface $category
@@ -117,6 +134,13 @@ class CategoryItemList
     private function items(int $storeId): array
     {
         $collection = $this->layerResolver->get()->getProductCollection();
+
+        // Only what the listing loaded. Iterating a collection nothing has loaded would load every
+        // product it matches, unpaginated, for products the page does not show (review finding M1):
+        // a layout or theme without the product list, or one rendering this node before it.
+        if (!$collection->isLoaded()) {
+            return [];
+        }
 
         // The configured maximum caps what is published; it does not re-paginate the page. A page
         // size larger than the maximum lists the first N of what is shown, never a different set.

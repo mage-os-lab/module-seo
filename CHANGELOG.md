@@ -172,6 +172,12 @@ hardcoded version field).
   - The form says what the scope being edited publishes.
   - **A record saved before this keeps publishing its stored logo URL until it is saved again with
     "Use Design Logo" or a new upload.**
+- **A "Static block only" category no longer loads its whole product collection** (review M1).
+  - Magento renders no product list on such a category, so the collection the category ItemList
+    reads was unloaded. Reading it loaded every product the category matched, unpaginated, on
+    every uncached request, to list products the page does not show.
+  - There is now no ItemList where the page shows no products: a "Static block only" category, or
+    a collection the listing did not load. The ItemList never loads the collection itself.
 - **A category's later pages keep its robots restrictions**
   ([#34](https://github.com/mage-os-lab/module-seo/issues/34)).
   - With Override Robots on Paginated Pages on, page 2 and later took the Paginated Pages Robots
