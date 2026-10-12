@@ -8,7 +8,7 @@ hardcoded version field).
 
 ## [Unreleased]
 
-## [2.2.1] — 2026-10-0512
+## [2.0.0] — 2026-10-0512
 
 The next release is **2.0.0**: other modules now reach this one through `Api` interfaces, and MSI
 is required. MageOS_Aeo, MageOS_Faq and MageOS_Agentic require `^2.0`.
