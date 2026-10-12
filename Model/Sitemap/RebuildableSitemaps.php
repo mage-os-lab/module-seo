@@ -8,8 +8,10 @@ use Magento\Framework\App\Filesystem\DirectoryList;
 use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Framework\Filesystem;
 use Magento\Framework\ObjectManager\ResetAfterRequestInterface;
+use Magento\Sitemap\Helper\Data as SitemapHelper;
 use Magento\Sitemap\Model\ResourceModel\Sitemap\CollectionFactory as SitemapCollectionFactory;
 use Magento\Sitemap\Model\Sitemap;
+use Magento\Sitemap\Model\Source\Product\Image\IncludeImage;
 use Magento\Store\Model\StoreManagerInterface;
 use MageOS\Seo\Model\Config;
 
@@ -41,16 +43,25 @@ class RebuildableSitemaps implements ResetAfterRequestInterface
     private ?bool $exist = null;
 
     /**
+     * Whether one a change rebuilds lists product images, once asked in this request.
+     *
+     * @var bool|null
+     */
+    private ?bool $listsProductImages = null;
+
+    /**
      * @param SitemapCollectionFactory $sitemapCollectionFactory
      * @param StoreManagerInterface $storeManager
      * @param Config $seoConfig
      * @param Filesystem $filesystem
+     * @param SitemapHelper $sitemapHelper
      */
     public function __construct(
         private readonly SitemapCollectionFactory $sitemapCollectionFactory,
         private readonly StoreManagerInterface    $storeManager,
         private readonly Config                   $seoConfig,
-        private readonly Filesystem               $filesystem
+        private readonly Filesystem               $filesystem,
+        private readonly SitemapHelper            $sitemapHelper
     ) {
     }
 
@@ -126,7 +137,7 @@ class RebuildableSitemaps implements ResetAfterRequestInterface
      * Whether a change rebuilds any sitemap.
      *
      * Asked on every save a rebuild might follow, so it is answered once per request; a sitemap
-     * generated for the first time later in the same request is caught by the nightly run.
+     * entry saved later in the same request is seen by the next request.
      *
      * @return bool
      */
@@ -136,13 +147,41 @@ class RebuildableSitemaps implements ResetAfterRequestInterface
     }
 
     /**
-     * Forget the answer between worker-mode requests.
+     * Whether a sitemap a change rebuilds lists product images, by its store view's image policy.
+     *
+     * Core's policy (Catalog → XML Sitemap → Products Options → Add Images into Sitemap), read as
+     * the products are read when written. With images listed, a product's name and image fields
+     * are part of its row. Answered once per request, as exist() is.
+     *
+     * @return bool
+     */
+    public function listsProductImages(): bool
+    {
+        if ($this->listsProductImages !== null) {
+            return $this->listsProductImages;
+        }
+
+        $this->listsProductImages = false;
+        foreach ($this->onChange() as $sitemap) {
+            $policy = (string) $this->sitemapHelper->getProductImageIncludePolicy((int) $sitemap->getStoreId());
+            if ($policy !== IncludeImage::INCLUDE_NONE) {
+                $this->listsProductImages = true;
+                break;
+            }
+        }
+
+        return $this->listsProductImages;
+    }
+
+    /**
+     * Forget the answers between worker-mode requests.
      *
      * @return void
      */
     public function _resetState(): void // phpcs:ignore PSR2.Methods.MethodDeclaration.Underscore -- framework interface
     {
-        $this->exist = null;
+        $this->exist              = null;
+        $this->listsProductImages = null;
     }
 
     /**

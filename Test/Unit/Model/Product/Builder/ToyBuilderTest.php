@@ -8,7 +8,6 @@ use Magento\Catalog\Helper\Image as ImageHelper;
 use Magento\Catalog\Model\Product;
 use Magento\Framework\Pricing\Price\PriceInterface;
 use Magento\Framework\Pricing\PriceInfoInterface;
-use Magento\Framework\Stdlib\DateTime\DateTime;
 use Magento\Store\Model\Store;
 use Magento\Store\Model\StoreManagerInterface;
 use MageOS\Seo\Model\Config;
@@ -17,13 +16,13 @@ use MageOS\Seo\Model\Product\Builder\ToyBuilder;
 use MageOS\Seo\Model\Product\GtinValidator;
 use MageOS\Seo\Model\Product\OfferEnricher\Pool as OfferEnricherPool;
 use MageOS\Seo\Model\Review\AggregateRatingResolver;
-use MageOS\Seo\Test\Unit\Service\CurrencyServices;
+use MageOS\Seo\Test\Unit\Model\Price\SchemaPrices;
 use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
 
 class ToyBuilderTest extends TestCase
 {
-    use CurrencyServices;
+    use SchemaPrices;
     use OfferBuilders;
 
     /**
@@ -40,7 +39,7 @@ class ToyBuilderTest extends TestCase
     {
         $storeManager    = $this->createStub(StoreManagerInterface::class);
         $store           = $this->createStub(Store::class);
-        $currencyService = $this->currencyService();
+        $schemaPrice     = $this->schemaPrice();
         $imageHelper     = $this->createStub(ImageHelper::class);
         $seoConfig       = $this->createStub(Config::class);
         $priceInfo       = $this->createMock(PriceInfoInterface::class);
@@ -52,6 +51,7 @@ class ToyBuilderTest extends TestCase
         $storeManager->method('getStore')->willReturn($store);
         $store->method('getBaseUrl')->willReturn('https://example.com/');
         $finalPrice->method('getValue')->willReturn(19.99);
+        $finalPrice->method('getAmount')->willReturn($this->amount(19.99));
         $priceInfo->method('getPrice')->with('final_price')->willReturn($finalPrice);
         $this->product->method('getPriceInfo')->willReturn($priceInfo);
         $this->product->method('getName')->willReturn('Building Blocks');
@@ -69,9 +69,8 @@ class ToyBuilderTest extends TestCase
             $seoConfig,
             $this->offerBuilder(
                 $storeManager,
-                $currencyService,
+                $schemaPrice,
                 $availability,
-                $this->createStub(DateTime::class),
                 new OfferEnricherPool()
             ),
             new AggregateRatingResolver(),

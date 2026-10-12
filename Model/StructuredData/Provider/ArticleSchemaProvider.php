@@ -81,8 +81,6 @@ class ArticleSchemaProvider implements StructuredDataProviderInterface
      */
     private function build(array $article, int $storeId): array
     {
-        $orgId = $this->organizationId->getId($storeId);
-
         $node = [
             '@context'      => 'https://schema.org',
             '@type'         => 'BlogPosting',
@@ -90,9 +88,14 @@ class ArticleSchemaProvider implements StructuredDataProviderInterface
             'headline'      => $article['headline'],
             'url'           => $article['url'],
             'datePublished' => $article['datePublished'] ?? '',
-            'author'        => ['@id' => $orgId],
-            'publisher'     => ['@id' => $orgId],
         ];
+
+        // Only an Organization the page publishes: with none, a reference would point at nothing.
+        $orgId = $this->organizationId->getPublishedId($storeId);
+        if ($orgId !== null) {
+            $node['author']    = ['@id' => $orgId];
+            $node['publisher'] = ['@id' => $orgId];
+        }
 
         foreach (['description', 'dateModified', 'image'] as $field) {
             if (!empty($article[$field])) {

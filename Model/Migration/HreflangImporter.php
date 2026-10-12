@@ -16,16 +16,19 @@ use MageOS\Seo\Model\Cms\ConfigRepository as CmsPageConfigRepository;
 use MageOS\Seo\Model\Cms\HreflangGroup;
 use MageOS\Seo\Model\Config;
 use MageOS\Seo\Model\Hreflang\CodeList;
+use MageOS\Seo\Model\PageCache\Purger;
 use MageOS\Seo\Model\ResourceModel\MetaRobotsTagFlags;
 
 /**
  * Carries MageOS_Hreflang's settings and CMS page links into this module, then switches that
  * module's head output off.
  *
- * The rule throughout: the store keeps publishing hreflang wherever it did. MageOS_Hreflang's
- * settings are carried over only where they were in effect; a value already set in this module is
- * kept — except an "off" that would leave a store view without hreflang once MageOS_Hreflang is
- * switched off; and a store view MageOS_Hreflang had off is never switched off here.
+ * The rule throughout: the store keeps publishing hreflang wherever it did, and a value already set
+ * in this module is never replaced (issue #26). MageOS_Hreflang's settings are carried over only
+ * where they were in effect, and only into values this module leaves empty; each value kept is
+ * reported with both. Where this module's hreflang is switched off for a store view that
+ * MageOS_Hreflang served, the "off" is kept, and MageOS_Hreflang stays on for that store view. A
+ * store view MageOS_Hreflang had off is never switched off here.
  *
  * | MageOS_Hreflang                 | This module                                 |
  * |---------------------------------|---------------------------------------------|
@@ -40,17 +43,19 @@ use MageOS\Seo\Model\ResourceModel\MetaRobotsTagFlags;
  *
  * Its head output is switched off last, and only when it was on somewhere, so a failure part way
  * through leaves the store serving what it served. Switching off sets its head flag to 0 globally
- * and removes its website and store view values; nothing else of that module is touched, and what
- * was removed is reported so it can be restored by hand.
+ * and removes its website and store view values, except for the store views it stays on for, which
+ * keep a store view value of 1. Nothing else of that module is touched, and what was removed is
+ * reported so it can be restored by hand.
  *
  * Its sitemap flag is left as it is: the two modules cannot both write a sitemap's alternates.
  * Where this module's generator writes the sitemap, it replaces `generateXml()`, so
  * MageOS_Hreflang's rows are never written; where Magento's generator is selected, MageOS_Hreflang's
  * are the only alternates the sitemap gets, and switching them off would lose them.
  *
- * Safe to run when MageOS_Hreflang was never installed: there are no values and no column.
+ * Safe to run when MageOS_Hreflang was never installed: there are no values and no column. Safe to
+ * run again: what it wrote is no longer empty, and what it switched off is no longer on.
  */
-class HreflangImporter
+class HreflangImporter implements LegacyImporterInterface
 {
     private const THEIR_ENABLED  = 'web/seo/use_hreflangs';
     private const THEIR_SITEMAP  = 'web/seo/use_sitemap_hreflangs';
@@ -69,6 +74,7 @@ class HreflangImporter
      * @param CmsPageConfigRepository $cmsPageConfigRepository
      * @param HreflangGroup $hreflangGroup
      * @param MetaRobotsTagFlags $cmsPageColumns Answers whether a cms_page column exists
+     * @param Purger $purger
      */
     public function __construct(
         private readonly ConfigCollectionFactory  $configCollectionFactory,
@@ -80,15 +86,31 @@ class HreflangImporter
         private readonly CmsPageCollectionFactory $cmsPageCollectionFactory,
         private readonly CmsPageConfigRepository  $cmsPageConfigRepository,
         private readonly HreflangGroup            $hreflangGroup,
-        private readonly MetaRobotsTagFlags       $cmsPageColumns
+        private readonly MetaRobotsTagFlags       $cmsPageColumns,
+        private readonly Purger                   $purger
     ) {
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function hasLegacyData(): bool
+    {
+        return $this->storedValues([
+            self::THEIR_ENABLED,
+            self::THEIR_SITEMAP,
+            self::THEIR_CODES,
+            self::THEIR_XDEFAULT,
+        ]) !== [] || $this->cmsPageColumns->existOnCmsPage([self::THEIR_COLUMN]);
     }
 
     /**
      * Import everything, then switch MageOS_Hreflang's output off.
      *
+     * @param bool $dryRun
      * @return array{
      *     enabled_store_ids: int[],
+     *     kept_on_store_ids: int[],
      *     sitemap_enabled: bool,
      *     x_default_website_ids: int[],
      *     codes_store_ids: int[],
@@ -97,7 +119,7 @@ class HreflangImporter
      *     notes: string[]
      * }
      */
-    public function import(): array
+    public function import(bool $dryRun = false): array
     {
         $theirs = $this->storedValues([
             self::THEIR_ENABLED,
@@ -114,6 +136,7 @@ class HreflangImporter
 
         $notes    = [];
         $enabled  = [];
+        $keptOn   = [];
         $codes    = [];
         $websites = [];
         $sitemap  = false;
@@ -133,39 +156,124 @@ class HreflangImporter
             if (!$headOn) {
                 continue;
             }
-            if ($this->ourValueFor($ours, Config::XML_HREFLANG_ENABLED, $websiteId, $storeId) !== '1') {
-                $this->configWriter->save(Config::XML_HREFLANG_ENABLED, '1', ScopeInterface::SCOPE_STORES, $storeId);
+            if ($this->valueFor($ours, Config::XML_HREFLANG_ENABLED, $websiteId, $storeId) === '0') {
+                // Switched off here by choice: kept, and MageOS_Hreflang stays on for the store view,
+                // which keeps publishing what it did.
+                $keptOn[] = $storeId;
+                $notes[]  = \sprintf(
+                    'Store view %d: hreflang is off in this module; kept it off, and MageOS_Hreflang stays on'
+                    . ' for this store view.',
+                    $storeId
+                );
+            } elseif ($this->ourValueFor($ours, Config::XML_HREFLANG_ENABLED, $websiteId, $storeId) !== '1') {
+                if (!$dryRun) {
+                    $this->configWriter->save(
+                        Config::XML_HREFLANG_ENABLED,
+                        '1',
+                        ScopeInterface::SCOPE_STORES,
+                        $storeId
+                    );
+                }
                 $enabled[] = $storeId;
             }
-            if ($this->importCodes($theirs, $ours, $websiteId, $storeId, $notes)) {
+            if ($this->importCodes($theirs, $ours, $websiteId, $storeId, $dryRun, $notes)) {
                 $codes[] = $storeId;
             }
         }
 
-        $sitemapEnabled = $sitemap
-            && $this->ourValueFor($ours, Config::XML_HREFLANG_SITEMAP_ENABLED, 0, null) !== '1';
-        if ($sitemapEnabled) {
-            $this->configWriter->save(Config::XML_HREFLANG_SITEMAP_ENABLED, '1');
+        $sitemapEnabled = false;
+        if ($sitemap && $this->valueFor($ours, Config::XML_HREFLANG_SITEMAP_ENABLED, 0, null) === '0') {
+            $notes[] = 'Hreflang in the sitemap is off in this module; kept it off.';
+        } elseif ($sitemap && $this->ourValueFor($ours, Config::XML_HREFLANG_SITEMAP_ENABLED, 0, null) !== '1') {
+            if (!$dryRun) {
+                $this->configWriter->save(Config::XML_HREFLANG_SITEMAP_ENABLED, '1');
+            }
+            $sitemapEnabled = true;
         }
 
         $xDefaults = [];
         foreach (array_keys($websites) as $websiteId) {
-            if ($this->importXDefault($theirs, $ours, $websiteId, $notes)) {
+            if ($this->importXDefault($theirs, $ours, $websiteId, $dryRun, $notes)) {
                 $xDefaults[] = $websiteId;
             }
         }
 
-        $grouped = $this->importCmsGroups($notes);
+        $grouped = $this->importCmsGroups($dryRun, $notes);
 
         return [
             'enabled_store_ids'     => $enabled,
+            'kept_on_store_ids'     => $keptOn,
             'sitemap_enabled'       => $sitemapEnabled,
             'x_default_website_ids' => $xDefaults,
             'codes_store_ids'       => $codes,
             'cms_pages_grouped'     => $grouped,
-            'switched_off'          => $this->wasOnAnywhere($theirs) ? $this->switchOff($theirs) : [],
+            'switched_off'          => $this->wasOnAnywhere($theirs) ? $this->switchOff($theirs, $keptOn, $dryRun) : [],
             'notes'                 => $notes,
         ];
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function describe(array $report, bool $dryRun): array
+    {
+        $lines = [];
+        if ($report['enabled_store_ids'] !== []) {
+            $lines[] = \sprintf(
+                '%s hreflang on for store view(s) %s.',
+                $dryRun ? 'Would switch' : 'Switched',
+                implode(', ', $report['enabled_store_ids'])
+            );
+        }
+        if ($report['codes_store_ids'] !== []) {
+            $lines[] = \sprintf(
+                '%s hreflang codes for store view(s) %s.',
+                $dryRun ? 'Would import' : 'Imported',
+                implode(', ', $report['codes_store_ids'])
+            );
+        }
+        if ($report['sitemap_enabled']) {
+            $lines[] = \sprintf('%s hreflang in the sitemap on.', $dryRun ? 'Would switch' : 'Switched');
+        }
+        if ($report['x_default_website_ids'] !== []) {
+            $lines[] = \sprintf(
+                '%s the x-default store view for website(s) %s.',
+                $dryRun ? 'Would import' : 'Imported',
+                implode(', ', $report['x_default_website_ids'])
+            );
+        }
+        if ($report['cms_pages_grouped'] > 0) {
+            $lines[] = \sprintf(
+                '%s %d CMS page(s) in a translation group.',
+                $dryRun ? 'Would put' : 'Put',
+                $report['cms_pages_grouped']
+            );
+        }
+        if ($report['switched_off'] !== []) {
+            $lines[] = \sprintf(
+                '%s MageOS_Hreflang\'s hreflang output off, replacing: %s.',
+                $dryRun ? 'Would switch' : 'Switched',
+                implode('; ', array_map(
+                    static fn (array $row): string => \sprintf(
+                        '%s = %s (%s %d)',
+                        $row['path'],
+                        $row['value'] ?? 'not set',
+                        $row['scope'],
+                        $row['scope_id']
+                    ),
+                    $report['switched_off']
+                ))
+            );
+        }
+        if ($report['kept_on_store_ids'] !== []) {
+            $lines[] = \sprintf(
+                'MageOS_Hreflang %s on for store view(s) %s, where this module\'s hreflang is off.',
+                $dryRun ? 'would stay' : 'stays',
+                implode(', ', $report['kept_on_store_ids'])
+            );
+        }
+
+        return $lines;
     }
 
     /**
@@ -175,11 +283,18 @@ class HreflangImporter
      * @param array<string,array<string,array<int,string|null>>> $ours
      * @param int $websiteId
      * @param int $storeId
+     * @param bool $dryRun
      * @param string[] $notes
-     * @return bool Whether codes were written
+     * @return bool Whether codes were written, or on a dry run would be
      */
-    private function importCodes(array $theirs, array $ours, int $websiteId, int $storeId, array &$notes): bool
-    {
+    private function importCodes(
+        array $theirs,
+        array $ours,
+        int $websiteId,
+        int $storeId,
+        bool $dryRun,
+        array &$notes
+    ): bool {
         $stored = (string) $this->valueFor($theirs, self::THEIR_CODES, $websiteId, $storeId);
         if ($stored === '') {
             return false;
@@ -211,21 +326,24 @@ class HreflangImporter
             return false;
         }
 
-        if ((string) $this->ourValueFor($ours, Config::XML_HREFLANG_CODES, $websiteId, $storeId) !== '') {
+        $codes = implode(',', $checked['codes']);
+        $kept  = (string) $this->ourValueFor($ours, Config::XML_HREFLANG_CODES, $websiteId, $storeId);
+        if ($kept === $codes) {
+            return false;
+        }
+        if ($kept !== '') {
             $notes[] = \sprintf(
-                'Store view %d: already has hreflang codes in this module; kept them instead of %s.',
+                'Store view %d: already has hreflang codes in this module (%s); kept them instead of %s.',
                 $storeId,
-                implode(', ', $checked['codes'])
+                $kept,
+                $codes
             );
             return false;
         }
 
-        $this->configWriter->save(
-            Config::XML_HREFLANG_CODES,
-            implode(',', $checked['codes']),
-            ScopeInterface::SCOPE_STORES,
-            $storeId
-        );
+        if (!$dryRun) {
+            $this->configWriter->save(Config::XML_HREFLANG_CODES, $codes, ScopeInterface::SCOPE_STORES, $storeId);
+        }
 
         return true;
     }
@@ -236,10 +354,11 @@ class HreflangImporter
      * @param array<string,array<string,array<int,string|null>>> $theirs
      * @param array<string,array<string,array<int,string|null>>> $ours
      * @param int $websiteId
+     * @param bool $dryRun
      * @param string[] $notes
-     * @return bool Whether it was written
+     * @return bool Whether it was written, or on a dry run would be
      */
-    private function importXDefault(array $theirs, array $ours, int $websiteId, array &$notes): bool
+    private function importXDefault(array $theirs, array $ours, int $websiteId, bool $dryRun, array &$notes): bool
     {
         $xDefault = (string) $this->valueFor($theirs, self::THEIR_XDEFAULT, $websiteId, null);
         if ($xDefault === '' || $xDefault === '0') {
@@ -255,16 +374,29 @@ class HreflangImporter
             return false;
         }
 
-        if ($this->ourValueFor($ours, Config::XML_HREFLANG_XDEFAULT_STORE, $websiteId, null) === $xDefault) {
+        // No store view (0) is this module's "none".
+        $kept = (string) $this->ourValueFor($ours, Config::XML_HREFLANG_XDEFAULT_STORE, $websiteId, null);
+        if ($kept === $xDefault) {
+            return false;
+        }
+        if ($kept !== '' && $kept !== '0') {
+            $notes[] = \sprintf(
+                'Website %d: kept x-default store view %s in this module instead of %s.',
+                $websiteId,
+                $kept,
+                $xDefault
+            );
             return false;
         }
 
-        $this->configWriter->save(
-            Config::XML_HREFLANG_XDEFAULT_STORE,
-            $xDefault,
-            ScopeInterface::SCOPE_WEBSITES,
-            $websiteId
-        );
+        if (!$dryRun) {
+            $this->configWriter->save(
+                Config::XML_HREFLANG_XDEFAULT_STORE,
+                $xDefault,
+                ScopeInterface::SCOPE_WEBSITES,
+                $websiteId
+            );
+        }
 
         return true;
     }
@@ -275,10 +407,11 @@ class HreflangImporter
      * The values were never validated, so each is turned into a valid group ("About Us" becomes
      * "about-us"); a page that already has a group in this module keeps it.
      *
+     * @param bool $dryRun
      * @param string[] $notes
-     * @return int Pages given a group
+     * @return int Pages given a group, or on a dry run that would be
      */
-    private function importCmsGroups(array &$notes): int
+    private function importCmsGroups(bool $dryRun, array &$notes): int
     {
         if (!$this->cmsPageColumns->existOnCmsPage([self::THEIR_COLUMN])) {
             return 0;
@@ -287,54 +420,93 @@ class HreflangImporter
         $collection = $this->cmsPageCollectionFactory->create();
         $collection->addFieldToFilter(self::THEIR_COLUMN, ['neq' => '']);
 
-        $grouped = 0;
-        foreach ($collection as $page) {
-            $pageId = (int) $page->getId();
-            $value  = (string) $page->getData(self::THEIR_COLUMN);
-            $group  = $this->hreflangGroup->slugify($value);
+        // One page cache purge for the whole import, not one per page grouped.
+        return $this->purger->batch(function () use ($collection, $dryRun, &$notes): int {
+            $grouped = 0;
+            foreach ($collection as $page) {
+                $pageId = (int) $page->getId();
+                $value  = (string) $page->getData(self::THEIR_COLUMN);
+                $group  = $this->hreflangGroup->slugify($value);
 
-            if ($group === null) {
-                $notes[] = \sprintf('CMS page %d: "%s" cannot be a translation group; skipped.', $pageId, $value);
-                continue;
-            }
-            if ($this->cmsPageConfigRepository->getHreflangGroup($pageId) !== null) {
-                continue;
-            }
-            if ($group !== $this->hreflangGroup->normalise($value)) {
-                $notes[] = \sprintf('CMS page %d: "%s" imported as "%s".', $pageId, $value, $group);
+                if ($group === null) {
+                    $notes[] = \sprintf(
+                        'CMS page %d: "%s" cannot be a translation group; skipped.',
+                        $pageId,
+                        $value
+                    );
+                    continue;
+                }
+                $kept = $this->cmsPageConfigRepository->getHreflangGroup($pageId);
+                if ($kept !== null) {
+                    if ($kept !== $group) {
+                        $notes[] = \sprintf(
+                            'CMS page %d: kept translation group "%s" instead of "%s".',
+                            $pageId,
+                            $kept,
+                            $group
+                        );
+                    }
+                    continue;
+                }
+                if ($group !== $this->hreflangGroup->normalise($value)) {
+                    $notes[] = \sprintf('CMS page %d: "%s" imported as "%s".', $pageId, $value, $group);
+                }
+
+                if (!$dryRun) {
+                    $this->cmsPageConfigRepository->save($pageId, ['hreflang_group' => $group]);
+                }
+                $grouped++;
             }
 
-            $this->cmsPageConfigRepository->save($pageId, ['hreflang_group' => $group]);
-            $grouped++;
-        }
-
-        return $grouped;
+            return $grouped;
+        });
     }
 
     /**
-     * Switch MageOS_Hreflang's head output off.
+     * Switch MageOS_Hreflang's head output off, except for the store views it stays on for.
+     *
+     * Those keep a store view value of 1, written where they inherited it, since the values they
+     * inherited are removed. Returns the values removed or replaced; a value already off is left
+     * alone, and not reported.
      *
      * @param array<string,array<string,array<int,string|null>>> $theirs
+     * @param int[] $keptOn The store views it stays on for
+     * @param bool $dryRun
      * @return array<int, array{path: string, scope: string, scope_id: int, value: string|null}>
      */
-    private function switchOff(array $theirs): array
+    private function switchOff(array $theirs, array $keptOn, bool $dryRun): array
     {
+        $path    = self::THEIR_ENABLED;
         $removed = [];
-        foreach ([self::THEIR_ENABLED] as $path) {
-            foreach ([ScopeInterface::SCOPE_WEBSITES, ScopeInterface::SCOPE_STORES] as $scope) {
-                foreach ($theirs[$path][$scope] ?? [] as $scopeId => $value) {
-                    $this->configWriter->delete($path, $scope, $scopeId);
-                    $removed[] = ['path' => $path, 'scope' => $scope, 'scope_id' => $scopeId, 'value' => $value];
+        foreach ([ScopeInterface::SCOPE_WEBSITES, ScopeInterface::SCOPE_STORES] as $scope) {
+            foreach ($theirs[$path][$scope] ?? [] as $scopeId => $value) {
+                if ($scope === ScopeInterface::SCOPE_STORES && $value === '1' && \in_array($scopeId, $keptOn, true)) {
+                    continue;
                 }
+                if (!$dryRun) {
+                    $this->configWriter->delete($path, $scope, $scopeId);
+                }
+                $removed[] = ['path' => $path, 'scope' => $scope, 'scope_id' => $scopeId, 'value' => $value];
             }
+        }
 
+        $default = $theirs[$path][ScopeConfigInterface::SCOPE_TYPE_DEFAULT][0] ?? null;
+        if ($default !== '0') {
+            if (!$dryRun) {
+                $this->configWriter->save($path, '0');
+            }
             $removed[] = [
                 'path'     => $path,
                 'scope'    => ScopeConfigInterface::SCOPE_TYPE_DEFAULT,
                 'scope_id' => 0,
-                'value'    => $theirs[$path][ScopeConfigInterface::SCOPE_TYPE_DEFAULT][0] ?? null,
+                'value'    => $default,
             ];
-            $this->configWriter->save($path, '0');
+        }
+
+        foreach ($keptOn as $storeId) {
+            if (!$dryRun && ($theirs[$path][ScopeInterface::SCOPE_STORES][$storeId] ?? null) !== '1') {
+                $this->configWriter->save($path, '1', ScopeInterface::SCOPE_STORES, $storeId);
+            }
         }
 
         return $removed;

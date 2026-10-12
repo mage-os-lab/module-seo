@@ -14,6 +14,7 @@ use Magento\Cms\Api\PageRepositoryInterface;
 use Magento\Cms\Model\PageFactory;
 use Magento\Config\Model\Config as ConfigModel;
 use Magento\Framework\App\Config\ScopeConfigInterface;
+use Magento\Framework\Event\ManagerInterface as EventManager;
 use Magento\Framework\FlagManager;
 use Magento\TestFramework\Fixture\DataFixture;
 use Magento\TestFramework\Fixture\DataFixtureStorageManager;
@@ -22,7 +23,11 @@ use MageOS\Seo\Api\Sitemap\RebuildRequesterInterface;
 use MageOS\Seo\Model\Category\ConfigRepository as CategoryConfigRepository;
 use MageOS\Seo\Model\Cms\ConfigRepository as CmsConfigRepository;
 use MageOS\Seo\Model\Config;
+use MageOS\Seo\Model\Config\Source\SitemapGenerator;
 use MageOS\Seo\Model\Product\OverrideRepository;
+use MageOS\Seo\Model\Sitemap\InvalidationPolicy;
+use MageOS\Seo\Model\Sitemap\RebuildableSitemaps;
+use MageOS\Seo\Test\Integration\Rebuild\CommitsDeferredRequests;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -39,6 +44,7 @@ use PHPUnit\Framework\TestCase;
 class SitemapInvalidationRulesTest extends TestCase
 {
     use GeneratesSitemaps;
+    use CommitsDeferredRequests;
 
     private const GROUPS = ['sitemap-pages', 'sitemap-categories', 'sitemap-products', 'sitemap-*', 'sitemaps-missing'];
 
@@ -70,7 +76,9 @@ class SitemapInvalidationRulesTest extends TestCase
         $sku        = (string) DataFixtureStorageManager::getStorage()->get('product')->getSku();
         $categoryId = (int) DataFixtureStorageManager::getStorage()->get('category')->getId();
 
-        $this->assertQueuedBy([], fn () => $this->saveProduct($sku, ['name' => 'Renamed']));
+        // Issue #23: images are listed by default (core's policy "all"), and the name is their title.
+        $this->assertQueuedBy(['sitemap-products'], fn () => $this->saveProduct($sku, ['name' => 'Renamed']));
+        $this->assertQueuedBy([], fn () => $this->saveProduct($sku, ['description' => 'New text']));
         // The product's sitemap URL carries no category path, so its categories are not listed.
         $this->assertQueuedBy([], fn () => $this->saveProduct($sku, ['category_ids' => [$categoryId]]));
         $this->assertQueuedBy(
@@ -94,6 +102,50 @@ class SitemapInvalidationRulesTest extends TestCase
         $this->assertQueuedBy(
             ['sitemap-products'],
             fn () => $action->updateAttributes([$productId], ['visibility' => 1], 0)
+        );
+        $this->assertQueuedBy(
+            ['sitemap-products'],
+            fn () => $action->updateAttributes([$productId], ['name' => 'Renamed'], 0)
+        );
+    }
+
+    /**
+     * With no sitemap listing product images (core's policy "None"), the name and image fields are
+     * not in any sitemap: changing them queues nothing.
+     *
+     * @return void
+     */
+    #[DataFixture(ProductFixture::class, as: 'product')]
+    public function testWithoutImagesListedTheNameQueuesNothing(): void
+    {
+        $this->aGeneratedSitemap();
+        $this->setStoreConfig('sitemap/product/image_include', 'none');
+        Bootstrap::getObjectManager()->get(RebuildableSitemaps::class)->_resetState();
+        $sku       = (string) DataFixtureStorageManager::getStorage()->get('product')->getSku();
+        $productId = (int) DataFixtureStorageManager::getStorage()->get('product')->getId();
+
+        $this->assertQueuedBy([], fn () => $this->saveProduct($sku, ['name' => 'Renamed']));
+        $this->assertQueuedBy(
+            [],
+            fn () => Bootstrap::getObjectManager()->create(ProductAction::class)
+                ->updateAttributes([$productId], ['name' => 'Renamed again'], 0)
+        );
+    }
+
+    /**
+     * A product import queues the products once it has finished: it writes to the database
+     * directly, so no product save reports what changed.
+     *
+     * @return void
+     */
+    public function testAProductImportQueuesTheProducts(): void
+    {
+        $this->aGeneratedSitemap();
+
+        $this->assertQueuedBy(
+            ['sitemap-products'],
+            fn () => Bootstrap::getObjectManager()->get(EventManager::class)
+                ->dispatch(InvalidationPolicy::EVENT_PRODUCT_IMPORT, ['adapter' => new \stdClass()])
         );
     }
 
@@ -181,6 +233,32 @@ class SitemapInvalidationRulesTest extends TestCase
     }
 
     /**
+     * Switching Rebuild on Change on, or this module's generator on, queues every type. While the
+     * save runs, the configuration in memory is the one from before it, with both still off, so
+     * asking whether a sitemap is rebuilt on change would say no.
+     *
+     * The answer to that question is kept for the request; a new admin request starts without it,
+     * so it is forgotten before each switch, as the next request would.
+     *
+     * @return void
+     */
+    public function testSwitchingRebuildOnChangeOrTheGeneratorOnQueuesEveryType(): void
+    {
+        $this->aGeneratedSitemap();
+        $switches = [
+            Config::XML_SITEMAP_REBUILD_ON_CHANGE => ['0', '1'],
+            Config::XML_SITEMAP_GENERATOR         => [SitemapGenerator::MAGENTO, SitemapGenerator::MAGEOS_SEO],
+        ];
+
+        foreach ($switches as $path => [$off, $on]) {
+            $this->saveConfig($path, $off);
+            Bootstrap::getObjectManager()->get(RebuildableSitemaps::class)->_resetState();
+
+            $this->assertQueuedBy(['sitemap-*'], fn () => $this->saveConfig($path, $on));
+        }
+    }
+
+    /**
      * Configured but never generated: it has no file, and a change is what writes its first one.
      *
      * @return void
@@ -215,8 +293,9 @@ class SitemapInvalidationRulesTest extends TestCase
     public function testNothingIsQueuedWhenTheStoreViewHasRebuildOnChangeOff(): void
     {
         // Off before the entry is saved: saving it asks whether any sitemap is rebuilt on change,
-        // and the answer holds for the rest of the request, as a setting changed in the same
-        // request never is in practice.
+        // and the answer holds for the rest of the request. The save that switches the setting
+        // is the one request where it changes, and it queues every type without asking
+        // (testSwitchingRebuildOnChangeOrTheGeneratorOnQueuesEveryType).
         $this->setStoreConfig(Config::XML_SITEMAP_REBUILD_ON_CHANGE, '0');
         $this->aGeneratedSitemap();
         $sku = (string) DataFixtureStorageManager::getStorage()->get('product')->getSku();
@@ -270,8 +349,12 @@ class SitemapInvalidationRulesTest extends TestCase
      */
     private function assertQueuedBy(array $expected, callable $change): void
     {
+        // Requests made inside the test's transaction wait for a commit that never comes: those
+        // its setup made are run first, then cleared, so only the change's own are counted.
+        $this->commitDeferredRequests();
         $this->clearPending();
         $change();
+        $this->commitDeferredRequests();
 
         $flags  = Bootstrap::getObjectManager()->get(FlagManager::class);
         $queued = array_values(array_filter(

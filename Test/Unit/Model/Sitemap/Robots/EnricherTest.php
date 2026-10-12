@@ -9,6 +9,7 @@ use MageOS\Seo\Api\Sitemap\SitemapItemInterface;
 use MageOS\Seo\Model\Category\PathResolver;
 use MageOS\Seo\Model\Cms\CmsPageResolver;
 use MageOS\Seo\Model\Config;
+use MageOS\Seo\Model\RobotsMeta\PageDirectives;
 use MageOS\Seo\Model\RobotsMeta\Provider\CategoryRobotsProvider;
 use MageOS\Seo\Model\RobotsMeta\Provider\CmsPageRobotsProvider;
 use MageOS\Seo\Model\RobotsMeta\Provider\ProductRobotsProvider;
@@ -168,16 +169,17 @@ class EnricherTest extends TestCase
     }
 
     /**
+     * The enricher, reading products and categories through a real PageDirectives over this test's
+     * providers, as the storefront wires it.
+     *
      * @return Enricher
      */
     private function enricher(): Enricher
     {
         return new Enricher(
             $this->config,
-            $this->productRobots,
-            $this->categoryRobots,
+            new PageDirectives($this->productRobots, $this->categoryRobots, $this->pathResolver, $this->config),
             $this->cmsPageRobots,
-            $this->pathResolver,
             $this->cmsPageResolver
         );
     }

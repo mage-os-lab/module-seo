@@ -23,6 +23,7 @@ use MageOS\Seo\Model\Rebuild\RegenerationRequester;
 use MageOS\Seo\Model\Rebuild\RetrySchedule;
 use MageOS\Seo\Model\System\Message\RebuildProblems;
 use MageOS\Seo\Test\Integration\Model\Sitemap\GeneratesSitemaps;
+use MageOS\Seo\Test\Integration\Rebuild\CommitsDeferredRequests;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -36,6 +37,7 @@ use PHPUnit\Framework\TestCase;
 class RebuildProblemsTest extends TestCase
 {
     use GeneratesSitemaps;
+    use CommitsDeferredRequests;
 
     private const GROUP = 'test-feeds';
 
@@ -112,6 +114,7 @@ class RebuildProblemsTest extends TestCase
         $this->flags()->saveFlag(self::PENDING, $queuedAt);
 
         $this->requester()->request(self::GROUP);
+        $this->commitDeferredRequests();
 
         $text = $this->message()->getText();
         $this->assertStringContainsString(

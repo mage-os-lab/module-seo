@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace MageOS\Seo\Test\Unit\Model\StructuredData;
 
-use Magento\Catalog\Api\Data\CategoryInterface;
+use Magento\Catalog\Model\Category;
 use Magento\Catalog\Model\Layer;
 use Magento\Catalog\Model\Layer\Resolver as LayerResolver;
 use Magento\Catalog\Model\Product;
@@ -64,6 +64,27 @@ class CategoryItemListTest extends TestCase
      */
     private int $maximum = 100;
 
+    /**
+     * The category's display mode.
+     *
+     * @var string
+     */
+    private string $displayMode = Category::DM_PRODUCT;
+
+    /**
+     * Whether the listing loaded the collection.
+     *
+     * @var bool
+     */
+    private bool $loaded = true;
+
+    /**
+     * Whether the collection was iterated, which loads it.
+     *
+     * @var bool
+     */
+    private bool $iterated = false;
+
     protected function setUp(): void
     {
         $this->products        = [];
@@ -72,6 +93,52 @@ class CategoryItemListTest extends TestCase
         $this->categoryConfig  = [];
         $this->globallyEnabled = true;
         $this->maximum         = 100;
+        $this->displayMode     = Category::DM_PRODUCT;
+        $this->loaded          = true;
+        $this->iterated        = false;
+    }
+
+    /**
+     * Review M1: a "Static block only" category shows no products, so it has no ItemList.
+     *
+     * @return void
+     */
+    public function testAContentOnlyCategoryEmitsNothing(): void
+    {
+        $this->products    = [['name' => 'Alpha', 'url' => 'https://example.com/a.html']];
+        $this->displayMode = Category::DM_PAGE;
+
+        $this->assertSame([], $this->itemList()->build());
+        $this->assertFalse($this->iterated);
+    }
+
+    /**
+     * A category showing its static block and products still lists them.
+     *
+     * @return void
+     */
+    public function testAMixedCategoryStillListsItsProducts(): void
+    {
+        $this->products    = [['name' => 'Alpha', 'url' => 'https://example.com/a.html']];
+        $this->displayMode = Category::DM_MIXED;
+
+        $this->assertSame(1, $this->itemList()->build()['numberOfItems']);
+    }
+
+    /**
+     * Review M1: a collection the listing did not load is never iterated, which would load every
+     * product it matches.
+     *
+     * @return void
+     */
+    public function testACollectionTheListingDidNotLoadIsNeverRead(): void
+    {
+        $this->products = [['name' => 'Alpha', 'url' => 'https://example.com/a.html']];
+        $this->loaded   = false;
+        $this->pageSize = 0;
+
+        $this->assertSame([], $this->itemList()->build());
+        $this->assertFalse($this->iterated);
     }
 
     public function testBuildsAListItemPerProductOnThePage(): void
@@ -235,15 +302,21 @@ class CategoryItemListTest extends TestCase
      */
     private function layerResolver(): LayerResolver
     {
-        $category = $this->createStub(CategoryInterface::class);
+        $category = $this->createStub(Category::class);
         $category->method('getId')->willReturn(5);
+        $category->method('getData')->willReturnCallback(
+            fn (string $key = ''): mixed => $key === 'display_mode' ? $this->displayMode : null
+        );
 
         $collection = $this->createStub(Collection::class);
         $collection->method('getPageSize')->willReturnCallback(fn (): int => $this->pageSize);
         $collection->method('getCurPage')->willReturnCallback(fn (): int => $this->currentPage);
-        $collection->method('getIterator')->willReturnCallback(
-            fn (): \ArrayIterator => new \ArrayIterator($this->productModels())
-        );
+        $collection->method('isLoaded')->willReturnCallback(fn (): bool => $this->loaded);
+        $collection->method('getIterator')->willReturnCallback(function (): \ArrayIterator {
+            $this->iterated = true;
+
+            return new \ArrayIterator($this->productModels());
+        });
 
         $layer = $this->createStub(Layer::class);
         $layer->method('getCurrentCategory')->willReturn($category);

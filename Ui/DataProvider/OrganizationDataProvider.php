@@ -4,23 +4,18 @@ declare(strict_types=1);
 
 namespace MageOS\Seo\Ui\DataProvider;
 
-use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\App\RequestInterface;
 use Magento\Framework\Filesystem\Io\File as IoFile;
 use Magento\Framework\UrlInterface;
-use Magento\Store\Model\ScopeInterface;
-use Magento\Store\Model\StoreManagerInterface;
+use Magento\Store\Model\Store;
 use Magento\Ui\DataProvider\AbstractDataProvider;
+use MageOS\Seo\Api\Data\OrganizationInterface;
 use MageOS\Seo\Api\OrganizationRepositoryInterface;
+use MageOS\Seo\Model\Organization\LogoUrl;
 use MageOS\Seo\Model\ResourceModel\Organization\CollectionFactory;
 
 class OrganizationDataProvider extends AbstractDataProvider
 {
-    /**
-     * Config path for the design logo set in Stores > Design > Logo.
-     */
-    private const DESIGN_LOGO_CONFIG_PATH = 'design/header/logo_src';
-
     /** @var array<int, mixed> */
     private array $loadedData = [];
 
@@ -30,8 +25,7 @@ class OrganizationDataProvider extends AbstractDataProvider
      * @param string $requestFieldName
      * @param CollectionFactory $collectionFactory
      * @param OrganizationRepositoryInterface $organizationRepository
-     * @param ScopeConfigInterface $scopeConfig
-     * @param StoreManagerInterface $storeManager
+     * @param LogoUrl $logoUrl
      * @param IoFile $ioFile
      * @param RequestInterface $request
      * @param UrlInterface $urlBuilder
@@ -44,8 +38,7 @@ class OrganizationDataProvider extends AbstractDataProvider
         string                                           $requestFieldName,
         CollectionFactory                                $collectionFactory,
         private readonly OrganizationRepositoryInterface $organizationRepository,
-        private readonly ScopeConfigInterface            $scopeConfig,
-        private readonly StoreManagerInterface           $storeManager,
+        private readonly LogoUrl                         $logoUrl,
         private readonly IoFile                          $ioFile,
         private readonly RequestInterface                $request,
         private readonly UrlInterface                    $urlBuilder,
@@ -80,24 +73,27 @@ class OrganizationDataProvider extends AbstractDataProvider
             array_filter($org->getSocialProfiles())
         );
 
-        // Determine logo source toggle value
+        // The stored choice, never a guess from today's design logo (issue #37).
+        $useDesignLogo  = $org->getLogoSource() === OrganizationInterface::LOGO_SOURCE_DESIGN ? '1' : '0';
         $storedLogoPath = $org->getLogoPath();
-        $designLogoPath = $this->resolveDesignLogoUrl();
-        $useDesignLogo  = ($storedLogoPath === '' || $storedLogoPath === $designLogoPath) ? '1' : '0';
 
-        // Populate the uploader field when a custom logo is stored
+        // The custom logo, kept while the design logo is used so switching back finds it. An upload
+        // carries its media path as `file`, which the form posts back; an older record's absolute
+        // URL has none. The URL is the admin's preview only.
         $logoUpload = [];
-        if ($useDesignLogo === '0' && $storedLogoPath !== '') {
+        if ($storedLogoPath !== '') {
             $pathInfo = $this->ioFile->getPathInfo($storedLogoPath);
-            $logoUpload = [
-                [
-                    'url'         => $storedLogoPath,
-                    'name'        => $pathInfo['basename'] ?? '',
-                    'type'        => 'image/' . strtolower($pathInfo['extension'] ?? ''),
-                    'size'        => 0,
-                    'previewType' => 'image',
-                ],
+            $item     = [
+                'url'         => (string) $this->logoUrl->customLogo($storedLogoPath, Store::DEFAULT_STORE_ID),
+                'name'        => $pathInfo['basename'] ?? '',
+                'type'        => 'image/' . strtolower($pathInfo['extension'] ?? ''),
+                'size'        => 0,
+                'previewType' => 'image',
             ];
+            if ($this->logoUrl->isUpload($storedLogoPath)) {
+                $item['file'] = $storedLogoPath;
+            }
+            $logoUpload = [$item];
         }
 
         $entityId = (int) ($org->getEntityId());
@@ -129,6 +125,40 @@ class OrganizationDataProvider extends AbstractDataProvider
         ];
 
         return $this->loadedData;
+    }
+
+    /**
+     * Add to the Logo Source field what the scope being edited publishes with "Use Design Logo".
+     *
+     * A store publishes its own design logo; a website or the default serves several stores, each
+     * of which publishes its own (decision 3 (a) of issue #37).
+     *
+     * @return mixed[]
+     */
+    public function getMeta(): array
+    {
+        $meta = parent::getMeta();
+
+        [$scope, $scopeId] = $this->resolveScopeFromRequest();
+        if ($scope === 'stores') {
+            $designLogo = $this->logoUrl->designLogo($scopeId);
+            $scopeLine  = $designLogo === null
+                ? __(
+                    'With Use Design Logo, this store publishes no logo: it has none under'
+                    . ' Content → Design → Configuration.'
+                )
+                : __('With Use Design Logo, this store publishes %1.', $designLogo);
+        } else {
+            $scopeLine = __(
+                'With Use Design Logo, each store publishes its own, from Content → Design → Configuration.'
+            );
+        }
+
+        $meta['organization_logo']['children']['use_design_logo']['arguments']['data']['config']['notice']
+            = __('Use your existing Design logo, or upload a dedicated SEO logo (recommended: min 112x112px).')
+            . ' ' . $scopeLine;
+
+        return $meta;
     }
 
     /**
@@ -169,31 +199,5 @@ class OrganizationDataProvider extends AbstractDataProvider
             return ['websites', (int) $website];
         }
         return ['default', 0];
-    }
-
-    /**
-     * Resolve the absolute URL of the current design logo from store config.
-     *
-     * @return string
-     */
-    private function resolveDesignLogoUrl(): string
-    {
-        $logoFile = (string) $this->scopeConfig->getValue(
-            self::DESIGN_LOGO_CONFIG_PATH,
-            ScopeInterface::SCOPE_STORE
-        );
-
-        if ($logoFile === '') {
-            return '';
-        }
-
-        try {
-            $mediaUrl = (string) $this->storeManager->getStore()->getBaseUrl(
-                \Magento\Framework\UrlInterface::URL_TYPE_MEDIA
-            );
-            return rtrim($mediaUrl, '/') . '/logo/' . ltrim($logoFile, '/');
-        } catch (\Exception) {
-            return '';
-        }
     }
 }

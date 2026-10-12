@@ -11,7 +11,6 @@ use Magento\Framework\Event\ObserverInterface;
 use Magento\Framework\Message\ManagerInterface;
 use MageOS\Seo\Model\Cms\ConfigRepository;
 use MageOS\Seo\Model\Cms\HreflangGroup;
-use MageOS\Seo\Model\Cms\TranslationGroupCache;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -39,16 +38,14 @@ class SaveCmsPageSeoConfig implements ObserverInterface
     /**
      * @param ConfigRepository $configRepository
      * @param HreflangGroup $hreflangGroup
-     * @param TranslationGroupCache $translationGroupCache
      * @param ManagerInterface $messageManager
      * @param LoggerInterface $logger
      */
     public function __construct(
-        private readonly ConfigRepository      $configRepository,
-        private readonly HreflangGroup         $hreflangGroup,
-        private readonly TranslationGroupCache $translationGroupCache,
-        private readonly ManagerInterface      $messageManager,
-        private readonly LoggerInterface       $logger
+        private readonly ConfigRepository $configRepository,
+        private readonly HreflangGroup    $hreflangGroup,
+        private readonly ManagerInterface $messageManager,
+        private readonly LoggerInterface  $logger
     ) {
     }
 
@@ -100,7 +97,8 @@ class SaveCmsPageSeoConfig implements ObserverInterface
         }
 
         try {
-            $previousGroup = $this->configRepository->getHreflangGroup($pageId);
+            // A change of group also purges the cached pages of both groups, whose heads list
+            // their members: the resource model does that for every write (issue #21).
             $this->configRepository->save($pageId, $data);
         } catch (\Throwable $e) {
             // The page itself is already saved; a failure in the SEO table must not make the
@@ -111,40 +109,6 @@ class SaveCmsPageSeoConfig implements ObserverInterface
             );
             $this->messageManager->addWarningMessage(
                 (string) __('The page was saved, but its SEO settings could not be saved.')
-            );
-
-            return;
-        }
-
-        if (\array_key_exists('hreflang_group', $data) && $data['hreflang_group'] !== $previousGroup) {
-            $this->groupChanged($pageId, $previousGroup, $data['hreflang_group']);
-        }
-    }
-
-    /**
-     * Bring the cached pages of both groups up to date after a page joined or left one.
-     *
-     * Every page of a group lists the others in its head. Nothing about the other pages changed,
-     * so the save's own cache tags do not reach them. (The sitemap needs nothing here: saving the
-     * group is a change to this module's CMS page settings, which queues the pages' rebuild — see
-     * Sitemap\InvalidationPolicy.)
-     *
-     * @param int $pageId
-     * @param string|null $previousGroup
-     * @param string|null $group
-     * @return void
-     */
-    private function groupChanged(int $pageId, ?string $previousGroup, ?string $group): void
-    {
-        try {
-            $this->translationGroupCache->purge([$previousGroup, $group]);
-        } catch (\Throwable $e) {
-            // The settings are saved; what failed is only bringing other pages up to date, which
-            // their cache lifetime and the nightly rebuild will still do.
-            $this->logger->error(
-                'MageOS_Seo: could not refresh the translation group of CMS page ' . $pageId
-                . ': ' . $e->getMessage(),
-                ['exception' => $e]
             );
         }
     }

@@ -14,4 +14,24 @@
                 type="MageOS\Seo\Plugin\Session\NoSessionForPublicFeeds"/>
     </type>
 
+    <!--
+        Record the SEO settings each storefront page reads, as the cache tags Block\JsonLd gives the
+        page (issue #21). Frontend only: nothing else is cached by page, and sitemap and feed builds
+        would otherwise collect a tag for every entity they read.
+    -->
+    <type name="MageOS\Seo\Model\PageCache\DependencyCollector">
+        <arguments>
+            <argument name="recording" xsi:type="boolean">true</argument>
+        </arguments>
+    </type>
+
+    <!--
+        Remove the theme's Product microdata from a product page this module describes (review M9),
+        while Remove the Theme's Product Microdata is on. After rendering, as core's JsFooterPlugin
+        rewrites the body, and before the page cache stores the response.
+    -->
+    <type name="Magento\Framework\View\Result\Layout">
+        <plugin name="mageos_seo_remove_theme_microdata" type="MageOS\Seo\Plugin\View\RemoveThemeMicrodata"/>
+    </type>
+
 </config>

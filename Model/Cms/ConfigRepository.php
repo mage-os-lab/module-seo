@@ -7,6 +7,8 @@ namespace MageOS\Seo\Model\Cms;
 use Magento\Framework\Data\Collection as DataCollection;
 use Magento\Framework\ObjectManager\ResetAfterRequestInterface;
 use MageOS\Seo\Model\CmsPageConfig;
+use MageOS\Seo\Model\PageCache\DependencyCollector;
+use MageOS\Seo\Model\PageCache\SeoCacheTags;
 use MageOS\Seo\Model\ResourceModel\CmsPageConfig as CmsPageConfigResource;
 use MageOS\Seo\Model\ResourceModel\CmsPageConfig\CollectionFactory;
 
@@ -29,10 +31,14 @@ class ConfigRepository implements ResetAfterRequestInterface
     /**
      * @param CollectionFactory $collectionFactory
      * @param CmsPageConfigResource $resource
+     * @param DependencyCollector $dependencies
+     * @param SeoCacheTags $cacheTags
      */
     public function __construct(
         private readonly CollectionFactory     $collectionFactory,
-        private readonly CmsPageConfigResource $resource
+        private readonly CmsPageConfigResource $resource,
+        private readonly DependencyCollector   $dependencies,
+        private readonly SeoCacheTags          $cacheTags
     ) {
     }
 
@@ -45,6 +51,8 @@ class ConfigRepository implements ResetAfterRequestInterface
      */
     public function getForPage(int $pageId, int $storeId = 0): array
     {
+        $this->dependencies->record([$this->cacheTags->cmsPage($pageId)]);
+
         return $this->cache["{$pageId}_{$storeId}"] ??= $this->load([$pageId], $storeId)[$pageId];
     }
 
@@ -113,8 +121,14 @@ class ConfigRepository implements ResetAfterRequestInterface
     public function getHreflangGroup(int $pageId): ?string
     {
         $group = (string) ($this->getForPage($pageId)['hreflang_group'] ?? '');
+        if ($group === '') {
+            return null;
+        }
 
-        return $group === '' ? null : $group;
+        // A page showing its group's alternates changes when another page joins or leaves it.
+        $this->dependencies->record([$this->cacheTags->hreflangGroup($group)]);
+
+        return $group;
     }
 
     /**
@@ -141,31 +155,6 @@ class ConfigRepository implements ResetAfterRequestInterface
         }
 
         return $groups;
-    }
-
-    /**
-     * IDs of the CMS pages in any of the given translation groups.
-     *
-     * @param string[] $groups Normalised translation groups
-     * @return int[]
-     */
-    public function getPageIdsInGroups(array $groups): array
-    {
-        $groups = array_values(array_unique(array_filter($groups, static fn ($group) => $group !== '')));
-        if ($groups === []) {
-            return [];
-        }
-
-        $collection = $this->collectionFactory->create();
-        $collection->addFieldToFilter('store_id', ['eq' => 0]);
-        $collection->addFieldToFilter('hreflang_group', ['in' => $groups]);
-
-        $pageIds = [];
-        foreach ($collection as $config) {
-            $pageIds[] = (int) $config->getData('page_id');
-        }
-
-        return $pageIds;
     }
 
     /**

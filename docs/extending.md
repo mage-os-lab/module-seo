@@ -12,7 +12,7 @@ All major composition points are exposed as injectable arrays in `di.xml`. Bridg
 | New OG / meta tags on any page | `MetaTagProviderInterface` | `Model\MetaTag\Compositor` → `providers` array |
 | Custom page `<title>` provider | `PageTitleProviderInterface` | `Model\PageTitle\Compositor` → `providers` array |
 | New product schema template | `ProductSchemaBuilderInterface` | `Model\Product\SchemaBuilderPool` → `builders` array |
-| Your own pre-generated output, rebuilt on change | `Api\Rebuild\GroupHandlerInterface` | `Model\Rebuild\HandlerPool` → `handlers` array |
+| Your own pre-generated output, rebuilt on change | `Api\Rebuild\GroupHandlerInterface` | `Api\Rebuild\HandlerPoolInterface` → `handlers` array |
 | Its label and retry time in the admin's rebuild message | `Api\Rebuild\GroupDescriptionInterface` | Implemented by the same handler |
 
 ---
@@ -247,7 +247,7 @@ class BlogFeedHandler implements GroupHandlerInterface
 Register it, with its builder behind a proxy:
 
 ```xml
-<type name="MageOS\Seo\Model\Rebuild\HandlerPool">
+<type name="MageOS\Seo\Api\Rebuild\HandlerPoolInterface">
     <arguments>
         <argument name="handlers" xsi:type="array">
             <item name="blog" xsi:type="object">Vendor\Blog\Model\BlogFeedHandler</item>
@@ -267,7 +267,7 @@ keeps your builder from loading until a rebuild actually runs.
 Queue a rebuild from your own observer when your data changes:
 
 ```php
-$this->invalidator->invalidate('blog-feed');  // MageOS\Seo\Model\Rebuild\Invalidator
+$this->invalidator->invalidate('blog-feed');  // MageOS\Seo\Api\Rebuild\InvalidatorInterface
 ```
 
 A group no handler owns throws `\InvalidArgumentException`, which catches a misspelt name. So does
@@ -310,14 +310,14 @@ class BlogFeedHandler implements GroupHandlerInterface, GroupDescriptionInterfac
 
 The job's next run is shown as when a failure is retried, so the job must rebuild the group in a
 way that is recorded too. A job that calls something other than your handler brackets the rebuild
-itself, with `MageOS\Seo\Model\Rebuild\ProblemLog`:
+itself, with `MageOS\Seo\Api\Rebuild\ProblemLogInterface`:
 
 ```php
 $this->problemLog->rebuilding('blog-feed');
 try {
     $failures = $this->builder->buildForEveryStore();
 } catch (\Throwable $e) {
-    $this->problemLog->rebuilt('blog-feed', [ProblemLog::ALL => $e->getMessage()]);
+    $this->problemLog->rebuilt('blog-feed', [ProblemLogInterface::ALL => $e->getMessage()]);
     throw $e;
 }
 $this->problemLog->rebuilt('blog-feed', $failures);
@@ -334,6 +334,44 @@ $this->problemLog->degraded('blog-feed', $storeId, __('The author lookup failed,
 ```
 
 Outside a rebuild, from a storefront request say, a report is ignored: log it as well.
+
+---
+
+## The module's contract
+
+Another module reaches this one through `Api/` only. Every class MageOS_Aeo, MageOS_Faq and
+MageOS_Agentic use has an interface there, holding what they use and nothing more, with a
+preference to the class. Type your constructors against the interface: the class is not `@api`,
+and its constructor can change in any release.
+
+| Interface | What it gives | Preference |
+|---|---|---|
+| `Api\Rebuild\RegenerationRequesterInterface` | `request($group)` queues a group's rebuild (after the commit, inside a transaction); `acknowledge($group)` marks it done | `Model\Rebuild\RegenerationRequester` |
+| `Api\Rebuild\InvalidatorInterface` | `invalidate($group)`: queue a rebuild when your data changed | `Model\Rebuild\Invalidator` |
+| `Api\Rebuild\ProblemLogInterface` | `rebuilding()`, `degraded()`, `degradedWhileRebuilding()`, `rebuilt()`, and `ALL` for a failure no store owns ([rebuild-problems.md](rebuild-problems.md)) | `Model\Rebuild\ProblemLog` |
+| `Api\Rebuild\ChangeInspectorInterface` | `isNew($entity)`, `websitesChanged($product)`: what a save changed | `Model\Rebuild\ChangeInspector` |
+| `Api\Rebuild\HandlerPoolInterface` | `get($group)`, `getGroups()`, `getHandlers()`; filled through `handlers` | `Model\Rebuild\HandlerPool` |
+| `Api\Router\PublicPathsInterface` | `isPublicPath($pathInfo)`: no session is started for the path; filled through `prefixes` | `Model\Router\PublicPaths` |
+| `Api\Router\CanonicalPathRedirectInterface` | `check($canonicalPath)`: the 301 to the canonical path, or null when the request is already there | `Model\Router\CanonicalPathRedirect` |
+| `Api\Product\AvailabilityResolverInterface` | `resolveMany($products)`: SKU ⇒ schema.org availability, read from MSI's stock index; throws when the stock can't be read. `IN_STOCK`, `BACKORDER`, `OUT_OF_STOCK` | `Model\Product\AvailabilityResolver` |
+| `Api\Product\FinalPriceInterface` | `get($product)`: the price the page shows, or null when unknown | `Model\Product\FinalPrice` |
+| `Api\Product\SchemaTemplatesInterface` | `getAvailableTemplates()`: template code ⇒ label | `Model\Product\SchemaBuilderPool` |
+| `Api\Product\OfferSummaryInterface` | `forProduct($product)`: `price`, a configurable's `lowPrice` and `highPrice` (when its variants differ) and `availability`, each null when unknown | `Model\Product\OfferSummary` |
+| `Api\Robots\PageDirectivesInterface` | `forProducts($ids, $storeId)`, `forCategories($ids, $storeId)`: each page's robots directive, categories inherited along their path, core's default where this module has none; `isNoindex($directive)` | `Model\RobotsMeta\PageDirectives` |
+| `Api\SchemaPriceInterface` | `amount($amount)` as `0.00`; `currencyCode()`, the current store's display currency | `Model\Price\SchemaPrice` |
+| `Api\FaqSourcePoolInterface` | `getFaqs($identifier, $storeId)`, `getIdentifiers()`: every FAQ source's; filled through `sources` | `Model\Faq\SourcePool` |
+| `Api\ContactEmailInterface` | `get()`: the address the store view publishes for automated queries — the Organization's Contact Email, else the store's Customer Support email unless it is Magento's placeholder, else none | `Model\Organization\ContactEmail` |
+| `Api\StorefrontSettingsInterface` | `isStructuredDataEnabled()`, `getLocaleCode()`, `getReturnPolicyUrl()` | `Model\Config` |
+| `Api\CanonicalUrlManagerInterface` | `setCanonical($url, $pageConfig)`: make the URL the page's only canonical ([canonical-urls.md](canonical-urls.md)) | `Model\Canonical\CanonicalUrlManager` |
+
+**Two classes stay classes:** `Exception\RebuildInProgressException`, which a handler throws when
+another process holds its lock, and `Model\ResourceModel\AbstractConnectedResource`, a resource
+model base whose connection getter fails, naming the connection, where core's returns false. Extend
+them; they are not `@api`.
+
+**Filling a pool:** configure the interface's name, as in the examples on this page. Magento's DI
+hands arguments given to an interface to the class it prefers, and the companion modules rely on
+that (MageOS_Seo's `Test/Integration/Api/ContractTest` pins it). The class's name works too.
 
 ---
 
@@ -405,3 +443,22 @@ You can return multiple handles from `getHandles()` — the provider runs if any
 ## Cache considerations
 
 Providers registered via `di.xml` are part of the same fully-cacheable request as the built-in providers. Your provider must not introduce any output that varies per-customer or session — use customer data sections for personalised content, never inside a provider. The `cacheable="false"` attribute must never be added to the `Block\JsonLd` or `Block\MetaTags` blocks, even indirectly.
+
+### When cached pages are purged
+
+A page built from this module's per-entity SEO settings carries a cache tag for each entity whose settings it read. A change to those settings purges the pages that read them, including pages that only inherit them, and no others.
+
+| Tag | Settings | Carried by |
+|---|---|---|
+| `mageos_seo_cat_<id>` | A category's | Its page, the pages of every category beneath it (they inherit its settings field by field), and the pages of products whose schema reads it through their first category |
+| `mageos_seo_prod_<id>` | A product's overrides | The product's pages |
+| `mageos_seo_cms_<id>` | A CMS page's | The page |
+| `mageos_seo_hreflang_<hash>` | A CMS translation group's members | The pages of the group, whose heads list one another |
+
+Tags are per entity, not per store view: a store view's row purges the entity's pages in every store view.
+
+- **Recording.** The repositories record what each storefront page reads (`Model\PageCache\DependencyCollector`), and `Block\JsonLd::getIdentities()` hands the tags to the page cache with the page. A provider of your own that reads these settings through the repositories is covered without doing anything. The block stays in the layout when JSON-LD is switched off in the admin. Removing it from the layout stops changes to SEO settings purging pages.
+- **Purging.** Every write to the settings tables purges the tags of the rows it changed: the admin forms, the repositories, the migration importers, and the resource models called directly. A save that changes nothing purges nothing, and moving or deleting a category purges its tag. The purge is core's `clean_cache_by_tags`, which the built-in cache, Varnish and CDN modules observe.
+- **After the commit.** The purge waits for the write's transaction to commit: a page requested in between would be cached again with the old settings. A transaction committed on the connection itself rather than through a resource model leaves the purge for the next commit. Data patches are the case in point, since `setup:upgrade` commits them that way; deploys flush the cache anyway.
+- **Not purged: Stores → Configuration.** As with core's own settings, saving the configuration marks the Page Cache invalidated. Refresh it in System → Cache Management, which also purges Varnish.
+- **After upgrading** to a version with these tags, flush the page cache once: pages cached before the upgrade carry none of them.

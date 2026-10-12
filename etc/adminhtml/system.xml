@@ -54,14 +54,26 @@ category pages.</comment>
                 <field id="has_variant_max" translate="label comment" type="text"
                        sortOrder="50" showInDefault="1" showInWebsite="0" showInStore="0">
                     <label>Most Variants per Configurable Product</label>
-                    <comment>A configurable product with up to this many sellable children is described as a ProductGroup, each child a variant with its own offer. One with more is a single Product with an AggregateOffer over its whole price range, rather than a list cut short. 0 describes every configurable that way. Each variant costs a salability check on an uncached product page. Default: 50.</comment>
+                    <comment>A configurable product with up to this many sellable children is described as a ProductGroup, each child a variant with its own offer. One with more is a single Product with an AggregateOffer over its whole price range, rather than a list cut short. 0 describes every configurable that way. Default: 50.</comment>
                     <validate>validate-digits</validate>
+                </field>
+                <field id="publish_zero_price" translate="label comment" type="select"
+                       sortOrder="60" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Publish a Price of Zero</label>
+                    <comment>No: a product priced 0 gets no price in its structured data, Open Graph tags or llms.jsonl. Usually the price is hidden from the visitor, as on B2B and trade stores, and Google's merchant listings refuse a price of 0. Yes: a product priced 0 is offered as free.</comment>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                 </field>
                 <field id="aggregate_rating_enabled" translate="label comment" type="select"
                        sortOrder="70" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Enable AggregateRating</label>
                     <comment>Output aggregateRating (review score + count) on product schema. Source is
 pluggable — native Magento reviews by default, or a bridge module (Yotpo, Trustpilot, …).</comment>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                </field>
+                <field id="remove_theme_microdata" translate="label comment" type="select"
+                       sortOrder="80" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Remove the Theme's Product Microdata</label>
+                    <comment>Yes: product pages describe the product once, in this structured data. Luma's product page also marks the product up in microdata (its name, price, image and reviews), which search engines read as a second Product. While this structured data is on, that microdata is removed from the product page. No: the theme's microdata stays.</comment>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                 </field>
             </group>
@@ -127,15 +139,17 @@ Robots setting applies.</comment>
                        sortOrder="35" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Search Results Pages Default</label>
                     <source_model>MageOS\Seo\Model\Config\Source\RobotsMeta</source_model>
-                    <comment>Quick and advanced search results. NOINDEX,FOLLOW keeps them out of the index;
-to stop them being crawled at all, disallow them in robots.txt instead. When set to "Use Magento
-Default", the core Design &gt; Search Engine Robots setting applies.</comment>
+                    <comment>Quick and advanced search results. NOINDEX,FOLLOW (the default) keeps them out of the
+index; to stop them being crawled at all, disallow them in robots.txt instead. When set to "Use
+Magento Default", the core Design &gt; Search Engine Robots setting applies.</comment>
                 </field>
                 <field id="paginated_enabled" translate="label comment" type="select"
                        sortOrder="40" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Override Robots on Paginated Pages</label>
                     <comment>Apply a dedicated robots meta to category listing pages from page 2 onward
-(?p=2+). Canonicalization is left to Magento's native category canonical tag.</comment>
+(?p=2+). It can only add restrictions: a category set to NOINDEX or NOFOLLOW, on itself, a parent
+category or the Category Pages default, keeps that on every page. Canonicalization is left to
+Magento's native category canonical tag.</comment>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                 </field>
                 <field id="paginated_robots" translate="label" type="select"
@@ -177,15 +191,16 @@ empty to use the store's locale. A region is an ISO 3166-1 country code: the Uni
                 <field id="xdefault_store_id" translate="label comment" type="select"
                        sortOrder="30" showInDefault="1" showInWebsite="1" showInStore="0">
                     <label>x-default Store View</label>
-                    <comment>Store view to advertise as hreflang x-default. Leave unset to omit x-default.
+                    <comment>Store view to advertise as hreflang x-default. Choose None to omit x-default.
 Set per website where websites serve different markets.</comment>
-                    <source_model>MageOS\Seo\Model\Config\Source\StoreViews</source_model>
+                    <source_model>MageOS\Seo\Model\Config\Source\XDefaultStoreViews</source_model>
                 </field>
                 <field id="excluded_store_ids" translate="label comment" type="multiselect"
                        sortOrder="40" showInDefault="1" showInWebsite="0" showInStore="0">
                     <label>Exclude Store Views</label>
                     <comment>Store views to omit from all hreflang output (e.g. staging or internal stores).</comment>
                     <source_model>MageOS\Seo\Model\Config\Source\StoreViews</source_model>
+                    <can_be_empty>1</can_be_empty>
                 </field>
                 <field id="sitemap_enabled" translate="label comment" type="select"
                        sortOrder="50" showInDefault="1" showInWebsite="0" showInStore="0">
@@ -346,31 +361,42 @@ for the countries chosen.</comment>
                 <field id="rate" translate="label comment" type="text"
                        sortOrder="40" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Shipping Rate</label>
-                    <comment>0.00 for free shipping. Currency follows the store display currency.</comment>
+                    <comment>In the base currency, converted to the currency the visitor sees, as product prices are.
+0.00 for free shipping.</comment>
+                    <validate>required-entry validate-zero-or-greater</validate>
+                    <backend_model>MageOS\Seo\Model\Config\Backend\ShippingRate</backend_model>
                     <depends><field id="enabled">1</field></depends>
                 </field>
-                <field id="handling_min" translate="label" type="text"
+                <field id="handling_min" translate="label comment" type="text"
                        sortOrder="50" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Handling Time Min (days)</label>
+                    <comment>Optional: the fewest days, with a maximum.</comment>
                     <validate>validate-digits</validate>
+                    <backend_model>MageOS\Seo\Model\Config\Backend\ShippingDays</backend_model>
                     <depends><field id="enabled">1</field></depends>
                 </field>
-                <field id="handling_max" translate="label" type="text"
+                <field id="handling_max" translate="label comment" type="text"
                        sortOrder="60" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Handling Time Max (days)</label>
+                    <comment>The most days, 0 for the same day.</comment>
                     <validate>validate-digits</validate>
+                    <backend_model>MageOS\Seo\Model\Config\Backend\ShippingDays</backend_model>
                     <depends><field id="enabled">1</field></depends>
                 </field>
-                <field id="transit_min" translate="label" type="text"
+                <field id="transit_min" translate="label comment" type="text"
                        sortOrder="70" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Transit Time Min (days)</label>
+                    <comment>Optional: the fewest days, with a maximum.</comment>
                     <validate>validate-digits</validate>
+                    <backend_model>MageOS\Seo\Model\Config\Backend\ShippingDays</backend_model>
                     <depends><field id="enabled">1</field></depends>
                 </field>
-                <field id="transit_max" translate="label" type="text"
+                <field id="transit_max" translate="label comment" type="text"
                        sortOrder="80" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Transit Time Max (days)</label>
+                    <comment>The most days, 0 for the same day.</comment>
                     <validate>validate-digits</validate>
+                    <backend_model>MageOS\Seo\Model\Config\Backend\ShippingDays</backend_model>
                     <depends><field id="enabled">1</field></depends>
                 </field>
             </group>

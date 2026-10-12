@@ -115,7 +115,7 @@ class CanonicalUrlManagerTest extends TestCase
         $pageConfig = $this->pageConfig($assetCollection);
         $pageConfig->method('addRemotePageAsset')->willReturnSelf();
 
-        $this->manager->setCanonical('https://example.com/print', $pageConfig, 'print');
+        $this->manager->setCanonical('https://example.com/print', $pageConfig);
     }
 
     public function testSetCanonicalAlwaysAddsNewCanonicalEvenAfterRemoval(): void
@@ -131,6 +131,6 @@ class CanonicalUrlManagerTest extends TestCase
             ->method('addRemotePageAsset')
             ->with('https://example.com/product?variant=blue', 'canonical', $this->anything());
 
-        $this->manager->setCanonical('https://example.com/product?variant=blue', $pageConfig, 'product');
+        $this->manager->setCanonical('https://example.com/product?variant=blue', $pageConfig);
     }
 }

@@ -21,6 +21,7 @@ interface OrganizationInterface extends ExtensibleDataInterface
     public const SCOPE_ID        = 'scope_id';
     public const NAME            = 'name';
     public const URL             = 'url';
+    public const LOGO_SOURCE     = 'logo_source';
     public const LOGO_PATH       = 'logo_path';
     public const LOGO_WIDTH      = 'logo_width';
     public const LOGO_HEIGHT     = 'logo_height';
@@ -39,6 +40,16 @@ interface OrganizationInterface extends ExtensibleDataInterface
     public const LONGITUDE        = 'longitude';
     public const PRICE_RANGE      = 'price_range';
     public const UPDATED_AT       = 'updated_at';
+
+    /**
+     * The logo is each store view's design logo, resolved when the page is rendered.
+     */
+    public const LOGO_SOURCE_DESIGN = 'design';
+
+    /**
+     * The logo is the custom one in getLogoPath().
+     */
+    public const LOGO_SOURCE_CUSTOM = 'custom';
 
     /**
      * Get entity ID.
@@ -108,14 +119,35 @@ interface OrganizationInterface extends ExtensibleDataInterface
     public function setUrl(string $url): OrganizationInterface;
 
     /**
-     * Get logo image path.
+     * Where the logo comes from: each store view's design logo, or the custom logo in getLogoPath().
+     *
+     * A record saved before the source was stored has none. It counts as custom when it has a logo
+     * path, and as design when it has none.
+     *
+     * @return string LOGO_SOURCE_DESIGN or LOGO_SOURCE_CUSTOM
+     */
+    public function getLogoSource(): string;
+
+    /**
+     * Set where the logo comes from.
+     *
+     * @param string $source LOGO_SOURCE_DESIGN or LOGO_SOURCE_CUSTOM
+     * @throws \InvalidArgumentException For any other value
+     * @return \MageOS\Seo\Api\Data\OrganizationInterface
+     */
+    public function setLogoSource(string $source): OrganizationInterface;
+
+    /**
+     * Get the custom logo: a path relative to the media directory, or an older record's absolute URL.
+     *
+     * Kept while the design logo is used, so switching back to the custom logo finds it.
      *
      * @return string
      */
     public function getLogoPath(): string;
 
     /**
-     * Set logo image path.
+     * Set the custom logo: a path relative to the media directory.
      *
      * @param string $logoPath
      * @return \MageOS\Seo\Api\Data\OrganizationInterface

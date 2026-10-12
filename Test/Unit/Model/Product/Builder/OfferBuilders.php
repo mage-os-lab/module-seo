@@ -5,14 +5,16 @@ declare(strict_types=1);
 namespace MageOS\Seo\Test\Unit\Model\Product\Builder;
 
 use Magento\ConfigurableProduct\Pricing\Price\ConfigurableOptionsProviderInterface;
-use Magento\Framework\Stdlib\DateTime\DateTime;
+use Magento\Framework\Pricing\Amount\AmountInterface;
 use Magento\Store\Model\StoreManagerInterface;
+use MageOS\Seo\Api\SchemaPriceInterface;
+use MageOS\Seo\Model\Config;
 use MageOS\Seo\Model\Product\AvailabilityResolver;
 use MageOS\Seo\Model\Product\FinalPrice;
 use MageOS\Seo\Model\Product\OfferBuilder;
 use MageOS\Seo\Model\Product\OfferEnricher\Pool as OfferEnricherPool;
-use MageOS\Seo\Model\Product\Variant\ChildProducts;
-use MageOS\Seo\Service\CurrencyService;
+use MageOS\Seo\Model\Product\OfferSummary;
+use MageOS\Seo\Test\Unit\Model\Product\Variant\ChildProductsOverProvider;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -22,29 +24,44 @@ use Psr\Log\LoggerInterface;
  */
 trait OfferBuilders
 {
+    use ChildProductsOverProvider;
+
     /**
      * @param StoreManagerInterface $storeManager
-     * @param CurrencyService $currencyService
+     * @param SchemaPriceInterface $schemaPrice
      * @param AvailabilityResolver $availabilityResolver
-     * @param DateTime $dateTime
      * @param OfferEnricherPool $offerEnricherPool
      * @return OfferBuilder
      */
     private function offerBuilder(
         StoreManagerInterface $storeManager,
-        CurrencyService $currencyService,
+        SchemaPriceInterface $schemaPrice,
         AvailabilityResolver $availabilityResolver,
-        DateTime $dateTime,
         OfferEnricherPool $offerEnricherPool
     ): OfferBuilder {
         return new OfferBuilder(
             $storeManager,
-            $currencyService,
-            $availabilityResolver,
-            $dateTime,
+            $schemaPrice,
             $offerEnricherPool,
-            new ChildProducts($this->createStub(ConfigurableOptionsProviderInterface::class)),
-            new FinalPrice($this->createStub(LoggerInterface::class))
+            new OfferSummary(
+                new FinalPrice($this->createStub(LoggerInterface::class), $this->createStub(Config::class)),
+                $this->childProductsOver($this->createStub(ConfigurableOptionsProviderInterface::class)),
+                $availabilityResolver
+            )
         );
+    }
+
+    /**
+     * A final price's amount as the store displays it: what FinalPrice publishes.
+     *
+     * @param float $value
+     * @return AmountInterface
+     */
+    private function amount(float $value): AmountInterface
+    {
+        $amount = $this->createStub(AmountInterface::class);
+        $amount->method('getValue')->willReturn($value);
+
+        return $amount;
     }
 }

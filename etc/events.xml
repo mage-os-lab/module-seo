@@ -23,6 +23,16 @@
                   instance="MageOS\Seo\Observer\InvalidateSitemap"/>
     </event>
 
+    <!--
+        Product import: Magento's import writes to the database directly, so no product save is
+        dispatched. Once per import, after every bunch and whatever the behaviour — add/update,
+        replace, delete — the products are queued, coalesced with any rebuild already pending.
+    -->
+    <event name="catalog_product_import_finish_before">
+        <observer name="mageos_seo_invalidate_sitemap_on_product_import"
+                  instance="MageOS\Seo\Observer\InvalidateSitemap"/>
+    </event>
+
     <event name="cms_page_save_after">
         <observer name="mageos_seo_invalidate_sitemap_on_cms_save"
                   instance="MageOS\Seo\Observer\InvalidateSitemap"/>
@@ -74,20 +84,28 @@
     <event name="config_data_save_after">
         <observer name="mageos_seo_invalidate_sitemap_on_config_save"
                   instance="MageOS\Seo\Observer\InvalidateSitemap"/>
+        <!-- A running rebuild consumer reloads its configuration before its next build. -->
+        <observer name="mageos_seo_mark_config_changed_on_save"
+                  instance="MageOS\Seo\Observer\MarkConfigChanged"/>
     </event>
     <event name="config_data_delete_after">
         <observer name="mageos_seo_invalidate_sitemap_on_config_delete"
                   instance="MageOS\Seo\Observer\InvalidateSitemap"/>
+        <observer name="mageos_seo_mark_config_changed_on_delete"
+                  instance="MageOS\Seo\Observer\MarkConfigChanged"/>
     </event>
 
     <!--
         Moving a category re-parents it: its own URL changes (core regenerates the rewrites on
-        catalog_category_move_after). The event is dispatched by Category::move() after its
-        transaction commits, for the admin tree and the REST move alike.
+        catalog_category_move_after), and everything beneath it inherits its SEO settings from new
+        ancestors. The event is dispatched by Category::move() after its transaction commits, for
+        the admin tree and the REST move alike.
     -->
     <event name="category_move">
         <observer name="mageos_seo_invalidate_sitemap_on_category_move"
                   instance="MageOS\Seo\Observer\InvalidateSitemap"/>
+        <observer name="mageos_seo_purge_category_pages_on_move"
+                  instance="MageOS\Seo\Observer\PurgeCategoryPages"/>
     </event>
 
     <!--
@@ -114,24 +132,33 @@
         Each also clears the Organization records of the scopes going away — the one table that
         cannot carry a foreign key. A website and a group are the last place their store views'
         IDs can be read.
+
+        And each removes the sitemap files of the store views going away, once the delete commits:
+        their Site Map entries go through the sitemap.store_id CASCADE, which runs no model code.
     -->
     <event name="website_delete_before">
         <observer name="mageos_seo_invalidate_sitemap_on_website_delete"
                   instance="MageOS\Seo\Observer\InvalidateSitemap"/>
         <observer name="mageos_seo_remove_organization_on_website_delete"
                   instance="MageOS\Seo\Observer\RemoveOrganizationOnScopeDelete"/>
+        <observer name="mageos_seo_remove_sitemap_files_on_website_delete"
+                  instance="MageOS\Seo\Observer\RemoveSitemapFilesOnScopeDelete"/>
     </event>
     <event name="store_group_delete_before">
         <observer name="mageos_seo_invalidate_sitemap_on_store_group_delete"
                   instance="MageOS\Seo\Observer\InvalidateSitemap"/>
         <observer name="mageos_seo_remove_organization_on_store_group_delete"
                   instance="MageOS\Seo\Observer\RemoveOrganizationOnScopeDelete"/>
+        <observer name="mageos_seo_remove_sitemap_files_on_store_group_delete"
+                  instance="MageOS\Seo\Observer\RemoveSitemapFilesOnScopeDelete"/>
     </event>
     <event name="store_delete_before">
         <observer name="mageos_seo_invalidate_sitemap_on_store_delete"
                   instance="MageOS\Seo\Observer\InvalidateSitemap"/>
         <observer name="mageos_seo_remove_organization_on_store_delete"
                   instance="MageOS\Seo\Observer\RemoveOrganizationOnScopeDelete"/>
+        <observer name="mageos_seo_remove_sitemap_files_on_store_delete"
+                  instance="MageOS\Seo\Observer\RemoveSitemapFilesOnScopeDelete"/>
     </event>
 
     <!--
@@ -151,6 +178,9 @@
     <event name="catalog_category_delete_commit_after">
         <observer name="mageos_seo_invalidate_sitemap_on_category_delete"
                   instance="MageOS\Seo\Observer\InvalidateSitemap"/>
+        <!-- Its SEO rows go by foreign key, past the resource model that would purge their pages. -->
+        <observer name="mageos_seo_purge_category_pages_on_delete"
+                  instance="MageOS\Seo\Observer\PurgeCategoryPages"/>
     </event>
     <event name="cms_page_delete_commit_after">
         <observer name="mageos_seo_invalidate_sitemap_on_cms_delete"

@@ -2,34 +2,33 @@
 
 declare(strict_types=1);
 
-namespace MageOS\Seo\Test\Unit\Service;
+namespace MageOS\Seo\Test\Unit\Model\Price;
 
 use Magento\Directory\Model\Currency;
-use Magento\Framework\Locale\Resolver;
 use Magento\Store\Model\Store;
 use Magento\Store\Model\StoreManagerInterface;
-use MageOS\Seo\Service\CurrencyService;
+use MageOS\Seo\Model\Price\SchemaPrice;
 
 /**
- * A real CurrencyService over a stubbed store, for a test whose subject writes prices.
+ * A real SchemaPrice over a stubbed store, for a test whose subject writes prices.
  *
- * The amounts such a test asserts are then formatted by CurrencyService itself, so they check the
+ * The amounts such a test asserts are then formatted by SchemaPrice itself, so they check the
  * format the module publishes rather than a stub's copy of it.
  */
-trait CurrencyServices
+trait SchemaPrices
 {
     /**
-     * A real CurrencyService for a store whose current currency is the given one.
+     * A real SchemaPrice for a store whose current currency is the given one.
      *
      * The store's base currency converts at the given rate, as core's Currency::convert() would.
      * Prices from PriceInfo are already converted, so a test proving one is not converted a
-     * second time sets a rate other than 1.
+     * second time sets a rate other than 1: nothing may reach the conversion.
      *
      * @param string $currencyCode
      * @param float $rate Current currency per unit of base currency
-     * @return CurrencyService
+     * @return SchemaPrice
      */
-    private function currencyService(string $currencyCode = 'GBP', float $rate = 1.0): CurrencyService
+    private function schemaPrice(string $currencyCode = 'GBP', float $rate = 1.0): SchemaPrice
     {
         $baseCurrency = $this->createStub(Currency::class);
         $baseCurrency->method('convert')->willReturnCallback(
@@ -41,6 +40,6 @@ trait CurrencyServices
         $storeManager = $this->createStub(StoreManagerInterface::class);
         $storeManager->method('getStore')->willReturn($store);
 
-        return new CurrencyService($storeManager, $this->createStub(Resolver::class));
+        return new SchemaPrice($storeManager);
     }
 }

@@ -119,6 +119,19 @@ class Generator
     }
 
     /**
+     * Every type a sitemap file can be named after, in the order the index lists them.
+     *
+     * The types written, and the leading types and "other" even with no provider now: a file of
+     * theirs written before is still one of the sitemap's, for the Writer and the clean-up alike.
+     *
+     * @return string[]
+     */
+    public function getFileTypes(): array
+    {
+        return $this->typesOf($this->providersByType());
+    }
+
+    /**
      * Run the write holding the sitemap's lock.
      *
      * @param Sitemap $sitemap
@@ -159,27 +172,29 @@ class Generator
         $writer = $this->writerFactory->create([
             'sitemap'    => $sitemap,
             'urlsetOpen' => $this->urlsetOpen(),
-            'types'      => array_values(array_unique(array_merge(
-                array_keys($providers),
-                self::LEADING_TYPES,
-                [ItemProviderInterface::TYPE_OTHER]
-            ))),
+            'types'      => $this->typesOf($providers),
             'onlyTypes'  => $onlyTypes,
         ]);
 
-        foreach ($providers as $type => $typeProviders) {
-            if (!$writer->writes($type)) {
-                continue;
-            }
-            $writer->startType($type);
-            foreach ($typeProviders as $provider) {
-                foreach ($this->chunks($provider->iterateItems($storeId)) as $chunk) {
-                    $this->writeChunk($writer, $chunk, $storeId);
+        try {
+            foreach ($providers as $type => $typeProviders) {
+                if (!$writer->writes($type)) {
+                    continue;
+                }
+                $writer->startType($type);
+                foreach ($typeProviders as $provider) {
+                    foreach ($this->chunks($provider->iterateItems($storeId)) as $chunk) {
+                        $this->writeChunk($writer, $chunk, $storeId);
+                    }
                 }
             }
-        }
 
-        $writer->finish();
+            $writer->finish();
+        } catch (\Throwable $e) {
+            // The published index still lists the previous generation; only the file in progress goes.
+            $writer->abandon();
+            throw $e;
+        }
 
         $sitemap->setSitemapTime($this->dateTime->gmtDate('Y-m-d H:i:s'));
         // What $sitemap->save() does; sitemaps have no repository to save them through.
@@ -229,6 +244,21 @@ class Generator
         }
 
         return true;
+    }
+
+    /**
+     * The types of the given providers, then the leading types and "other", each once.
+     *
+     * @param array<string,ItemProviderInterface[]> $providers
+     * @return string[]
+     */
+    private function typesOf(array $providers): array
+    {
+        return array_values(array_unique(array_merge(
+            array_keys($providers),
+            self::LEADING_TYPES,
+            [ItemProviderInterface::TYPE_OTHER]
+        )));
     }
 
     /**

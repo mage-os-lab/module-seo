@@ -159,6 +159,33 @@ class InvalidationPolicyTest extends TestCase
         )));
     }
 
+    public function testSwitchingTheGeneratorOrRebuildOnChangeIsASwitchWhicheverWayItGoes(): void
+    {
+        // Asked even when no sitemap is rebuilt on change: during the save that is still the
+        // configuration from before it.
+        $policy = $this->policy(false);
+
+        foreach (['sitemap/generate/mageos_seo_generator', 'sitemap/generate/mageos_seo_rebuild_on_change'] as $path) {
+            $this->assertTrue(
+                $policy->isSitemapSwitch($this->event('config_data_save_after', $this->configValue($path, true))),
+                $path
+            );
+            $this->assertTrue(
+                $policy->isSitemapSwitch($this->event('config_data_delete_after', $this->configValue($path, false))),
+                $path . ' removed with "Use Default"'
+            );
+            $this->assertFalse(
+                $policy->isSitemapSwitch($this->event('config_data_save_after', $this->configValue($path, false))),
+                $path . ' saved unchanged'
+            );
+        }
+        $maxLines = $this->configValue('sitemap/limit/max_lines', true);
+        $this->assertFalse(
+            $policy->isSitemapSwitch($this->event('config_data_save_after', $maxLines)),
+            'Another sitemap setting is not a switch.'
+        );
+    }
+
     public function testConfigurationRebuildsEveryTypeOnlyUnderSitemapPathsAndWhenChanged(): void
     {
         $policy = $this->policy();
@@ -192,15 +219,90 @@ class InvalidationPolicyTest extends TestCase
     }
 
     /**
+     * Issue #23: with a sitemap listing product images, what the image rows are made of rebuilds
+     * the products — the name (image title), the base image and thumbnail, the gallery.
+     *
+     * @return void
+     */
+    public function testWithImagesListedTheNameImagesAndGalleryRebuildTheProducts(): void
+    {
+        $loaded = [
+            'url_key' => 'shirt', 'status' => 1, 'name' => 'Shirt', 'image' => '/s/h/shirt.jpg',
+            'thumbnail' => '/s/h/shirt.jpg', 'website_ids' => [1],
+            'media_gallery' => ['images' => [
+                7 => ['value_id' => 7, 'file' => '/s/h/shirt.jpg', 'label' => 'Front', 'disabled' => 0,
+                    'position' => 1],
+            ]],
+        ];
+        $gallery = static fn (array $image): array => ['images' => ['file_x' => $image + [
+            'value_id' => '7', 'file' => '/s/h/shirt.jpg', 'label' => 'Front', 'disabled' => '0',
+            'position' => '1', 'media_type' => 'image', 'removed' => '',
+        ]]];
+
+        $cases = [
+            'a new name'                 => [['name' => 'Blue shirt'], true],
+            'another base image'         => [['image' => '/s/h/shirt-2.jpg'], true],
+            'another thumbnail'          => [['thumbnail' => '/s/h/shirt-2.jpg'], true],
+            'a new caption'              => [['media_gallery' => $gallery(['label' => 'Back'])], true],
+            'an image hidden'            => [['media_gallery' => $gallery(['disabled' => '1'])], true],
+            'an image removed'           => [['media_gallery' => $gallery(['removed' => '1'])], true],
+            'the gallery as posted, unchanged' => [['media_gallery' => $gallery([])], false],
+            'a description'              => [['description' => 'New text'], false],
+        ];
+        $withImages    = $this->policy(listsImages: true);
+        $withoutImages = $this->policy(listsImages: false);
+        foreach ($cases as $label => [$changes, $expected]) {
+            $event = $this->event(
+                InvalidationPolicy::EVENT_PRODUCT_SAVE,
+                $this->model(Product::class, $loaded, $changes)
+            );
+            $this->assertSame($expected ? ['products'] : [], $withImages->sitemapTypesAffectedBy($event), $label);
+            $this->assertSame([], $withoutImages->sitemapTypesAffectedBy($event), $label . ', no images listed');
+        }
+    }
+
+    /**
+     * A mass update of the name or an image role rebuilds the products only while images are listed.
+     *
+     * @return void
+     */
+    public function testMassUpdatesOfImageFieldsRebuildTheProductsWhileImagesAreListed(): void
+    {
+        $withImages    = $this->policy(listsImages: true);
+        $withoutImages = $this->policy(listsImages: false);
+        foreach (['name', 'image', 'thumbnail'] as $field) {
+            $this->assertSame(['products'], $withImages->sitemapTypesAffectedByAttributeUpdate([$field]), $field);
+            $this->assertSame([], $withoutImages->sitemapTypesAffectedByAttributeUpdate([$field]), $field);
+        }
+        $this->assertSame([], $withImages->sitemapTypesAffectedByAttributeUpdate(['description']));
+    }
+
+    /**
+     * A product import writes to the database directly, so no save event reports what changed:
+     * every import rebuilds the products, once.
+     *
+     * @return void
+     */
+    public function testAProductImportRebuildsTheProducts(): void
+    {
+        $this->assertSame(
+            ['products'],
+            $this->policy()->sitemapTypesAffectedBy(new Event(['name' => 'catalog_product_import_finish_before']))
+        );
+    }
+
+    /**
      * Build the policy.
      *
      * @param bool $sitemapsExist Whether a sitemap would be rebuilt
+     * @param bool $listsImages Whether a sitemap a change rebuilds lists product images
      * @return InvalidationPolicy
      */
-    private function policy(bool $sitemapsExist = true): InvalidationPolicy
+    private function policy(bool $sitemapsExist = true, bool $listsImages = false): InvalidationPolicy
     {
         $sitemaps = $this->createStub(RebuildableSitemaps::class);
         $sitemaps->method('exist')->willReturn($sitemapsExist);
+        $sitemaps->method('listsProductImages')->willReturn($listsImages);
 
         return new InvalidationPolicy($sitemaps, new ChangeInspector());
     }

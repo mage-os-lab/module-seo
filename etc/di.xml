@@ -17,10 +17,73 @@
     <preference for="MageOS\Seo\Api\ProductVariantUrlResolverInterface"
                 type="MageOS\Seo\Model\Product\Variant\QueryStringUrlResolver"/>
 
+    <!--
+        The services other modules use (review M7, 2.0.0): MageOS_Aeo, MageOS_Faq, MageOS_Agentic
+        and any third party take these interfaces, never the classes. Each holds only what other
+        modules use; the classes do more, for this module alone.
+    -->
+    <preference for="MageOS\Seo\Api\Rebuild\RegenerationRequesterInterface"
+                type="MageOS\Seo\Model\Rebuild\RegenerationRequester"/>
+    <preference for="MageOS\Seo\Api\Rebuild\InvalidatorInterface"
+                type="MageOS\Seo\Model\Rebuild\Invalidator"/>
+    <preference for="MageOS\Seo\Api\Rebuild\ProblemLogInterface"
+                type="MageOS\Seo\Model\Rebuild\ProblemLog"/>
+    <preference for="MageOS\Seo\Api\Rebuild\ChangeInspectorInterface"
+                type="MageOS\Seo\Model\Rebuild\ChangeInspector"/>
+    <preference for="MageOS\Seo\Api\Rebuild\HandlerPoolInterface"
+                type="MageOS\Seo\Model\Rebuild\HandlerPool"/>
+    <preference for="MageOS\Seo\Api\Router\PublicPathsInterface"
+                type="MageOS\Seo\Model\Router\PublicPaths"/>
+    <preference for="MageOS\Seo\Api\Router\CanonicalPathRedirectInterface"
+                type="MageOS\Seo\Model\Router\CanonicalPathRedirect"/>
+    <preference for="MageOS\Seo\Api\Product\AvailabilityResolverInterface"
+                type="MageOS\Seo\Model\Product\AvailabilityResolver"/>
+    <preference for="MageOS\Seo\Api\Product\FinalPriceInterface"
+                type="MageOS\Seo\Model\Product\FinalPrice"/>
+    <preference for="MageOS\Seo\Api\Product\SchemaTemplatesInterface"
+                type="MageOS\Seo\Model\Product\SchemaBuilderPool"/>
+    <preference for="MageOS\Seo\Api\Product\OfferSummaryInterface"
+                type="MageOS\Seo\Model\Product\OfferSummary"/>
+    <preference for="MageOS\Seo\Api\Product\VariantImageInterface"
+                type="MageOS\Seo\Model\Product\Variant\VariantImage"/>
+
+    <!--
+        The variants the storefront sells, in every area. Core registers these two filters on its
+        composite in etc/frontend/di.xml only, so a feed built in the queue or cron area would
+        describe disabled and out-of-stock variants. A module that adds a filter to core's frontend
+        composite adds it here too, for the feeds.
+    -->
+    <virtualType name="MageOS\Seo\Model\Product\Variant\StorefrontOptionsFilter"
+                 type="Magento\ConfigurableProduct\Pricing\Price\ConfigurableOptionsCompositeFilter">
+        <arguments>
+            <argument name="configurableOptionsFilters" xsi:type="array">
+                <item name="status" xsi:type="object">Magento\ConfigurableProduct\Pricing\Price\ConfigurableOptionsStatusFilter</item>
+                <item name="stock_status" xsi:type="object">Magento\ConfigurableProduct\Pricing\Price\ConfigurableOptionsStockStatusFilter</item>
+            </argument>
+        </arguments>
+    </virtualType>
+    <type name="MageOS\Seo\Model\Product\Variant\ChildProducts">
+        <arguments>
+            <argument name="optionsFilter" xsi:type="object">MageOS\Seo\Model\Product\Variant\StorefrontOptionsFilter</argument>
+        </arguments>
+    </type>
+    <preference for="MageOS\Seo\Api\Robots\PageDirectivesInterface"
+                type="MageOS\Seo\Model\RobotsMeta\PageDirectives"/>
+    <preference for="MageOS\Seo\Api\SchemaPriceInterface"
+                type="MageOS\Seo\Model\Price\SchemaPrice"/>
+    <preference for="MageOS\Seo\Api\FaqSourcePoolInterface"
+                type="MageOS\Seo\Model\Faq\SourcePool"/>
+    <preference for="MageOS\Seo\Api\ContactEmailInterface"
+                type="MageOS\Seo\Model\Organization\ContactEmail"/>
+    <preference for="MageOS\Seo\Api\StorefrontSettingsInterface"
+                type="MageOS\Seo\Model\Config"/>
+    <preference for="MageOS\Seo\Api\CanonicalUrlManagerInterface"
+                type="MageOS\Seo\Model\Canonical\CanonicalUrlManager"/>
+
     <!-- ═══════════════════════════════════════════════════════════════════
          FAQ SOURCE POOL — empty here. A FAQ module (MageOS_Faq's table, a product-attribute
          source, a third-party extension) adds its FaqSourceProviderInterface to the pool's
-         "sources" argument from its own di.xml.
+         "sources" argument from its own di.xml, naming Api\FaqSourcePoolInterface.
          ═══════════════════════════════════════════════════════════════════ -->
 
     <!-- ═══════════════════════════════════════════════════════════════════
@@ -360,6 +423,33 @@
             <argument name="commands" xsi:type="array">
                 <item name="mageos_seo_rebuild"
                       xsi:type="object">MageOS\Seo\Console\Command\RegenerateFeedsCommand</item>
+                <item name="mageos_seo_import_legacy"
+                      xsi:type="object">MageOS\Seo\Console\Command\ImportLegacyCommand</item>
+            </argument>
+        </arguments>
+    </type>
+    <!--
+        Built when bin/magento starts, like every command, and the imports read stores and
+        configuration: a proxy, so nothing is built until the command runs.
+    -->
+    <type name="MageOS\Seo\Console\Command\ImportLegacyCommand">
+        <arguments>
+            <argument name="legacyImport" xsi:type="object">MageOS\Seo\Model\Migration\LegacyImport\Proxy</argument>
+        </arguments>
+    </type>
+
+    <!--
+        The imports from the modules this one replaces, by the name of the module each imports from
+        (see Model\Migration\LegacyImport). Proxies: the admin's System Messages build LegacyImport on
+        every admin page, and an importer is needed there only while an import is unfinished.
+    -->
+    <type name="MageOS\Seo\Model\Migration\LegacyImport">
+        <arguments>
+            <argument name="importers" xsi:type="array">
+                <item name="MageOS_MetaRobotsTag"
+                      xsi:type="object">MageOS\Seo\Model\Migration\MetaRobotsTagImporter\Proxy</item>
+                <item name="MageOS_Hreflang"
+                      xsi:type="object">MageOS\Seo\Model\Migration\HreflangImporter\Proxy</item>
             </argument>
         </arguments>
     </type>
@@ -390,18 +480,35 @@
     </type>
 
     <!--
+        What a long-running rebuild consumer resets before each build: services that remember what
+        they loaded, each a ResetAfterRequestInterface. Another module adds its own here, from its
+        own di.xml, under a name of its own.
+    -->
+    <type name="MageOS\Seo\Model\Rebuild\BuildFreshness">
+        <arguments>
+            <argument name="services" xsi:type="array">
+                <item name="organization" xsi:type="object">MageOS\Seo\Model\OrganizationRepository</item>
+                <item name="availability" xsi:type="object">MageOS\Seo\Model\Product\AvailabilityResolver</item>
+                <item name="sitemaps" xsi:type="object">MageOS\Seo\Model\Sitemap\RebuildableSitemaps</item>
+                <item name="hreflang" xsi:type="object">MageOS\Seo\Model\Hreflang\StoreLocaleMap</item>
+            </argument>
+        </arguments>
+    </type>
+
+    <!--
         Paths served directly as public documents: no session is started for them (the
         SessionStartChecker plugin in etc/frontend/di.xml), so no cookie and no no-cache headers land
         on responses meant to be shared-cached. Each module that serves such documents registers its
-        own paths and prefixes on this type from its di.xml (MageOS_Aeo's llms documents, for one).
+        own paths and prefixes from its di.xml on Api\Router\PublicPathsInterface, whose arguments
+        reach Model\Router\PublicPaths (MageOS_Aeo's llms documents, for one).
     -->
 
     <!--
         Rebuild queue groups other than the sitemap's (Api\Rebuild\GroupHandlerInterface): the
         consumer, the regenerate command and every setup run find them in Model\Rebuild\HandlerPool.
-        A module registers its group there from its own di.xml (MageOS_Aeo's llms documents, for
-        one); a handler takes its builder as a proxy, since the pool is built for every save an
-        observer inspects.
+        A module registers its group from its own di.xml on Api\Rebuild\HandlerPoolInterface
+        (MageOS_Aeo's llms documents, for one); a handler takes its builder as a proxy, since the
+        pool is built for every save an observer inspects.
     -->
 
     <!--
@@ -435,9 +542,13 @@
     <type name="Magento\Sitemap\Model\Sitemap">
         <plugin name="mageos_seo_use_seo_generator" type="MageOS\Seo\Plugin\Sitemap\UseSeoGenerator"/>
     </type>
-    <!-- A Site Map entry saved without a file is written by the queue shortly after. -->
+    <!--
+        A Site Map entry saved without a file is written by the queue shortly after; a deleted
+        entry's files go with it.
+    -->
     <type name="Magento\Sitemap\Model\ResourceModel\Sitemap">
         <plugin name="mageos_seo_queue_first_build" type="MageOS\Seo\Plugin\Sitemap\QueueFirstBuild"/>
+        <plugin name="mageos_seo_remove_files_on_delete" type="MageOS\Seo\Plugin\Sitemap\RemoveFilesOnDelete"/>
     </type>
     <type name="MageOS\Seo\Model\Sitemap\Generator">
         <arguments>
@@ -456,6 +567,29 @@
             <argument name="filters" xsi:type="array">
                 <item name="indexable" xsi:type="object">MageOS\Seo\Model\Sitemap\Robots\IndexableFilter</item>
             </argument>
+        </arguments>
+    </type>
+
+    <!--
+        Sitemap files live wherever core's own sitemap keeps them. With remote storage on, core's
+        Sitemap model and its admin Save, Delete and grid link are given fullRemoteFilesystem —
+        every directory remote (Magento_RemoteStorage's di.xml) — while the plain Filesystem is
+        remote for media and import/export only. These classes read and write the same files, so
+        they are given the same filesystem; with remote storage off it is the local one.
+    -->
+    <type name="MageOS\Seo\Model\Sitemap\Writer">
+        <arguments>
+            <argument name="filesystem" xsi:type="object">fullRemoteFilesystem</argument>
+        </arguments>
+    </type>
+    <type name="MageOS\Seo\Model\Sitemap\RebuildableSitemaps">
+        <arguments>
+            <argument name="filesystem" xsi:type="object">fullRemoteFilesystem</argument>
+        </arguments>
+    </type>
+    <type name="MageOS\Seo\Model\Sitemap\FileRemover">
+        <arguments>
+            <argument name="filesystem" xsi:type="object">fullRemoteFilesystem</argument>
         </arguments>
     </type>
 

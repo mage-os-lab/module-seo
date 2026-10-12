@@ -2,13 +2,20 @@ Save,Opslaan
 "SEO — Organization Settings","SEO — Organisatie-instellingen"
 "No data received.","Geen gegevens ontvangen."
 "The organization URL must be an http:// or https:// address.","De URL van de organisatie moet een http://- of https://-adres zijn."
-"The logo URL must be an http:// or https:// address or a media path.","De logo-URL moet een http://- of https://-adres of een mediapad zijn."
+"The logo must be an image uploaded with this form.","Het logo moet een afbeelding zijn die met dit formulier is geüpload."
 "These social profiles were not saved — a profile must be an http:// or https:// address: %1","Deze sociale profielen zijn niet opgeslagen — een profiel moet een http://- of https://-adres zijn: %1"
 "Organization settings have been saved.","De organisatie-instellingen zijn opgeslagen."
 "Could not save: %1","Opslaan is mislukt: %1"
 "File upload failed.","Het uploaden van het bestand is mislukt."
 "Upload failed. Please try again.","Uploaden mislukt. Probeer het opnieuw."
-"The uploaded file is not a valid image.","Het geüploade bestand is geen geldige afbeelding."
+"Upload a JPEG, PNG, GIF or WebP image.","Upload een JPEG-, PNG-, GIF- of WebP-afbeelding."
+"The uploaded file is not a %1 image.","Het geüploade bestand is geen %1-afbeelding."
+"The uploaded file is a damaged or incomplete image.","Het geüploade bestand is een beschadigde of onvolledige afbeelding."
+"WebP images cannot be checked on this server. Upload a JPEG, PNG or GIF image.","WebP-afbeeldingen kunnen op deze server niet worden gecontroleerd. Upload een JPEG-, PNG- of GIF-afbeelding."
+"The image is too large to check within the server's memory limit.","De afbeelding is te groot om binnen de geheugenlimiet van de server te controleren."
+"With Use Design Logo, this store publishes no logo: it has none under Content → Design → Configuration.","Met Ontwerplogo gebruiken publiceert deze winkel geen logo: er is er geen ingesteld onder Inhoud → Ontwerp → Configuratie."
+"With Use Design Logo, this store publishes %1.","Met Ontwerplogo gebruiken publiceert deze winkel %1."
+"With Use Design Logo, each store publishes its own, from Content → Design → Configuration.","Met Ontwerplogo gebruiken publiceert elke winkel zijn eigen logo, uit Inhoud → Ontwerp → Configuratie."
 "Category first — a category's own settings win, then its nearest ancestor's","Categorie eerst — de eigen instellingen van een categorie gaan voor, daarna die van de dichtstbijzijnde bovenliggende categorie"
 "Store view first — any setting for this store view wins over any global one","Winkelweergave eerst — elke instelling voor deze winkelweergave gaat voor op elke globale instelling"
 "These hreflang codes are not valid: %1. Use a two-letter language, optionally followed by a four-letter script and a two-letter region — for example en, en-GB or zh-Hant-TW.","Deze hreflang-codes zijn ongeldig: %1. Gebruik een taalcode van twee letters, eventueel gevolgd door een schriftcode van vier letters en een regiocode van twee letters — bijvoorbeeld en, en-GB of zh-Hant-TW."
@@ -19,7 +26,7 @@ New,Nieuw
 Refurbished,Gereviseerd
 Used,Gebruikt
 Damaged,Beschadigd
-"Use Design Logo (from Stores > Design > Logo)","Ontwerplogo gebruiken (uit Winkels > Ontwerp > Logo)"
+"Use Design Logo (from Content → Design → Configuration)","Ontwerplogo gebruiken (uit Inhoud → Ontwerp → Configuratie)"
 "Upload Custom SEO Logo","Eigen SEO-logo uploaden"
 "Organization (generic)","Organisatie (algemeen)"
 Corporation,Onderneming
@@ -188,10 +195,14 @@ category pages.","Voer og:title, og:description, og:image en og:type uit op prod
 "Maximum products to include in ItemList schema per page. Recommended: 36
 (matches default toolbar page size).","Maximaal aantal producten in het ItemList-schema per pagina. Aanbevolen: 36 (gelijk aan de standaard paginagrootte van de werkbalk)."
 "Most Variants per Configurable Product","Maximaal aantal varianten per configureerbaar product"
-"A configurable product with up to this many sellable children is described as a ProductGroup, each child a variant with its own offer. One with more is a single Product with an AggregateOffer over its whole price range, rather than a list cut short. 0 describes every configurable that way. Each variant costs a salability check on an uncached product page. Default: 50.","Een configureerbaar product met maximaal zoveel verkoopbare onderliggende producten wordt beschreven als een ProductGroup, met elk onderliggend product als variant met een eigen aanbieding. Een product met meer wordt één Product met een AggregateOffer over de hele prijsklasse, in plaats van een afgekapte lijst. Met 0 wordt elk configureerbaar product zo beschreven. Elke variant kost een verkoopbaarheidscontrole op een niet-gecachete productpagina. Standaard: 50."
+"A configurable product with up to this many sellable children is described as a ProductGroup, each child a variant with its own offer. One with more is a single Product with an AggregateOffer over its whole price range, rather than a list cut short. 0 describes every configurable that way. Default: 50.","Een configureerbaar product met maximaal zoveel verkoopbare onderliggende producten wordt beschreven als een ProductGroup, met elk onderliggend product als variant met een eigen aanbieding. Een product met meer wordt één Product met een AggregateOffer over de hele prijsklasse, in plaats van een afgekapte lijst. Met 0 wordt elk configureerbaar product zo beschreven. Standaard: 50."
+"Publish a Price of Zero","Prijs van nul publiceren"
+"No: a product priced 0 gets no price in its structured data, Open Graph tags or llms.jsonl. Usually the price is hidden from the visitor, as on B2B and trade stores, and Google's merchant listings refuse a price of 0. Yes: a product priced 0 is offered as free.","Nee: een product met prijs 0 krijgt geen prijs in zijn gestructureerde gegevens, Open Graph-tags of llms.jsonl. Meestal is de prijs verborgen voor de bezoeker, zoals bij B2B- en groothandelswinkels, en de verkopersvermeldingen van Google weigeren een prijs van 0. Ja: een product met prijs 0 wordt gratis aangeboden."
 "Enable AggregateRating","AggregateRating inschakelen"
 "Output aggregateRating (review score + count) on product schema. Source is
 pluggable — native Magento reviews by default, or a bridge module (Yotpo, Trustpilot, …).","Voer aggregateRating (reviewscore + aantal) uit in het productschema. De bron is uitwisselbaar — standaard de reviews van Magento zelf, of een koppelmodule (Yotpo, Trustpilot, …)."
+"Remove the Theme's Product Microdata","Productmicrodata van het thema verwijderen"
+"Yes: product pages describe the product once, in this structured data. Luma's product page also marks the product up in microdata (its name, price, image and reviews), which search engines read as a second Product. While this structured data is on, that microdata is removed from the product page. No: the theme's microdata stays.","Ja: productpagina's beschrijven het product één keer, in deze gestructureerde gegevens. De productpagina van Luma geeft het product daarnaast in microdata weer (naam, prijs, afbeelding en reviews), wat zoekmachines lezen als een tweede Product. Zolang deze gestructureerde gegevens aan staan, wordt die microdata van de productpagina verwijderd. Nee: de microdata van het thema blijft staan."
 "Category SEO Settings","SEO-instellingen voor categorieën"
 "Inheritance Strategy",Overervingsstrategie
 "Where a category's SEO settings come from when it does not set
@@ -216,12 +227,14 @@ Robots setting applies.","Bij ""Magento-standaard gebruiken"" geldt de instellin
 "Category Pages Default","Standaard voor categoriepagina's"
 "CMS Pages Default","Standaard voor CMS-pagina's"
 "Search Results Pages Default","Standaard voor zoekresultaatpagina's"
-"Quick and advanced search results. NOINDEX,FOLLOW keeps them out of the index;
-to stop them being crawled at all, disallow them in robots.txt instead. When set to ""Use Magento
-Default"", the core Design > Search Engine Robots setting applies.","Snelle en geavanceerde zoekresultaten. NOINDEX,FOLLOW houdt ze uit de index; wil je dat ze helemaal niet worden gecrawld, sluit ze dan uit in robots.txt. Bij ""Magento-standaard gebruiken"" geldt de instelling Ontwerp > Zoekmachinerobots van Magento zelf."
+"Quick and advanced search results. NOINDEX,FOLLOW (the default) keeps them out of the
+index; to stop them being crawled at all, disallow them in robots.txt instead. When set to ""Use
+Magento Default"", the core Design > Search Engine Robots setting applies.","Snelle en geavanceerde zoekresultaten. NOINDEX,FOLLOW (de standaard) houdt ze uit de index; wil je dat ze helemaal niet worden gecrawld, sluit ze dan uit in robots.txt. Bij ""Magento-standaard gebruiken"" geldt de instelling Ontwerp > Zoekmachinerobots van Magento zelf."
 "Override Robots on Paginated Pages","Robots overschrijven op gepagineerde pagina's"
 "Apply a dedicated robots meta to category listing pages from page 2 onward
-(?p=2+). Canonicalization is left to Magento's native category canonical tag.","Pas vanaf pagina 2 (?p=2+) een eigen robots-meta toe op categorieoverzichtspagina's. Canonicalisatie wordt overgelaten aan de eigen canonical-tag van Magento voor categorieën."
+(?p=2+). It can only add restrictions: a category set to NOINDEX or NOFOLLOW, on itself, a parent
+category or the Category Pages default, keeps that on every page. Canonicalization is left to
+Magento's native category canonical tag.","Pas vanaf pagina 2 (?p=2+) een eigen robots-meta toe op categorieoverzichtspagina's. Dit kan alleen beperkingen toevoegen: een categorie die op NOINDEX of NOFOLLOW staat, zelf, via een bovenliggende categorie of via de standaard voor categoriepagina's, houdt dat op elke pagina. Canonicalisatie wordt overgelaten aan de eigen canonical-tag van Magento voor categorieën."
 "Paginated Pages Robots","Robots voor gepagineerde pagina's"
 "Hreflang (Multistore)","Hreflang (multistore)"
 "Enable Hreflang Tags","Hreflang-tags inschakelen"
@@ -236,8 +249,9 @@ exactly one store view.","Voeg automatisch hreflang=""en"" toe als een basistaal
 empty to use the store's locale. A region is an ISO 3166-1 country code: the United Kingdom is
 <code>GB</code>, not <code>UK</code>.","De codes waarop deze winkelweergave zich richt, gescheiden door komma's — bijvoorbeeld <code>en-GB</code>, of <code>es-MX, es-AR, es-CL</code> voor één winkel die meerdere regio's bedient. Laat leeg om de landinstelling van de winkel te gebruiken. Een regio is een ISO 3166-1-landcode: het Verenigd Koninkrijk is <code>GB</code>, niet <code>UK</code>."
 "x-default Store View",x-default-winkelweergave
-"Store view to advertise as hreflang x-default. Leave unset to omit x-default.
-Set per website where websites serve different markets.","Winkelweergave die als hreflang x-default wordt aangeboden. Laat leeg om x-default weg te laten. Stel dit per website in als websites verschillende markten bedienen."
+"Store view to advertise as hreflang x-default. Choose None to omit x-default.
+Set per website where websites serve different markets.","Winkelweergave die als hreflang x-default wordt aangeboden. Kies Geen om x-default weg te laten. Stel dit per website in als websites verschillende markten bedienen."
+"-- None --","-- Geen --"
 "Exclude Store Views","Winkelweergaven uitsluiten"
 "Store views to omit from all hreflang output (e.g. staging or internal stores).","Winkelweergaven die uit alle hreflang-uitvoer worden weggelaten (bijv. staging- of interne winkels)."
 "Add Hreflang Alternates to sitemap.xml","Hreflang-alternatieven toevoegen aan sitemap.xml"
@@ -285,11 +299,19 @@ for the countries chosen.","Voer OfferShippingDetails uit op productaanbiedingen
 "Destination Countries",Bestemmingslanden
 "The countries these shipping details apply to.","De landen waarvoor deze verzendgegevens gelden."
 "Shipping Rate",Verzendtarief
-"0.00 for free shipping. Currency follows the store display currency.","0.00 voor gratis verzending. De valuta volgt de weergavevaluta van de winkel."
+"In the base currency, converted to the currency the visitor sees, as product prices are.
+0.00 for free shipping.","In de basisvaluta, omgerekend naar de valuta die de bezoeker ziet, zoals productprijzen. 0.00 voor gratis verzending."
 "Handling Time Min (days)","Verwerkingstijd min. (dagen)"
+"Optional: the fewest days, with a maximum.","Optioneel: het minste aantal dagen, samen met een maximum."
 "Handling Time Max (days)","Verwerkingstijd max. (dagen)"
+"The most days, 0 for the same day.","Het hoogste aantal dagen, 0 voor dezelfde dag."
 "Transit Time Min (days)","Transporttijd min. (dagen)"
 "Transit Time Max (days)","Transporttijd max. (dagen)"
+"%1 must be a whole number of days, 0 or more.","%1 moet een geheel aantal dagen zijn, 0 of meer."
+"Enter %1 as well: a shipping time needs the most days it can take, and %2 is only the fewest.","Vul ook %1 in: een verzendtijd heeft het hoogste aantal dagen nodig dat het kan duren, en %2 is alleen het minste."
+"%1 cannot be more than %2.","%1 mag niet meer zijn dan %2."
+"Shipping Rate must be an amount of 0 or more, such as 4.95. Enter 0.00 for free shipping.","Verzendtarief moet een bedrag van 0 of meer zijn, zoals 4.95. Vul 0.00 in voor gratis verzending."
+"Enter a Shipping Rate while Enable Shipping Details Schema is Yes. Enter 0.00 for free shipping.","Vul een verzendtarief in zolang Verzendgegevensschema inschakelen op Ja staat. Vul 0.00 in voor gratis verzending."
 Generator,Generator
 "<strong>MageOS SEO</strong> writes each sitemap as an index with a
 file per kind of page, and can add to each URL what core's generator cannot — hreflang alternates
@@ -384,3 +406,13 @@ Longitude,Lengtegraad
 "store ID %1","winkel-ID %1"
 """%1""","""%1"""
 "Site Map ID %1","Sitemap-ID %1"
+"Settings from an earlier SEO module have not been carried over yet.","Instellingen van een eerdere SEO-module zijn nog niet overgenomen."
+"Nothing is lost: they stay where they are until they are carried over, and this message disappears by itself once they have been.","Er gaat niets verloren: ze blijven staan waar ze staan tot ze zijn overgenomen, en dit bericht verdwijnt vanzelf zodra dat is gebeurd."
+"A developer with access to the server carries them over with %1, and can first list what would change with %2.","Een ontwikkelaar met toegang tot de server neemt ze over met %1, en kan eerst laten zien wat er zou veranderen met %2."
+"The system log has the details of the last attempt.","Het systeemlogboek bevat de details van de laatste poging."
+"The Meta Robots Tag module can be switched off.","De module Meta Robots Tag kan worden uitgeschakeld."
+"Its settings have been carried over to the Robots Meta settings of products, categories and CMS pages. While it stays on, it keeps changing the robots meta tag of the pages it was set up for, on top of those settings. This message disappears by itself once it is off.","De instellingen ervan zijn overgenomen in de robots-meta-instellingen van producten, categorieën en CMS-pagina's. Zolang de module aan staat, blijft ze de robots-metatag aanpassen van de pagina's waarvoor ze is ingesteld, bovenop die instellingen. Dit bericht verdwijnt vanzelf zodra ze uit staat."
+"A developer with access to the server switches it off with %1.","Een ontwikkelaar met toegang tot de server schakelt haar uit met %1."
+"Meta Robots Tag: the robots settings of products, categories and CMS pages.","Meta Robots Tag: de robots-instellingen van producten, categorieën en CMS-pagina's."
+"Hreflang: its hreflang settings, and the links between translations of CMS pages.","Hreflang: de hreflang-instellingen, en de koppelingen tussen vertalingen van CMS-pagina's."
+"%1: its settings.","%1: de instellingen."

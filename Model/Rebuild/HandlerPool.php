@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace MageOS\Seo\Model\Rebuild;
 
 use MageOS\Seo\Api\Rebuild\GroupHandlerInterface;
+use MageOS\Seo\Api\Rebuild\HandlerPoolInterface;
 use MageOS\Seo\Model\Sitemap\RebuildGroup;
 
 /**
@@ -15,7 +16,7 @@ use MageOS\Seo\Model\Sitemap\RebuildGroup;
  * claimed twice, or named like a sitemap group, is refused when the pool is first asked — a message
  * for it could only reach one handler, so the other would never rebuild.
  */
-class HandlerPool
+class HandlerPool implements HandlerPoolInterface
 {
     /**
      * Handler per group, built on first use.

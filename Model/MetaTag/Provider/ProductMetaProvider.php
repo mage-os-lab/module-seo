@@ -6,23 +6,40 @@ namespace MageOS\Seo\Model\MetaTag\Provider;
 
 use Magento\Catalog\Helper\Image as ImageHelper;
 use MageOS\Seo\Api\MetaTagProviderInterface;
+use MageOS\Seo\Api\SchemaPriceInterface;
 use MageOS\Seo\Model\Catalog\CurrentEntity;
 use MageOS\Seo\Model\Config;
-use MageOS\Seo\Service\CurrencyService;
+use MageOS\Seo\Model\Product\AvailabilityResolver;
+use MageOS\Seo\Model\Product\FinalPrice;
 
 class ProductMetaProvider implements MetaTagProviderInterface
 {
     /**
+     * schema.org availability => Open Graph's product:availability, in the values Meta's catalog
+     * reference lists for Open Graph ("in stock", "out of stock", "available for order",
+     * "discontinued"). A backorder can be bought, but only to be supplied later: available for order.
+     */
+    private const OG_AVAILABILITY = [
+        AvailabilityResolver::IN_STOCK     => 'in stock',
+        AvailabilityResolver::BACKORDER    => 'available for order',
+        AvailabilityResolver::OUT_OF_STOCK => 'out of stock',
+    ];
+
+    /**
      * @param CurrentEntity $currentEntity
-     * @param CurrencyService $currencyService
+     * @param SchemaPriceInterface $schemaPrice
      * @param ImageHelper $imageHelper
      * @param Config $seoConfig
+     * @param FinalPrice $finalPrice
+     * @param AvailabilityResolver $availabilityResolver
      */
     public function __construct(
-        private readonly CurrentEntity   $currentEntity,
-        private readonly CurrencyService $currencyService,
-        private readonly ImageHelper     $imageHelper,
-        private readonly Config          $seoConfig
+        private readonly CurrentEntity        $currentEntity,
+        private readonly SchemaPriceInterface $schemaPrice,
+        private readonly ImageHelper          $imageHelper,
+        private readonly Config               $seoConfig,
+        private readonly FinalPrice           $finalPrice,
+        private readonly AvailabilityResolver $availabilityResolver
     ) {
     }
 
@@ -68,16 +85,13 @@ class ProductMetaProvider implements MetaTagProviderInterface
         } catch (\Exception) { // phpcs:ignore Magento2.CodeAnalysis.EmptyBlock.DetectedCatch -- no image, leave empty
         }
 
-        $price    = '';
-        $currency = $this->currencyService->getCurrentCurrencyCode();
-        try {
-            // PriceInfo amounts are already in the current (display) currency: core
-            // RegularPrice / SpecialPrice / CatalogRulePrice::getValue() convert with PriceCurrency.
-            // Converting again would apply the rate twice.
-            $amount = (float) $product->getPriceInfo()->getPrice('final_price')->getValue();
-            $price  = $this->currencyService->formatAmountForLlms($amount);
-        } catch (\Exception) { // phpcs:ignore Magento2.CodeAnalysis.EmptyBlock.DetectedCatch
-        }
+        // The price the structured data publishes, or none (issue #38): an unknown price — a
+        // composite nothing can price, or a lookup that failed, which FinalPrice logs — is left out
+        // rather than written as 0.00, which reads as free. FinalPrice's amount is already in the
+        // display currency.
+        $amount   = $this->finalPrice->get($product);
+        $price    = $amount === null ? '' : $this->schemaPrice->amount($amount);
+        $currency = $this->schemaPrice->currencyCode();
 
         $tags = [
             ['property' => 'og:type',        'content' => 'product'],
@@ -98,8 +112,12 @@ class ProductMetaProvider implements MetaTagProviderInterface
             $tags[] = ['property' => 'product:price:currency', 'content' => $currency];
         }
 
-        $availability = ($product->isSalable()) ? 'instock' : 'oos';
-        $tags[] = ['property' => 'product:availability', 'content' => $availability];
+        // From the stock index the structured data reads, so the two never disagree (isSalable() could:
+        // review low item). A lookup that failed is left out, not published as out of stock (D8a).
+        $availability = $this->availabilityResolver->resolve($product);
+        if ($availability !== null && isset(self::OG_AVAILABILITY[$availability])) {
+            $tags[] = ['property' => 'product:availability', 'content' => self::OG_AVAILABILITY[$availability]];
+        }
 
         return $tags;
     }

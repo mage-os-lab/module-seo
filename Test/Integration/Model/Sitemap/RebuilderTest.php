@@ -24,6 +24,7 @@ use MageOS\Seo\Model\Sitemap\GenerationLock;
 use MageOS\Seo\Model\Sitemap\Generator;
 use MageOS\Seo\Model\Sitemap\Rebuilder;
 use MageOS\Seo\Test\Integration\Model\Sitemap\Fixture\HeldSitemapLocks;
+use MageOS\Seo\Test\Integration\Rebuild\CommitsDeferredRequests;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -36,6 +37,7 @@ use PHPUnit\Framework\TestCase;
 class RebuilderTest extends TestCase
 {
     use GeneratesSitemaps;
+    use CommitsDeferredRequests;
 
     private const DIRECTORY = 'media/sitemap';
 
@@ -56,8 +58,9 @@ class RebuilderTest extends TestCase
     }
 
     /**
-     * A page added after the sitemap was generated is in it after the pages are rebuilt; the
-     * products file is the same file — same bytes, same time — and the index keeps its date.
+     * A page added after the sitemap was generated is in it after the pages are rebuilt — into
+     * their other set, the published one left whole until the switch; the products file is the
+     * same file — same bytes, same time — and the index keeps its date.
      *
      * @return void
      */
@@ -68,9 +71,11 @@ class RebuilderTest extends TestCase
         $sitemap = $this->generated();
         $before  = $this->index($sitemap);
         $store   = $this->defaultStoreId();
-        $pages   = "{$this->sitemapName}-{$store}-pages-1.xml";
-        $product = "{$this->sitemapName}-{$store}-products-1.xml";
+        $pages   = "{$this->sitemapName}-{$store}-pages-a-1.xml";
+        $product = "{$this->sitemapName}-{$store}-products-a-1.xml";
+        $this->assertArrayHasKey($pages, $before, 'A first generation writes the first set.');
         $this->assertArrayHasKey($product, $before, 'The comparison needs a products file.');
+        $pagesBytes   = $this->pub()->readFile(self::DIRECTORY . '/' . $pages);
         $productBytes = $this->pub()->readFile(self::DIRECTORY . '/' . $product);
         $productTime  = $this->mtime($product);
 
@@ -80,10 +85,21 @@ class RebuilderTest extends TestCase
 
         $this->rebuilder()->rebuild('pages');
 
-        $after = $this->index($sitemap);
-        $this->assertSame(array_keys($before), array_keys($after), 'The index lists the same files.');
-        $this->assertStringContainsString($identifier, $this->pub()->readFile(self::DIRECTORY . '/' . $pages));
-        $this->assertNotSame($before[$pages], $after[$pages], 'The rebuilt file has a new date.');
+        $after      = $this->index($sitemap);
+        $newPages   = "{$this->sitemapName}-{$store}-pages-b-1.xml";
+        $categories = "{$this->sitemapName}-{$store}-categories-a-1.xml";
+        $this->assertSame(
+            [$newPages, $categories, $product],
+            array_keys($after),
+            'The pages moved to their other set; the other types stayed in theirs.'
+        );
+        $this->assertStringContainsString($identifier, $this->pub()->readFile(self::DIRECTORY . '/' . $newPages));
+        $this->assertNotSame($before[$pages], $after[$newPages], 'The rebuilt file has a new date.');
+        $this->assertSame(
+            $pagesBytes,
+            $this->pub()->readFile(self::DIRECTORY . '/' . $pages),
+            'The pages the previous index listed stay as they were until the next rebuild.'
+        );
         $this->assertSame($before[$product], $after[$product], 'The kept file keeps its date.');
         $this->assertSame($productBytes, $this->pub()->readFile(self::DIRECTORY . '/' . $product));
         $this->assertSame($productTime, $this->mtime($product), 'The products file was not rewritten.');
@@ -106,7 +122,7 @@ class RebuilderTest extends TestCase
 
         $this->assertFalse($this->pub()->isExist($stray), 'A pages file the rebuild did not write is gone.');
         $this->assertTrue(
-            $this->pub()->isExist(self::DIRECTORY . "/{$this->sitemapName}-{$store}-products-1.xml"),
+            $this->pub()->isExist(self::DIRECTORY . "/{$this->sitemapName}-{$store}-products-a-1.xml"),
             'The products file stays.'
         );
         $this->assertArrayNotHasKey("{$this->sitemapName}-{$store}-pages-9.xml", $this->index($sitemap));
@@ -126,7 +142,7 @@ class RebuilderTest extends TestCase
         $this->rebuilder()->rebuild('pages');
 
         $this->assertArrayHasKey(
-            "{$this->sitemapName}-{$this->defaultStoreId()}-products-1.xml",
+            "{$this->sitemapName}-{$this->defaultStoreId()}-products-a-1.xml",
             $this->index($sitemap),
             'Every type is written, not only the one the change was about.'
         );
@@ -147,7 +163,39 @@ class RebuilderTest extends TestCase
         $this->rebuilder()->rebuild('pages');
 
         $store = $this->defaultStoreId();
-        $this->assertArrayHasKey("{$this->sitemapName}-{$store}-products-1.xml", $this->index($sitemap));
+        $this->assertArrayHasKey("{$this->sitemapName}-{$store}-products-a-1.xml", $this->index($sitemap));
+    }
+
+    /**
+     * A sitemap written before the sets — names without one — is written whole into the first set
+     * by a rebuild of one type; the files of before stay while the index they replaced was the
+     * last, and go at the rebuild after.
+     *
+     * @return void
+     */
+    #[DataFixture(ProductFixture::class, as: 'product')]
+    public function testASitemapWrittenBeforeTheSetsIsWrittenWholeAndItsFilesGoAfter(): void
+    {
+        $sitemap = $this->sitemapFor($this->defaultStoreId());
+        $sitemap->save();
+        $store  = $this->defaultStoreId();
+        $before = "{$this->sitemapName}-{$store}-products-1.xml";
+        $this->pub()->writeFile(self::DIRECTORY . '/' . $before, '<urlset></urlset>');
+        $this->pub()->writeFile(
+            self::DIRECTORY . '/' . $sitemap->getSitemapFilename(),
+            '<sitemapindex><sitemap><loc>http://localhost/media/sitemap/' . $before . '</loc>'
+            . '<lastmod>2020-01-02T03:04:05+00:00</lastmod></sitemap></sitemapindex>'
+        );
+
+        $this->rebuilder()->rebuild('pages');
+
+        $this->assertArrayHasKey("{$this->sitemapName}-{$store}-products-a-1.xml", $this->index($sitemap));
+        $this->assertArrayNotHasKey($before, $this->index($sitemap));
+        $this->assertTrue($this->pub()->isExist(self::DIRECTORY . '/' . $before), 'Kept while the old index was last.');
+
+        $this->rebuilder()->rebuild('pages');
+
+        $this->assertFalse($this->pub()->isExist(self::DIRECTORY . '/' . $before), 'Gone one rebuild later.');
     }
 
     /**
@@ -223,8 +271,8 @@ class RebuilderTest extends TestCase
         $sitemap  = $this->generated();
         $product  = DataFixtureStorageManager::getStorage()->get('product');
         $store    = $this->defaultStoreId();
-        $products = self::DIRECTORY . "/{$this->sitemapName}-{$store}-products-1.xml";
-        $pages    = "{$this->sitemapName}-{$store}-pages-1.xml";
+        $products = self::DIRECTORY . '/' . $this->listedFile($sitemap, 'products');
+        $pages    = "{$this->sitemapName}-{$store}-pages-a-1.xml";
         $this->assertStringContainsString((string) $product->getUrlKey(), $this->pub()->readFile($products));
         $pagesDate = $this->index($sitemap)[$pages];
         $flags     = Bootstrap::getObjectManager()->get(FlagManager::class);
@@ -233,13 +281,17 @@ class RebuilderTest extends TestCase
         sleep(1);
         Bootstrap::getObjectManager()->get(OverrideRepository::class)
             ->save((int) $product->getId(), 0, ['robots_meta' => 'NOINDEX,FOLLOW']);
+        $this->commitDeferredRequests();
 
         $this->assertNotNull($flags->getFlagData('mageos_seo_feed_pending_sitemap-products'), 'The change was queued.');
         Bootstrap::getObjectManager()->get(RegenerateConsumer::class)->process('sitemap-products');
 
-        $this->assertFalse(
-            $this->pub()->isExist($products)
-            && str_contains($this->pub()->readFile($products), (string) $product->getUrlKey()),
+        $this->assertStringNotContainsString(
+            (string) $product->getUrlKey(),
+            implode('', array_map(
+                fn (string $file): string => $this->pub()->readFile(self::DIRECTORY . '/' . $file),
+                array_keys($this->index($sitemap))
+            )),
             'The NOINDEX product is out of the sitemap.'
         );
         $this->assertSame($pagesDate, $this->index($sitemap)[$pages], 'The pages were not rebuilt.');
@@ -255,16 +307,16 @@ class RebuilderTest extends TestCase
     public function testWithRebuildOnChangeOffAChangeLeavesTheSitemapAndADemandRebuildsIt(): void
     {
         $sitemap = $this->generated();
-        $pages   = self::DIRECTORY . "/{$this->sitemapName}-{$this->defaultStoreId()}-pages-1.xml";
         $this->setStoreConfig(Config::XML_SITEMAP_REBUILD_ON_CHANGE, '0');
         $identifier = $this->newPage();
 
         $this->rebuilder()->rebuild('pages');
+        $pages = self::DIRECTORY . '/' . $this->listedFile($sitemap, 'pages');
         $this->assertStringNotContainsString($identifier, $this->pub()->readFile($pages), 'A change rebuilt it.');
 
         $this->rebuilder()->rebuildOnDemand('pages');
+        $pages = self::DIRECTORY . '/' . $this->listedFile($sitemap, 'pages');
         $this->assertStringContainsString($identifier, $this->pub()->readFile($pages), 'Asked for, it is rebuilt.');
-        $this->assertArrayHasKey(basename($pages), $this->index($sitemap));
     }
 
     /**

@@ -8,6 +8,7 @@ use Magento\Framework\ObjectManager\ResetAfterRequestInterface;
 use Magento\Store\Model\Store;
 use Magento\Store\Model\StoreManagerInterface;
 use MageOS\Seo\Model\Config;
+use MageOS\Seo\Model\Log\OccasionalLog;
 use MageOS\Seo\Model\Store\CanonicalBaseUrl;
 
 /**
@@ -18,10 +19,16 @@ use MageOS\Seo\Model\Store\CanonicalBaseUrl;
  * and a store whose Magento locale cannot name its region — or that shares a locale with another —
  * needs saying explicitly.
  *
- * Excluded and inactive stores are filtered here so downstream resolvers and the sitemap never see
+ * Every code is checked as the admin checks a typed one (Model\Hreflang\CodeList), whatever set it:
+ * config.php, env.php, `config:set` and a database write skip the admin (issue #29). A code that
+ * fails is left out and logged, at most once every five minutes per store view and code.
+ *
+ * Store views that are inactive, excluded, or have hreflang off (issue #28) are filtered here, before
+ * they can claim a code, so the head, the sitemap, the language-only tags and x-default never see
  * them. Built once per request for each website it is asked about, and memoised: which store views
  * are in the map depends on the current store's website, and a cron run generating sitemaps moves
- * from one website's store views to another's in one process.
+ * from one website's store views to another's in one process. A queue consumer resets it before
+ * each message (Model\Rebuild\BuildFreshness).
  *
  * Base URLs are the store views' canonical ones (Model\Store\CanonicalBaseUrl), the same the
  * sitemap's `<loc>` uses — not whatever scheme the current request happens to have.
@@ -40,12 +47,16 @@ class StoreLocaleMap implements ResetAfterRequestInterface
      * @param Config $seoConfig
      * @param CodeValidator $codeValidator
      * @param CanonicalBaseUrl $canonicalBaseUrl
+     * @param CodeList $codeList
+     * @param OccasionalLog $occasionalLog
      */
     public function __construct(
         private readonly StoreManagerInterface $storeManager,
         private readonly Config                $seoConfig,
         private readonly CodeValidator         $codeValidator,
-        private readonly CanonicalBaseUrl      $canonicalBaseUrl
+        private readonly CanonicalBaseUrl      $canonicalBaseUrl,
+        private readonly CodeList              $codeList,
+        private readonly OccasionalLog         $occasionalLog
     ) {
     }
 
@@ -90,7 +101,12 @@ class StoreLocaleMap implements ResetAfterRequestInterface
         /** @var Store $store */
         foreach ($stores as $store) {
             $storeId = (int) $store->getId();
-            if (!$store->getIsActive() || \in_array($storeId, $excluded, true)) {
+            // Before claiming codes: a store view with hreflang off links back to nothing, so it is
+            // no alternate, and must not take a shared code from one that is.
+            if (!$store->getIsActive()
+                || \in_array($storeId, $excluded, true)
+                || !$this->seoConfig->isHreflangEnabled($storeId)
+            ) {
                 continue;
             }
             if ($websiteId !== null && (int) $store->getWebsiteId() !== $websiteId) {
@@ -120,21 +136,68 @@ class StoreLocaleMap implements ResetAfterRequestInterface
     }
 
     /**
-     * The codes a store view claims: its configured list, else the one its locale gives.
+     * The codes a store view claims.
+     *
+     * The valid ones of its configured list, else its locale's, if that is valid.
      *
      * @param int $storeId
      * @return string[]
      */
     private function codesFor(int $storeId): array
     {
-        $configured = $this->seoConfig->getHreflangCodes($storeId);
+        $configured = $this->checked($storeId, $this->seoConfig->getHreflangCodes($storeId));
         if ($configured !== []) {
             return $configured;
         }
 
         $localeCode = $this->seoConfig->getLocaleCode($storeId);
 
-        return $localeCode === '' ? [] : [$this->codeValidator->normalise($localeCode)];
+        return $localeCode === '' ? [] : $this->checked($storeId, [$localeCode]);
+    }
+
+    /**
+     * The codes that pass the admin's check, normalised and each once; the others are logged.
+     *
+     * @param int $storeId
+     * @param string[] $codes
+     * @return string[]
+     */
+    private function checked(int $storeId, array $codes): array
+    {
+        if ($codes === []) {
+            return [];
+        }
+
+        $checked = $this->codeList->check($codes);
+        foreach ($checked['rejected'] as $code) {
+            $this->logRejected($storeId, (string) $code);
+        }
+
+        return $checked['codes'];
+    }
+
+    /**
+     * Log a code the check rejected, at most once every five minutes per store view and code.
+     *
+     * A map is built on every uncached page, and the code stays wrong until someone changes the
+     * configuration: once in a while is enough to find it.
+     *
+     * @param int $storeId
+     * @param string $code
+     * @return void
+     */
+    private function logRejected(int $storeId, string $code): void
+    {
+        $this->occasionalLog->warning(
+            'hreflang code' . "\0" . $storeId . "\0" . $code,
+            \sprintf(
+                'MageOS_Seo: store view %d\'s hreflang code "%s" is not valid, so it is left out. Use a '
+                . 'two-letter language, optionally a four-letter script and an ISO 3166-1 region, each '
+                . 'code once — for example en, en-GB or zh-Hant-TW.',
+                $storeId,
+                $code
+            )
+        );
     }
 
     /**

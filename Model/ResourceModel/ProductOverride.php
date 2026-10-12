@@ -4,9 +4,14 @@ declare(strict_types=1);
 
 namespace MageOS\Seo\Model\ResourceModel;
 
-use Magento\Framework\Model\ResourceModel\Db\AbstractDb;
+use Magento\Framework\Model\AbstractModel;
 
-class ProductOverride extends AbstractDb
+/**
+ * A product's SEO overrides, per store view.
+ *
+ * A change purges the product's pages.
+ */
+class ProductOverride extends AbstractSeoRowResource
 {
     /**
      * Initialize the main table and primary key.
@@ -16,5 +21,13 @@ class ProductOverride extends AbstractDb
     protected function _construct(): void
     {
         $this->_init('mageos_seo_product_override', 'entity_id');
+    }
+
+    /**
+     * @inheritDoc
+     */
+    protected function pageTags(AbstractModel $row, bool $removed): array
+    {
+        return [$this->cacheTags->product((int) $row->getData('product_id'))];
     }
 }

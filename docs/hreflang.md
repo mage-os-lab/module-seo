@@ -54,11 +54,15 @@ must point at the canonical URL of the entity, not at one path through the catal
 
 The set of store views an entity is advertised in — its *alternate set* — is either every
 active store view, or only those of the current website, depending on whether hreflang is
-limited to the current website. A store view contributes only when hreflang is enabled for it
-and it has a resolvable locale.
+limited to the current website. A store view contributes only when hreflang is enabled for it,
+it is not excluded, and it has a valid code (see below). One that does not is no alternate of any
+other store view either: their heads and sitemaps leave it out.
 
 Alternates need **at least two** store views in the set: one store view has nothing to be an
 alternate of, so its pages' heads and its sitemap URLs carry none.
+
+**Exclude Store Views** lists every store view, active or not, so an exclusion stays in place while
+a store view is turned off and on again. Clearing every selection removes every exclusion.
 
 ---
 
@@ -89,6 +93,13 @@ discard a whole alternate set over one bad annotation:
 - a code listed twice is refused, whatever its case; everything is stored normalised (`en_gb`
   is saved as `en-GB`).
 
+The same check runs when the codes are **read**, whatever set them: `config.php`, `env.php`,
+`bin/magento config:set` and a direct database write never pass through the admin. A code that
+fails is left out, and logged as a warning at most once every five minutes per store view and code.
+A store view none of whose codes pass uses its locale's code, which is checked the same way: the
+locale `fil_PH` (Filipino, which has no two-letter language code) gives no code at all, so such a
+store view needs a configured code to take part.
+
 **One code, one store view.** Two alternates with the same code are invalid, so when store views
 claim the same code — typically two store views on the same locale — the **lowest store view ID
 keeps it** and the other loses only that code. A store view whose every code is taken drops out
@@ -109,8 +120,10 @@ could not say which of them is meant; nor does a language a store view already a
 website**: a `.com` website can send unmatched visitors to its US store while a `.co.uk` website
 sends them to its UK store. The website default applies to websites that do not set their own.
 
-The chosen store view must itself be in the alternate set — enabled, not excluded, and on the
-same website when alternates are limited to the current website — or no x-default is written.
+The chosen store view must itself be in the alternate set — active, with hreflang on, not
+excluded, and on the same website when alternates are limited to the current website — or no
+x-default is written. Choose **-- None --** to write none. Only active store views are offered; one
+chosen before it was turned off shows as -- None --, which is also what the storefront does with it.
 
 ---
 
@@ -142,11 +155,12 @@ still saved. The restriction exists because the group is matched in SQL, where t
 collations treat `About` and `about`, or `café` and `cafe`, as equal, and grouped in PHP, which
 does not; storing one canonical form is what keeps the two in agreement.
 
-Changing a page's group in the admin queues a sitemap rebuild and purges the cached copies of
-every page in the group it left and the group it joined, since each of them lists the others in
-its head; deleting a page in a group — from the admin, by REST or an import — purges the rest of
-its group the same way. This goes through `clean_cache_by_tags`, so it reaches Varnish as well
-as the built-in full page cache.
+Changing a page's group queues a sitemap rebuild and purges the cached copies of every page in
+the group it left and the group it joined, since each of them lists the others in its head;
+deleting a page in a group purges the rest of its group the same way. Either happens however the
+change is made — the admin, REST, an import, the repository — once it is committed, and goes
+through `clean_cache_by_tags`, so it reaches Varnish as well as the built-in full page cache. See
+`docs/extending.md`, "Cache considerations".
 
 Coming from `MageOS_Hreflang`: its `cms_page.meta_identifier` is the same idea, and is migrated
 into this field — see [Moving from MageOS_Hreflang](#moving-from-mageos_hreflang).
@@ -195,22 +209,28 @@ job: its transport held a `code => url` map under `urls`; this one holds a list 
 
 ## Moving from MageOS_Hreflang
 
-`setup:upgrade` carries `MageOS_Hreflang`'s settings and CMS page links over and then switches its
-head output off, so the store keeps the alternates it was publishing — published once, not twice.
-The rule throughout is that **the store keeps publishing hreflang wherever it did**:
+The import carries `MageOS_Hreflang`'s settings and CMS page links over and then switches its head
+output off, so the store keeps the alternates it was publishing — published once, not twice. Two
+rules hold throughout:
+
+- **The store keeps publishing hreflang wherever it did.**
+- **A value already set in this module is never replaced.** The import fills only what is empty
+  here, and reports each value it kept, with both values.
 
 | MageOS_Hreflang | Becomes | When |
 |---|---|---|
-| **Use alternative languages meta tags** (`web/seo/use_hreflangs`) | **Enable Hreflang Tags**, per store view | Where it was on and this module's setting would be off. A store view it had off is never switched off here. |
-| **Alternative languages meta tags sitemap specification** (`web/seo/use_sitemap_hreflangs`) | **Add Hreflang Alternates to sitemap.xml** | Where it was on anywhere and this module's is off. |
+| **Use alternative languages meta tags** (`web/seo/use_hreflangs`) | **Enable Hreflang Tags**, per store view | Where it was on and this module's setting is neither stored nor on by default. Where this module's is set to **No** for the store view, that is kept, and `MageOS_Hreflang` stays on there (below). A store view it had off is never switched off here. |
+| **Alternative languages meta tags sitemap specification** (`web/seo/use_sitemap_hreflangs`) | **Add Hreflang Alternates to sitemap.xml** | Where it was on anywhere and this module's is neither stored nor on by default. A stored **No** is kept. |
 | **Hreflang value** (`web/seo/hreflang`), per store view | **Hreflang Codes** | Where its tags were on, and the store view has no codes here yet. Codes are validated as the admin does: `en-uk`, for one, is dropped. |
-| **x-default store** (`web/seo/hreflang_xdefault_store`), per website | **x-default Store View**, per website | Where its output was on in that website and the store view still exists. |
+| **x-default store** (`web/seo/hreflang_xdefault_store`), per website | **x-default Store View**, per website | Where its output was on in that website, the store view still exists, and this module has none set for the website. |
 | **Hreflang association identifier** (`cms_page.meta_identifier`) | **Hreflang Translation Group** | Every page with a value and no group here yet. Values are turned into valid groups: `About Us` becomes `about-us`. |
 
 Its alternates were always limited to the current website, which is this module's default too.
 
 Then, only if it was on somewhere, its head setting is set to **No** globally and its website
-and store view values are removed, so nothing below the global value switches it back on.
+and store view values are removed, so nothing below the global value switches it back on. The
+exception is a store view where this module's hreflang is set to **No**: `MageOS_Hreflang` stays on
+there, with a store view value of **Yes**, so that store view keeps publishing its alternates.
 
 Its sitemap setting is left as it is, because the two modules cannot both write a sitemap's
 alternates: where this module's generator writes the sitemap, `MageOS_Hreflang`'s rows are never
@@ -218,15 +238,21 @@ written; where **Magento** is selected as the generator, its alternates are the 
 sitemap has, and switching them off would lose them.
 
 Nothing else of that module is touched — its codes, x-default and `meta_identifier` column stay
-where they are. Once the sitemaps are generated by this module, it can be disabled or removed at
-leisure.
+where they are. Once the sitemaps are generated by this module, it can be disabled or removed, but
+not while it stays on for a store view: switch this module's hreflang on for that store view
+first, or the store view stops publishing alternates.
 
-Everything the migration did, every value it could not carry, and every value it removed to
+Everything the import did, every value it kept or could not carry, and every value it removed to
 switch the module off is written to `var/log/system.log`, prefixed `MageOS_Seo: MageOS_Hreflang
 import`. To switch `MageOS_Hreflang` back on, restore the removed values from that log entry.
 
-The migration runs once, on the `setup:upgrade` that installs this version. It has no revert step:
-settings made in this module afterwards are indistinguishable from imported ones.
+`setup:upgrade` tries the import once, and never fails because of it. If the import fails,
+`MageOS_Hreflang` is still serving, the failure is logged, and the admin shows a System Message
+until the settings have been carried over. Run it, or run it again, with
+`bin/magento seo:import-legacy` (`--dry-run` lists what it would do, and writes nothing); see
+[robots-meta.md](robots-meta.md#when-it-runs), since the command runs both imports. Running it again
+is safe: it fills only what is still empty. The import has no revert step: settings made in this
+module afterwards are indistinguishable from imported ones.
 
 ---
 

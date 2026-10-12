@@ -7,6 +7,7 @@ namespace MageOS\Seo\Model\Product\Variant;
 use Magento\Catalog\Api\Data\ProductInterface;
 use MageOS\Seo\Api\ProductVariantUrlResolverInterface;
 use MageOS\Seo\Model\Config;
+use MageOS\Seo\Model\Product\AvailabilityResolver;
 use MageOS\Seo\Model\Product\GtinValidator;
 use MageOS\Seo\Model\Product\OfferBuilder;
 
@@ -44,6 +45,7 @@ class ProductGroupBuilder
      * @param GtinReader $gtinReader
      * @param GtinValidator $gtinValidator
      * @param Config $seoConfig
+     * @param AvailabilityResolver $availabilityResolver
      */
     public function __construct(
         private readonly ChildProducts                      $childProducts,
@@ -52,7 +54,8 @@ class ProductGroupBuilder
         private readonly OfferBuilder                       $offerBuilder,
         private readonly GtinReader                         $gtinReader,
         private readonly GtinValidator                      $gtinValidator,
-        private readonly Config                             $seoConfig
+        private readonly Config                             $seoConfig,
+        private readonly AvailabilityResolver               $availabilityResolver
     ) {
     }
 
@@ -70,6 +73,9 @@ class ProductGroupBuilder
         if ($variants === [] || \count($variants) > $this->seoConfig->getHasVariantMax()) {
             return $schema;
         }
+
+        // Every variant's offer asks for its availability: one stock lookup for them all.
+        $this->availabilityResolver->prefetch($variants);
 
         $attributes = $this->variantAttributes->forProduct($product);
         $gtins      = \in_array(self::GTIN_FIELD, $enabledFields, true)

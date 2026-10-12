@@ -4,12 +4,13 @@ declare(strict_types=1);
 
 namespace MageOS\Seo\Model\Faq;
 
+use MageOS\Seo\Api\FaqSourcePoolInterface;
 use MageOS\Seo\Api\FaqSourceProviderInterface;
 
 /**
  * Collect-all pool aggregating FAQ entries for an identifier across all registered sources.
  */
-class SourcePool
+class SourcePool implements FaqSourcePoolInterface
 {
     /**
      * @param array<mixed> $sources

@@ -4,14 +4,18 @@ declare(strict_types=1);
 
 namespace MageOS\Seo\Test\Unit\Model\Hreflang;
 
+use Magento\Framework\App\CacheInterface;
 use Magento\Store\Model\Store;
 use Magento\Store\Model\StoreManagerInterface;
 use MageOS\Seo\Model\Config;
+use MageOS\Seo\Model\Hreflang\CodeList;
 use MageOS\Seo\Model\Hreflang\CodeValidator;
 use MageOS\Seo\Model\Hreflang\StoreLocaleMap;
+use MageOS\Seo\Model\Log\OccasionalLog;
 use MageOS\Seo\Model\Store\CanonicalBaseUrl;
 use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
+use Psr\Log\LoggerInterface;
 
 class StoreLocaleMapTest extends TestCase
 {
@@ -46,9 +50,19 @@ class StoreLocaleMapTest extends TestCase
      * @param array<int, string> $locales
      * @param int[] $excluded
      * @param array<int, string[]> $codes Configured hreflang codes, by store ID
+     * @param int[] $hreflangOff Store IDs with hreflang disabled
+     * @param LoggerInterface|null $logger
+     * @param CacheInterface|null $cache
      */
-    private function map(array $stores, array $locales, array $excluded = [], array $codes = []): StoreLocaleMap
-    {
+    private function map(
+        array $stores,
+        array $locales,
+        array $excluded = [],
+        array $codes = [],
+        array $hreflangOff = [],
+        ?LoggerInterface $logger = null,
+        ?CacheInterface $cache = null
+    ): StoreLocaleMap {
         $this->storeManager->method('getStores')->willReturn($stores);
         $this->config->method('getHreflangExcludedStoreIds')->willReturn($excluded);
         $this->config->method('getHreflangCodes')->willReturnCallback(
@@ -57,17 +71,25 @@ class StoreLocaleMapTest extends TestCase
         $this->config->method('getLocaleCode')->willReturnCallback(
             static fn (int $storeId): string => $locales[$storeId] ?? ''
         );
-        return $this->newMap();
+        $this->config->method('isHreflangEnabled')->willReturnCallback(
+            static fn (int|string|null $storeId): bool => !\in_array((int) $storeId, $hreflangOff, true)
+        );
+        return $this->newMap(logger: $logger, cache: $cache);
     }
 
     /**
      * The map under test, its canonical base URLs being the stores' own without the slash.
      *
      * @param StoreManagerInterface|null $storeManager Defaults to this test's stub
+     * @param LoggerInterface|null $logger
+     * @param CacheInterface|null $cache
      * @return StoreLocaleMap
      */
-    private function newMap(?StoreManagerInterface $storeManager = null): StoreLocaleMap
-    {
+    private function newMap(
+        ?StoreManagerInterface $storeManager = null,
+        ?LoggerInterface $logger = null,
+        ?CacheInterface $cache = null
+    ): StoreLocaleMap {
         $canonicalBaseUrl = $this->createStub(CanonicalBaseUrl::class);
         $canonicalBaseUrl->method('of')->willReturnCallback(
             static fn (Store $store): string => rtrim((string) $store->getBaseUrl(), '/')
@@ -77,8 +99,125 @@ class StoreLocaleMapTest extends TestCase
             $storeManager ?? $this->storeManager,
             $this->config,
             new CodeValidator(),
-            $canonicalBaseUrl
+            $canonicalBaseUrl,
+            $this->codeList(),
+            new OccasionalLog(
+                $cache ?? $this->createStub(CacheInterface::class),
+                $logger ?? $this->createStub(LoggerInterface::class)
+            )
         );
+    }
+
+    /**
+     * A CodeList by its rules — normalised, well-formed, a known region, each once — whose
+     * country directory knows every region but UK. CodeListTest covers the real one.
+     *
+     * @return CodeList
+     */
+    private function codeList(): CodeList
+    {
+        $codeList = $this->createStub(CodeList::class);
+        $codeList->method('check')->willReturnCallback(
+            static function (array $entered): array {
+                $validator = new CodeValidator();
+                $codes     = [];
+                $rejected  = [];
+                foreach ($entered as $code) {
+                    $candidate = $validator->normalise((string) $code);
+                    if (!$validator->isValid($candidate) || $validator->region($candidate) === 'UK') {
+                        $rejected[] = $code;
+                    } elseif (!\in_array($candidate, $codes, true)) {
+                        $codes[] = $candidate;
+                    }
+                }
+
+                return [
+                    'codes' => $codes, 'rejected' => $rejected,
+                    'malformed' => [], 'duplicates' => [], 'unknown_regions' => [],
+                ];
+            }
+        );
+
+        return $codeList;
+    }
+
+    public function testAStoreWithHreflangOffIsNoTarget(): void
+    {
+        // Issue #28: an enabled store linking to one that links back to nothing.
+        $map = $this->map(
+            [$this->makeStore(1, true, 'https://uk/'), $this->makeStore(2, true, 'https://de/')],
+            [1 => 'en_GB', 2 => 'de_DE'],
+            hreflangOff: [2]
+        );
+
+        $this->assertSame([1], array_keys($map->getMap()));
+    }
+
+    public function testAStoreWithHreflangOffClaimsNoCode(): void
+    {
+        // Issue #28: a disabled store with a lower ID took the shared code first.
+        $map = $this->map(
+            [$this->makeStore(1, true, 'https://a/'), $this->makeStore(2, true, 'https://b/')],
+            [1 => 'en_GB', 2 => 'en_GB'],
+            hreflangOff: [1]
+        );
+
+        $this->assertSame([2 => ['base_url' => 'https://b', 'codes' => ['en-GB']]], $map->getMap());
+    }
+
+    public function testConfiguredCodesAreCheckedAsTheAdminChecksThem(): void
+    {
+        // Issue #29: a value from config.php, env.php or the database skips the admin's check.
+        $map = $this->map(
+            [$this->makeStore(1, true, 'https://uk/')],
+            [1 => 'en_GB'],
+            codes: [1 => ['EN_gb', 'not-valid', 'en-gb', 'en-UK', 'en-IE']]
+        );
+
+        $this->assertSame(['en-GB', 'en-IE'], $map->getMap()[1]['codes']);
+    }
+
+    public function testAStoreWithNoValidConfiguredCodeUsesItsLocale(): void
+    {
+        $map = $this->map(
+            [$this->makeStore(1, true, 'https://uk/')],
+            [1 => 'en_GB'],
+            codes: [1 => ['not-valid']]
+        );
+
+        $this->assertSame(['en-GB'], $map->getMap()[1]['codes']);
+    }
+
+    public function testAnInvalidLocaleCodeGivesNoCode(): void
+    {
+        $map = $this->map(
+            [$this->makeStore(1, true, 'https://uk/'), $this->makeStore(2, true, 'https://x/')],
+            [1 => 'en_GB', 2 => 'eng_GBR']
+        );
+
+        $this->assertSame([1], array_keys($map->getMap()));
+    }
+
+    public function testARejectedCodeIsLoggedAtMostOnceEveryFiveMinutes(): void
+    {
+        $logger = $this->createMock(LoggerInterface::class);
+        $logger->expects($this->once())->method('warning')->with(
+            $this->logicalAnd($this->stringContains('not-valid'), $this->stringContains('2'))
+        );
+        $cache = $this->createMock(CacheInterface::class);
+        $cache->method('load')->willReturnOnConsecutiveCalls(false, '1');
+        $cache->expects($this->once())->method('save')->with('1', $this->anything(), [], 300);
+
+        $map = $this->map(
+            [$this->makeStore(2, true, 'https://uk/')],
+            [2 => 'en_GB'],
+            codes: [2 => ['en-GB', 'not-valid']],
+            logger: $logger,
+            cache: $cache
+        );
+        $map->getMap();
+        $map->reset();
+        $map->getMap();
     }
 
     public function testFormatLocaleConvertsToBcp47(): void

@@ -109,4 +109,36 @@ class CanonicalPathRedirectTest extends TestCase
 
         $this->assertSame($redirect, $this->model($redirectFactory)->check('llms.txt'));
     }
+
+    /**
+     * A trailing slash is another URL with its own cache entry: /llms.txt/ was served as a second,
+     * publicly cacheable copy of /llms.txt.
+     */
+    public function testTrailingSlashTriggers301ToCanonicalPath(): void
+    {
+        $this->stubRequest('/llms.txt/', []);
+
+        $redirect = $this->createMock(Redirect::class);
+        $redirect->expects($this->once())->method('setUrl')->with('https://example.com/llms.txt')->willReturnSelf();
+        $redirect->expects($this->once())->method('setHttpResponseCode')->with(301)->willReturnSelf();
+        $this->redirectFactory->method('create')->willReturn($redirect);
+
+        $this->assertSame($redirect, $this->model->check('llms.txt'));
+    }
+
+    /**
+     * The same for a nested path, as /.well-known/ucp/ is.
+     */
+    public function testTrailingSlashOnANestedPathTriggers301(): void
+    {
+        $this->stubRequest('/.well-known/ucp/', []);
+
+        $redirect = $this->createMock(Redirect::class);
+        $redirect->expects($this->once())->method('setUrl')->with('https://example.com/.well-known/ucp')
+            ->willReturnSelf();
+        $redirect->expects($this->once())->method('setHttpResponseCode')->with(301)->willReturnSelf();
+        $this->redirectFactory->method('create')->willReturn($redirect);
+
+        $this->assertSame($redirect, $this->model->check('.well-known/ucp'));
+    }
 }

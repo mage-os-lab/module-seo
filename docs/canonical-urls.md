@@ -46,13 +46,19 @@ store view. It is on by default.
 
 Core's product/category canonical tags are **disabled by default** in Magento; enable them under
 **Stores → Configuration → Catalog → Catalog → Search Engine Optimization** if you want catalog
-canonicals and no bridge module manages them.
+canonicals and no bridge module manages them. This module does not turn them on, and adds no
+product or category canonical of its own.
+
+Before turning on core's category canonical, know what it does with pagination: it is the
+category's URL without its query string, so page 2 onwards (`?p=2`) names page 1 as its canonical.
+Google's advice is the opposite, a canonical of its own for each page of a paginated listing.
 
 ---
 
 ## How it works in code
 
-`CanonicalUrlManager` is a simple service with one public method:
+Inject `MageOS\Seo\Api\CanonicalUrlManagerInterface` (the API; its preference is
+`Model\Canonical\CanonicalUrlManager`). It has one method:
 
 ```php
 $canonicalManager->setCanonical(
@@ -63,8 +69,7 @@ $canonicalManager->setCanonical(
 
 The manager removes every asset in the page asset collection whose content type is `canonical`
 (this is how both core and this module add canonical links, this module's CMS canonical included),
-then adds the new one.
-The legacy third `$urlKey` parameter is retained for backward compatibility but ignored.
+then adds the new one. The third `$urlKey` parameter, ignored since 1.x, is gone in 2.0.
 
 ---
 

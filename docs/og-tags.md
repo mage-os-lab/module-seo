@@ -25,9 +25,16 @@ When disabled, no `og:` or `product:` meta tags are output anywhere on the site.
 | `og:url` | Product canonical URL |
 | `og:description` | Short description (HTML stripped, truncated to 300 characters) |
 | `og:image` | First product image URL |
-| `product:price:amount` | Final price formatted to 2 decimal places |
+| `product:price:amount` | Final price formatted to 2 decimal places: the price the structured data publishes (`Model\Product\FinalPrice`) |
 | `product:price:currency` | ISO currency code (e.g. `GBP`) |
-| `product:availability` | `instock` or `out of stock` |
+| `product:availability` | `in stock`, `available for order` (on backorder) or `out of stock`, from the stock index the structured data reads; left out when the stock could not be read |
+
+The price is the one the page shows, including tax when the store shows prices including tax. When
+it is not known, both price tags are left out rather than written as `0.00`, which reads as free: a
+price of 0 (unless **Publish a Price of Zero** is on, for a simple product), a composite product
+(configurable, grouped, bundle) priced 0, which Magento does when no option can price it, or a price
+that cannot be read, which is logged with the SKU. The structured data's offer leaves its price out
+in the same cases; see [structured-data.md](structured-data.md).
 
 ### Category pages
 

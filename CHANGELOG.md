@@ -8,6 +8,399 @@ hardcoded version field).
 
 ## [Unreleased]
 
+The next release is **2.0.0**: other modules now reach this one through `Api` interfaces, and MSI
+is required. MageOS_Aeo, MageOS_Faq and MageOS_Agentic require `^2.0`.
+
+### Upgrading to 2.0.0
+
+Every breaking change since 1.2.1, each described under its heading below:
+
+- **MSI is required.** Composer now requires `magento/module-inventory-sales`,
+  `-inventory-indexer` and `-inventory-configuration`, and `module:disable` refuses to disable
+  them while this module is enabled. Availability is read through their service contracts.
+- **Type against the `Api` interfaces.** Every class another module uses has an interface in
+  `Api/`, with a preference to the class (the table in `docs/extending.md`, "The module's
+  contract"). The classes themselves are not `@api`: their constructors may change in any
+  release, and some do in this one. A di.xml that fills `HandlerPool`, `PublicPaths` or the FAQ
+  `SourcePool` can name the interface instead; the class name still works.
+- **`Service\CurrencyService` is removed.** `Api\SchemaPriceInterface` (`Model\Price\SchemaPrice`)
+  formats an amount as `0.00` and gives the current currency code, which was all of it that was
+  used.
+- **`CanonicalUrlManager::setCanonical()` takes two arguments.** The third, `$urlKey`, was ignored;
+  a call passing it fails. Type against `Api\CanonicalUrlManagerInterface`.
+- **`ProblemLog::ALL` is `Api\Rebuild\ProblemLogInterface::ALL`.**
+- **`AvailabilityResolver::resolve()` and `best()` return null** when the stock could not be read,
+  where they returned OutOfStock.
+- **`Api\Data\OrganizationInterface` has `getLogoSource()` and `setLogoSource()`.** A class
+  implementing the interface itself must add them. `getLogoPath()` is the custom logo only.
+- **Search results pages default to `NOINDEX,FOLLOW`.** A value already saved is kept.
+- **The ACL resources moved;** their IDs did not, so roles keep their grants.
+- **The `rs_` attribute fallbacks are gone.**
+- **Product pages lose Luma's microdata** while the structured data is on: set **Remove the
+  Theme's Product Microdata** to No to keep it.
+- **Sitemap file names have a set** (`…-a-1.xml`, `…-b-1.xml`); the index keeps its name.
+- **Shipping rates are in the base currency.** Re-enter one entered in a different display
+  currency.
+- **Flush the page cache once after upgrading:** pages cached before carry none of the new cache
+  tags.
+- **Constructors changed** throughout; a subclass that overrides one follows. The lists are under
+  Changed.
+
+### Added
+
+- **`Api` interfaces for every class the companion modules use** (review M8, decision D7b):
+  - `Api\Rebuild\`: `RegenerationRequesterInterface`, `InvalidatorInterface`,
+    `ProblemLogInterface`, `ChangeInspectorInterface`, `HandlerPoolInterface`;
+  - `Api\Router\`: `PublicPathsInterface`, `CanonicalPathRedirectInterface`;
+  - `Api\Product\`: `AvailabilityResolverInterface`, `FinalPriceInterface`,
+    `SchemaTemplatesInterface`, `OfferSummaryInterface`;
+  - `Api\Robots\PageDirectivesInterface`;
+  - `Api\`: `SchemaPriceInterface`, `FaqSourcePoolInterface`, `ContactEmailInterface`,
+    `StorefrontSettingsInterface`, `CanonicalUrlManagerInterface`.
+
+  Each holds what other modules use and nothing more, and is `@api`. Two classes stay classes,
+  extended without `@api`: `Exception\RebuildInProgressException` and
+  `Model\ResourceModel\AbstractConnectedResource`. See `docs/extending.md`, "The module's contract".
+- **`Model\Product\OfferSummary`** (`Api\Product\OfferSummaryInterface`): a product's price, a
+  configurable's price range and its best variant's availability, as the offer publishes them.
+  The offer is built from it, and MageOS_Aeo's llms.jsonl reads it, so the two agree.
+- **`Model\RobotsMeta\PageDirectives`** (`Api\Robots\PageDirectivesInterface`): the robots
+  directive each product and category page has, categories inherited along their path, core's
+  default where this module has none. The sitemap leaves NOINDEX pages out through it, and
+  MageOS_Aeo's feeds do too.
+- **A feed reads a page of configurables' variants at once.** `Api\Product\OfferSummaryInterface`
+  has `prefetch()`: the variants of a page of products in one of core's child collections
+  (`Model\Product\Variant\ChildLoader`, `Model\ResourceModel\VariantLinks`), their stock in one
+  lookup. Read one configurable at a time through core's provider, each cost ten queries, its
+  gallery and configurable attributes among them; MageOS_Aeo's llms.jsonl build on Luma's sample
+  catalogue went from 2,440 queries to 821. Product pages keep core's path.
+- **`Api\Product\VariantImageInterface`:** a product's base image, or for a configurable without
+  one, its first sold variant's, from the variants already read. Core's `getImage()` loads all of a
+  configurable's variants for that.
+- **The variants described are the ones the storefront sells, in every area.** Core registers its
+  configurable status and stock filters for the frontend only, so a feed built by the queue or cron
+  included disabled variants. `Model\Product\Variant\StorefrontOptionsFilter` (di.xml) applies both
+  wherever `ChildProducts` is asked. A module that adds a filter to core's frontend composite adds
+  it there too, for the feeds. `ChildProducts` takes the filter, `VariantLinks`, `ChildLoader` and a
+  logger.
+- **Remove the Theme's Product Microdata** (Structured Data (JSON-LD), default Yes, per store
+  view; review M9, decision D4a). Luma's product page marks the product up in microdata, its name,
+  price, image and reviews, which search engines read as a second Product beside this module's.
+  While the page has this module's Product JSON-LD, the microdata attributes and `<meta>`/`<link>`
+  elements are removed from the product page (`Plugin\View\RemoveThemeMicrodata`). Scripts and
+  styles are left alone. See `docs/structured-data.md`, "The theme's microdata".
+
+### Fixed
+
+- **A product's schema template no longer follows the visitor's browsing** (review M6, decision
+  D9b). It came from the category the session last visited, so the page cache kept whichever
+  template the first visitor's history gave. It now comes from the URL's category when that is one
+  of the product's categories under the store's root, else from the product's deepest category
+  under the root, ties going to the lowest ID (`Model\Product\SchemaCategory`).
+- **A stock lookup that fails no longer says OutOfStock** (decision D8a). The offer, Open Graph
+  and MageOS_Aeo's llms.jsonl leave availability out instead, and the failure is logged as before.
+- **Open Graph's `product:availability` is read from the stock index,** as the structured data's
+  is, and uses Meta's values: `in stock`, `available for order` (backorders) or `out of stock`.
+  It came from `isSalable()` and wrote `oos` for out of stock. With the stock unreadable, the tag is
+  left out.
+- **A CMS page's `og:image` renders no widget twice** (review M10). The whole content went through
+  the page filter to find the first image, rendering every widget on it a second time, and any
+  failure was swallowed. Only the first image's `src` is filtered now, so `{{media url=…}}` still
+  resolves, and a failure is logged.
+- **An article or event no longer points at an Organization the page doesn't have.** A BlogPosting's
+  author and publisher, and an Event's organizer, referenced the Organization's `@id` whether or not
+  one was published; with none configured it was the bare `/#organization`, which no node carries.
+  They are now left out until the Organization has a name, the point at which it is published
+  (`Model\StructuredData\OrganizationId::getPublishedId()`, which replaces `getId()`, and
+  `isPublished()`, which `OrganizationProvider` now asks too). No module registered an article or
+  event provider until mage-os/module-blog-seo, so nothing showed it before.
+- **`/llms.txt/`, with a trailing slash, 301s to `/llms.txt`** (`CanonicalPathRedirect`), as a
+  query string does. It was served as a second copy, with its own cache entry. The same holds for
+  every path the redirect guards, `/.well-known/ucp` included.
+- **Shipping times no longer invent or invert a bound**
+  ([#32](https://github.com/mage-os-lab/module-seo/issues/32)). A missing minimum or maximum was
+  published as 0, so a minimum of 2 alone became 2 to 0 days, and an inverted, negative or
+  fractional value was published as it stood. A time is now a maximum number of days, with a minimum
+  or without, as Google's shipping-policy reference reads it. The admin refuses the rest, whether
+  saved in the form or with `bin/magento config:set`. A value stored past that check is left out,
+  and logged at most once every five minutes per store view.
+- **The shipping rate is converted to the currency shown**
+  ([#33](https://github.com/mage-os-lab/module-seo/issues/33)). The configured number was
+  published under the display currency's code without converting it. The rate is now in the
+  base currency, as product prices and core's flat-rate shipping are, and is converted to the
+  currency the visitor sees. **A store whose display currency differs from its base currency, and
+  which entered the rate in the display currency, should enter it again in the base currency.**
+- **A missing shipping rate is no longer published as free shipping.** A blank rate became 0.00. A
+  rate is now required while shipping details are on, and must be an amount of 0 or more. Without
+  one, or with one that cannot be converted, the shipping details are left out.
+- **Changing SEO settings purges the cached pages built from them**
+  ([#21](https://github.com/mage-os-lab/module-seo/issues/21)). Pages carried only the
+  Organization's cache tag, so a change to a category's, product's or CMS page's SEO settings was
+  served from the page cache until it expired. A category's change missed most: the categories
+  beneath it inherit its settings and the products in them read it for their schema. Each page now
+  carries a tag for every entity whose settings it read, ancestors included. Every write to the
+  settings — the admin forms, imports, the repositories — purges those tags once committed, for
+  the built-in cache and Varnish alike. Moving or deleting a category purges what inherited from
+  it. A CMS page moving between translation groups purges both groups' pages, from any write, not
+  only the admin form. **After upgrading, flush the page cache once:** pages cached before carry
+  none of the new tags. Changes in Stores → Configuration still need the Page Cache refreshed, as
+  core's do. See docs/extending.md, "Cache considerations".
+- **Rebuilds are queued once the change is committed**
+  ([#22](https://github.com/mage-os-lab/module-seo/issues/22)). A save queued its rebuild during
+  the save, before the commit: on AMQP a consumer could rebuild from the data before the change,
+  and a rolled-back change was still rebuilt. `RegenerationRequester::request()` inside a
+  transaction now waits for the commit, and a rollback drops it; outside one it queues at once.
+- **A long-running consumer builds from current data**
+  ([module-aeo #9](https://github.com/mage-os-lab/module-aeo/issues/9)). Magento resets nothing
+  between a consumer's messages, so the Organization, stock IDs, the sitemap list and the
+  configuration stayed as the first message loaded them. Before each build the consumer now resets
+  the services listed for `Model\Rebuild\BuildFreshness`, and reloads the configuration and store
+  list when a configuration change was saved since.
+- **The consumer no longer spins while another process holds a rebuild's lock.** It put the
+  message straight back, and took it again at once. It now waits for the lock, up to 10 minutes,
+  before putting it back.
+- **Switching sitemap generation or Rebuild on Change on queues a rebuild.** It queued none:
+  whether any sitemap is rebuilt was asked of the configuration before the save, when both were
+  still off.
+- **An offer says BackOrder only for a product that sells through backorders**
+  ([#30](https://github.com/mage-os-lab/module-seo/issues/30)). A product that could only be
+  backordered said InStock, and one nobody could order said BackOrder whenever backorders were
+  configured. Availability is now read as the storefront reads it, from MSI's stock index:
+  OutOfStock when not salable, InStock with a quantity above zero, BackOrder when salable at zero or
+  below with stock managed. A configurable's offer takes its best variant's availability. Like the
+  page, reservations are not subtracted. See `docs/structured-data.md`, "An offer's availability".
+- **`priceValidUntil` belongs to the price published**
+  ([#31](https://github.com/mage-os-lab/module-seo/issues/31)). A special price starting next month
+  lent its end date to this month's price, and so did a special a lower catalog rule beat. The date
+  is now published only for a special price core's `SpecialPrice` has in effect today and that is
+  the price the offer publishes.
+- **The offer's price is the price the page shows**
+  ([#40](https://github.com/mage-os-lab/module-seo/issues/40)). On a store that shows prices
+  including tax, the offer gave the price excluding it: the page said £340.00, the JSON-LD
+  `283.33`. `Model\Product\FinalPrice` now reads the final price's amount with the adjustments the
+  store displays, as core's price box does. That fixes the offer, an AggregateOffer's range, each
+  variant's offer, Open Graph and MageOS_Aeo's llms.jsonl alike. A store that shows prices
+  excluding tax sees no change.
+- **A price of 0 is not published as free, unless you say so**
+  ([#41](https://github.com/mage-os-lab/module-seo/issues/41)). A store that hides prices from
+  guests showed `"price": "0.00"`, which Google reads as free. A final price of 0 is now unknown,
+  so there is no price in the structured data, Open Graph or llms.jsonl, unless the new setting
+  **Publish a Price of Zero** (Structured Data (JSON-LD), default No) is on; then a simple product
+  priced 0 is offered as free. A price below 0 is never published.
+- **Open Graph leaves out a price that is not known**
+  ([#38](https://github.com/mage-os-lab/module-seo/issues/38)). An unavailable configurable said
+  `product:price:amount` 0.00 while its structured data had no price, and a price that could not be
+  read was dropped silently. Open Graph now takes the price from `Model\Product\FinalPrice`, as the
+  structured data does: no price tags when it's unknown, and a failed read is logged.
+- **A store view with hreflang off is no alternate**
+  ([#28](https://github.com/mage-os-lab/module-seo/issues/28)). Enabled store views linked to it in
+  the head and the sitemap, and it could be x-default, though its own pages link back to nothing.
+  It could also take a code shared with an enabled store view of a higher ID. `StoreLocaleMap` now
+  leaves it out, so none of these sees it.
+- **Hreflang codes are checked whatever set them**
+  ([#29](https://github.com/mage-os-lab/module-seo/issues/29)). Only the admin checked them: a code
+  from `config.php`, `env.php`, `config:set` or the database was published as it was, malformed,
+  with a region that doesn't exist (`en-UK`) or twice. The codes, and the locale code a store view
+  falls back on, now pass the admin's own check as they are read; one that fails is left out and
+  logged as a warning at most once every five minutes. A store view whose locale has no two-letter
+  language, such as `fil_PH`, now needs a configured code to take part.
+- **x-default can be set to none**
+  ([#35](https://github.com/mage-os-lab/module-seo/issues/35)). The field said "Leave unset" but had
+  no empty choice, and offered inactive store views. It now starts with "-- None --" and lists active
+  store views only.
+- **Clearing every excluded store view saves**
+  ([#36](https://github.com/mage-os-lab/module-seo/issues/36)). An empty multiselect sent nothing, so
+  the previous exclusions stayed.
+- **A sitemap that fails to publish stays whole**
+  ([#24](https://github.com/mage-os-lab/module-seo/issues/24)). The files replaced their names one
+  at a time, then the index, so a failure part-way left the old index listing a mix of new and old
+  files. And they were moved in from the system's temporary directory, which on most setups is
+  another filesystem, where a move is a copy into the live name that a crawler can read
+  half-written. Each kind of page now has two sets of files: a rebuild writes the set the index does
+  not list, every file under a temporary name next to its own, and switches the index last. See
+  `docs/sitemap.md`, "Two sets, one index".
+- **Installations sharing a temporary directory no longer write over each other's sitemaps**
+  ([#25](https://github.com/mage-os-lab/module-seo/issues/25)). Files were staged in the system's
+  temporary directory under the sitemap's own path and name, so two installations with the same
+  sitemap could publish each other's files. Nothing is staged outside the sitemap's directory now.
+- **Sitemaps are written to remote storage.** With Magento_RemoteStorage, this module wrote the
+  sitemap to the local `pub/` of the server generating it, while the admin grid and every other
+  server looked in the bucket; every Site Map save and `setup:upgrade` then queued it again as
+  missing. The Writer, the missing check and the clean-up are given `fullRemoteFilesystem`, as
+  core's sitemap is.
+- **Deleting a sitemap removes its files.** Magento's Delete removes only the index, and deleting a
+  store view removes its entries without removing a file, so the rest stayed reachable, listed
+  nowhere. They are removed once the deletion commits, unless another entry uses them.
+- **A new name, image or caption rewrites the products' sitemap files**
+  ([#23](https://github.com/mage-os-lab/module-seo/issues/23)). While a sitemap lists product
+  images (Magento's default), a product's row carries its name as the image title, its images and
+  their captions, but only a URL key, status, visibility or website change queued a rewrite; the
+  rest waited for Magento's scheduled generation, which is off by default. A change to the name,
+  base image or thumbnail — saved or mass-updated — or to the gallery now queues the products. The
+  gallery is compared on what is shown — images, captions, hidden, position — so saving the
+  product form unchanged queues nothing.
+- **A product import rewrites the products' sitemap files.** Magento's import writes to the
+  database directly, so no save reported it; the products are now queued once an import finishes.
+- **A failed import from MageOS_MetaRobotsTag or MageOS_Hreflang is no longer recorded as done**
+  ([#27](https://github.com/mage-os-lab/module-seo/issues/27)). The data patches caught the failure,
+  so Magento recorded them as applied and never ran them again. A failed database write did not
+  even reach that point: it made the upgrade itself fail. Now `setup:upgrade` tries each import
+  once and never fails because of it, and whether it finished is the module's own record (the
+  `mageos_seo_legacy_import` flag). While one has not finished, and its module left data behind,
+  the admin shows a System Message. `bin/magento seo:import-legacy` runs the imports or repeats
+  them, and `--dry-run` reports what they would write. An installation that ran the earlier
+  imports has no record that they finished, so the message shows there until the command is run.
+- **The imports never replace a value already set in this module**
+  ([#26](https://github.com/mage-os-lab/module-seo/issues/26)). A product's, category's or CMS
+  page's robots setting was overwritten with the one MageOS_MetaRobotsTag's flags gave, and the
+  x-default store view with MageOS_Hreflang's. Each import now fills only what is empty, and
+  reports each value it kept, with both values, in the log and the command's output. Where this
+  module's hreflang is set to No for a store view that MageOS_Hreflang served, the No is kept, and
+  MageOS_Hreflang stays on for that store view instead of being switched off.
+- **MageOS_MetaRobotsTag's flags are imported per store view.** Its flags are store-scoped, and
+  that module applies them to each store view's own default robots, but the import read them at
+  one store view and resolved them against the default scope's robots only. A flag set for one store
+  view was applied to all of them, and a store view with another default, such as a staging store
+  view's `NOINDEX,NOFOLLOW`, got the wrong directive. Each store view an entity is on now gets the
+  directive it was served: one setting for all store views where they agree, one per store view
+  where they differ. Once the import has finished, the admin advises disabling MageOS_MetaRobotsTag,
+  which keeps applying its flags while it is enabled. See `docs/robots-meta.md`, "Moving from
+  MageOS_MetaRobotsTag". Settings imported by earlier versions are not revisited.
+- **The Organization's design logo is each store view's own, and follows changes**
+  ([#37](https://github.com/mage-os-lab/module-seo/issues/37)).
+  - "Use Design Logo" stored the admin's design logo URL at the time of saving. Whatever scope was
+    being edited, it was the admin store view's logo, on the admin's media URL. The form then
+    guessed the choice by comparing that URL with today's design logo, so a changed theme logo
+    turned it into a frozen custom logo.
+  - The choice is now stored, and the logo is worked out for each store view when a page is
+    rendered: its own design logo under its own media URL, or the custom upload under its own
+    media URL, never the admin's, which may not be public.
+  - A design logo whose file is missing is not published.
+  - The form says what the scope being edited publishes.
+  - **A record saved before this keeps publishing its stored logo URL until it is saved again with
+    "Use Design Logo" or a new upload.**
+- **A "Static block only" category no longer loads its whole product collection** (review M1).
+  - Magento renders no product list on such a category, so the collection the category ItemList
+    reads was unloaded. Reading it loaded every product the category matched, unpaginated, on
+    every uncached request, to list products the page does not show.
+  - There is now no ItemList where the page shows no products: a "Static block only" category, or
+    a collection the listing did not load. The ItemList never loads the collection itself.
+- **A category's later pages keep its robots restrictions**
+  ([#34](https://github.com/mage-os-lab/module-seo/issues/34)).
+  - With Override Robots on Paginated Pages on, page 2 and later took the Paginated Pages Robots
+    value outright. A category set to `NOINDEX`, on itself, a parent or the Category Pages
+    default, became `INDEX` on page 2 when that value was `INDEX,FOLLOW`.
+  - The value can now only add restrictions: every restriction of the category's directive is
+    kept on every page. A category that should be indexed on its later pages is set to `INDEX`.
+  - The setting's help and `docs/robots-meta.md` say so.
+- **A logo upload must be the image its name says** ([#20](https://github.com/mage-os-lab/module-seo/issues/20)).
+  - Any file `getimagesize()` recognised passed under an image extension, a Flash movie named
+    `.jpg` among them. Core's own validator lets through the types it does not list.
+  - A logo is now a JPEG, PNG, GIF or WebP whose bytes match its extension.
+  - It must be complete, its structure walked to the end its format defines. Decoders draw a JPEG,
+    or under GD a GIF, that is cut short.
+  - It must decode: with Magento's image adapter, GD2 or ImageMagick, or for WebP with whichever of
+    ImageMagick and GD can read it.
+  - WebP is new. Where nothing on the server can decode WebP, a WebP upload is refused with a
+    message.
+  - The type check never relies on an adapter, since ImageMagick decodes SVG and PDF too.
+
+### Changed
+
+- Indexer lag is documented, not handled. With indexers on Update by Schedule, a rebuild can run
+  before the indexers have caught up with the same change; the next change, or the nightly
+  generation, catches up. See `docs/sitemap.md`, "When a rebuild runs".
+- **Availability is read a batch of products at a time.** `Model\Product\AvailabilityResolver` has
+  `resolveMany()`, `prefetch()` and `best()` beside `resolve()`. A batch costs one stock-index query
+  (MSI's `@api` `GetStockItemsDataInterface`), plus one for whether stock is managed when some
+  product is salable at zero or below (`Model\ResourceModel\StockItemManageStock`). A configurable's
+  variants are read as one batch. Before, each product ran MSI's per-product condition chain: outside
+  the storefront areas, as in a feed build, a 15-variant configurable took 149 queries and takes 14
+  now. MageOS_Aeo's llms.jsonl reads availability through it.
+- **Constructors:** `Model\Product\AvailabilityResolver` takes MSI's `GetStockItemsDataInterface`,
+  `IsSourceItemManagementAllowedForProductTypeInterface`, the new manage-stock resource model,
+  `StockConfigurationInterface` and a logger, in place of `IsProductSalableInterface` and
+  `GetStockItemConfigurationInterface`. `Model\Product\OfferBuilder` no longer takes `DateTime`.
+  `Model\Product\Variant\ProductGroupBuilder` takes `AvailabilityResolver`,
+  `Model\MetaTag\Provider\ProductMetaProvider` takes `FinalPrice`, and `Model\Product\FinalPrice`
+  takes `Model\Config`. `Model\Hreflang\StoreLocaleMap` also takes `Hreflang\CodeList`, a cache and a
+  logger. None of them is `@api`, but a subclass that overrides one of these constructors must
+  follow.
+- **Sitemap file names have a set: `sitemap-1-products-a-1.xml`, `…-b-1.xml`.** The index keeps its
+  name, so nothing needs resubmitting. A sitemap written with the earlier names is written whole at
+  its next rebuild, and its earlier files go at the rebuild after. Search Console shows the index's
+  children under their new names after each rebuild of their kind.
+- **Requires `magento/module-remote-storage`,** which declares `fullRemoteFilesystem`. It is part of
+  every Magento and Mage-OS installation.
+- **Sitemap classes:** `Model\Sitemap\Writer` takes `Model\Sitemap\FileNames` (new: every name a
+  sitemap's files can have) and a logger, and has `abandon()`, which the Generator calls when a
+  generation fails. `Model\Sitemap\Generator` has `getFileTypes()`. New: `Model\Sitemap\FileRemover`,
+  `Plugin\Sitemap\RemoveFilesOnDelete`, `Observer\RemoveSitemapFilesOnScopeDelete`. None is `@api`.
+- **Invalidation:** `Model\Sitemap\RebuildableSitemaps` takes core's `Magento\Sitemap\Helper\Data`
+  and has `listsProductImages()`; `Model\Rebuild\ChangeInspector` has `galleryChanged()`;
+  `Model\Sitemap\InvalidationPolicy::EVENT_PRODUCT_IMPORT`.
+- **The consumer resets the hreflang store map before each build,** with the other services listed
+  for `Model\Rebuild\BuildFreshness`, so a hreflang setting changed since shows in the next rebuild.
+  `Hreflang\CodeList` reads the country list once per request, not once per check.
+- **Requires `magento/module-catalog-inventory`**, for the stock item's manage-stock setting and its
+  configured default. It is part of every installation with MSI.
+- **Legacy imports:** `Model\Migration\MetaRobotsTagImporter` takes the new
+  `Model\Migration\MetaRobotsTagDirectives`, the three repositories and the purger. It and
+  `Model\Migration\HreflangImporter` implement the new `Model\Migration\LegacyImporterInterface`:
+  `import()` takes `$dryRun` and returns a report with `notes`, and `describe()` words it. The data
+  patches take the new `Model\Migration\LegacyImport`, which runs the imports and records which
+  finished. New: `Console\Command\ImportLegacyCommand`, `Model\System\Message\LegacyImportStatus`.
+  None is `@api`.
+- **Paginated robots:** `Model\RobotsMeta\Provider\CatalogPaginationRobotsProvider` takes
+  `CategoryRobotsProvider` and `DirectiveComposer`; `DirectiveComposer` has `restrictive()`.
+  Neither is `@api`.
+- **Organization logo:**
+  - **`Api\Data\OrganizationInterface` (`@api`) has `getLogoSource()` and `setLogoSource()`,** with
+    `LOGO_SOURCE_DESIGN` and `LOGO_SOURCE_CUSTOM`, and a `logo_source` column. A class
+    implementing the interface itself must add them.
+  - `getLogoPath()` is now the custom logo only, a media-relative path.
+  - `UploadLogo` returns that path as `file`.
+  - New: `Model\Organization\LogoUrl`, `LogoFileValidator`, `ImageCompleteness` and `WebpSupport`.
+  - `Model\StructuredData\Provider\OrganizationProvider` and `Controller\Adminhtml\Organization\Save`
+    take `LogoUrl`. `Ui\DataProvider\OrganizationDataProvider` takes it in place of the scope config
+    and store manager, and `UploadLogo` takes `LogoFileValidator`.
+- **MSI is required** (review M3, decision D1b). Composer requires
+  `magento/module-inventory-sales`, `-inventory-indexer` and `-inventory-configuration`, which
+  supply the stock services availability is read through. Core's dependency check reads
+  composer.json, so `module:disable` now refuses them while this module is enabled.
+- **Search results pages default to `NOINDEX,FOLLOW`** (decision D10a), Google's advice for
+  internal search. They defaulted to "Use Magento Default". A value saved for them is kept. See
+  `docs/robots-meta.md`.
+- **The permissions sit under their menus** (decision D11a). `MageOS_Seo::seo`, with
+  `MageOS_Seo::organization`, is under Marketing, where the SEO menu is; it was a top-level node
+  beside Marketing and Stores. `MageOS_Seo::config` is under Stores → Settings → Configuration,
+  with every other configuration section's. The IDs are unchanged, so roles keep their grants.
+- **`CanonicalUrlManager` implements `Api\CanonicalUrlManagerInterface`** (decision D14), and
+  `setCanonical()` drops its third argument, `$urlKey`, which nothing read.
+- **Constructors (2.0):**
+  - `Model\Product\OfferBuilder` takes `StoreManagerInterface`, `Api\SchemaPriceInterface`,
+    `OfferEnricherPool` and `Model\Product\OfferSummary`; `buildAggregateOffer()` takes the
+    children, the low price and the high price.
+  - `Model\MetaTag\Provider\ProductMetaProvider` takes `Api\SchemaPriceInterface` and
+    `AvailabilityResolver`; `Model\MetaTag\Provider\CmsPageMetaProvider` takes a logger.
+  - `Model\Product\OfferEnricher\ShippingDetailsEnricher` takes `Api\SchemaPriceInterface` in place
+    of `CurrencyService`.
+  - `Model\StructuredData\Provider\ProductSchemaProvider` takes `Model\Product\SchemaCategory`.
+  - `Model\Sitemap\Robots\Enricher` takes `Config`, `Api\Robots\PageDirectivesInterface`,
+    `CmsPageRobotsProvider` and `CmsPageResolver`: products' and categories' directives come from
+    `PageDirectives`.
+- **Composer requires `magento/module-eav` and `magento/module-catalog-url-rewrite`,** which the
+  code already used.
+
+### Removed
+
+- **`Service\CurrencyService`** and its test. `Api\SchemaPriceInterface` replaces the two methods
+  in use. The rest was unused, and `currencyFormatter()` passed a symbol where `NumberFormatter`
+  wants an ISO code.
+- **The `rs_` attribute fallbacks** in the Generic, Home Decor and Apparel builders. An attribute
+  such as `rs_weight` came from the module's origin; this module defines none, and none is read.
+- **`ProblemLog::ALL`**, now `Api\Rebuild\ProblemLogInterface::ALL`.
+
 ## [1.2.1] — 2026-10-05
 
 ### Added

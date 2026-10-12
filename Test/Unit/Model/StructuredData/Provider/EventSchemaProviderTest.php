@@ -39,7 +39,7 @@ class EventSchemaProviderTest extends TestCase
         $this->layout->method('getUpdate')->willReturn($this->layoutUpdate);
         $this->layoutUpdate->method('getHandles')->willReturn(['events_view']);
         $this->organizationId = $this->createStub(OrganizationId::class);
-        $this->organizationId->method('getId')->willReturn('https://acme.com/#organization');
+        $this->organizationId->method('getPublishedId')->willReturn('https://acme.com/#organization');
     }
 
     /**
@@ -104,5 +104,23 @@ class EventSchemaProviderTest extends TestCase
         $this->assertSame('Event', $schemas[0]['@type']);
         $this->assertSame('Spring Market', $schemas[0]['name']);
         $this->assertSame(['@id' => 'https://acme.com/#organization'], $schemas[0]['organizer']);
+    }
+
+    /**
+     * Decision (a), 2026-10-11: with no Organization published, an event names no organizer, rather
+     * than pointing at an Organization node the page doesn't have.
+     *
+     * @return void
+     */
+    public function testWithNoOrganizationPublishedThereIsNoOrganizer(): void
+    {
+        $this->organizationId = $this->createStub(OrganizationId::class);
+        $this->organizationId->method('getPublishedId')->willReturn(null);
+        $events = [['name' => 'Spring Market', 'startDate' => '2026-04-18T10:00', 'location' => ['@type' => 'Place']]];
+
+        $schemas = $this->provider([$this->makeDataProvider($events)])->getSchemas();
+
+        $this->assertSame('Event', $schemas[0]['@type'] ?? null);
+        $this->assertArrayNotHasKey('organizer', $schemas[0]);
     }
 }

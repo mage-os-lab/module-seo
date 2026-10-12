@@ -79,7 +79,8 @@ class SimpleProductOutputTest extends AbstractController
                     . 'luma/en_US/Magento_Catalog/images/product/placeholder/image.jpg"/>',
                 '<meta property="product:price:amount"' . $break . 'content="12.50"/>',
                 '<meta property="product:price:currency"' . $break . 'content="USD"/>',
-                '<meta property="product:availability"' . $break . 'content="instock"/>',
+                // Meta's value, read from the stock index as the structured data's is (it was "instock").
+                '<meta property="product:availability"' . $break . 'content="in stock"/>',
                 // The X card, decided after every provider's tags: the page has an og:image.
                 '<meta name="twitter:card"' . $break . 'content="summary_large_image"/>',
                 '<meta name="twitter:title"' . $break . 'content="MageOS SEO Simple"/>',

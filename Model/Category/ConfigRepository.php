@@ -8,6 +8,8 @@ use Magento\Framework\ObjectManager\ResetAfterRequestInterface;
 use MageOS\Seo\Model\Category\Inheritance\OrderPool;
 use MageOS\Seo\Model\CategoryConfig;
 use MageOS\Seo\Model\Config as SeoConfig;
+use MageOS\Seo\Model\PageCache\DependencyCollector;
+use MageOS\Seo\Model\PageCache\SeoCacheTags;
 use MageOS\Seo\Model\ResourceModel\CategoryConfig as CategoryConfigResource;
 use MageOS\Seo\Model\ResourceModel\CategoryConfig\CollectionFactory;
 
@@ -22,13 +24,17 @@ class ConfigRepository implements ResetAfterRequestInterface
      * @param InheritanceResolver $resolver
      * @param OrderPool $orderPool
      * @param SeoConfig $seoConfig
+     * @param DependencyCollector $dependencies
+     * @param SeoCacheTags $cacheTags
      */
     public function __construct(
         private readonly CollectionFactory      $collectionFactory,
         private readonly CategoryConfigResource $resource,
         private readonly InheritanceResolver    $resolver,
         private readonly OrderPool              $orderPool,
-        private readonly SeoConfig              $seoConfig
+        private readonly SeoConfig              $seoConfig,
+        private readonly DependencyCollector    $dependencies,
+        private readonly SeoCacheTags           $cacheTags
     ) {
     }
 
@@ -56,6 +62,10 @@ class ConfigRepository implements ResetAfterRequestInterface
         $ancestorIds   = $this->ancestorIds($categoryId, $categoryPath);
         $categoryChain = [$categoryId, ...$ancestorIds];
         $strategy      = $this->seoConfig->getCategoryInheritanceStrategy();
+
+        // The page depends on every category on the way up, configured or not: a setting added to
+        // an ancestor later changes what this one resolves to.
+        $this->dependencies->record(array_map($this->cacheTags->category(...), $categoryChain));
 
         // The ancestors belong in the key. A caller that passes no path gets the category's own
         // row and nothing inherited, and keying on the category alone would then hand that
@@ -166,6 +176,7 @@ class ConfigRepository implements ResetAfterRequestInterface
         // the column's ON UPDATE CURRENT_TIMESTAMP, which would freeze it at the loaded value.
         $config->unsetData('updated_at');
 
+        // The resource model purges the cached pages built from the settings, once committed.
         $this->resource->save($config);
         // The whole memo, not this category's entry. Descendants inherit from the nearest
         // configured ancestor, so saving one category changes what every category below it

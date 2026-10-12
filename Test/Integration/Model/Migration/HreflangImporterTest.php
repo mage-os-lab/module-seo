@@ -11,6 +11,9 @@ use Magento\Framework\App\Config\Storage\WriterInterface;
 use Magento\Framework\App\ResourceConnection;
 use Magento\Framework\DB\Ddl\Table;
 use Magento\Store\Model\StoreManagerInterface;
+use Magento\Store\Test\Fixture\Store as StoreFixture;
+use Magento\TestFramework\Fixture\DataFixture;
+use Magento\TestFramework\Fixture\DataFixtureStorageManager;
 use Magento\TestFramework\Helper\Bootstrap;
 use MageOS\Seo\Model\Cms\ConfigRepository;
 use MageOS\Seo\Model\Config;
@@ -111,18 +114,19 @@ class HreflangImporterTest extends TestCase
     {
         [$storeId, $websiteId] = $this->defaultStore();
 
-        // MageOS_Hreflang on everywhere, this module switched off by the merchant in its favour.
+        // MageOS_Hreflang on everywhere; nothing set in this module.
         $this->set('web/seo/use_hreflangs', '1');
         $this->set('web/seo/use_hreflangs', '1', 'websites', $websiteId);
         $this->set('web/seo/use_sitemap_hreflangs', '1', 'websites', $websiteId);
         $this->set('web/seo/hreflang', '{"_1":{"hreflang":"en-ie"},"_2":{"hreflang":"en-uk"}}', 'stores', $storeId);
         $this->set('web/seo/hreflang_xdefault_store', (string) $storeId, 'websites', $websiteId);
-        $this->set(Config::XML_HREFLANG_ENABLED, '0');
 
         $report = $this->importer()->import();
 
-        $this->assertContains($storeId, $report['enabled_store_ids']);
-        $this->assertSame('1', $this->stored(Config::XML_HREFLANG_ENABLED, 'stores', $storeId));
+        // This module's hreflang is on by default: nothing to write.
+        $this->assertSame([], $report['enabled_store_ids']);
+        $this->assertNull($this->stored(Config::XML_HREFLANG_ENABLED, 'stores', $storeId));
+        $this->assertSame([], $report['kept_on_store_ids']);
 
         $this->assertSame('en-IE', $this->stored(Config::XML_HREFLANG_CODES, 'stores', $storeId));
         $this->assertStringContainsString('en-uk', implode("\n", $report['notes']), 'The dropped code is reported.');
@@ -162,6 +166,106 @@ class HreflangImporterTest extends TestCase
                 static fn (array $row): bool => $row['path'] === 'web/seo/use_sitemap_hreflangs'
             )
         );
+    }
+
+    /**
+     * Issue #26: hreflang switched off in this module is kept off, and MageOS_Hreflang stays on for
+     * that store view, so the store view keeps publishing what it did.
+     *
+     * @return void
+     */
+    public function testThisModulesOffIsKeptAndMageOsHreflangStaysOnThere(): void
+    {
+        [$storeId, $websiteId] = $this->defaultStore();
+        $this->set('web/seo/use_hreflangs', '1', 'websites', $websiteId);
+        $this->set('web/seo/hreflang', '{"_1":{"hreflang":"en-ie"}}', 'stores', $storeId);
+        $this->set(Config::XML_HREFLANG_ENABLED, '0', 'websites', $websiteId);
+
+        $report = $this->importer()->import();
+
+        $this->assertNull($this->stored(Config::XML_HREFLANG_ENABLED, 'stores', $storeId));
+        $this->assertSame('0', $this->stored(Config::XML_HREFLANG_ENABLED, 'websites', $websiteId));
+        $this->assertSame([], $report['enabled_store_ids']);
+        $this->assertSame([$storeId], $report['kept_on_store_ids']);
+        $this->assertStringContainsString(
+            \sprintf('Store view %d: hreflang is off in this module; kept it off', $storeId),
+            implode("\n", $report['notes'])
+        );
+
+        // Switched off everywhere else; on for this store view, at its own scope, since the value it
+        // inherited is removed.
+        $this->assertSame('0', $this->stored('web/seo/use_hreflangs', 'default', 0));
+        $this->assertNull($this->stored('web/seo/use_hreflangs', 'websites', $websiteId));
+        $this->assertSame('1', $this->stored('web/seo/use_hreflangs', 'stores', $storeId));
+
+        // Its codes fill this module's empty value, in case hreflang is switched on here later.
+        $this->assertSame('en-IE', $this->stored(Config::XML_HREFLANG_CODES, 'stores', $storeId));
+
+        $again = $this->importer()->import();
+
+        $this->assertSame([], $again['switched_off'], 'Nothing is left to switch off.');
+        $this->assertSame([], $again['codes_store_ids']);
+        $this->assertSame([$storeId], $again['kept_on_store_ids']);
+        $this->assertStringNotContainsString(
+            'kept them',
+            implode("\n", $again['notes']),
+            'Codes it imported itself are not a conflict.'
+        );
+        $this->assertSame('1', $this->stored('web/seo/use_hreflangs', 'stores', $storeId));
+    }
+
+    /**
+     * Issue #26: an x-default store view set in this module is kept and reported.
+     *
+     * @return void
+     */
+    #[DataFixture(StoreFixture::class, as: 'second_store')]
+    public function testAnXDefaultSetHereIsKeptAndReported(): void
+    {
+        [$storeId, $websiteId] = $this->defaultStore();
+        $theirs = (int) DataFixtureStorageManager::getStorage()->get('second_store')->getId();
+        $this->set('web/seo/use_hreflangs', '1');
+        $this->set('web/seo/hreflang_xdefault_store', (string) $theirs, 'websites', $websiteId);
+        $this->set(Config::XML_HREFLANG_XDEFAULT_STORE, (string) $storeId);
+
+        $report = $this->importer()->import();
+
+        $this->assertNull($this->stored(Config::XML_HREFLANG_XDEFAULT_STORE, 'websites', $websiteId));
+        $this->assertSame((string) $storeId, $this->stored(Config::XML_HREFLANG_XDEFAULT_STORE, 'default', 0));
+        $this->assertSame([], $report['x_default_website_ids']);
+        $this->assertStringContainsString(
+            \sprintf(
+                'Website %d: kept x-default store view %d in this module instead of %d.',
+                $websiteId,
+                $storeId,
+                $theirs
+            ),
+            implode("\n", $report['notes'])
+        );
+    }
+
+    /**
+     * A dry run reports what it would do and writes nothing, in either module.
+     *
+     * @return void
+     */
+    public function testADryRunWritesNothing(): void
+    {
+        [$storeId, $websiteId] = $this->defaultStore();
+        $this->set('web/seo/use_hreflangs', '1', 'websites', $websiteId);
+        $this->set('web/seo/hreflang', '{"_1":{"hreflang":"en-ie"}}', 'stores', $storeId);
+        $this->set('web/seo/hreflang_xdefault_store', (string) $storeId, 'websites', $websiteId);
+
+        $report = $this->importer()->import(true);
+
+        $this->assertSame([$storeId], $report['codes_store_ids']);
+        $this->assertSame([$websiteId], $report['x_default_website_ids']);
+        $this->assertNotSame([], $report['switched_off'], 'What would be switched off is listed.');
+
+        $this->assertNull($this->stored(Config::XML_HREFLANG_CODES, 'stores', $storeId));
+        $this->assertNull($this->stored(Config::XML_HREFLANG_XDEFAULT_STORE, 'websites', $websiteId));
+        $this->assertSame('1', $this->stored('web/seo/use_hreflangs', 'websites', $websiteId));
+        $this->assertNull($this->stored('web/seo/use_hreflangs', 'default', 0));
     }
 
     /**
@@ -218,6 +322,10 @@ class HreflangImporterTest extends TestCase
         $this->assertNull($fresh->getHreflangGroup($plain));
         $this->assertSame('chosen-here', $fresh->getHreflangGroup($existing), 'A group set here is kept.');
         $this->assertStringContainsString('"About Us" imported as "about-us"', implode("\n", $report['notes']));
+        $this->assertStringContainsString(
+            \sprintf('CMS page %d: kept translation group "chosen-here" instead of "legacy".', $existing),
+            implode("\n", $report['notes'])
+        );
     }
 
     /**

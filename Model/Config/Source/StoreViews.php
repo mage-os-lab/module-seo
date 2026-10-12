@@ -8,7 +8,11 @@ use Magento\Framework\Data\OptionSourceInterface;
 use Magento\Store\Model\StoreManagerInterface;
 
 /**
- * All active store views, for hreflang x-default / exclusion admin fields.
+ * Every store view, active or not, for hreflang's Exclude Store Views.
+ *
+ * An inactive store view stays listed, so its exclusion survives its being turned off: a
+ * multiselect drops a stored value it has no option for when the page is saved. No blank: it would
+ * add an empty ID to the list. x-default has its own list (XDefaultStoreViews).
  */
 class StoreViews implements OptionSourceInterface
 {
@@ -21,7 +25,7 @@ class StoreViews implements OptionSourceInterface
     }
 
     /**
-     * Active store views as id => label options.
+     * Every store view as id => label options.
      *
      * @return array<int, array<string, mixed>>
      */

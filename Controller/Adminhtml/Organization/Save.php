@@ -7,31 +7,26 @@ namespace MageOS\Seo\Controller\Adminhtml\Organization;
 use Magento\Backend\App\Action;
 use Magento\Backend\App\Action\Context;
 use Magento\Framework\App\Action\HttpPostActionInterface;
-use Magento\Framework\App\Config\ScopeConfigInterface;
-use Magento\Store\Model\ScopeInterface;
-use Magento\Store\Model\StoreManagerInterface;
+use MageOS\Seo\Api\Data\OrganizationInterface;
 use MageOS\Seo\Api\OrganizationRepositoryInterface;
+use MageOS\Seo\Model\Organization\LogoUrl;
 use MageOS\Seo\Model\Organization\UrlValidator;
 
 class Save extends Action implements HttpPostActionInterface
 {
     public const ADMIN_RESOURCE = 'MageOS_Seo::organization';
 
-    private const DESIGN_LOGO_CONFIG_PATH = 'design/header/logo_src';
-
     /**
      * @param Context $context
      * @param OrganizationRepositoryInterface $organizationRepository
-     * @param ScopeConfigInterface $scopeConfig
-     * @param StoreManagerInterface $storeManager
      * @param UrlValidator $urlValidator
+     * @param LogoUrl $logoUrl
      */
     public function __construct(
         Context                                          $context,
         private readonly OrganizationRepositoryInterface $organizationRepository,
-        private readonly ScopeConfigInterface            $scopeConfig,
-        private readonly StoreManagerInterface           $storeManager,
-        private readonly UrlValidator                    $urlValidator
+        private readonly UrlValidator                    $urlValidator,
+        private readonly LogoUrl                         $logoUrl
     ) {
         parent::__construct($context);
     }
@@ -88,27 +83,30 @@ class Save extends Action implements HttpPostActionInterface
                 $org->setLogoHeight((int) $data['logo_height']);
             }
 
-            // Logo path — resolve from toggle selection
-            $useDesignLogo = ($data['use_design_logo'] ?? '1') === '1';
-            if ($useDesignLogo) {
-                $org->setLogoPath($this->resolveDesignLogoUrl());
+            // The logo: the choice is stored, and the URL is worked out per store view when a page
+            // is rendered (Model\Organization\LogoUrl). The custom logo is kept while the design
+            // logo is used, so switching back finds it.
+            if (($data['use_design_logo'] ?? '1') === '1') {
+                $org->setLogoSource(OrganizationInterface::LOGO_SOURCE_DESIGN);
             } else {
-                // Custom upload — fileUploader submits an array of file objects
+                // fileUploader submits a list of file objects; an upload's `file` is its media path.
                 $uploadData = $data['logo_upload'] ?? [];
-                if (!empty($uploadData) && \is_array($uploadData)) {
-                    $first = reset($uploadData);
-                    $url   = (string) ($first['url'] ?? '');
-                    if ($url !== '' && !$this->urlValidator->isValid($url)) {
-                        $this->messageManager->addErrorMessage(
-                            __('The logo URL must be an http:// or https:// address or a media path.')
-                        );
+                $first      = \is_array($uploadData) && $uploadData !== [] ? (array) reset($uploadData) : [];
+                $file       = trim((string) ($first['file'] ?? ''));
+                $url        = trim((string) ($first['url'] ?? ''));
 
-                        return $resultRedirect->setPath('*/*/edit', $this->redirectParams(0));
-                    }
-                    if ($url !== '') {
-                        $org->setLogoPath($url);
-                    }
+                if ($file !== '' && $this->logoUrl->isUpload($file)) {
+                    $org->setLogoPath($file);
+                } elseif ($file !== '' || ($url !== '' && $url !== $org->getLogoPath())) {
+                    // Only an older record's URL comes back without a file, and only unchanged.
+                    $this->messageManager->addErrorMessage(__('The logo must be an image uploaded with this form.'));
+
+                    return $resultRedirect->setPath('*/*/edit', $this->redirectParams(0));
+                } elseif ($url === '') {
+                    // Removed in the form.
+                    $org->setLogoPath('');
                 }
+                $org->setLogoSource(OrganizationInterface::LOGO_SOURCE_CUSTOM);
             }
 
             // Social profiles — dynamicRows submits [['url' => '...', 'delete' => ''], ...]
@@ -219,31 +217,5 @@ class Save extends Action implements HttpPostActionInterface
         }
 
         return ['default', 0];
-    }
-
-    /**
-     * Resolve the absolute URL of the design logo from store config.
-     *
-     * @return string
-     */
-    private function resolveDesignLogoUrl(): string
-    {
-        $logoFile = (string) $this->scopeConfig->getValue(
-            self::DESIGN_LOGO_CONFIG_PATH,
-            ScopeInterface::SCOPE_STORE
-        );
-
-        if ($logoFile === '') {
-            return '';
-        }
-
-        try {
-            $mediaUrl = (string) $this->storeManager->getStore()->getBaseUrl(
-                \Magento\Framework\UrlInterface::URL_TYPE_MEDIA
-            );
-            return rtrim($mediaUrl, '/') . '/logo/' . ltrim($logoFile, '/');
-        } catch (\Exception) {
-            return '';
-        }
     }
 }

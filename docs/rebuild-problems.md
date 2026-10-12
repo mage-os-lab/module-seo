@@ -87,7 +87,8 @@ The System Messages bar is worded when it is shown, so it follows each admin's o
 ## For developers
 
 - The problems are kept in one flag, `mageos_seo_rebuild_problems`, by
-  `MageOS\Seo\Model\Rebuild\ProblemLog`. `MageOS\Seo\Model\System\Message\RebuildProblems` shows
+  `MageOS\Seo\Model\Rebuild\ProblemLog` (`Api\Rebuild\ProblemLogInterface`, which other modules
+  type against). `MageOS\Seo\Model\System\Message\RebuildProblems` shows
   them, registered in `Magento\Framework\Notification\MessageList` in `etc/adminhtml/di.xml`.
 - What a group's rebuild returns becomes the group's problems: a rebuild covers the whole group,
   so a clean one clears them. The queue consumer and `seo:rebuild -g` record it for every group.

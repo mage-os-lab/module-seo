@@ -7,7 +7,9 @@ namespace MageOS\Seo\Test\Unit\Model\Rebuild;
 use MageOS\Seo\Api\Rebuild\GroupHandlerInterface;
 use MageOS\Seo\Exception\RebuildInProgressException;
 use MageOS\Seo\Exception\SitemapRebuildInProgressException;
+use MageOS\Seo\Model\Rebuild\BuildFreshness;
 use MageOS\Seo\Model\Rebuild\HandlerPool;
+use MageOS\Seo\Model\Rebuild\Pause;
 use MageOS\Seo\Model\Rebuild\ProblemLog;
 use MageOS\Seo\Model\Rebuild\RegenerateConsumer;
 use MageOS\Seo\Model\Rebuild\RegenerationRequester;
@@ -215,7 +217,10 @@ class RegenerateConsumerTest extends TestCase
         ?GroupHandlerInterface $handler = null,
         ?RegenerationRequester $requester = null,
         ?LoggerInterface $logger = null,
-        ?ProblemLog $problemLog = null
+        ?ProblemLog $problemLog = null,
+        ?BuildFreshness $freshness = null,
+        ?Pause $pause = null,
+        int $lockWaitSeconds = 0
     ): RegenerateConsumer {
         return new RegenerateConsumer(
             new HandlerPool([$handler ?? $this->handler]),
@@ -223,8 +228,80 @@ class RegenerateConsumerTest extends TestCase
             $logger ?? $this->logger,
             $rebuilder ?? $this->createStub(SitemapRebuilder::class),
             new RebuildGroup(),
-            $problemLog ?? $this->createStub(ProblemLog::class)
+            $problemLog ?? $this->createStub(ProblemLog::class),
+            $freshness ?? $this->createStub(BuildFreshness::class),
+            $pause ?? $this->createStub(Pause::class),
+            $lockWaitSeconds,
+            15
         );
+    }
+
+    /**
+     * Review H4: a build another process is running is waited for, not re-queued at once — a
+     * re-queued message is taken again at once by a free consumer, which spins.
+     *
+     * @return void
+     */
+    public function testARunningRebuildIsWaitedForThenBuilt(): void
+    {
+        $attempts = 0;
+        $handler  = $this->handlerMock();
+        $handler->expects($this->exactly(2))->method('rebuild')->willReturnCallback(
+            static function () use (&$attempts): array {
+                if (++$attempts === 1) {
+                    throw new RebuildInProgressException(__('busy'));
+                }
+                return [];
+            }
+        );
+        $pause = $this->createMock(Pause::class);
+        $pause->expects($this->once())->method('seconds')->with(15);
+        $requester = $this->createMock(RegenerationRequester::class);
+        $requester->expects($this->never())->method('request');
+
+        $this->consumer(null, $handler, $requester, pause: $pause, lockWaitSeconds: 600)->process('one');
+    }
+
+    /**
+     * A wait that runs out puts the request back, so the invalidation is not lost.
+     *
+     * @return void
+     */
+    public function testAWaitThatRunsOutPutsTheRequestBack(): void
+    {
+        $this->handler->method('rebuild')->willThrowException(new RebuildInProgressException(__('busy')));
+        $pause = $this->createMock(Pause::class);
+        $pause->expects($this->exactly(2))->method('seconds')->with(15);
+        $requester = $this->createMock(RegenerationRequester::class);
+        $requester->expects($this->once())->method('request')->with('one');
+
+        $this->consumer(requester: $requester, pause: $pause, lockWaitSeconds: 30)->process('one');
+    }
+
+    /**
+     * Module-aeo #9: each build starts from current data, before the pending flag is cleared.
+     *
+     * @return void
+     */
+    public function testEachBuildStartsFromCurrentData(): void
+    {
+        $calls     = [];
+        $freshness = $this->createMock(BuildFreshness::class);
+        $freshness->expects($this->once())->method('refresh')->willReturnCallback(
+            static function () use (&$calls): void {
+                $calls[] = 'refresh';
+            }
+        );
+        $requester = $this->createMock(RegenerationRequester::class);
+        $requester->expects($this->once())->method('acknowledge')->willReturnCallback(
+            static function () use (&$calls): void {
+                $calls[] = 'acknowledge';
+            }
+        );
+
+        $this->consumer(requester: $requester, freshness: $freshness)->process('one');
+
+        $this->assertSame(['refresh', 'acknowledge'], $calls);
     }
 
     public function testWhatTheRebuildFoundBecomesTheGroupsProblems(): void

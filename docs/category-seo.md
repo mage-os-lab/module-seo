@@ -156,6 +156,16 @@ This matches what Google actually crawls when it follows pagination links, so th
 
 The maximum number of items per page is controlled by **Stores → Configuration → MageOS SEO → SEO → Structured Data (JSON-LD) → Category ItemList Max Items** (default: 36). If the category has fewer products than the max, fewer items are output.
 
+No ItemList is output where the page shows no products:
+
+- **A category whose Display Mode is "Static block only".** Magento renders no product list there,
+  so there are no products on the page to describe.
+- **A page whose product list did not load its products.** The ItemList is built from the
+  products the listing loaded, and never loads them itself: reading them otherwise would run the
+  whole category query again, unpaginated. A layout or theme that removes the product list, or
+  renders the ItemList block before it, therefore gets no ItemList. The block
+  `mageos_seo.item_list_json_ld` sits in `before.body.end` for this reason.
+
 ---
 
 ## Performance

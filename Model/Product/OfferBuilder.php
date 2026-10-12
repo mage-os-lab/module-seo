@@ -5,11 +5,9 @@ declare(strict_types=1);
 namespace MageOS\Seo\Model\Product;
 
 use Magento\Catalog\Api\Data\ProductInterface;
-use Magento\Framework\Stdlib\DateTime\DateTime;
 use Magento\Store\Model\StoreManagerInterface;
+use MageOS\Seo\Api\SchemaPriceInterface;
 use MageOS\Seo\Model\Product\OfferEnricher\Pool as OfferEnricherPool;
-use MageOS\Seo\Model\Product\Variant\ChildProducts;
-use MageOS\Seo\Service\CurrencyService;
 
 /**
  * Builds the schema.org offer for a product at a URL.
@@ -20,9 +18,14 @@ use MageOS\Seo\Service\CurrencyService;
  * between them. To add to every offer, register an `Api\OfferEnricherInterface` in
  * `Model\Product\OfferEnricher\Pool`; to change one, plug in to build().
  *
+ * The numbers, the price, a configurable's range and the availability, are OfferSummary's, which
+ * MageOS_Aeo's llms.jsonl reads too.
+ *
  * A product whose price is not known (Model\Product\FinalPrice) gets no offer: build() returns an
  * empty array and the caller leaves `offers` out. Google requires a price on every Offer and reads
- * 0 as free, so neither an Offer without a price nor one priced 0 would be true.
+ * 0 as free, so neither an Offer without a price nor one priced 0 would be true. An availability
+ * that is not known, because the stock could not be read, is left out of the offer (review low
+ * item, decision D8a): Google accepts an Offer without one, and OutOfStock would be a claim.
  */
 class OfferBuilder
 {
@@ -32,21 +35,15 @@ class OfferBuilder
      * pool with a "?? new Pool()" fallback silently loses every enricher registered in di.xml.
      *
      * @param StoreManagerInterface $storeManager
-     * @param CurrencyService $currencyService
-     * @param AvailabilityResolver $availabilityResolver
-     * @param DateTime $dateTime
+     * @param SchemaPriceInterface $schemaPrice
      * @param OfferEnricherPool $offerEnricherPool
-     * @param ChildProducts $childProducts
-     * @param FinalPrice $finalPrice
+     * @param OfferSummary $offerSummary
      */
     public function __construct(
         private readonly StoreManagerInterface $storeManager,
-        private readonly CurrencyService       $currencyService,
-        private readonly AvailabilityResolver  $availabilityResolver,
-        private readonly DateTime              $dateTime,
+        private readonly SchemaPriceInterface  $schemaPrice,
         private readonly OfferEnricherPool     $offerEnricherPool,
-        private readonly ChildProducts         $childProducts,
-        private readonly FinalPrice            $finalPrice
+        private readonly OfferSummary          $offerSummary
     ) {
     }
 
@@ -63,18 +60,20 @@ class OfferBuilder
      */
     public function build(ProductInterface $product, string $url): array
     {
-        $price = $this->finalPrice->get($product);
-        if ($price === null) {
+        $summary = $this->offerSummary->forProduct($product);
+        if ($summary['price'] === null) {
             return [];
         }
 
         $offer = [
             '@type'         => 'Offer',
             'url'           => $url,
-            'price'         => $this->currencyService->formatAmountForLlms($price),
-            'priceCurrency' => $this->currencyService->getCurrentCurrencyCode(),
-            'availability'  => $this->availabilityResolver->resolve($product),
+            'price'         => $this->schemaPrice->amount($summary['price']),
+            'priceCurrency' => $this->schemaPrice->currencyCode(),
         ];
+        if ($summary['availability'] !== null) {
+            $offer['availability'] = $summary['availability'];
+        }
 
         // itemCondition is deliberately NOT hardcoded here: ItemConditionEnricher adds
         // it from configuration, so used-goods stores can change or clear it.
@@ -83,9 +82,8 @@ class OfferBuilder
             $offer['priceValidUntil'] = $priceValidUntil;
         }
 
-        $priceRange = $this->resolvePriceRange($product);
-        if ($priceRange !== null) {
-            $offer = $this->buildAggregateOffer($offer, $priceRange);
+        if ($summary['lowPrice'] !== null && $summary['highPrice'] !== null) {
+            $offer = $this->buildAggregateOffer($offer, $summary['lowPrice'], $summary['highPrice']);
         }
 
         // Offer enrichment: shipping, returns, item condition, … (pluggable pool).
@@ -99,73 +97,38 @@ class OfferBuilder
     }
 
     /**
-     * Resolve a low/high price range for a configurable whose children differ in price, or null.
-     *
-     * Read from the sellable children's own final prices — the same basis as the product's own
-     * price. (Core's `FinalPrice::getMinimalPrice()` reads `minimal_price`, which only a
-     * collection load with price data sets: on a product page it is 0.) A child whose price is not
-     * known is left out of the range. Null keeps the single Offer: any other product type, fewer
-     * than two priced children, or one price for all.
-     *
-     * @param ProductInterface $product
-     * @return array{low: float, high: float}|null
-     */
-    private function resolvePriceRange(ProductInterface $product): ?array
-    {
-        $prices = array_filter(
-            array_map(
-                fn (ProductInterface $child): ?float => $this->finalPrice->get($child),
-                $this->childProducts->get($product)
-            ),
-            static fn (?float $price): bool => $price !== null
-        );
-        if (\count($prices) < 2) {
-            return null;
-        }
-
-        $min = min($prices);
-        $max = max($prices);
-        if ($min >= $max) {
-            return null;
-        }
-
-        // PriceInfo amounts are already in the current (display) currency: core
-        // RegularPrice / SpecialPrice / CatalogRulePrice::getValue() convert with PriceCurrency.
-        // Converting again would apply the rate twice.
-        return [
-            'low'  => $min,
-            'high' => $max,
-        ];
-    }
-
-    /**
      * Convert a single Offer node into an AggregateOffer with low/high price.
      *
      * Preserves currency, availability, url and any other Offer fields; replaces the scalar price
      * with lowPrice/highPrice.
      *
      * @param mixed[] $offer
-     * @param float[] $range
+     * @param float $low
+     * @param float $high
      * @return mixed[]
      */
-    private function buildAggregateOffer(array $offer, array $range): array
+    private function buildAggregateOffer(array $offer, float $low, float $high): array
     {
         $offer['@type'] = 'AggregateOffer';
         unset($offer['price']);
-        $offer['lowPrice']  = $this->currencyService->formatAmountForLlms($range['low']);
-        $offer['highPrice'] = $this->currencyService->formatAmountForLlms($range['high']);
+        $offer['lowPrice']  = $this->schemaPrice->amount($low);
+        $offer['highPrice'] = $this->schemaPrice->amount($high);
 
         return $offer;
     }
 
     /**
-     * Resolve priceValidUntil: a special price's end date, and nothing made up.
+     * Resolve priceValidUntil: the end date of the special price the offer publishes.
      *
-     * The date is published only when the catalogue has one: the product has a special price, and
-     * its special_to_date is today or later in the store's time. special_to_date is inclusive — the
-     * special price holds for the whole of that day — so a price ending today still has it. Without
-     * both there is no date: a synthetic "N months from today" would promise a validity nothing
-     * backs, and Google accepts an Offer without one.
+     * Nothing is made up. Only a special price that is in effect today and is the price published has its end date
+     * published (issue #31). Core's SpecialPrice decides "in effect": its getValue() is false
+     * outside the special's dates, by core's own date rules, so a special that has ended or not yet
+     * begun gives none. A special beaten by a lower price, a catalog rule's say, is not the price
+     * published, so its end date is not that price's. The two are compared as core holds them
+     * (getValue(), before tax and other display adjustments), to the currency's two decimals.
+     *
+     * Without a special_to_date there is no date: a synthetic "N months from today" would promise a
+     * validity nothing backs, and Google accepts an Offer without one.
      *
      * @param ProductInterface $product
      * @return string|null ISO 8601 date string (Y-m-d), or null to omit the property
@@ -173,15 +136,22 @@ class OfferBuilder
     private function getPriceValidUntil(ProductInterface $product): ?string
     {
         /** @var \Magento\Catalog\Model\Product $product */
-        $specialPrice = $product->getData('special_price');
-        if ($specialPrice === null || $specialPrice === '') {
+        try {
+            $priceInfo = $product->getPriceInfo();
+            $special   = $priceInfo->getPrice('special_price')->getValue();
+            $final     = $priceInfo->getPrice('final_price')->getValue();
+        } catch (\Exception) {
+            // The price itself was read (FinalPrice logs its own failures); no date is no claim.
+            return null;
+        }
+        if ($special === false || $special === null
+            || $this->schemaPrice->amount((float) $special) !== $this->schemaPrice->amount((float) $final)
+        ) {
             return null;
         }
 
         $specialTo = substr((string) $product->getData('special_to_date'), 0, 10);
-        // Store-timezone-aware (Stdlib DateTime::date applies the store offset).
-        $today = $this->dateTime->date('Y-m-d');
 
-        return $specialTo !== '' && $specialTo >= $today ? $specialTo : null;
+        return $specialTo !== '' ? $specialTo : null;
     }
 }

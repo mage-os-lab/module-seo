@@ -13,6 +13,8 @@
                 <category_item_list_max>36</category_item_list_max>
                 <has_variant_max>50</has_variant_max>
                 <aggregate_rating_enabled>1</aggregate_rating_enabled>
+                <publish_zero_price>0</publish_zero_price>
+                <remove_theme_microdata>1</remove_theme_microdata>
             </structured_data>
             <category_config>
                 <!--
@@ -28,15 +30,18 @@
             </canonical>
             <robots_meta>
                 <!--
-                    Defaults are intentionally empty ("no opinion"): the providers then
+                    The page defaults are intentionally empty ("no opinion"): the providers then
                     return nothing and Magento core's design/search_engine_robots config
                     stays in charge — a staging site set to NOINDEX,NOFOLLOW must not be
                     re-opened just by installing this module. Merchants opt in per scope.
+                    Search results are the exception (review low item, decision D10a): Google
+                    advises keeping internal search out of the index, so they ship NOINDEX,FOLLOW.
+                    Empty it to let core's setting decide them too.
                 -->
                 <product_default/>
                 <category_default/>
                 <cms_page_default/>
-                <search_default/>
+                <search_default>NOINDEX,FOLLOW</search_default>
                 <paginated_enabled>0</paginated_enabled>
                 <paginated_robots>NOINDEX,FOLLOW</paginated_robots>
             </robots_meta>

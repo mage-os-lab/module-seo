@@ -257,6 +257,45 @@ class GeneratorTest extends TestCase
     }
 
     /**
+     * A generation that fails is abandoned — its unfinished file removed — and the failure is
+     * thrown on, not swallowed; nothing is published.
+     *
+     * @return void
+     */
+    public function testAGenerationThatFailsIsAbandonedAndTheFailureThrown(): void
+    {
+        $failing = $this->createStub(ItemProviderInterface::class);
+        $failing->method('getType')->willReturn('products');
+        $failing->method('iterateItems')->willReturnCallback(static function (): \Generator {
+            yield new SitemapItem('first.html', '0.5', 'daily');
+            throw new \RuntimeException('database gone');
+        });
+
+        try {
+            $this->generator(['products' => $failing], chunkSize: 1)->generate($this->sitemap());
+            $this->fail('The failure was swallowed.');
+        } catch (\RuntimeException $e) {
+            $this->assertSame('database gone', $e->getMessage());
+        }
+
+        $this->assertSame(['type:products', 'row:first.html', 'abandon'], $this->written);
+    }
+
+    /**
+     * Every type a file can be named after: the providers' types, and the leading types and
+     * "other" even without a provider.
+     *
+     * @return void
+     */
+    public function testEveryTypeAFileCanBeNamedAfterIsKnown(): void
+    {
+        $generator = $this->generator(['blog' => $this->provider('blog-posts', ['post.html'])]);
+
+        $this->assertSame(['blog-posts'], $generator->getTypes());
+        $this->assertSame(['blog-posts', 'pages', 'categories', 'products', 'other'], $generator->getFileTypes());
+    }
+
+    /**
      * @param array<string,object> $providers
      * @param RowRendererInterface[]|null $renderers Null: one renderer writing the item's URL
      * @param ItemEnricherInterface[] $enrichers
@@ -310,6 +349,9 @@ class GeneratorTest extends TestCase
         $writer->method('finish')->willReturnCallback(function (): array {
             $this->written[] = 'finish';
             return [];
+        });
+        $writer->method('abandon')->willReturnCallback(function (): void {
+            $this->written[] = 'abandon';
         });
         $writerFactory = $this->createStub(WriterFactory::class);
         $writerFactory->method('create')->willReturnCallback(function (array $arguments) use ($writer): Writer {

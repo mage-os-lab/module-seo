@@ -29,6 +29,19 @@ class StoreViewsTest extends TestCase
         $this->assertStringContainsString('uk', $options[0]['label']);
     }
 
+    public function testEveryStoreViewIsListedWithoutABlank(): void
+    {
+        // The excluded multiselect: an inactive store view stays excludable, so its exclusion
+        // survives its being turned off and on again; a blank would add an empty ID (issue #35).
+        $inactive = $this->createStub(StoreInterface::class);
+        $inactive->method('getId')->willReturn(3);
+        $inactive->method('getIsActive')->willReturn(false);
+        $storeManager = $this->createStub(StoreManagerInterface::class);
+        $storeManager->method('getStores')->willReturn([$inactive]);
+
+        $this->assertSame([3], array_column((new StoreViews($storeManager))->toOptionArray(), 'value'));
+    }
+
     public function testReturnsEmptyWhenNoStores(): void
     {
         $storeManager = $this->createStub(StoreManagerInterface::class);

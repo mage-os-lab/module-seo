@@ -13,12 +13,17 @@ The module controls the `<meta name="robots">` tag on product, category and CMS 
 | Product pages | *(empty — use Magento default)* | Applies to all product pages without a specific override |
 | Category pages | *(empty — use Magento default)* | Applies to all category pages without a specific override |
 | CMS pages | *(empty — use Magento default)* | Applies to all CMS pages, the home page included, without a specific override |
-| Search results pages | *(empty — use Magento default)* | Applies to quick search and advanced search results |
+| Search results pages | `NOINDEX,FOLLOW` | Applies to quick search and advanced search results |
 
-The defaults ship empty ("Use Magento Default"): until you configure a value, Magento core's
+The page defaults ship empty ("Use Magento Default"): until you configure a value, Magento core's
 **Design → Search Engine Robots** setting stays in charge, so installing the module never
 re-opens a NOINDEXed environment. These are per-store-view settings — you can set a stricter
 default (e.g. `NOINDEX,FOLLOW`) on a specific store view while keeping another value globally.
+
+Search results pages are the exception: they ship as `NOINDEX,FOLLOW`, Google's advice for
+internal search. Like any value here it replaces core's setting on those pages, so a staging site
+set to `NOINDEX,NOFOLLOW` gets `NOINDEX,FOLLOW` on its search pages: still out of the index. Set it
+to "Use Magento Default" to let core's setting decide them too.
 
 **Search results pages: index or crawl?** The two ways of handling internal search results do
 different jobs, and don't combine:
@@ -32,8 +37,8 @@ different jobs, and don't combine:
 - Do one or the other for a URL: a page blocked in robots.txt is never fetched, so its robots meta
   is never read.
 
-Paginated search results (`?p=2`) follow the same default; the Paginated Listing setting applies
-to category pages only.
+Paginated search results (`?p=2`) follow the same default; **Override Robots on Paginated Pages**
+applies to category pages only (see [Paginated category pages](#paginated-category-pages)).
 
 **Accepted values:** the dropdown offers each combination of `INDEX`/`NOINDEX` with
 `FOLLOW`/`NOFOLLOW`, each of those with `noarchive`, `INDEX,FOLLOW` with rich-preview limits
@@ -99,6 +104,29 @@ Common use cases:
 Leave it on **Inherit (parent category, then the store's Category Pages default)** to take the
 value of the nearest parent category that sets one, and failing that the store's default.
 
+### Paginated category pages
+
+**Override Robots on Paginated Pages** (off by default) gives a category's page 2 and later
+(`?p=2` onward) the **Paginated Pages Robots** value, commonly `NOINDEX,FOLLOW`, so the later
+pages of a listing stay out of the index while their links are still followed. Page 1 always
+follows the category.
+
+It can only add restrictions, never relax one. Every restriction of the category's own directive,
+set on the category, inherited from a parent or the Category Pages default, is carried onto the
+paginated value:
+
+| Category | Paginated Pages Robots | Page 2 and later |
+|---|---|---|
+| `NOINDEX,FOLLOW` | `INDEX,FOLLOW` | `NOINDEX,FOLLOW` |
+| `INDEX,NOFOLLOW` | `NOINDEX,FOLLOW` | `NOINDEX,NOFOLLOW` |
+| `INDEX,FOLLOW,noarchive` | `NOINDEX,FOLLOW` | `NOINDEX,FOLLOW,noarchive` |
+| *(none)* | `INDEX,FOLLOW` | `INDEX,FOLLOW` |
+
+There is no setting to relax a category's restriction on its later pages: a category that should
+be indexed there is set to `INDEX` itself. As for every directive of this module, core's
+**Design → Search Engine Robots** default is not one of the protected restrictions (see
+[Other modules' restrictions are kept](#other-modules-restrictions-are-kept)).
+
 ---
 
 ## Product-level override
@@ -125,8 +153,10 @@ store switcher, and a page's store views are chosen by its **Store View** assign
 store views different directives, give them different pages.
 
 The table does carry a `store_id`, and a store view's row wins over the global (`store_id = 0`)
-row when both exist. The admin form only ever reads and writes the global row; store-view rows are
-for integrations writing through `MageOS\Seo\Model\Cms\ConfigRepository` directly.
+row when both exist. The admin form only ever reads and writes the global row. Store-view rows come
+from integrations writing through `MageOS\Seo\Model\Cms\ConfigRepository` directly, and from the
+[import from MageOS_MetaRobotsTag](#moving-from-mageos_metarobotstag), which reports each page it
+gives one.
 
 Common use cases:
 - `NOINDEX,FOLLOW` on thin utility pages (a no-results page, a campaign landing page after the
@@ -134,9 +164,9 @@ Common use cases:
 - `INDEX,FOLLOW,noarchive` on pages whose content changes often enough that a cached copy
   misleads.
 
-Coming from `MageOS_MetaRobotsTag`: its per-page `no_index` / `no_follow` / `no_archive` flags are
-converted into this override on `setup:upgrade`, resolved against the global **Design → Search
-Engine Robots** value that module was modifying. Its columns on `cms_page` are left in place.
+Coming from `MageOS_MetaRobotsTag`: its per-page flags are carried over into this override, as
+its product and category flags are into theirs. See
+[Moving from MageOS_MetaRobotsTag](#moving-from-mageos_metarobotstag).
 
 ---
 
@@ -161,6 +191,8 @@ Category Pages default (system config)
 Nearest parent category's override (see category-seo.md, Inheritance)
     ↑ overridden by
 The category's own override (mageos_seo_category_config.robots_meta)
+    + on page 2 and later, with Override Robots on Paginated Pages:
+      the Paginated Pages Robots value, keeping every restriction of the above
 ```
 
 CMS pages, which form no tree:
@@ -183,3 +215,69 @@ and Magento's own **Design → Search Engine Robots** setting stays in charge, a
 
 The XML sitemap resolves each page the same way, through the same classes, and leaves out the pages
 that come out NOINDEX — see [sitemap.md](sitemap.md#pages-left-out-noindex).
+
+---
+
+## Moving from MageOS_MetaRobotsTag
+
+`MageOS_MetaRobotsTag`, which ships in the Mage-OS distribution, stores three flags: **No Index**,
+**No Follow** and **No Archive**. Products and categories have them per store view; a CMS page has
+one set for all its store views. That module applies them by turning tokens of the store view's
+**Design → Search Engine Robots** value into their restrictive form. This module stores a whole
+directive instead, so the import turns each entity's flags into the directive its visitors were
+served:
+
+- **Per store view.** An entity's flags are read on each store view it is on (a product's
+  websites, a category's root category, a CMS page's store views), as that store view reads them:
+  its own value, or the default one. They are resolved against that store view's own **Search
+  Engine Robots** value, so a staging store view whose default is `NOINDEX,NOFOLLOW` gets its own
+  directive.
+- **One setting where possible.** When every one of those store views was served the same
+  directive, the entity gets one setting for all store views. Otherwise it gets one for each store
+  view that had a flag; a store view without one keeps following the store setting, as it did.
+- **Never over a value set here.** A setting the entity already has in this module, for the store
+  view or for all store views, is kept, and reported with both directives. A category's ancestors
+  do not count: the flags were never inherited.
+- **Only flagged entities.** An entity with no flag is left following the store setting.
+
+A CMS page's edit form shows only its setting for all store views
+([above](#cms-page-level-override)). The import gives a page settings per store view only when its
+store views were served different directives, and reports each page it does that for.
+
+### When it runs
+
+`setup:upgrade` tries the import once, and never fails because of it. If the import fails, the
+failure is logged, and the admin shows a System Message until the settings have been carried over.
+Run the import, or run it again, with:
+
+```bash
+bin/magento seo:import-legacy --dry-run   # what would be written, and the values that would be kept
+bin/magento seo:import-legacy
+```
+
+The command also runs the import from `MageOS_Hreflang`
+([hreflang.md](hreflang.md#moving-from-mageos_hreflang)). Running it again is safe: it fills only
+what is still empty. So it also carries over flags set in `MageOS_MetaRobotsTag` since, and, while
+the flags are still in the database, re-imports one wherever this module's setting has since been
+cleared.
+
+Whether an import finished is recorded in the `mageos_seo_legacy_import` flag, not in the patch
+history: core records a data patch as applied even when the import inside it failed. What the
+import wrote, and every value it kept, is written to `var/log/system.log`, prefixed
+`MageOS_Seo: MageOS_MetaRobotsTag import`.
+
+### Switching it off
+
+`MageOS_MetaRobotsTag` has no setting that switches it off. While it is enabled, it keeps applying
+its flags on top of this module's settings, since
+[other modules' restrictions are kept](#other-modules-restrictions-are-kept): a **No Index** left
+ticked there keeps a page `NOINDEX` whatever is set here. Once the import has finished, disable it,
+and deploy as for any module change:
+
+```bash
+bin/magento module:disable MageOS_MetaRobotsTag
+bin/magento setup:upgrade
+```
+
+Until then, the admin shows a System Message advising it. Its attributes and `cms_page` columns stay
+in the database, with the flags in them.

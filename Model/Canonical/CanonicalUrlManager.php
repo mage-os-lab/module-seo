@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace MageOS\Seo\Model\Canonical;
 
 use Magento\Framework\View\Page\Config as PageConfig;
+use MageOS\Seo\Api\CanonicalUrlManagerInterface;
 
 /**
  * Manages canonical URL output for product and category pages.
@@ -14,17 +15,16 @@ use Magento\Framework\View\Page\Config as PageConfig;
  * own. It is the single authoritative place for canonical manipulation so consumers
  * never end up emitting duplicate canonical tags.
  */
-class CanonicalUrlManager
+class CanonicalUrlManager implements CanonicalUrlManagerInterface
 {
     /**
      * Set the canonical URL, replacing any existing canonical already emitted.
      *
      * @param string $canonicalUrl Absolute URL to use as the canonical
      * @param \Magento\Framework\View\Page\Config $pageConfig
-     * @param string $urlKey Unused; retained for backward compatibility with early consumers
      * @return void
      */
-    public function setCanonical(string $canonicalUrl, PageConfig $pageConfig, string $urlKey = ''): void
+    public function setCanonical(string $canonicalUrl, PageConfig $pageConfig): void
     {
         $this->removeExistingCanonicals($pageConfig);
 

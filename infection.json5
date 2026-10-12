@@ -20,8 +20,18 @@
     // Rebuild/CronExpressionMatcher and Sitemap/SitemapFile are the HomePageLoader
     // case again: one call each through a generated factory (ScheduleFactory,
     // SitemapFactory), so RetrySchedule and ProblemFormatter stay in this run.
+    // Sitemap/RebuildableSitemaps reads the Site Map entries through core's
+    // generated sitemap CollectionFactory, so its test carries the group too;
+    // its entries are exercised by Test/Integration/Model/Sitemap as well.
+    // Sitemap/FileRemover reads them the same way, and works on real files and
+    // the commit callbacks of a real transaction: Test/Integration/Model/Sitemap/
+    // FileRemovalTest covers it, with a rolled-back deletion among its cases.
+    // PageCache/CacheTagCleaner is the HomePageLoader case once more: one call
+    // through the generated CacheContextFactory, kept apart so Purger, which
+    // decides when pages are purged, stays in this run; the purge itself is
+    // tested against the real cache by Test/Integration/PageCache.
     "source": {
-        "directories": ["Model", "Observer", "Service"],
+        "directories": ["Model", "Observer"],
         "excludes": [
             "ResourceModel",
             "Catalog/CurrentEntity.php",
@@ -32,9 +42,12 @@
             "MetaTag/Provider",
             "Organization.php",
             "OrganizationRepository.php",
+            "PageCache/CacheTagCleaner.php",
             "Product/OverrideRepository.php",
             "Rebuild/CronExpressionMatcher.php",
             "Review/NativeAggregateRatingProvider.php",
+            "Sitemap/FileRemover.php",
+            "Sitemap/RebuildableSitemaps.php",
             "Sitemap/SitemapFile.php",
             "StructuredData/Provider/CategorySchemaProvider.php",
             "StructuredData/Provider/CmsPageSchemaProvider.php",

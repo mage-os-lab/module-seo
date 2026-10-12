@@ -10,9 +10,11 @@ use MageOS\Seo\Model\Config;
 /**
  * Robots meta for search result pages: the Search Results Pages Default.
  *
- * Covers quick search and advanced search results. Empty (the shipped default) means no opinion,
- * so core's Design → Search Engine Robots decides, as for product, category and CMS pages: a staging
- * site set to NOINDEX,NOFOLLOW stays as it is.
+ * Covers quick search and advanced search results. It ships as NOINDEX,FOLLOW (review low item,
+ * decision D10a: Google advises keeping internal search out of the index). Emptied, it means no
+ * opinion, and core's Design → Search Engine Robots decides, as for product, category and CMS pages.
+ * As for every value here, core's setting is not protected: a staging site set to NOINDEX,NOFOLLOW
+ * gets NOINDEX,FOLLOW on its search pages, which are still kept out of the index.
  *
  * NOINDEX,FOLLOW keeps result pages out of the index while their links are still followed. To stop
  * them being crawled at all — Google's advice for crawl budget — disallow them in robots.txt

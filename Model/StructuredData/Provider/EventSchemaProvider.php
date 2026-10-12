@@ -50,7 +50,7 @@ class EventSchemaProvider implements StructuredDataProviderInterface
     {
         $activeHandles = $this->layout->getUpdate()->getHandles();
         $storeId       = (int) $this->storeManager->getStore()->getId();
-        $orgId         = $this->organizationId->getId($storeId);
+        $orgId         = $this->organizationId->getPublishedId($storeId);
 
         $schemas = [];
         foreach ($this->dataProviders as $provider) {
@@ -71,21 +71,22 @@ class EventSchemaProvider implements StructuredDataProviderInterface
     }
 
     /**
-     * Build an Event node from event data, adding context and organizer reference.
+     * Build an Event node from event data, adding context and the organizer reference.
+     *
+     * The organizer is the published Organization; with none published there is none, rather than a
+     * reference to nothing.
      *
      * @param array<string,mixed> $event
-     * @param string $orgId
+     * @param string|null $orgId
      * @return array<string, mixed>
      */
-    private function build(array $event, string $orgId): array
+    private function build(array $event, ?string $orgId): array
     {
-        return array_merge(
-            [
-                '@context'  => 'https://schema.org',
-                '@type'     => 'Event',
-                'organizer' => ['@id' => $orgId],
-            ],
-            $event
-        );
+        $node = ['@context' => 'https://schema.org', '@type' => 'Event'];
+        if ($orgId !== null) {
+            $node['organizer'] = ['@id' => $orgId];
+        }
+
+        return array_merge($node, $event);
     }
 }

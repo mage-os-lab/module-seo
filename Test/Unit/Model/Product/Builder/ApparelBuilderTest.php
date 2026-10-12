@@ -8,24 +8,23 @@ use Magento\Catalog\Helper\Image as ImageHelper;
 use Magento\Catalog\Model\Product;
 use Magento\Framework\Pricing\Price\PriceInterface;
 use Magento\Framework\Pricing\PriceInfoInterface;
-use Magento\Framework\Stdlib\DateTime\DateTime;
 use Magento\Store\Model\Store;
 use Magento\Store\Model\StoreManagerInterface;
 use MageOS\Seo\Model\Config;
+use MageOS\Seo\Model\Price\SchemaPrice;
 use MageOS\Seo\Model\Product\AvailabilityResolver;
 use MageOS\Seo\Model\Product\Builder\ApparelBuilder;
 use MageOS\Seo\Model\Product\GtinValidator;
 use MageOS\Seo\Model\Product\OfferEnricher\Pool as OfferEnricherPool;
 use MageOS\Seo\Model\Review\AggregateRatingResolver;
-use MageOS\Seo\Service\CurrencyService;
-use MageOS\Seo\Test\Unit\Service\CurrencyServices;
+use MageOS\Seo\Test\Unit\Model\Price\SchemaPrices;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
 
 class ApparelBuilderTest extends TestCase
 {
-    use CurrencyServices;
+    use SchemaPrices;
     use OfferBuilders;
 
     /**
@@ -39,9 +38,9 @@ class ApparelBuilderTest extends TestCase
     private Store&Stub $store;
 
     /**
-     * @var CurrencyService
+     * @var SchemaPrice
      */
-    private CurrencyService $currencyService;
+    private SchemaPrice $schemaPrice;
 
     /**
      * @var AvailabilityResolver&Stub
@@ -57,11 +56,6 @@ class ApparelBuilderTest extends TestCase
      * @var Config&Stub
      */
     private Config&Stub $seoConfig;
-
-    /**
-     * @var DateTime&Stub
-     */
-    private DateTime&Stub $dateTime;
 
     /**
      * @var Product&Stub
@@ -87,11 +81,10 @@ class ApparelBuilderTest extends TestCase
     {
         $this->storeManager    = $this->createStub(StoreManagerInterface::class);
         $this->store           = $this->createStub(Store::class);
-        $this->currencyService = $this->currencyService();
+        $this->schemaPrice     = $this->schemaPrice();
         $this->availabilityResolver = $this->createStub(AvailabilityResolver::class);
         $this->imageHelper     = $this->createStub(ImageHelper::class);
         $this->seoConfig       = $this->createStub(Config::class);
-        $this->dateTime        = $this->createStub(DateTime::class);
         $this->product         = $this->createStub(Product::class);
         $this->priceInfo       = $this->createMock(PriceInfoInterface::class);
         $this->finalPrice      = $this->createStub(PriceInterface::class);
@@ -99,7 +92,13 @@ class ApparelBuilderTest extends TestCase
         $this->storeManager->method('getStore')->willReturn($this->store);
         $this->store->method('getBaseUrl')->willReturn('https://example.com/');
         $this->finalPrice->method('getValue')->willReturn(59.99);
-        $this->priceInfo->method('getPrice')->with('final_price')->willReturn($this->finalPrice);
+        $this->finalPrice->method('getAmount')->willReturn($this->amount(59.99));
+        // No special price in effect: core's SpecialPrice answers false.
+        $noSpecial = $this->createStub(PriceInterface::class);
+        $noSpecial->method('getValue')->willReturn(false);
+        $this->priceInfo->method('getPrice')->willReturnCallback(
+            fn (string $code): PriceInterface => $code === 'special_price' ? $noSpecial : $this->finalPrice
+        );
         $this->product->method('getPriceInfo')->willReturn($this->priceInfo);
         $this->product->method('getName')->willReturn('Blue T-Shirt');
         $this->product->method('getSku')->willReturn('TS-BLUE-L');
@@ -115,9 +114,8 @@ class ApparelBuilderTest extends TestCase
             $this->seoConfig,
             $this->offerBuilder(
                 $this->storeManager,
-                $this->currencyService,
+                $this->schemaPrice,
                 $this->availabilityResolver,
-                $this->dateTime,
                 new OfferEnricherPool()
             ),
             new AggregateRatingResolver(),

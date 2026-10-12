@@ -160,6 +160,28 @@ trait GeneratesSitemaps
     }
 
     /**
+     * The file the sitemap's index lists for a type, by number — in whichever of its two sets.
+     *
+     * A rebuild writes the set the index did not list and keeps the other until the next one, so
+     * a type's file in place is not necessarily the one published: read through the index.
+     *
+     * @param Sitemap $sitemap
+     * @param string $type
+     * @param int $number
+     * @return string
+     */
+    private function listedFile(Sitemap $sitemap, string $type, int $number = 1): string
+    {
+        foreach (array_keys($this->index($sitemap)) as $name) {
+            if (preg_match('/-' . preg_quote($type, '/') . '-[ab]-' . $number . '\.xml$/', $name) === 1) {
+                return $name;
+            }
+        }
+
+        $this->fail("The index of {$sitemap->getSitemapFilename()} lists no {$type} file {$number}.");
+    }
+
+    /**
      * Every `<url>` row of the given files.
      *
      * @param array<string,string> $files

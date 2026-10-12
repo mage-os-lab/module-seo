@@ -3,7 +3,8 @@
     JSON-LD and meta tag blocks are injected into head.additional.
     Both blocks must NOT carry cacheable="false" — they are fully FPC-safe.
     Providers that return nothing (disabled, no data) produce no output.
-    See architecture section 16 (Cache Safety) for full rationale.
+    The JSON-LD block also gives the page the cache tags of the SEO settings it read, so it stays
+    in the layout even when JSON-LD is switched off; see docs/extending.md, "Cache considerations".
 -->
 <page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
       xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">

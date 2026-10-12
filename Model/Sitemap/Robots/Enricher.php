@@ -4,24 +4,21 @@ declare(strict_types=1);
 
 namespace MageOS\Seo\Model\Sitemap\Robots;
 
+use MageOS\Seo\Api\Robots\PageDirectivesInterface;
 use MageOS\Seo\Api\Sitemap\ItemEnricherInterface;
 use MageOS\Seo\Api\Sitemap\SitemapItemInterface;
-use MageOS\Seo\Model\Category\PathResolver;
 use MageOS\Seo\Model\Cms\CmsPageResolver;
 use MageOS\Seo\Model\Config;
-use MageOS\Seo\Model\RobotsMeta\Provider\CategoryRobotsProvider;
 use MageOS\Seo\Model\RobotsMeta\Provider\CmsPageRobotsProvider;
-use MageOS\Seo\Model\RobotsMeta\Provider\ProductRobotsProvider;
 
 /**
  * Files each sitemap item's robots directive in its data bag, for IndexableFilter to read.
  *
  * The directive is the one the page itself gets, asked of the same providers the page head asks:
- * a product's override, else the Product Pages default; a category's own or inherited override,
- * else the Category Pages default; a CMS page's override, else the CMS Pages default; the home page
- * as its CMS page. Where this module has nothing to say — and for items of other modules' types —
- * core's Design → Search Engine Robots applies, as it does on the page, so a staging store set to
- * NOINDEX gets an empty sitemap.
+ * products' and categories' through PageDirectivesInterface, which MageOS_Aeo's feeds read too; a
+ * CMS page's override, else the CMS Pages default; the home page as its CMS page. Where this module
+ * has nothing to say — and for items of other modules' types — core's Design → Search Engine Robots
+ * applies, as it does on the page, so a staging store set to NOINDEX gets an empty sitemap.
  *
  * Products and CMS pages are read a chunk at a time; categories one at a time, each with its path so
  * that settings are inherited from its ancestors.
@@ -38,19 +35,15 @@ class Enricher implements ItemEnricherInterface
 
     /**
      * @param Config $seoConfig
-     * @param ProductRobotsProvider $productRobots
-     * @param CategoryRobotsProvider $categoryRobots
+     * @param PageDirectivesInterface $pageDirectives
      * @param CmsPageRobotsProvider $cmsPageRobots
-     * @param PathResolver $categoryPathResolver
      * @param CmsPageResolver $cmsPageResolver
      */
     public function __construct(
-        private readonly Config                 $seoConfig,
-        private readonly ProductRobotsProvider  $productRobots,
-        private readonly CategoryRobotsProvider $categoryRobots,
-        private readonly CmsPageRobotsProvider  $cmsPageRobots,
-        private readonly PathResolver           $categoryPathResolver,
-        private readonly CmsPageResolver        $cmsPageResolver
+        private readonly Config                  $seoConfig,
+        private readonly PageDirectivesInterface $pageDirectives,
+        private readonly CmsPageRobotsProvider   $cmsPageRobots,
+        private readonly CmsPageResolver         $cmsPageResolver
     ) {
     }
 
@@ -79,7 +72,10 @@ class Enricher implements ItemEnricherInterface
     }
 
     /**
-     * This module's directives for the chunk's products, categories and CMS pages.
+     * The directives of the chunk's products, categories and CMS pages.
+     *
+     * Products' and categories' with core's default already in place, CMS pages' null where this
+     * module has none.
      *
      * @param SitemapItemInterface[] $items
      * @param int $storeId
@@ -98,7 +94,7 @@ class Enricher implements ItemEnricherInterface
 
         $directives = [];
         if (isset($ids[SitemapItemInterface::ENTITY_PRODUCT])) {
-            $directives[SitemapItemInterface::ENTITY_PRODUCT] = $this->productRobots->forProducts(
+            $directives[SitemapItemInterface::ENTITY_PRODUCT] = $this->pageDirectives->forProducts(
                 $ids[SitemapItemInterface::ENTITY_PRODUCT],
                 $storeId
             );
@@ -110,27 +106,10 @@ class Enricher implements ItemEnricherInterface
             );
         }
         if (isset($ids[SitemapItemInterface::ENTITY_CATEGORY])) {
-            $directives[SitemapItemInterface::ENTITY_CATEGORY] = $this->categoryDirectives(
+            $directives[SitemapItemInterface::ENTITY_CATEGORY] = $this->pageDirectives->forCategories(
                 $ids[SitemapItemInterface::ENTITY_CATEGORY],
                 $storeId
             );
-        }
-
-        return $directives;
-    }
-
-    /**
-     * Each category's directive, inherited through its path.
-     *
-     * @param int[] $categoryIds
-     * @param int $storeId
-     * @return array<int,string|null>
-     */
-    private function categoryDirectives(array $categoryIds, int $storeId): array
-    {
-        $directives = [];
-        foreach ($this->categoryPathResolver->forCategoryIds($categoryIds) as $categoryId => $path) {
-            $directives[$categoryId] = $this->categoryRobots->forCategory($categoryId, $path, $storeId);
         }
 
         return $directives;
