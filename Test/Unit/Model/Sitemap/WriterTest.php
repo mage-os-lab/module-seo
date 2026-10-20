@@ -14,6 +14,7 @@ use Magento\Framework\Filesystem\DriverPool;
 use Magento\Framework\Filesystem\File\WriteFactory;
 use Magento\Sitemap\Model\Sitemap;
 use Magento\Sitemap\Model\SitemapConfigReaderInterface;
+use MageOS\Seo\Model\Sitemap\DirectoryNames;
 use MageOS\Seo\Model\Sitemap\FileNames;
 use MageOS\Seo\Model\Sitemap\Writer;
 use PHPUnit\Framework\TestCase;
@@ -530,6 +531,7 @@ class WriterTest extends TestCase
             escaper: $escaper,
             fileNames: new FileNames(),
             logger: $logger ?? $this->createStub(LoggerInterface::class),
+            directoryNames: new DirectoryNames(new FileNames()),
             sitemap: $sitemap,
             urlsetOpen: '<urlset>',
             types: ['pages', 'products'],

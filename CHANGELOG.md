@@ -8,6 +8,17 @@ hardcoded version field).
 
 ## [Unreleased]
 
+### Fixed
+
+- **A sitemap in `pub/` generates and deletes cleanly**
+  ([#43](https://github.com/mage-os-lab/module-seo/issues/43)). With the sitemap path `/`, Magento's
+  default, generation failed after writing its files, on every run, and its stale files were never
+  removed; deleting the sitemap left its files too. Magento's directory listing passes every entry
+  through its deny list, which refuses `pub/.htaccess`. The sitemap's directory is now listed
+  through its driver (`Model\Sitemap\DirectoryNames`), which validates the directory itself and
+  lists local disk and remote storage alike. `Model\Sitemap\Writer` and `Model\Sitemap\FileRemover`
+  take it.
+
 ## [2.0.0] — 2026-10-12
 
 The next release is **2.0.0**: other modules now reach this one through `Api` interfaces, and MSI
