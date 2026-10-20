@@ -8,6 +8,8 @@ hardcoded version field).
 
 ## [Unreleased]
 
+## [2.1.0] — 2026-10-20
+
 ### Fixed
 
 - **A sitemap in `pub/` generates and deletes cleanly**
