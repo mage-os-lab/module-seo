@@ -38,6 +38,7 @@ class FileRemover
      * @param GenerationLock $generationLock
      * @param SitemapCollectionFactory $sitemapCollectionFactory
      * @param SitemapResource $sitemapResource
+     * @param DirectoryNames $directoryNames
      * @param LoggerInterface $logger
      * @param int $lockWait Seconds to wait for a rebuild writing the files to finish
      */
@@ -48,6 +49,7 @@ class FileRemover
         private readonly GenerationLock           $generationLock,
         private readonly SitemapCollectionFactory $sitemapCollectionFactory,
         private readonly SitemapResource          $sitemapResource,
+        private readonly DirectoryNames           $directoryNames,
         private readonly LoggerInterface          $logger,
         private readonly int                      $lockWait = 10
     ) {
@@ -163,8 +165,8 @@ class FileRemover
         try {
             $types = $this->generator->getFileTypes();
             $index = $this->fileNames->index($sitemap);
-            foreach ($directory->read($path) as $file) {
-                $name = $this->fileNames->nameOf($file);
+            // Not read(): it refuses the directory when it holds a .htaccess, as pub/ does (issue #43).
+            foreach ($this->directoryNames->names($directory, $path) as $name) {
                 if ($this->fileNames->isOwn($sitemap, $types, $name) || (!$indexShared && $name === $index)) {
                     $directory->delete($this->fileNames->path($sitemap, $name));
                 }

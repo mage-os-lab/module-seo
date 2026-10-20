@@ -123,6 +123,7 @@ class Writer
      * @param Escaper $escaper
      * @param FileNames $fileNames
      * @param LoggerInterface $logger
+     * @param DirectoryNames $directoryNames
      * @param Sitemap $sitemap The core sitemap being generated: its name, path and store
      * @param string $urlsetOpen The opening of every child file, up to and including `<urlset …>`
      * @param string[] $types Every type a child file can have, in the order the index lists them
@@ -134,6 +135,7 @@ class Writer
         private readonly Escaper                      $escaper,
         private readonly FileNames                    $fileNames,
         private readonly LoggerInterface              $logger,
+        private readonly DirectoryNames               $directoryNames,
         private readonly Sitemap                      $sitemap,
         private readonly string                       $urlsetOpen,
         private readonly array                        $types,
@@ -481,10 +483,8 @@ class Writer
             return [];
         }
 
-        return array_map(
-            fn (string $path): string => $this->fileNames->nameOf($path),
-            $this->directory->read($directory)
-        );
+        // Not read(): it refuses the directory when it holds a .htaccess, as pub/ does (issue #43).
+        return $this->directoryNames->names($this->directory, $directory);
     }
 
     /**
