@@ -61,9 +61,9 @@ written and Magento's own **Design → Search Engine Robots** value stands.
 ### Other modules' restrictions are kept
 
 The resolved directive is **composed with** the page's current robots value, not written over it.
-Otherwise it discards what other modules set — including `MageOS_MetaRobotsTag`, which ships in
-the Mage-OS distribution and turns `INDEX` into `NOINDEX` from per-product, per-category and
-per-CMS-page flags.
+Otherwise it discards what other modules set — including `MageOS_MetaRobotsTag`, which shipped in
+the Mage-OS distribution before 4.0 and turns `INDEX` into `NOINDEX` from per-product,
+per-category and per-CMS-page flags.
 
 The rule, in `MageOS\Seo\Model\RobotsMeta\DirectiveComposer`: a **restriction** on the page that
 is **not part of core's default** was added by another module, and survives. A restriction is any
@@ -266,18 +266,22 @@ history: core records a data patch as applied even when the import inside it fai
 import wrote, and every value it kept, is written to `var/log/system.log`, prefixed
 `MageOS_Seo: MageOS_MetaRobotsTag import`.
 
-### Switching it off
+### Removing it
 
-`MageOS_MetaRobotsTag` has no setting that switches it off. While it is enabled, it keeps applying
-its flags on top of this module's settings, since
-[other modules' restrictions are kept](#other-modules-restrictions-are-kept): a **No Index** left
-ticked there keeps a page `NOINDEX` whatever is set here. Once the import has finished, disable it,
-and deploy as for any module change:
+This module conflicts with `mage-os/module-meta-robots-tag` and `mage-os/module-hreflang`, so
+remove them in the same step that installs it:
 
 ```bash
-bin/magento module:disable MageOS_MetaRobotsTag
+composer remove mage-os/module-meta-robots-tag mage-os/module-hreflang --no-update
+composer require mage-os/module-seo
 bin/magento setup:upgrade
 ```
 
-Until then, the admin shows a System Message advising it. Its attributes and `cms_page` columns stay
-in the database, with the flags in them.
+Their attributes and `cms_page` columns stay in the database, so the import still reads them.
+
+**Do not use `module:disable` instead.** A disabled module's schema whitelist is still read, so
+`setup:upgrade` drops `cms_page.no_index`, `no_follow` and `no_archive` — before the import runs,
+when both happen in one upgrade. In `app/code`, delete the module's directory.
+
+The three product attributes stay in the product form's **Search Engine Optimization** group,
+doing nothing, so the import can be run again.

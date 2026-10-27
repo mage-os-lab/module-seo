@@ -8,6 +8,13 @@ hardcoded version field).
 
 ## [Unreleased]
 
+### Changed
+
+- **Conflicts with `mage-os/module-meta-robots-tag` and `mage-os/module-hreflang`**, which this
+  module replaces in Mage-OS 4.0. Mage-OS 3.x stays on 2.1.
+- **Remove those modules, don't disable them:** `setup:upgrade` drops the `cms_page` columns of a
+  disabled module before the import can read them. The docs and the System Message now say so.
+
 ## [2.1.0] — 2026-10-20
 
 ### Fixed

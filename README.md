@@ -68,6 +68,15 @@ bin/magento setup:upgrade
 bin/magento cache:flush
 ```
 
+This module replaces `mage-os/module-meta-robots-tag` and `mage-os/module-hreflang` and conflicts
+with both, so it does not install on Mage-OS 3.x. Remove them in the same step — don't disable them
+(see [docs/robots-meta.md](docs/robots-meta.md#removing-it)):
+
+```bash
+composer remove mage-os/module-meta-robots-tag mage-os/module-hreflang --no-update
+composer require mage-os/module-seo
+```
+
 ---
 
 ## Important: configure Organisation before going live
