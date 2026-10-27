@@ -74,12 +74,13 @@ class LegacyImportStatusTest extends TestCase
         $this->assertTrue($message->isDisplayed());
         $this->assertSame(MessageInterface::SEVERITY_NOTICE, $message->getSeverity());
         $this->assertSame(
-            '<strong>The Meta Robots Tag module can be switched off.</strong>'
+            '<strong>The Meta Robots Tag module can be removed.</strong>'
             . '<p>Its settings have been carried over to the Robots Meta settings of products, categories'
             . ' and CMS pages. While it stays on, it keeps changing the robots meta tag of the pages it was'
             . ' set up for, on top of those settings. This message disappears by itself once it is off. A'
-            . ' developer with access to the server switches it off with'
-            . ' <code>bin/magento module:disable MageOS_MetaRobotsTag</code>.</p>',
+            . ' developer with access to the server removes it with'
+            . ' <code>composer remove mage-os/module-meta-robots-tag</code>; disabling it instead drops its'
+            . ' CMS page columns.</p>',
             $message->getText()
         );
     }
@@ -94,7 +95,7 @@ class LegacyImportStatusTest extends TestCase
         $this->assertSame(MessageInterface::SEVERITY_MAJOR, $message->getSeverity());
         $this->assertStringContainsString('<li>Hreflang:', $message->getText());
         $this->assertStringNotContainsString('<li>Meta Robots Tag:', $message->getText());
-        $this->assertStringContainsString('module:disable MageOS_MetaRobotsTag', $message->getText());
+        $this->assertStringContainsString('composer remove mage-os/module-meta-robots-tag', $message->getText());
     }
 
     /**

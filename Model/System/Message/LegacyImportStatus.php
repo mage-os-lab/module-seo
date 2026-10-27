@@ -98,7 +98,7 @@ class LegacyImportStatus implements MessageInterface
 
         if ($this->canSwitchOffMetaRobotsTag()) {
             $text .= '<strong>'
-                . $this->escaper->escapeHtml((string) __('The Meta Robots Tag module can be switched off.'))
+                . $this->escaper->escapeHtml((string) __('The Meta Robots Tag module can be removed.'))
                 . '</strong><p>'
                 . $this->escaper->escapeHtml((string) __(
                     'Its settings have been carried over to the Robots Meta settings of products, categories'
@@ -107,8 +107,9 @@ class LegacyImportStatus implements MessageInterface
                     . ' off.'
                 ))
                 . ' ' . __(
-                    'A developer with access to the server switches it off with %1.',
-                    '<code>bin/magento module:disable ' . LegacyImport::META_ROBOTS_TAG . '</code>'
+                    'A developer with access to the server removes it with %1; disabling it instead drops its'
+                    . ' CMS page columns.',
+                    '<code>composer remove mage-os/module-meta-robots-tag</code>'
                 )
                 . '</p>';
         }

@@ -34,6 +34,10 @@
         "magento/module-ui": "*",
         "magento/module-url-rewrite": "*"
     },
+    "conflict": {
+        "mage-os/module-hreflang": "*",
+        "mage-os/module-meta-robots-tag": "*"
+    },
     "require-dev": {
         "bitexpert/phpstan-magento": "^0.42",
         "friendsofphp/php-cs-fixer": "^3.50",
