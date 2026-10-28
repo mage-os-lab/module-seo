@@ -353,7 +353,7 @@ and its constructor can change in any release.
 | `Api\Rebuild\HandlerPoolInterface` | `get($group)`, `getGroups()`, `getHandlers()`; filled through `handlers` | `Model\Rebuild\HandlerPool` |
 | `Api\Router\PublicPathsInterface` | `isPublicPath($pathInfo)`: no session is started for the path; filled through `prefixes` | `Model\Router\PublicPaths` |
 | `Api\Router\CanonicalPathRedirectInterface` | `check($canonicalPath)`: the 301 to the canonical path, or null when the request is already there | `Model\Router\CanonicalPathRedirect` |
-| `Api\Product\AvailabilityResolverInterface` | `resolveMany($products)`: SKU ⇒ schema.org availability, read from MSI's stock index; throws when the stock can't be read. `IN_STOCK`, `BACKORDER`, `OUT_OF_STOCK` | `Model\Product\AvailabilityResolver` |
+| `Api\Product\AvailabilityResolverInterface` | `resolveMany($products)`: SKU ⇒ schema.org availability, read from the stock index (MSI's while MSI is installed and enabled, CatalogInventory's otherwise: [structured-data.md](structured-data.md#without-msi)); throws when the stock can't be read. `IN_STOCK`, `BACKORDER`, `OUT_OF_STOCK` | `Model\Product\AvailabilityResolver` |
 | `Api\Product\FinalPriceInterface` | `get($product)`: the price the page shows, or null when unknown | `Model\Product\FinalPrice` |
 | `Api\Product\SchemaTemplatesInterface` | `getAvailableTemplates()`: template code ⇒ label | `Model\Product\SchemaBuilderPool` |
 | `Api\Product\OfferSummaryInterface` | `forProduct($product)`: `price`, a configurable's `lowPrice` and `highPrice` (when its variants differ) and `availability`, each null when unknown | `Model\Product\OfferSummary` |

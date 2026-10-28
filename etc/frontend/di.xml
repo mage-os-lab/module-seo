@@ -34,4 +34,17 @@
         <plugin name="mageos_seo_remove_theme_microdata" type="MageOS\Seo\Plugin\View\RemoveThemeMicrodata"/>
     </type>
 
+    <!--
+        Without MSI, read stock through core's request cache, which a product load fills, so a
+        product page costs no query for its own product. Storefront only, as MSI's own request cache
+        is: a queue consumer keeps core's cache from one message to the next, so a rebuild could read
+        stock cached before the change that queued it, and a feed build would hold a stock status per
+        product.
+    -->
+    <type name="MageOS\Seo\Model\Product\Stock\CatalogInventoryStockReader">
+        <arguments>
+            <argument name="readThrough" xsi:type="boolean">true</argument>
+        </arguments>
+    </type>
+
 </config>

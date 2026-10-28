@@ -48,6 +48,15 @@
                 type="MageOS\Seo\Model\Product\Variant\VariantImage"/>
 
     <!--
+        Where availability reads stock: MSI's stock index while MSI is installed and enabled,
+        CatalogInventory's otherwise (StockReader chooses). MSI is optional, so no MSI class is named
+        in this module's di.xml or constructors: Model\Product\Stock\MsiStockReader fetches MSI's
+        services when it runs.
+    -->
+    <preference for="MageOS\Seo\Model\Product\Stock\StockReaderInterface"
+                type="MageOS\Seo\Model\Product\Stock\StockReader"/>
+
+    <!--
         The variants the storefront sells, in every area. Core registers these two filters on its
         composite in etc/frontend/di.xml only, so a feed built in the queue or cron area would
         describe disabled and out-of-stock variants. A module that adds a filter to core's frontend
@@ -489,6 +498,7 @@
             <argument name="services" xsi:type="array">
                 <item name="organization" xsi:type="object">MageOS\Seo\Model\OrganizationRepository</item>
                 <item name="availability" xsi:type="object">MageOS\Seo\Model\Product\AvailabilityResolver</item>
+                <item name="msi_stock" xsi:type="object">MageOS\Seo\Model\Product\Stock\MsiStockReader</item>
                 <item name="sitemaps" xsi:type="object">MageOS\Seo\Model\Sitemap\RebuildableSitemaps</item>
                 <item name="hreflang" xsi:type="object">MageOS\Seo\Model\Hreflang\StoreLocaleMap</item>
             </argument>

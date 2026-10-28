@@ -14,6 +14,24 @@ hardcoded version field).
   module replaces in Mage-OS 4.0. Mage-OS 3.x stays on 2.1.
 - **Remove those modules, don't disable them:** `setup:upgrade` drops the `cms_page` columns of a
   disabled module before the import can read them. The docs and the System Message now say so.
+- **MSI is optional** (2.0.0 required it). Composer suggests `magento/module-inventory-sales`,
+  `-sales-api` and `-indexer` instead of requiring them, and `module:disable` no longer refuses to
+  disable them.
+  - While `Magento_InventorySales` and `Magento_InventoryIndexer` are installed and enabled,
+    availability is read from MSI's stock index, as before.
+  - Without them it is read from CatalogInventory's, `cataloginventory_stock_status`. That is the
+    table MSI reads for its default stock, so a website on the default stock gets the same answers.
+  - `setup:di:compile` works with MSI's packages removed: no constructor, parent, interface or
+    di.xml of this module names an MSI class, and a unit test keeps it so.
+  - See [structured-data.md](docs/structured-data.md#without-msi).
+- **`magento/module-inventory-configuration` and `-configuration-api` are no longer required.**
+  Which product types have a quantity of their own is read from CatalogInventory's
+  `getIsQtyTypeIds()`, which is what MSI's check reads too.
+- **Constructor:** `Model\Product\AvailabilityResolver` takes `Model\Product\Stock\StockReaderInterface`
+  in place of `StoreManagerInterface` and MSI's `StockResolverInterface`,
+  `GetStockItemsDataInterface` and `IsSourceItemManagementAllowedForProductTypeInterface`. The class
+  is not `@api`. The availability it gives through `Api\Product\AvailabilityResolverInterface` is
+  unchanged.
 
 ## [2.1.0] — 2026-10-20
 
