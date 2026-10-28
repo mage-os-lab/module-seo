@@ -175,8 +175,20 @@ Without MSI, the storefront reads through core's request cache, `StockRegistrySt
 the page has loaded is answered from it, and what the resolver reads itself, core's
 `StockRegistryPreloader` adds to it. Outside the storefront, as in a feed build, the table is read
 instead. A queue consumer keeps that cache from one message to the next, so a rebuild could read
-stock cached before the change that queued it, and a feed would fill the cache with the catalogue. MSI's own request
-cache is storefront-only for the same reasons.
+stock cached before the change that queued it, and a feed would fill the cache with the catalogue.
+MSI's own request cache is storefront-only for the same reasons.
+
+The cost without MSI, measured on Luma's sample data with the DB profiler, against the same
+catalogue with MSI:
+
+| | Without MSI | With MSI |
+| --- | --- | --- |
+| Simple product page (load, structured data, Open Graph) | 22 queries, none of them the resolver's | 26 |
+| Configurable page, 15 variants | 37 queries, one of them the resolver's read of the variants | 43 |
+| MageOS_Aeo's llms.jsonl, 179 products | 818 queries, 3 of them the resolver's | 821, 6 of them the resolver's |
+
+Without MSI there is no stock to resolve per website, so those lookups go. The availability was the
+same in every case.
 
 One difference from MSI: when not one product of a batch has a stock-status row, MSI falls back to
 the stock items (its code names disabled products). The CatalogInventory reader reports a product
