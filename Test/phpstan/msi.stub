@@ -1,0 +1,84 @@
+<?php
+/**
+ * PHPStan stubs for the MSI types this module uses. MSI is optional (composer `suggest`), so a
+ * standalone install of the module, as CI's static analysis uses, does not have them.
+ *
+ * Copied from MSI's own declarations (magento/module-inventory-sales-api, -inventory-api), keeping
+ * only what Model\Product\Stock\MsiStockReader and its test use: the constants, the methods called,
+ * and getStockId(). The extension-attribute methods are left out: their types are generated. Keep
+ * them in line with MSI's signatures.
+ *
+ * Listed under `scanFiles` in phpstan.neon, which declares symbols that can't be autoloaded
+ * (`stubFiles` only overrides the PHPDoc of classes that exist). Not a .php file, so neither
+ * Magento's compiler nor the autoloader ever loads it.
+ */
+
+namespace Magento\InventorySalesApi\Model {
+
+    use Magento\Framework\Exception\LocalizedException;
+
+    /**
+     * @api
+     */
+    interface GetStockItemsDataInterface
+    {
+        public const SKU = 'sku';
+        public const QUANTITY = 'quantity';
+        public const IS_SALABLE = 'is_salable';
+
+        /**
+         * @param array $skus
+         * @param int $stockId
+         * @return array|null
+         * @throws LocalizedException
+         */
+        public function execute(array $skus, int $stockId): ?array;
+    }
+}
+
+namespace Magento\InventorySalesApi\Api {
+
+    /**
+     * @api
+     */
+    interface StockResolverInterface
+    {
+        /**
+         * @param string $type
+         * @param string $code
+         * @throws \Magento\Framework\Exception\NoSuchEntityException
+         * @return \Magento\InventoryApi\Api\Data\StockInterface
+         */
+        public function execute(string $type, string $code): \Magento\InventoryApi\Api\Data\StockInterface;
+    }
+}
+
+namespace Magento\InventorySalesApi\Api\Data {
+
+    /**
+     * @api
+     */
+    interface SalesChannelInterface extends \Magento\Framework\Api\ExtensibleDataInterface
+    {
+        public const TYPE = 'type';
+        public const CODE = 'code';
+        public const TYPE_WEBSITE = 'website';
+    }
+}
+
+namespace Magento\InventoryApi\Api\Data {
+
+    /**
+     * @api
+     */
+    interface StockInterface extends \Magento\Framework\Api\ExtensibleDataInterface
+    {
+        public const STOCK_ID = 'stock_id';
+        public const NAME = 'name';
+
+        /**
+         * @return int|null
+         */
+        public function getStockId(): ?int;
+    }
+}
