@@ -4,17 +4,14 @@ declare(strict_types=1);
 
 namespace MageOS\Seo\Test\Unit\Model\Product;
 
+use Magento\Catalog\Api\Data\ProductInterface;
 use Magento\Catalog\Model\Product;
 use Magento\CatalogInventory\Api\StockConfigurationInterface;
 use Magento\Framework\Exception\LocalizedException;
-use Magento\InventoryApi\Api\Data\StockInterface;
-use Magento\InventoryConfigurationApi\Model\IsSourceItemManagementAllowedForProductTypeInterface;
-use Magento\InventorySalesApi\Api\StockResolverInterface;
-use Magento\InventorySalesApi\Model\GetStockItemsDataInterface;
-use Magento\Store\Api\Data\WebsiteInterface;
-use Magento\Store\Model\StoreManagerInterface;
 use MageOS\Seo\Model\Product\AvailabilityResolver;
+use MageOS\Seo\Model\Product\Stock\StockReaderInterface;
 use MageOS\Seo\Model\ResourceModel\StockItemManageStock;
+use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
@@ -22,19 +19,12 @@ use Psr\Log\LoggerInterface;
 /**
  * Issue #30: availability from the stock index, as the storefront reads it, telling stock on hand
  * from stock that is only on backorder, a page or a feed page at a time.
+ *
+ * The stock comes from a StockReaderInterface (MSI's index or CatalogInventory's); the readers have
+ * tests of their own.
  */
 class AvailabilityResolverTest extends TestCase
 {
-    /**
-     * @var StoreManagerInterface&Stub
-     */
-    private StoreManagerInterface&Stub $storeManager;
-
-    /**
-     * @var StockResolverInterface&Stub
-     */
-    private StockResolverInterface&Stub $stockResolver;
-
     /**
      * @var StockConfigurationInterface&Stub
      */
@@ -42,33 +32,31 @@ class AvailabilityResolverTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->storeManager       = $this->createStub(StoreManagerInterface::class);
-        $this->stockResolver      = $this->createStub(StockResolverInterface::class);
         $this->stockConfiguration = $this->createStub(StockConfigurationInterface::class);
-
-        $website = $this->createStub(WebsiteInterface::class);
-        $website->method('getCode')->willReturn('base');
-        $this->storeManager->method('getWebsite')->willReturn($website);
-
-        $stock = $this->createStub(StockInterface::class);
-        $stock->method('getStockId')->willReturn(1);
-        $this->stockResolver->method('execute')->willReturn($stock);
-
         $this->stockConfiguration->method('getDefaultScopeId')->willReturn(0);
         $this->stockConfiguration->method('getManageStock')->willReturn(1);
+        // Whether each product type has a quantity of its own, as product_types.xml declares it.
+        $this->stockConfiguration->method('getIsQtyTypeIds')->willReturn([
+            'simple'       => true,
+            'virtual'      => true,
+            'downloadable' => true,
+            'configurable' => false,
+            'bundle'       => false,
+            'grouped'      => false,
+        ]);
     }
 
     public function testEachProductOfABatchGetsItsAvailability(): void
     {
         $resolver = $this->resolver(
             [
-                'on-hand'       => ['quantity' => 4, 'is_salable' => 1],
-                'backorder'     => ['quantity' => 0, 'is_salable' => 1],
-                'below-zero'    => ['quantity' => -3, 'is_salable' => 1],
-                'unmanaged'     => ['quantity' => 0, 'is_salable' => 1],
-                'sold-out'      => ['quantity' => 0, 'is_salable' => 0],
-                'configurable'  => ['quantity' => 0, 'is_salable' => 1],
-                'not-in-stock'  => null,
+                'on-hand'      => ['salable' => true, 'quantity' => 4.0],
+                'backorder'    => ['salable' => true, 'quantity' => 0.0],
+                'below-zero'   => ['salable' => true, 'quantity' => -3.0],
+                'unmanaged'    => ['salable' => true, 'quantity' => 0.0],
+                'sold-out'     => ['salable' => false, 'quantity' => 0.0],
+                'configurable' => ['salable' => true, 'quantity' => 0.0],
+                // 'not-in-stock' has no row.
             ],
             ['backorder' => true, 'below-zero' => null, 'unmanaged' => false]
         );
@@ -104,50 +92,56 @@ class AvailabilityResolverTest extends TestCase
         $manageStock->expects($this->never())->method('forSkus');
 
         $resolver = $this->resolver(
-            ['on-hand' => ['quantity' => 4, 'is_salable' => 1], 'sold-out' => ['quantity' => 0, 'is_salable' => 0]],
+            [
+                'on-hand'  => ['salable' => true, 'quantity' => 4.0],
+                'sold-out' => ['salable' => false, 'quantity' => 0.0],
+            ],
             manageStock: $manageStock
         );
 
         $resolver->resolveMany([$this->product('on-hand'), $this->product('sold-out')]);
     }
 
-    public function testABatchIsOneStockLookup(): void
-    {
-        $getStockItemsData = $this->createMock(GetStockItemsDataInterface::class);
-        $getStockItemsData->expects($this->once())
-            ->method('execute')
-            ->with(['a', 'b', '123'], 1)
-            ->willReturn([]);
-
-        $this->resolver(getStockItemsData: $getStockItemsData)
-            ->resolveMany([$this->product('a'), $this->product('b'), $this->product('123'), $this->product('')]);
-    }
-
-    public function testSkusThatLookNumericAreLookedUpAsStrings(): void
+    public function testManageStockIsLookedUpWithSkusAsStrings(): void
     {
         // As array keys PHP turns "123" into 123; MySQL would compare "0123" with 123 as numbers.
-        $asked             = null;
-        $getStockItemsData = $this->createStub(GetStockItemsDataInterface::class);
-        $getStockItemsData->method('execute')->willReturnCallback(
-            function (array $skus) use (&$asked): array {
-                $asked = $skus;
+        $manageStock = $this->createMock(StockItemManageStock::class);
+        $manageStock->expects($this->once())
+            ->method('forSkus')
+            ->with(['123', '0123'], 0)
+            ->willReturn([]);
+
+        $this->resolver(
+            ['123' => ['salable' => true, 'quantity' => 0.0], '0123' => ['salable' => true, 'quantity' => 0.0]],
+            manageStock: $manageStock
+        )->resolveMany([$this->product('123'), $this->product('0123')]);
+    }
+
+    public function testABatchIsOneStockRead(): void
+    {
+        $asked  = null;
+        $reader = $this->reader();
+        $reader->expects($this->once())
+            ->method('read')
+            ->willReturnCallback(function (array $products) use (&$asked): array {
+                $asked = self::skus($products);
                 return [];
-            }
-        );
+            });
 
-        $this->resolver(getStockItemsData: $getStockItemsData)
-            ->resolveMany([$this->product('123'), $this->product('0123')]);
+        $this->resolver(reader: $reader)
+            ->resolveMany([$this->product('a'), $this->product('b'), $this->product('123'), $this->product('')]);
 
-        $this->assertSame(['123', '0123'], $asked);
+        // Products without a SKU are left out.
+        $this->assertSame(['a', 'b', '123'], $asked);
     }
 
     public function testProductsPrefetchedAlreadyAreNotLookedUpAgain(): void
     {
-        $getStockItemsData = $this->createMock(GetStockItemsDataInterface::class);
-        $getStockItemsData->expects($this->once())
-            ->method('execute')
-            ->willReturn(['a' => ['quantity' => 1, 'is_salable' => 1]]);
-        $resolver = $this->resolver(getStockItemsData: $getStockItemsData);
+        $reader = $this->reader();
+        $reader->expects($this->once())
+            ->method('read')
+            ->willReturn(['a' => ['salable' => true, 'quantity' => 1.0]]);
+        $resolver = $this->resolver(reader: $reader);
 
         $resolver->prefetch([$this->product('a')]);
         $resolver->prefetch([$this->product('a')]);
@@ -155,35 +149,35 @@ class AvailabilityResolverTest extends TestCase
 
     public function testTheBestOfSeveralProductsIsOneLookup(): void
     {
-        $getStockItemsData = $this->createMock(GetStockItemsDataInterface::class);
-        $getStockItemsData->expects($this->once())
-            ->method('execute')
-            ->willReturn(['a' => ['quantity' => 0, 'is_salable' => 0], 'b' => ['quantity' => 3, 'is_salable' => 1]]);
+        $reader = $this->reader();
+        $reader->expects($this->once())
+            ->method('read')
+            ->willReturn([
+                'a' => ['salable' => false, 'quantity' => 0.0],
+                'b' => ['salable' => true, 'quantity' => 3.0],
+            ]);
 
         $this->assertSame(
             AvailabilityResolver::IN_STOCK,
-            $this->resolver(getStockItemsData: $getStockItemsData)->best([$this->product('a'), $this->product('b')])
+            $this->resolver(reader: $reader)->best([$this->product('a'), $this->product('b')])
         );
     }
 
     public function testAProductWithoutASkuIsOutOfStockWithoutALookup(): void
     {
-        $getStockItemsData = $this->createMock(GetStockItemsDataInterface::class);
-        $getStockItemsData->expects($this->never())->method('execute');
+        $reader = $this->reader();
+        $reader->expects($this->never())->method('read');
 
         $this->assertSame(
             AvailabilityResolver::OUT_OF_STOCK,
-            $this->resolver(getStockItemsData: $getStockItemsData)->resolve($this->product(''))
+            $this->resolver(reader: $reader)->resolve($this->product(''))
         );
     }
 
     public function testAFailedBatchThrows(): void
     {
-        $getStockItemsData = $this->createStub(GetStockItemsDataInterface::class);
-        $getStockItemsData->method('execute')->willThrowException(new LocalizedException(__('index gone')));
-
         $this->expectException(LocalizedException::class);
-        $this->resolver(getStockItemsData: $getStockItemsData)->resolveMany([$this->product('a')]);
+        $this->resolver(reader: $this->failingReader())->resolveMany([$this->product('a')]);
     }
 
     /**
@@ -192,23 +186,24 @@ class AvailabilityResolverTest extends TestCase
      */
     public function testAFailedLookupForOneProductIsLoggedAndUnknown(): void
     {
-        $getStockItemsData = $this->createStub(GetStockItemsDataInterface::class);
-        $getStockItemsData->method('execute')->willThrowException(new LocalizedException(__('index gone')));
         $logger = $this->createMock(LoggerInterface::class);
         $logger->expects($this->once())->method('error')->with($this->stringContains('"a"'));
 
         $this->assertNull(
-            $this->resolver(getStockItemsData: $getStockItemsData, logger: $logger)->resolve($this->product('a'))
+            $this->resolver(reader: $this->failingReader(), logger: $logger)->resolve($this->product('a'))
         );
     }
 
     public function testPrefetchedProductsAreResolvedWithoutAnotherLookup(): void
     {
-        $getStockItemsData = $this->createMock(GetStockItemsDataInterface::class);
-        $getStockItemsData->expects($this->once())
-            ->method('execute')
-            ->willReturn(['a' => ['quantity' => 1, 'is_salable' => 1], 'b' => ['quantity' => 0, 'is_salable' => 0]]);
-        $resolver = $this->resolver(getStockItemsData: $getStockItemsData);
+        $reader = $this->reader();
+        $reader->expects($this->once())
+            ->method('read')
+            ->willReturn([
+                'a' => ['salable' => true, 'quantity' => 1.0],
+                'b' => ['salable' => false, 'quantity' => 0.0],
+            ]);
+        $resolver = $this->resolver(reader: $reader);
 
         $resolver->prefetch([$this->product('a'), $this->product('b')]);
 
@@ -222,13 +217,13 @@ class AvailabilityResolverTest extends TestCase
      */
     public function testAFailedPrefetchIsLoggedOnceAndItsProductsAreUnknown(): void
     {
-        $getStockItemsData = $this->createMock(GetStockItemsDataInterface::class);
-        $getStockItemsData->expects($this->once())
-            ->method('execute')
+        $reader = $this->reader();
+        $reader->expects($this->once())
+            ->method('read')
             ->willThrowException(new LocalizedException(__('index gone')));
         $logger = $this->createMock(LoggerInterface::class);
         $logger->expects($this->once())->method('error');
-        $resolver = $this->resolver(getStockItemsData: $getStockItemsData, logger: $logger);
+        $resolver = $this->resolver(reader: $reader, logger: $logger);
 
         $resolver->prefetch([$this->product('a'), $this->product('b')]);
 
@@ -242,20 +237,18 @@ class AvailabilityResolverTest extends TestCase
      */
     public function testTheBestOfProductsSomeOfWhichAreUnknown(): void
     {
-        $getStockItemsData = $this->createStub(GetStockItemsDataInterface::class);
-        $getStockItemsData->method('execute')->willThrowException(new LocalizedException(__('index gone')));
-        $resolver = $this->resolver(getStockItemsData: $getStockItemsData);
-
-        $this->assertNull($resolver->best([$this->product('a'), $this->product('b')]));
+        $this->assertNull(
+            $this->resolver(reader: $this->failingReader())->best([$this->product('a'), $this->product('b')])
+        );
     }
 
     public function testTheBestOfSeveralProducts(): void
     {
         $resolver = $this->resolver(
             [
-                'in'   => ['quantity' => 2, 'is_salable' => 1],
-                'back' => ['quantity' => 0, 'is_salable' => 1],
-                'out'  => ['quantity' => 0, 'is_salable' => 0],
+                'in'   => ['salable' => true, 'quantity' => 2.0],
+                'back' => ['salable' => true, 'quantity' => 0.0],
+                'out'  => ['salable' => false, 'quantity' => 0.0],
             ],
             ['back' => true]
         );
@@ -274,52 +267,66 @@ class AvailabilityResolverTest extends TestCase
 
     public function testResetStateForgetsThePrefetchedAvailability(): void
     {
-        $getStockItemsData = $this->createMock(GetStockItemsDataInterface::class);
-        $getStockItemsData->expects($this->exactly(2))
-            ->method('execute')
-            ->willReturn(['a' => ['quantity' => 1, 'is_salable' => 1]]);
-        $resolver = $this->resolver(getStockItemsData: $getStockItemsData);
+        $reader = $this->reader();
+        $reader->expects($this->exactly(2))
+            ->method('read')
+            ->willReturn(['a' => ['salable' => true, 'quantity' => 1.0]]);
+        $resolver = $this->resolver(reader: $reader);
 
         $resolver->prefetch([$this->product('a')]);
         $resolver->_resetState();
         $resolver->resolve($this->product('a'));
     }
 
-    public function testTheStockIdIsMemoisedPerWebsite(): void
+    /**
+     * What was prefetched for one stock doesn't answer for another: store emulation can move the
+     * resolver to a website on a different MSI stock.
+     */
+    public function testPrefetchedAvailabilityIsPerStock(): void
     {
-        $stock = $this->createStub(StockInterface::class);
-        $stock->method('getStockId')->willReturn(1);
-        $stockResolver = $this->createMock(StockResolverInterface::class);
-        $stockResolver->expects($this->once())->method('execute')->willReturn($stock);
-        $this->stockResolver = $stockResolver;
+        $reader = $this->createMock(StockReaderInterface::class);
+        $reader->method('getCurrentStockId')->willReturnOnConsecutiveCalls(1, 2);
+        $reader->expects($this->exactly(2))
+            ->method('read')
+            ->willReturn(['a' => ['salable' => true, 'quantity' => 1.0]]);
+        $resolver = $this->resolver(reader: $reader);
 
-        $resolver = $this->resolver(['a' => ['quantity' => 1, 'is_salable' => 1]]);
-        $resolver->resolveMany([$this->product('a')]);
-        $resolver->resolveMany([$this->product('a')]);
+        $resolver->prefetch([$this->product('a')]);
+        $resolver->resolve($this->product('a'));
+    }
+
+    public function testTheStockIsTheReaders(): void
+    {
+        $reader = $this->createStub(StockReaderInterface::class);
+        $reader->method('getCurrentStockId')->willReturn(7);
+
+        $this->assertSame(7, $this->resolver(reader: $reader)->getCurrentStockId());
     }
 
     /**
-     * The resolver over stock data (sku => row, or null for no row) and stored manage-stock settings
-     * (sku => managed, or null to follow the configuration, which manages stock).
+     * The resolver over stock rows (sku => row; a SKU without one has no row) and stored
+     * manage-stock settings (sku => managed, or null to follow the configuration, which manages
+     * stock). A SKU that looks numeric is an integer key of $stock, as PHP makes it.
      *
-     * @param array<string, array{quantity: int|float, is_salable: int}|null> $stockData
+     * @param array<array-key, array{salable: bool, quantity: float}> $stock
      * @param array<string, bool|null> $managed
-     * @param GetStockItemsDataInterface|null $getStockItemsData
+     * @param StockReaderInterface|null $reader
      * @param StockItemManageStock|null $manageStock
      * @param LoggerInterface|null $logger
      * @return AvailabilityResolver
      */
     private function resolver(
-        array $stockData = [],
+        array $stock = [],
         array $managed = [],
-        ?GetStockItemsDataInterface $getStockItemsData = null,
+        ?StockReaderInterface $reader = null,
         ?StockItemManageStock $manageStock = null,
         ?LoggerInterface $logger = null
     ): AvailabilityResolver {
-        if ($getStockItemsData === null) {
-            $getStockItemsData = $this->createStub(GetStockItemsDataInterface::class);
-            $getStockItemsData->method('execute')->willReturnCallback(
-                static fn (array $skus): array => array_intersect_key($stockData, array_flip($skus))
+        if ($reader === null) {
+            $reader = $this->createStub(StockReaderInterface::class);
+            $reader->method('getCurrentStockId')->willReturn(1);
+            $reader->method('read')->willReturnCallback(
+                static fn (array $products): array => array_intersect_key($stock, array_flip(self::skus($products)))
             );
         }
         if ($manageStock === null) {
@@ -328,20 +335,49 @@ class AvailabilityResolverTest extends TestCase
                 static fn (array $skus): array => array_intersect_key($managed, array_flip($skus))
             );
         }
-        $productTypes = $this->createStub(IsSourceItemManagementAllowedForProductTypeInterface::class);
-        $productTypes->method('execute')->willReturnCallback(
-            static fn (string $type): bool => \in_array($type, ['simple', 'virtual', 'downloadable'], true)
-        );
 
         return new AvailabilityResolver(
-            $this->storeManager,
-            $this->stockResolver,
-            $getStockItemsData,
-            $productTypes,
+            $reader,
             $manageStock,
             $this->stockConfiguration,
             $logger ?? $this->createStub(LoggerInterface::class)
         );
+    }
+
+    /**
+     * A reader on stock 1, its reads to be set by the test.
+     *
+     * @return StockReaderInterface&MockObject
+     */
+    private function reader(): StockReaderInterface&MockObject
+    {
+        $reader = $this->createMock(StockReaderInterface::class);
+        $reader->method('getCurrentStockId')->willReturn(1);
+
+        return $reader;
+    }
+
+    /**
+     * A reader on stock 1 whose index can't be read.
+     *
+     * @return StockReaderInterface
+     */
+    private function failingReader(): StockReaderInterface
+    {
+        $reader = $this->createStub(StockReaderInterface::class);
+        $reader->method('getCurrentStockId')->willReturn(1);
+        $reader->method('read')->willThrowException(new LocalizedException(__('index gone')));
+
+        return $reader;
+    }
+
+    /**
+     * @param ProductInterface[] $products
+     * @return string[] Their SKUs
+     */
+    private static function skus(array $products): array
+    {
+        return array_map(static fn (ProductInterface $product): string => (string) $product->getSku(), $products);
     }
 
     /**

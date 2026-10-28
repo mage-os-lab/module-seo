@@ -7,12 +7,8 @@ namespace MageOS\Seo\Model\Product;
 use Magento\Catalog\Api\Data\ProductInterface;
 use Magento\CatalogInventory\Api\StockConfigurationInterface;
 use Magento\Framework\ObjectManager\ResetAfterRequestInterface;
-use Magento\InventoryConfigurationApi\Model\IsSourceItemManagementAllowedForProductTypeInterface;
-use Magento\InventorySalesApi\Api\Data\SalesChannelInterface;
-use Magento\InventorySalesApi\Api\StockResolverInterface;
-use Magento\InventorySalesApi\Model\GetStockItemsDataInterface;
-use Magento\Store\Model\StoreManagerInterface;
 use MageOS\Seo\Api\Product\AvailabilityResolverInterface;
+use MageOS\Seo\Model\Product\Stock\StockReaderInterface;
 use MageOS\Seo\Model\ResourceModel\StockItemManageStock;
 use Psr\Log\LoggerInterface;
 
@@ -20,30 +16,34 @@ use Psr\Log\LoggerInterface;
  * The schema.org availability of products on the current website's stock: in stock, on backorder,
  * or out of stock.
  *
- * Read as the storefront reads it. In the frontend and GraphQL areas MSI answers "salable" from the
- * stock index alone (InventoryIndexer's IsProductSalable and AreMultipleProductsSalable replace the
- * condition chain there), without reservations, so the markup says what the page says. The index
- * has a product's salability and quantity; quantity tells stock on hand from stock only on
- * backorder:
+ * Read as the storefront reads it: from the stock index, through Model\Product\Stock\StockReader.
+ * While MSI is installed and enabled that is MSI's index, for the website's stock. In the frontend
+ * and GraphQL areas MSI answers "salable" from it alone (InventoryIndexer's IsProductSalable and
+ * AreMultipleProductsSalable replace the condition chain there), without reservations, so the
+ * markup says what the page says. Without MSI it is CatalogInventory's index, the table MSI reads
+ * for its default stock too. The index has a product's salability and quantity; quantity tells stock
+ * on hand from stock only on backorder:
  * - not salable, or not in the index → OutOfStock;
  * - a product type without a quantity of its own (configurable, bundle, grouped) → InStock: salable
  *   means a child can be bought. Model\Product\OfferBuilder derives a configurable's own
- *   availability from its children where they are loaded;
+ *   availability from its children where they are loaded. Which types have one is `is_qty` in
+ *   product_types.xml, read through CatalogInventory's StockConfigurationInterface::getIsQtyTypeIds(),
+ *   as MSI's IsSourceItemManagementAllowedForProductType reads it;
  * - quantity above zero → InStock;
  * - salable at zero or below → BackOrder when stock is managed, InStock when it isn't.
  *
- * resolveMany() costs one stock-index query for any number of products
- * (GetStockItemsDataInterface, MSI's bulk read), and one more for whether stock is managed, only
- * when some product is salable at zero or below (Model\ResourceModel\StockItemManageStock). On the
- * storefront the index read comes from MSI's request cache, which product collections warm.
+ * resolveMany() costs one stock-index query for any number of products, and one more for whether
+ * stock is managed, only when some product is salable at zero or below
+ * (Model\ResourceModel\StockItemManageStock). On the storefront the index read goes through a
+ * request cache: MSI's, which the product page's own product load fills, its variants included; or,
+ * without MSI, CatalogInventory's StockRegistryStorage, which a product load fills for that product.
  * Before, every product cost MSI's per-SKU condition chain: about six queries each in a feed build.
  *
  * resolve() answers one product from what prefetch() loaded, or as a batch of one.
  * Model\Product\Variant\ProductGroupBuilder prefetches a configurable and its variants together.
  *
- * The stock index is MSI's, so this module requires MSI (review M3, decision D1b): composer.json
- * requires the three modules that implement the interfaces taken here, and `module:disable` refuses
- * to switch them off underneath it.
+ * MSI is optional: composer suggests it, and StockReader reads CatalogInventory's index while
+ * Magento_InventorySales or Magento_InventoryIndexer is missing or disabled.
  */
 class AvailabilityResolver implements AvailabilityResolverInterface, ResetAfterRequestInterface
 {
@@ -53,11 +53,6 @@ class AvailabilityResolver implements AvailabilityResolverInterface, ResetAfterR
     private const SELLABLE = [self::IN_STOCK, self::BACKORDER];
 
     /**
-     * @var array<string, int> website code => stock ID
-     */
-    private array $stockIds = [];
-
-    /**
      * Availability from prefetch(), by "stock ID:SKU"; null where its lookup failed.
      *
      * @var array<string, string|null>
@@ -65,22 +60,16 @@ class AvailabilityResolver implements AvailabilityResolverInterface, ResetAfterR
     private array $prefetched = [];
 
     /**
-     * @param StoreManagerInterface $storeManager
-     * @param StockResolverInterface $stockResolver
-     * @param GetStockItemsDataInterface $getStockItemsData
-     * @param IsSourceItemManagementAllowedForProductTypeInterface $hasOwnQuantity
+     * @param StockReaderInterface $stockReader
      * @param StockItemManageStock $manageStock
      * @param StockConfigurationInterface $stockConfiguration
      * @param LoggerInterface $logger
      */
     public function __construct(
-        private readonly StoreManagerInterface                                $storeManager,
-        private readonly StockResolverInterface                               $stockResolver,
-        private readonly GetStockItemsDataInterface                           $getStockItemsData,
-        private readonly IsSourceItemManagementAllowedForProductTypeInterface $hasOwnQuantity,
-        private readonly StockItemManageStock                                 $manageStock,
-        private readonly StockConfigurationInterface                          $stockConfiguration,
-        private readonly LoggerInterface                                      $logger
+        private readonly StockReaderInterface        $stockReader,
+        private readonly StockItemManageStock        $manageStock,
+        private readonly StockConfigurationInterface $stockConfiguration,
+        private readonly LoggerInterface             $logger
     ) {
     }
 
@@ -144,17 +133,18 @@ class AvailabilityResolver implements AvailabilityResolverInterface, ResetAfterR
 
         // SKUs that look numeric become integer keys; the lookups get them back as the strings
         // they are, or MySQL would compare "0123" with 123 as numbers.
-        $skus      = array_map('strval', array_keys($bySku));
-        $stockData = $this->getStockItemsData->execute($skus, $this->getCurrentStockId());
+        $skus           = array_map('strval', array_keys($bySku));
+        $stock          = $this->stockReader->read(array_values($bySku));
+        $hasOwnQuantity = $this->stockConfiguration->getIsQtyTypeIds();
 
         $availability = [];
         $atOrBelow    = [];
         foreach ($skus as $sku) {
-            $row = $stockData[$sku] ?? null;
-            if (!\is_array($row) || !(bool) ($row[GetStockItemsDataInterface::IS_SALABLE] ?? false)) {
+            $row = $stock[$sku] ?? null;
+            if ($row === null || !$row['salable']) {
                 $availability[$sku] = self::OUT_OF_STOCK;
-            } elseif (!$this->hasOwnQuantity->execute((string) $bySku[$sku]->getTypeId())
-                || (float) ($row[GetStockItemsDataInterface::QUANTITY] ?? 0) > 0
+            } elseif (!(bool) ($hasOwnQuantity[(string) $bySku[$sku]->getTypeId()] ?? false)
+                || $row['quantity'] > 0
             ) {
                 $availability[$sku] = self::IN_STOCK;
             } else {
@@ -189,6 +179,8 @@ class AvailabilityResolver implements AvailabilityResolverInterface, ResetAfterR
      */
     public function prefetch(array $products): void
     {
+        // Kept for the failure below: asking the reader again could fail as the lookup did.
+        $stockId = 0;
         try {
             $stockId = $this->getCurrentStockId();
             // Only what isn't loaded yet: a configurable's offer has already loaded its children by
@@ -216,7 +208,6 @@ class AvailabilityResolver implements AvailabilityResolverInterface, ResetAfterR
                 ),
                 ['exception' => $e]
             );
-            $stockId = $this->stockIds[(string) $this->storeManager->getWebsite()->getCode()] ?? 0;
             foreach ($skus as $sku) {
                 $this->prefetched[$stockId . ':' . $sku] = null;
             }
@@ -246,34 +237,26 @@ class AvailabilityResolver implements AvailabilityResolverInterface, ResetAfterR
     }
 
     /**
-     * Resolve the MSI stock ID serving the current website (memoised per website).
+     * The stock serving the current website: MSI's for the website, or CatalogInventory's one stock.
      *
-     * @throws \Magento\Framework\Exception\LocalizedException
-     * @throws \Magento\Framework\Exception\NoSuchEntityException
+     * @throws \Exception When it cannot be resolved
      * @return int
      */
     public function getCurrentStockId(): int
     {
-        $websiteCode = (string) $this->storeManager->getWebsite()->getCode();
-        if (!isset($this->stockIds[$websiteCode])) {
-            $this->stockIds[$websiteCode] = (int) $this->stockResolver
-                ->execute(SalesChannelInterface::TYPE_WEBSITE, $websiteCode)
-                ->getStockId();
-        }
-
-        return $this->stockIds[$websiteCode];
+        return $this->stockReader->getCurrentStockId();
     }
 
     /**
-     * Drop the memoised stock IDs and prefetched availability.
+     * Drop the prefetched availability.
      *
      * Between requests (worker mode) and between queue messages (Model\Rebuild\BuildFreshness).
+     * Model\Product\Stock\MsiStockReader keeps, and resets, the stock IDs.
      *
      * @return void
      */
     public function _resetState(): void // phpcs:ignore PSR2.Methods.MethodDeclaration.Underscore -- framework interface
     {
-        $this->stockIds   = [];
         $this->prefetched = [];
     }
 }

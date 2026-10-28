@@ -30,6 +30,13 @@
     // through the generated CacheContextFactory, kept apart so Purger, which
     // decides when pages are purged, stays in this run; the purge itself is
     // tested against the real cache by Test/Integration/PageCache.
+    // Product/Stock/CatalogInventoryStockReader builds its criteria through the
+    // generated StockStatusCriteriaInterfaceFactory, so its test carries the
+    // magento-generated group. Product/Stock/MsiStockReader reads MSI, which is
+    // only suggested: MSI's interfaces don't exist in this run, so its test
+    // carries the msi group, excluded below too. Test/Integration/Model/Product/
+    // Stock covers both readers against the real stock index, and StockReader,
+    // which chooses between them, stays in this run.
     "source": {
         "directories": ["Model", "Observer"],
         "excludes": [
@@ -44,6 +51,8 @@
             "OrganizationRepository.php",
             "PageCache/CacheTagCleaner.php",
             "Product/OverrideRepository.php",
+            "Product/Stock/CatalogInventoryStockReader.php",
+            "Product/Stock/MsiStockReader.php",
             "Rebuild/CronExpressionMatcher.php",
             "Review/NativeAggregateRatingProvider.php",
             "Sitemap/FileRemover.php",
@@ -60,7 +69,9 @@
     // never run, so this module's own *Factory classes do not exist and a test that doubles
     // one cannot be built. Those tests are tagged magento-generated and run in the unit job,
     // which runs inside an installation. The classes they cover are excluded above anyway.
-    "testFrameworkOptions": "--exclude-group=magento-generated",
+    // Nor are MSI's packages installed here (composer only suggests them): tests that double
+    // MSI's interfaces are tagged msi, and run in the unit job the same way.
+    "testFrameworkOptions": "--exclude-group=magento-generated,msi",
     // Baseline thresholds; minMsi sits just below the measured MSI so a
     // regression fails CI. Raise it as coverage of the remaining excluded
     // classes (schema/meta providers, llms builders) grows.

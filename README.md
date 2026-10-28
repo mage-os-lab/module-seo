@@ -54,8 +54,12 @@ Every cross-cutting concern is built as an **extensible provider pool** — a se
   whole range and carries no version polyfills: 2.4.7 is the first release with
   `Magento\Framework\ObjectManager\ResetAfterRequestInterface`, which the
   request-scoped services implement directly.
-- Magento MSI (`Inventory*`) modules — a hard dependency: product availability
-  is resolved through the MSI service contracts.
+- Magento MSI (`Inventory*`) modules — optional. While `Magento_InventorySales`
+  and `Magento_InventoryIndexer` are installed and enabled, product availability
+  is read from MSI's stock index for each website's stock; without them, from
+  CatalogInventory's. Composer suggests `magento/module-inventory-sales`,
+  `-sales-api` and `-indexer`
+  ([structured-data.md](docs/structured-data.md#an-offers-availability)).
 
 ---
 

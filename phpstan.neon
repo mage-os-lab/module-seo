@@ -18,5 +18,10 @@ parameters:
         - Ui
         - Test
     treatPhpDocTypesAsCertain: false
+    # MSI is optional (composer suggest), so a standalone install has none of its types: the ones
+    # Model\Product\Stock\MsiStockReader uses are declared here, from MSI's own signatures.
+    # scanFiles, not stubFiles: stubFiles only override the PHPDoc of classes that exist.
+    scanFiles:
+        - Test/phpstan/msi.stub
     parallel:
         maximumNumberOfProcesses: 1

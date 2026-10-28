@@ -113,7 +113,8 @@ MageOS_Aeo's `/llms.jsonl`, so they never disagree.
 
 An offer says what the storefront says. On the storefront MSI answers "salable" from its stock
 index alone (in the frontend and GraphQL areas its own di.xml puts the index-based check in place
-of the full condition chain), so the structured data reads the same index:
+of the full condition chain), so the structured data reads the same index. Without MSI it reads
+CatalogInventory's (see [Without MSI](#without-msi)):
 
 | The stock index has the product | `availability` |
 | --- | --- |
@@ -133,11 +134,17 @@ reserved stays `InStock` on the page and in the markup alike. Google compares th
 page.
 
 `Model\Product\AvailabilityResolver` decides this for every offer. It reads a whole batch of
-products in one query (MSI's `@api` `GetStockItemsDataInterface`), plus one for whether stock is
-managed, only when some product is salable at zero or below. A configurable's variants are read as
-one batch. Before, each product cost MSI's per-product condition chain: outside the storefront
-areas, as in a feed build, a 15-variant configurable took 149 queries, and takes 14 now (Luma's
-WT02, measured with the DB profiler).
+products in one query (MSI's `@api` `GetStockItemsDataInterface`, or CatalogInventory's stock
+statuses without MSI), plus one for whether stock is managed, only when some product is salable at
+zero or below. A configurable's variants are read as one batch. Before, each product cost MSI's
+per-product condition chain: outside the storefront areas, as in a feed build, a 15-variant
+configurable took 149 queries, and takes 14 now (Luma's WT02, measured with the DB profiler).
+
+On the storefront the stock read goes through a request cache, so a product page usually pays
+nothing for it. With MSI, loading the page's product fills MSI's cache for the product and, for a
+configurable, all of its variants (measured on Luma's MH01, 15 variants: the structured data and
+Open Graph read no stock of their own). Without MSI, loading the product fills core's
+`StockRegistryStorage` for that product, and the resolver reads through it.
 
 **When the stock cannot be read, availability is left out**, and the error is logged with its SKU.
 The offer keeps its price and URL, Open Graph has no `product:availability`, and MageOS_Aeo's
@@ -145,6 +152,51 @@ llms.jsonl line has no availability. Saying `OutOfStock` would publish a guess a
 in-stock product would be marked unbuyable for as long as the page stayed cached. A configurable
 takes its best variant among those read; when none of those is sellable and some could not be
 read, its availability is left out too, since a variant not read may be in stock.
+
+### Without MSI
+
+MSI is optional. `Model\Product\Stock\StockReader` chooses where availability reads stock:
+
+- **MSI's stock index**, for the stock the website sells from, while `Magento_InventorySales` and
+  `Magento_InventoryIndexer` are installed and enabled: registered, and enabled in `config.php`, as
+  `ModuleListInterface::getOne()` sees them. `ModuleManager::isEnabled()` would not do: it reads
+  `config.php` alone, and says yes for a package composer has removed.
+- **CatalogInventory's** otherwise: `cataloginventory_stock_status`, the one stock a store without
+  MSI has. It is the table MSI itself reads for its default stock, so a website on the default stock
+  gets the same availability either way.
+
+Both ways of running without MSI work: the packages installed and the modules disabled, or the
+packages removed by a composer `replace`. Nothing in this module names an MSI class where
+`setup:di:compile` resolves it (a constructor, a parent or interface, di.xml), so compile works
+without the packages. `Model\Product\Stock\MsiStockReader` fetches MSI's services from the object
+manager when it runs, and `Test/Unit/Model/Product/Stock/MsiCompileSafetyTest` keeps it that way.
+
+Without MSI, the storefront reads through core's request cache, `StockRegistryStorage`: a product
+the page has loaded is answered from it, and what the resolver reads itself, core's
+`StockRegistryPreloader` adds to it. Outside the storefront, as in a feed build, the table is read
+instead. A queue consumer keeps that cache from one message to the next, so a rebuild could read
+stock cached before the change that queued it, and a feed would fill the cache with the catalogue.
+MSI's own request cache is storefront-only for the same reasons.
+
+The cost without MSI, measured on Luma's sample data with the DB profiler, against the same
+catalogue with MSI:
+
+| | Without MSI | With MSI |
+| --- | --- | --- |
+| Simple product page (load, structured data, Open Graph) | 22 queries, none of them the resolver's | 26 |
+| Configurable page, 15 variants | 37 queries, one of them the resolver's read of the variants | 43 |
+| MageOS_Aeo's llms.jsonl, 179 products | 818 queries, 3 of them the resolver's | 821, 6 of them the resolver's |
+
+Without MSI there is no stock to resolve per website, so those lookups go. The availability was the
+same in every case.
+
+One difference from MSI: when not one product of a batch has a stock-status row, MSI falls back to
+the stock items (its code names disabled products). The CatalogInventory reader reports a product
+without a row as out of stock.
+
+**A stock source of your own:** declare a preference for `Model\Product\Stock\StockReaderInterface`.
+Its `read($products)` returns each product's `salable` and `quantity` by SKU, and
+`getCurrentStockId()` the stock. The interface is not `@api`: its shape may change in any release.
 
 ## An offer's priceValidUntil
 
