@@ -8,6 +8,8 @@ hardcoded version field).
 
 ## [Unreleased]
 
+## [2.2.0] — 2026-10-28
+
 ### Changed
 
 - **Conflicts with `mage-os/module-meta-robots-tag` and `mage-os/module-hreflang`**, which this
