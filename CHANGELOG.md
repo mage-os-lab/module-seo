@@ -8,6 +8,19 @@ hardcoded version field).
 
 ## [Unreleased]
 
+## [2.2.1] — 2026-10-29
+
+### Fixed
+
+- **No `aggregateRating` when a product's reviews carry no rating votes**
+  ([#47](https://github.com/mage-os-lab/module-seo/issues/47)). Magento counts every approved review
+  in a store but averages only their votes, so a store whose reviews have none — no rating is
+  assigned to that store view, or the reviewer picked none — has a review summary of 0. The native
+  provider emitted that as `"ratingValue": "0"` beside `"worstRating": "1"`, which Search Console
+  reports as "Rating value is out of range". It now returns no rating there, as it does for a
+  product with no reviews, so the Product carries no `aggregateRating`. One star is the lowest
+  rating a vote gives, and still comes out as `1`.
+
 ## [2.2.0] — 2026-10-28
 
 ### Changed

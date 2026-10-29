@@ -66,6 +66,26 @@ class NativeAggregateRatingProviderTest extends TestCase
         $this->assertNull($this->provider()->getRating(5, 1));
     }
 
+    public function testReturnsNullWhenTheReviewsCarryNoRatingVotes(): void
+    {
+        // Core's row for approved reviews without votes: counted, but a rating_summary of 0 (#47).
+        $this->row = ['rating_summary' => '0', 'reviews_count' => '3'];
+
+        $this->assertNull($this->provider()->getRating(5, 1));
+    }
+
+    public function testOneStarIsTheWorstRatingNotNoRating(): void
+    {
+        // The lowest summary a vote can give: every vote one star of five.
+        $this->row = ['rating_summary' => '20', 'reviews_count' => '2'];
+
+        $rating = $this->provider()->getRating(5, 1);
+
+        $this->assertNotNull($rating);
+        $this->assertSame('1', $rating['ratingValue']);
+        $this->assertSame($rating['worstRating'], $rating['ratingValue']);
+    }
+
     public function testConvertsPercentageToFiveStarScale(): void
     {
         $this->row = ['rating_summary' => '90', 'reviews_count' => '17'];

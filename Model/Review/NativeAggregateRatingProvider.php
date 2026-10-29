@@ -12,7 +12,8 @@ use MageOS\Seo\Api\AggregateRatingProviderInterface;
  * Aggregate rating from Magento's native, pre-aggregated review_entity_summary table.
  *
  * Low priority so any third-party review bridge overrides it. Returns null when a product has no
- * reviews so a zero-review AggregateRating node is never emitted.
+ * reviews, or has reviews but no rating votes, so an AggregateRating node is only emitted with a
+ * rating in it.
  */
 class NativeAggregateRatingProvider implements AggregateRatingProviderInterface
 {
@@ -43,15 +44,20 @@ class NativeAggregateRatingProvider implements AggregateRatingProviderInterface
         $collection->addStoreFilter($storeId);
 
         /** @var Summary $summary An empty model when this product has no summary row */
-        $summary      = $collection->getFirstItem();
-        $reviewsCount = (int) $summary->getReviewsCount();
+        $summary       = $collection->getFirstItem();
+        $reviewsCount  = (int) $summary->getReviewsCount();
+        $ratingSummary = (float) $summary->getRatingSummary();
 
-        if ($reviewsCount < 1) {
+        // Core counts every approved review but averages only their votes, and writes 0 for a store
+        // where none carries one: no rating is assigned to that store view, or none was picked. One
+        // star is already 20, so 0 means no rating — not a zero-star one, which would sit below
+        // worstRating.
+        if ($reviewsCount < 1 || $ratingSummary <= 0) {
             return null;
         }
 
         // rating_summary is a 0–100 percentage; convert to a 5-star scale.
-        $ratingValue = round(((float) $summary->getRatingSummary()) / 20, 1);
+        $ratingValue = round($ratingSummary / 20, 1);
 
         return [
             'ratingValue' => (string) $ratingValue,
