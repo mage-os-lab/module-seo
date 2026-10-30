@@ -13,6 +13,7 @@ use Magento\Catalog\Test\Fixture\Product as ProductFixture;
 use Magento\Cms\Api\Data\PageInterface;
 use Magento\Cms\Api\PageRepositoryInterface;
 use Magento\Cms\Model\PageFactory;
+use Magento\Framework\App\ResourceConnection;
 use Magento\Store\Model\StoreManagerInterface;
 use Magento\Store\Test\Fixture\Store as StoreFixture;
 use Magento\TestFramework\Fixture\DataFixture;
@@ -179,6 +180,36 @@ class PublishedEntitiesOnlyTest extends TestCase
         $this->assertSame(
             [$defaultStoreId],
             array_keys($this->fetcher()->fetchForEntity(UrlRewriteResource::TYPE_CMS_PAGE, $pageId))
+        );
+    }
+
+    /**
+     * A page without a cms-page rewrite is still an alternate, at its identifier.
+     *
+     * Core serves a CMS page by its identifier with or without a rewrite, and pages imported by the
+     * Data Migration Tool or by SQL never get one (#57).
+     *
+     * @return void
+     */
+    #[DataFixture(StoreFixture::class, as: 'second_store')]
+    public function testACmsPageWithoutARewriteIsAnAlternateAtItsIdentifier(): void
+    {
+        $storeManager   = Bootstrap::getObjectManager()->get(StoreManagerInterface::class);
+        $defaultStoreId = (int) $storeManager->getStore('default')->getId();
+        $secondStoreId  = (int) $this->fixture('second_store')->getId();
+        $pageId         = $this->createPage(true, [$defaultStoreId, $secondStoreId]);
+        $identifier     = Bootstrap::getObjectManager()->get(PageRepositoryInterface::class)
+            ->getById($pageId)->getIdentifier();
+
+        $resource = Bootstrap::getObjectManager()->get(ResourceConnection::class);
+        $resource->getConnection()->delete(
+            $resource->getTableName('url_rewrite'),
+            ['entity_type = ?' => UrlRewriteResource::TYPE_CMS_PAGE, 'entity_id = ?' => $pageId]
+        );
+
+        $this->assertSame(
+            [$defaultStoreId => $identifier, $secondStoreId => $identifier],
+            $this->fetcher()->fetchForEntity(UrlRewriteResource::TYPE_CMS_PAGE, $pageId)
         );
     }
 
