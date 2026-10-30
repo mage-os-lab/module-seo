@@ -8,6 +8,15 @@ hardcoded version field).
 
 ## [Unreleased]
 
+### Fixed
+
+- **`og:description` ignored the meta description on products and categories**
+  ([#51](https://github.com/mage-os/module-seo/issues/51)). A category with an empty description
+  had no `og:description` (or `twitter:description`) even with a meta description set, and a
+  product used its short description, often a bullet list or a spec block, over the meta
+  description written for previews. Both now take the meta description first, as CMS pages already
+  did, and fall back to the fields they used before.
+
 ## [2.2.1] — 2026-10-29
 
 ### Fixed
