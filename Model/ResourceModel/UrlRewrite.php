@@ -8,8 +8,10 @@ use Magento\Catalog\Api\Data\CategoryInterface;
 use Magento\Catalog\Api\Data\ProductInterface;
 use Magento\Catalog\Model\Product\Attribute\Source\Status;
 use Magento\Catalog\Model\Product\Visibility;
+use Magento\Cms\Model\Page;
 use Magento\Eav\Model\Config as EavConfig;
 use Magento\Framework\DB\Select;
+use Magento\Framework\DB\Sql\Expression;
 use Magento\Framework\EntityManager\MetadataPool;
 use Magento\Framework\Model\ResourceModel\Db\Context;
 
@@ -20,6 +22,9 @@ use Magento\Framework\Model\ResourceModel\Db\Context;
  * category or unpublishing a CMS page leaves its url_rewrite row exactly where it was. Listing
  * those rows as hreflang alternates advertises pages that are not public, so every query here
  * joins the entity's own published state at the row's store view.
+ *
+ * CMS pages are read from the page side instead (see cmsSelect()), because core serves a page
+ * by its identifier whether or not it has a rewrite.
  *
  * Products and categories keep that state in EAV, one row per store view with store 0 as the
  * fallback, so each attribute needs a pair of joins and COALESCE between them. The join to the
@@ -86,6 +91,15 @@ class UrlRewrite extends AbstractConnectedResource
             return [];
         }
 
+        if ($entityType === self::TYPE_CMS_PAGE) {
+            $select = $this->cmsSelect()
+                ->where('cms_page.page_id IN (?)', array_map('intval', $entityIds))
+                ->order('cms_page.page_id ASC')
+                ->order('main_table.url_rewrite_id ASC');
+
+            return $this->connection()->fetchAll($select);
+        }
+
         $select = $this->canonicalSelect($entityType, ['entity_id', 'store_id', 'request_path'])
             ->where('main_table.entity_id IN (?)', array_map('intval', $entityIds))
             ->order('main_table.entity_id ASC')
@@ -123,7 +137,7 @@ class UrlRewrite extends AbstractConnectedResource
             return [];
         }
 
-        $select = $this->canonicalSelect(self::TYPE_CMS_PAGE, ['entity_id', 'store_id', 'request_path']);
+        $select = $this->cmsSelect();
         $this->joinCmsTranslationGroup($select);
         $select->where('cms_config.hreflang_group IN (?)', array_values($groups))
             ->order('hreflang_group ASC');
@@ -136,7 +150,7 @@ class UrlRewrite extends AbstractConnectedResource
     /**
      * Join each CMS page's translation group, which lives on the page's global row.
      *
-     * @param Select $select A CMS page canonicalSelect()
+     * @param Select $select A cmsSelect()
      * @return void
      */
     private function joinCmsTranslationGroup(Select $select): void
@@ -155,14 +169,61 @@ class UrlRewrite extends AbstractConnectedResource
      * translation made for that store — and between equals the lowest page ID wins, so the answer
      * never depends on the order rows happen to come back in.
      *
-     * @param Select $select A CMS page canonicalSelect()
+     * @param Select $select A cmsSelect()
      * @return void
      */
     private function orderCmsCandidates(Select $select): void
     {
         $select->columns(['assigned_store_id' => 'cms_page_store.store_id'])
             ->order('assigned_store_id DESC')
-            ->order('main_table.entity_id ASC');
+            ->order('cms_page.page_id ASC');
+    }
+
+    /**
+     * Select over the published CMS pages, one row per page and store view it is served in.
+     *
+     * Core serves a CMS page by its identifier, with or without a URL rewrite: the CMS router
+     * matches the identifier and the core sitemap lists it. Pages imported by the Data Migration
+     * Tool or by SQL have no cms-page rewrite, and saving them later does not add one unless the
+     * identifier or the store views change. So the query starts from the page and its store views,
+     * and takes the canonical rewrite's path where there is one, the identifier where there is not.
+     * Store 0 in cms_page_store means every store view, so the store table expands it.
+     *
+     * @return Select
+     */
+    private function cmsSelect(): Select
+    {
+        return $this->connection()->select()
+            ->from(
+                ['cms_page' => $this->getTable('cms_page')],
+                ['entity_id' => 'cms_page.page_id']
+            )
+            ->join(
+                ['cms_page_store' => $this->getTable('cms_page_store')],
+                'cms_page_store.page_id = cms_page.page_id',
+                []
+            )
+            ->join(
+                ['store' => $this->getTable('store')],
+                'store.store_id > 0 AND cms_page_store.store_id IN (0, store.store_id)',
+                ['store_id' => 'store.store_id']
+            )
+            ->joinLeft(
+                ['main_table' => $this->getMainTable()],
+                implode(' AND ', [
+                    'main_table.entity_id = cms_page.page_id',
+                    'main_table.store_id = store.store_id',
+                    $this->connection()->quoteInto('main_table.entity_type = ?', self::TYPE_CMS_PAGE),
+                    'main_table.redirect_type = 0',
+                    'main_table.is_autogenerated = 1',
+                    'main_table.metadata IS NULL',
+                ]),
+                ['request_path' => new Expression('COALESCE(main_table.request_path, cms_page.identifier)')]
+            )
+            ->where('cms_page.is_active = ?', 1)
+            // The 404 page is served at any unknown URL, never at its identifier.
+            ->where('cms_page.identifier <> ?', Page::NOROUTE_PAGE_ID)
+            ->distinct(true);
     }
 
     /**
@@ -240,21 +301,6 @@ class UrlRewrite extends AbstractConnectedResource
                 );
                 break;
 
-            case self::TYPE_CMS_PAGE:
-                // CMS keeps its state in flat columns, and its own store assignment table, where
-                // store 0 means every store view.
-                $select->join(
-                    ['cms_page' => $this->getTable('cms_page')],
-                    'cms_page.page_id = main_table.entity_id',
-                    []
-                )->join(
-                    ['cms_page_store' => $this->getTable('cms_page_store')],
-                    'cms_page_store.page_id = cms_page.page_id'
-                    . ' AND cms_page_store.store_id IN (0, main_table.store_id)',
-                    []
-                )->where('cms_page.is_active = ?', 1);
-                $select->distinct(true);
-                break;
         }
     }
 

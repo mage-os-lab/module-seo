@@ -149,6 +149,10 @@ In each store view, the group is represented by:
 Only published pages take part: an inactive translation is skipped, and the store view falls back
 to the next candidate.
 
+A page's URL in a store view is its `cms-page` URL rewrite, or its identifier when it has none, as
+core serves it. Pages imported by the Data Migration Tool or by SQL often have no rewrite, and
+saving them does not add one unless the identifier or the store views change.
+
 A group is an identifier: letters, digits, dots, hyphens and underscores, stored lower-case
 (`About-Us` is saved as `about-us`). Anything else is refused with a warning — the page itself is
 still saved. The restriction exists because the group is matched in SQL, where the default

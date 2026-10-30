@@ -8,6 +8,16 @@ hardcoded version field).
 
 ## [Unreleased]
 
+### Fixed
+
+- **CMS pages without a URL rewrite had no hreflang alternates**
+  ([#57](https://github.com/mage-os/module-seo/issues/57)). CMS links were read from `url_rewrite`
+  alone, but core serves a CMS page by its identifier and lists it in the sitemap whether or not it
+  has a rewrite, and pages imported by the Data Migration Tool or by SQL have none. Such a page had
+  no alternates in the head and dropped out of its translation group. CMS paths are now read from
+  the page and its store views, taking the rewrite's path where there is one and the identifier
+  where there is not.
+
 ## [2.2.1] — 2026-10-29
 
 ### Fixed
